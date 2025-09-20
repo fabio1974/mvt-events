@@ -1,12 +1,13 @@
-package com.mvt.mvt_events.controllers;
+package com.mvt.mvt_events.controller;
 
+import com.mvt.mvt_events.dto.EventCreateRequest;
 import com.mvt.mvt_events.jpa.Event;
+import com.mvt.mvt_events.service.EventService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/events")
@@ -24,19 +25,24 @@ public class EventController {
     }
 
     @GetMapping("/{id}")
-    public Event get(@PathVariable UUID id) {
+    public Event get(@PathVariable Long id) {
         return service.get(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Event create(@RequestBody @Valid Event payload) {
-        return service.create(payload);
+    public Event create(@RequestBody @Valid EventCreateRequest request) {
+        return service.create(request);
+    }
+
+    @PutMapping("/{id}")
+    public Event update(@PathVariable Long id, @RequestBody @Valid Event payload) {
+        return service.update(id, payload);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable UUID id) {
+    public void delete(@PathVariable Long id) {
         service.delete(id);
     }
 }

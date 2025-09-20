@@ -1,10 +1,11 @@
-package com.mvt.mvt_events.services;
+package com.mvt.mvt_events.service;
 
-import com.mvt.mvt_events.repositories.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+
+import com.mvt.mvt_events.repository.UserRepository;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {

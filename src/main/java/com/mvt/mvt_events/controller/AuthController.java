@@ -1,8 +1,9 @@
-package com.mvt.mvt_events.controllers;
+package com.mvt.mvt_events.controller;
 
 import com.mvt.mvt_events.common.JwtUtil;
 import com.mvt.mvt_events.jpa.User;
-import com.mvt.mvt_events.repositories.UserRepository;
+import com.mvt.mvt_events.repository.UserRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -54,17 +55,17 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
-        if (userRepository.findByUsername(registerRequest.getUsername()).isPresent()) {
-            return ResponseEntity.badRequest().body("Username is already taken!");
+        if (userRepository.findByUsername(registerRequest.getEmail()).isPresent()) {
+            return ResponseEntity.badRequest().body("Email is already taken!");
         }
 
         User user = new User();
-        user.setUsername(registerRequest.getUsername());
+        user.setUsername(registerRequest.getEmail()); // usar email como username
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-        user.setEmail("user@example.com");
+        user.setEmail(registerRequest.getEmail());
 
-        // If username contains "admin", create as ADMIN role
-        if (registerRequest.getUsername().toLowerCase().contains("admin")) {
+        // If name contains "admin", create as ADMIN role
+        if (registerRequest.getName() != null && registerRequest.getName().toLowerCase().contains("admin")) {
             user.setRole(User.Role.ADMIN);
         } else {
             user.setRole(User.Role.USER);
@@ -75,6 +76,7 @@ public class AuthController {
         Map<String, String> response = new HashMap<>();
         response.put("message", "User registered successfully!");
         response.put("username", user.getUsername());
+        response.put("email", user.getEmail());
         response.put("role", user.getRole().toString());
 
         return ResponseEntity.ok(response);
@@ -113,15 +115,24 @@ public class AuthController {
     }
 
     public static class RegisterRequest {
-        private String username;
+        private String name;
+        private String email;
         private String password;
 
-        public String getUsername() {
-            return username;
+        public String getName() {
+            return name;
         }
 
-        public void setUsername(String username) {
-            this.username = username;
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
         }
 
         public String getPassword() {
@@ -130,6 +141,11 @@ public class AuthController {
 
         public void setPassword(String password) {
             this.password = password;
+        }
+
+        // Para compatibilidade
+        public String getUsername() {
+            return email; // usar email como username
         }
     }
 }

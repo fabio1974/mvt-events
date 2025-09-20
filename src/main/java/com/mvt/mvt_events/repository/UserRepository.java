@@ -1,4 +1,4 @@
-package com.mvt.mvt_events.repositories;
+package com.mvt.mvt_events.repository;
 
 import com.mvt.mvt_events.jpa.User;
 import org.springframework.data.jpa.repository.JpaRepository;
