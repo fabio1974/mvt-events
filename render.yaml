@@ -19,7 +19,7 @@ services:
       
       # JPA Configuration for production
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
-        value: update
+        value: validate
       
       - key: SPRING_JPA_SHOW_SQL
         value: "false"
