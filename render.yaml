@@ -1,9 +1,4 @@
 services:
-  # PostgreSQL Database (Free Tier)
-  - type: pserv
-    name: mvt-events-db
-    plan: free
-
   # Spring Boot Web Service
   - type: web
     name: mvt-events-api
@@ -20,9 +15,7 @@ services:
       
       # Database connection (will be set manually in Render dashboard)
       - key: SPRING_DATASOURCE_URL
-        fromDatabase:
-          name: mvt-events-db
-          property: connectionString
+        value: "jdbc:postgresql://placeholder:5432/placeholder"
       
       # JPA Configuration for production
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
