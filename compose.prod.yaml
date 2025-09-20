@@ -1,0 +1,64 @@
+version: "3.9"
+
+services:
+  # Production application using GHCR image
+  app:
+    image: ghcr.io/fabio1974/mvt-events:main
+    container_name: mvt-events-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Database connection
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/mvt-events
+      SPRING_DATASOURCE_USERNAME: mvt
+      SPRING_DATASOURCE_PASSWORD: mvtpass
+
+      # JPA Configuration
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+
+      # Security (disable for development)
+      SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+
+      # Production optimizations
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # PostgreSQL database
+  db:
+    image: postgres:16-alpine
+    container_name: mvt-events-db
+    environment:
+      POSTGRES_DB: mvt-events
+      POSTGRES_USER: mvt
+      POSTGRES_PASSWORD: mvtpass
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata_mvt_events:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mvt -d mvt-events"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata_mvt_events:

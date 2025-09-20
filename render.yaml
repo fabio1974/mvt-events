@@ -1,0 +1,44 @@
+services:
+  # PostgreSQL Database (Free Tier)
+  - type: pserv
+    name: mvt-events-db
+    plan: free
+
+  # Spring Boot Web Service
+  - type: web
+    name: mvt-events-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    autoDeploy: true
+    branch: main
+    healthCheckPath: /actuator/health
+    envVars:
+      # Spring Boot configuration
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      
+      # Database connection (will be set manually in Render dashboard)
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: mvt-events-db
+          property: connectionString
+      
+      # JPA Configuration for production
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: update
+      
+      - key: SPRING_JPA_SHOW_SQL
+        value: "false"
+      
+      # Disable security for development
+      - key: SPRING_AUTOCONFIGURE_EXCLUDE
+        value: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      
+      # Server configuration
+      - key: SERVER_PORT
+        value: "8080"
+      
+      # JVM options for free tier
+      - key: JAVA_OPTS
+        value: "-Xmx512m -Xms256m"

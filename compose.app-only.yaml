@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+  # Application only - connects to external database
+  app:
+    image: ghcr.io/fabio1974/mvt-events:main
+    container_name: mvt-events-app
+    environment:
+      # Database connection (set via environment variables)
+      SPRING_DATASOURCE_URL: ${DATABASE_URL:-jdbc:postgresql://localhost:5433/mvt-events}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-mvt}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-mvtpass}
+
+      # JPA Configuration
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+
+      # Security (disable for development)
+      SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+
+      # Production optimizations
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+
+      # Server configuration
+      SERVER_PORT: ${PORT:-8080}
+
+      # JVM options
+      JAVA_OPTS: ${JAVA_OPTS:--Xmx512m -Xms256m}
+    ports:
+      - "${PORT:-8080}:8080"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
