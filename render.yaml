@@ -24,10 +24,6 @@ services:
       - key: SPRING_JPA_SHOW_SQL
         value: "false"
       
-      # Disable security for development
-      - key: SPRING_AUTOCONFIGURE_EXCLUDE
-        value: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
-      
       # Server configuration
       - key: SERVER_PORT
         value: "8080"
