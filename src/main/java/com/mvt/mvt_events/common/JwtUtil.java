@@ -2,13 +2,13 @@ package com.mvt.mvt_events.common;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -53,6 +53,14 @@ public class JwtUtil {
     // Generate token for user
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
+
+        // Add authorities/roles to the token
+        List<String> authorities = userDetails.getAuthorities()
+                .stream()
+                .map(authority -> authority.getAuthority())
+                .toList();
+        claims.put("authorities", authorities);
+
         return createToken(claims, userDetails.getUsername());
     }
 
@@ -73,5 +81,12 @@ public class JwtUtil {
     public Boolean validateToken(String token, UserDetails userDetails) {
         final String username = getUsernameFromToken(token);
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+    }
+
+    // Extract authorities from token
+    @SuppressWarnings("unchecked")
+    public List<String> getAuthoritiesFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        return claims.get("authorities", List.class);
     }
 }

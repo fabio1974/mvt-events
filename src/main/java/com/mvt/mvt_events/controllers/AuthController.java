@@ -63,7 +63,7 @@ public class AuthController {
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setEmail("user@example.com");
 
-        // Se o username contiver "admin", criar como ADMIN
+        // If username contains "admin", create as ADMIN role
         if (registerRequest.getUsername().toLowerCase().contains("admin")) {
             user.setRole(User.Role.ADMIN);
         } else {
