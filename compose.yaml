@@ -1,0 +1,20 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: mvt-events-db
+    environment:
+      POSTGRES_DB: mvt-events
+      POSTGRES_USER: mvt
+      POSTGRES_PASSWORD: mvtpass
+    ports:
+      - "5435:5432"
+    volumes:
+      - pgdata_mvt_events:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mvt -d mvt-events"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  pgdata_mvt_events:
