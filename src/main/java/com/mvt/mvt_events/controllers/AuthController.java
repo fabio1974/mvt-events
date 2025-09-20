@@ -63,8 +63,8 @@ public class AuthController {
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setEmail("user@example.com");
 
-        // Se o username for "admin", criar como ADMIN
-        if ("admin".equals(registerRequest.getUsername())) {
+        // Se o username contiver "admin", criar como ADMIN
+        if (registerRequest.getUsername().toLowerCase().contains("admin")) {
             user.setRole(User.Role.ADMIN);
         } else {
             user.setRole(User.Role.USER);
@@ -76,6 +76,16 @@ public class AuthController {
         response.put("message", "User registered successfully!");
         response.put("username", user.getUsername());
         response.put("role", user.getRole().toString());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(Authentication authentication) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("username", authentication.getName());
+        response.put("authorities", authentication.getAuthorities());
+        response.put("principal", authentication.getPrincipal());
 
         return ResponseEntity.ok(response);
     }
