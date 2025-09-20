@@ -13,9 +13,9 @@ services:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
       
-      # Database connection (will be set manually in Render dashboard)
-      - key: SPRING_DATASOURCE_URL
-        value: "jdbc:postgresql://placeholder:5432/placeholder"
+      # Database connection is configured manually in Render dashboard for security
+      # SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD
+      # are set via Render UI to avoid exposing credentials in Git
       
       # JPA Configuration for production
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
@@ -31,3 +31,10 @@ services:
       # JVM options for free tier
       - key: JAVA_OPTS
         value: "-Xmx512m -Xms256m"
+
+# PostgreSQL Database
+databases:
+  - name: mvt-events-db
+    plan: free
+    databaseName: mvt_events
+    user: mvt
