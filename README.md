@@ -159,6 +159,34 @@ SELECT * FROM athletes; -- Only returns athletes for event 123
 - **Render.com deployment** configuration
 - **Health checks** via Spring Boot Actuator
 
+### 🔧 **Troubleshooting**
+
+#### 🚨 **Flyway Checksum Mismatch**
+
+If you encounter migration checksum errors in production:
+
+```bash
+# The platform includes automatic repair for production
+# FlywayConfig.java handles this automatically in @Profile("prod")
+```
+
+**What happens automatically:**
+
+1. **Repair executed**: `flyway.repair()` before migration
+2. **Validation disabled**: No checksum validation in production
+3. **Graceful handling**: Continues even if repair fails
+4. **Logging**: Clear success/failure messages
+
+#### 🔄 **Migration Issues**
+
+```bash
+# Check migration status
+./gradlew flywayInfo
+
+# Manual repair if needed locally
+./gradlew flywayRepair
+```
+
 ## 🔗 **API Endpoints**
 
 ### � **Authentication**

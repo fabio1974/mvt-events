@@ -3,7 +3,6 @@ package com.mvt.mvt_events.config;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.flyway.FlywayMigrationInitializer;
-import org.springframework.boot.autoconfigure.flyway.FlywayProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
@@ -22,12 +21,12 @@ public class FlywayConfig {
     private DataSource dataSource;
 
     @Bean
-    public Flyway flyway(FlywayProperties properties) {
+    public Flyway flyway() {
         Flyway flyway = Flyway.configure()
                 .dataSource(dataSource)
-                .locations(properties.getLocations().toArray(new String[0]))
-                .baselineOnMigrate(properties.isBaselineOnMigrate())
-                .baselineVersion(properties.getBaselineVersion())
+                .locations("classpath:db/migration")
+                .baselineOnMigrate(true)
+                .baselineVersion("0")
                 .validateOnMigrate(false) // Disable validation to allow repair
                 .load();
 
