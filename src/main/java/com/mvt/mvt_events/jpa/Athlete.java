@@ -12,7 +12,11 @@ import java.time.LocalDate;
 @EqualsAndHashCode(callSuper = true)
 public class Athlete extends BaseEntity {
 
-    @Column(nullable = false, unique = true)
+    // Multi-tenant support: referência ao evento como tenant
+    @Column(name = "tenant_id", nullable = false)
+    private Long tenantId;
+
+    @Column(nullable = false)
     private String email;
 
     @Column(nullable = false)

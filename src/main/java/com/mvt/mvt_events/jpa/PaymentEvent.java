@@ -15,6 +15,10 @@ import java.util.Map;
 @EqualsAndHashCode(callSuper = true)
 public class PaymentEvent extends BaseEntity {
 
+    // Multi-tenant support: referência ao evento como tenant
+    @Column(name = "tenant_id", nullable = false)
+    private Long tenantId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;

@@ -29,6 +29,10 @@ public class User implements UserDetails {
     @Column(columnDefinition = "UUID")
     private UUID id;
 
+    // Multi-tenant support: referência ao evento como tenant
+    @Column(name = "tenant_id", nullable = false)
+    private Long tenantId;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

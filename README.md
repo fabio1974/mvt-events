@@ -1,8 +1,16 @@
 # 🏃‍♂️ MVT Events - Sports Events Management Platform
 
-A **comprehensive multi-tenant sports events management platform** built with **Spring Boot 3.5.6**, featuring **JWT authentication**, **PostgreSQL with RLS**, **automated financial management**, and **enterprise-grade architecture**. Designed for organizing and managing sporting events like marathons, cycling races, triathlons, and more.
+A **comprehensive multi-tenant sports events management platform** built with **Spring Boot 3.5.6**, featuring **JWT authentication**, **PostgreSQL with Row Level Security (RLS)**, **automated financial management**, and **enterprise-grade multi-tenancy architecture**. Designed for organizing and managing sporting events like marathons, cycling races, triathlons, and more.
 
 ## 🚀 **Latest Updates**
+
+### 🏗️ **Multi-Tenancy Architecture** (September 2025)
+
+- **🎯 Events-as-Tenants**: Each event operates as an independent tenant
+- **🔒 PostgreSQL RLS**: Row Level Security for automatic data isolation
+- **🌐 Global Organizations**: Shared across all events
+- **🛡️ Automatic Security**: Context-aware database policies
+- **⚡ Performance Optimized**: Composite indexes for multi-tenant queries
 
 ### ✅ **Complete CRUD Implementation** (September 2025)
 
@@ -72,6 +80,40 @@ A **comprehensive multi-tenant sports events management platform** built with **
 - **Results tracking** and performance analytics
 - **Event categories** and participant management
 
+### 🏗️ **Multi-Tenancy Architecture**
+
+Our platform implements a sophisticated **Events-as-Tenants** architecture:
+
+#### 🎯 **Tenant Strategy**
+
+- **Events are Tenants**: Each event operates as an independent data silo
+- **Organizations are Global**: Shared across all events for scalability
+- **Automatic Isolation**: Row Level Security (RLS) policies enforce data separation
+
+#### 🔒 **Security Implementation**
+
+```sql
+-- Set event context at request start
+SELECT set_current_event(123);
+
+-- All queries automatically filtered by tenant_id
+SELECT * FROM athletes; -- Only returns athletes for event 123
+```
+
+#### 📊 **Isolated Entities**
+
+- ✅ **Athletes** - Scoped per event
+- ✅ **Registrations** - Event-specific enrollments
+- ✅ **Payments** - Isolated financial records
+- ✅ **Transfers** - Event-based financial operations
+- ✅ **Users** - Event-context user management
+- ✅ **Event Financials** - Per-event financial tracking
+
+#### 🌐 **Global Entities**
+
+- ✅ **Organizations** - Shared across all events
+- ✅ **Events** - Tenant definitions themselves
+
 ### 💰 **Financial Management System**
 
 - **Automated payment processing** with configurable platform fees
@@ -93,9 +135,21 @@ A **comprehensive multi-tenant sports events management platform** built with **
 
 - **PostgreSQL 16** with Row Level Security (RLS)
 - **Event-as-Tenant strategy** for optimal scalability
-- **Flyway migrations** (5 migration files) with comprehensive schema
+- **Flyway migrations** with multi-tenancy support:
+  - **V1**: Initial schema from production dump
+  - **V2**: Complete multi-tenancy implementation with RLS
 - **Spring Data JPA** with optimized queries
 - **Connection pooling** with HikariCP
+
+#### 🔄 **Migration Strategy**
+
+```bash
+# V1: Initialize complete schema
+./gradlew flywayMigrate -Dflyway.target=1
+
+# V2: Enable multi-tenancy with RLS
+./gradlew flywayMigrate -Dflyway.target=2
+```
 
 ### 🐳 **DevOps & Deployment**
 
@@ -261,6 +315,51 @@ The platform includes a comprehensive financial management system:
 - **TransferSchedulingService**: Automated transfer processing with configurable frequencies
 
 For detailed information, see [FINANCIAL_SYSTEM.md](FINANCIAL_SYSTEM.md).
+
+## 🏗️ **Multi-Tenant Usage Guide**
+
+### 🔄 **Setting Event Context**
+
+Before performing any operations on tenant-scoped data, set the event context:
+
+```java
+// In your service layer
+@Transactional
+public void setEventContext(Long eventId) {
+    jdbcTemplate.execute("SELECT set_current_event(" + eventId + ")");
+}
+
+// Clear context when done (typically in request interceptor)
+@Transactional
+public void clearEventContext() {
+    jdbcTemplate.execute("SELECT clear_current_event()");
+}
+```
+
+### 🛡️ **Automatic Data Isolation**
+
+Once context is set, all queries are automatically filtered:
+
+```java
+// This will only return athletes for the current event
+List<Athlete> athletes = athleteRepository.findAll();
+
+// This will only create registrations for the current event
+Registration registration = registrationRepository.save(newRegistration);
+```
+
+### 🌐 **Global vs Tenant Data**
+
+```java
+// Global entities (no tenant filtering)
+List<Organization> orgs = organizationRepository.findAll(); // All organizations
+List<Event> events = eventRepository.findAll(); // All events
+
+// Tenant-scoped entities (automatically filtered)
+List<Athlete> athletes = athleteRepository.findAll(); // Only current event athletes
+List<Payment> payments = paymentRepository.findAll(); // Only current event payments
+```
+
 │ ├── db/migration/ # Flyway SQL migrations
 │ ├── application.properties # Default config
 │ └── application-prod.properties # Production config

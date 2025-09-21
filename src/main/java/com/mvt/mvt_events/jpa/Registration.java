@@ -1,6 +1,5 @@
 package com.mvt.mvt_events.jpa;
 
-
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -9,10 +8,15 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "registrations", uniqueConstraints = @UniqueConstraint(columnNames = { "event_id", "athlete_id" }))
+@Table(name = "registrations", uniqueConstraints = @UniqueConstraint(columnNames = { "tenant_id", "event_id",
+        "athlete_id" }))
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class Registration extends BaseEntity {
+
+    // Multi-tenant support: referência ao evento como tenant
+    @Column(name = "tenant_id", nullable = false)
+    private Long tenantId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
