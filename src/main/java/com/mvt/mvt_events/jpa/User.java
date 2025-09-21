@@ -29,8 +29,8 @@ public class User implements UserDetails {
     @Column(columnDefinition = "UUID")
     private UUID id;
 
-    // Multi-tenant support: reference to event as tenant
-    @Column(name = "tenant_id", nullable = false)
+    // Multi-tenant support: reference to event as tenant (nullable for global users)
+    @Column(name = "tenant_id", nullable = true)
     private Long tenantId;
 
     @CreationTimestamp
