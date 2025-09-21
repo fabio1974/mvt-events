@@ -277,8 +277,6 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 -- Policy for athletes
 DROP POLICY IF EXISTS event_isolation_athletes ON athletes;
 CREATE POLICY event_isolation_athletes ON athletes
-DROP POLICY IF EXISTS event_isolation_athletes ON athletes;
-CREATE POLICY event_isolation_athletes ON athletes
     FOR ALL
     USING (tenant_id = get_current_event_tenant_id())
     WITH CHECK (tenant_id = get_current_event_tenant_id());
