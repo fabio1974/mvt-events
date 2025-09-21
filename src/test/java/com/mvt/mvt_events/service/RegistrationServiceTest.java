@@ -145,7 +145,7 @@ class RegistrationServiceTest {
         when(athleteRepository.findById(1L)).thenReturn(Optional.of(athlete));
         when(eventRepository.findById(1L)).thenReturn(Optional.of(event));
         when(registrationRepository.existsByAthleteIdAndEventId(1L, 1L)).thenReturn(false);
-        when(registrationRepository.countByEventId(1L)).thenReturn(100L); // Capacidade máxima atingida
+        when(registrationRepository.countByEventId(1L)).thenReturn(100L); // Maximum capacity reached
 
         // When & Then
         RuntimeException exception = assertThrows(

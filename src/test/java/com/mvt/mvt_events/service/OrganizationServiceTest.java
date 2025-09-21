@@ -63,7 +63,7 @@ class OrganizationServiceTest {
     @Test
     void shouldGenerateSlugAutomaticallyFromName() {
         // Given
-        organization.setSlug(null); // Slug não definido
+        organization.setSlug(null); // Slug not defined
         when(organizationRepository.existsBySlug(anyString())).thenReturn(false);
         when(organizationRepository.save(any(Organization.class))).thenAnswer(invocation -> {
             Organization saved = invocation.getArgument(0);

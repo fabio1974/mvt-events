@@ -1,114 +1,114 @@
-# Sistema de Gestão Financeira - MVT Events
+# Financial Management System - MVT Events
 
-## Visão Geral
+## Overview
 
-O sistema de gestão financeira implementado fornece controle completo sobre pagamentos, taxas da plataforma e transferências automáticas para organizadores de eventos esportivos.
+The implemented financial management system provides complete control over payments, platform fees, and automatic transfers for sports event organizers.
 
-## Arquitetura Financeira
+## Financial Architecture
 
-### Estratégia Multi-Tenant
+### Multi-Tenant Strategy
 
-- **Event-as-Tenant**: Cada evento funciona como um tenant isolado
-- **Row Level Security (RLS)**: Isolamento de dados a nível de linha no PostgreSQL
-- **Contexto de Evento**: Segurança baseada no contexto do evento atual
+- **Event-as-Tenant**: Each event functions as an isolated tenant
+- **Row Level Security (RLS)**: Data isolation at the row level in PostgreSQL
+- **Event Context**: Security based on the current event context
 
-### Entidades Principais
+### Main Entities
 
 #### 1. EventFinancials
 
-**Tabela**: `event_financials`
+**Table**: `event_financials`
 
-Consolida informações financeiras por evento:
+Consolidates financial information per event:
 
-- **Receita Total**: Soma de todos os pagamentos recebidos
-- **Taxas da Plataforma**: Percentual cobrado pela plataforma
-- **Receita Líquida**: Valor destinado ao organizador
-- **Valor Pendente**: Quantia aguardando transferência
-- **Valor Transferido**: Total já transferido ao organizador
-- **Frequência de Transferência**: Imediata, diária, semanal, mensal ou sob demanda
+- **Total Revenue**: Sum of all received payments
+- **Platform Fees**: Percentage charged by the platform
+- **Net Revenue**: Amount destined for the organizer
+- **Pending Amount**: Amount awaiting transfer
+- **Transferred Amount**: Total already transferred to the organizer
+- **Transfer Frequency**: Immediate, daily, weekly, monthly, or on-demand
 
 #### 2. Transfer
 
-**Tabela**: `transfers`
+**Table**: `transfers`
 
-Gerencia transferências de valores para organizadores:
+Manages value transfers to organizers:
 
-- **Métodos Suportados**: PIX, TED, Transferência Bancária
-- **Status de Rastreamento**: Pendente, Processando, Concluído, Falhou
-- **Integração com Gateway**: Suporte para múltiplos provedores de pagamento
-- **Retry Logic**: Tentativas automáticas para transferências falhadas
+- **Supported Methods**: PIX, TED, Bank Transfer
+- **Tracking Status**: Pending, Processing, Completed, Failed
+- **Gateway Integration**: Support for multiple payment providers
+- **Retry Logic**: Automatic attempts for failed transfers
 
 #### 3. PaymentEvent
 
-**Tabela**: `payment_events`
+**Table**: `payment_events`
 
-Auditoria completa de eventos financeiros:
+Complete audit of financial events:
 
-- **Tipos de Evento**: Pagamento recebido, estorno, taxa calculada, transferência iniciada
-- **Rastreabilidade**: Log completo de todas as operações financeiras
-- **Metadados**: Informações adicionais em formato JSON
+- **Event Types**: Payment received, refund, fee calculated, transfer initiated
+- **Traceability**: Complete log of all financial operations
+- **Metadata**: Additional information in JSON format
 
 #### 4. Payment
 
-**Tabela**: `payments`
+**Table**: `payments`
 
-Gestão de pagamentos individuais:
+Individual payment management:
 
-- **Status Completo**: Pendente, processando, concluído, falhou, estornado
-- **Métodos de Pagamento**: Cartão, PIX, transferência bancária
-- **Integração Gateway**: Suporte para múltiplos provedores
+- **Complete Status**: Pending, processing, completed, failed, refunded
+- **Payment Methods**: Card, PIX, bank transfer
+- **Gateway Integration**: Support for multiple providers
 
-## Funcionalidades Principais
+## Main Features
 
-### 1. Processamento Automático de Pagamentos
+### 1. Automatic Payment Processing
 
 ```java
-// Exemplo de uso
+// Usage example
 FinancialService.processPayment(payment);
 ```
 
-- Calcula automaticamente a taxa da plataforma
-- Atualiza o valor líquido do organizador
-- Registra eventos de auditoria
-- Agenda próxima transferência
+- Automatically calculates platform fee
+- Updates organizer's net value
+- Records audit events
+- Schedules next transfer
 
-### 2. Transferências Programadas
+### 2. Scheduled Transfers
 
 ```java
-// Frequências suportadas
-TransferFrequency.IMMEDIATE  // Imediata
-TransferFrequency.DAILY      // Diária
-TransferFrequency.WEEKLY     // Semanal
-TransferFrequency.MONTHLY    // Mensal
-TransferFrequency.ON_DEMAND  // Sob demanda
+// Supported frequencies
+TransferFrequency.IMMEDIATE  // Immediate
+TransferFrequency.DAILY      // Daily
+TransferFrequency.WEEKLY     // Weekly
+TransferFrequency.MONTHLY    // Monthly
+TransferFrequency.ON_DEMAND  // On demand
 ```
 
-### 3. Sistema de Retry Automático
+### 3. Automatic Retry System
 
-- **Transferências Falhadas**: Tentativas automáticas a cada 4 horas
-- **Limite de Tentativas**: Máximo 3 tentativas por transferência
-- **Logging Detalhado**: Razão da falha e histórico de tentativas
+- **Failed Transfers**: Automatic attempts every 4 hours
+- **Attempt Limit**: Maximum 3 attempts per transfer
+- **Detailed Logging**: Failure reason and attempt history
 
-### 4. Gateway de Pagamento Mock
+### 4. Mock Payment Gateway
 
-Implementação simulada com:
+Simulated implementation with:
 
-- **Validação PIX**: Verificação de formato de chave PIX
-- **Cálculo de Taxas**: Baseado no método de transferência
-- **Tempo de Processamento**: Estimativas realistas por método
+- **PIX Validation**: PIX key format verification
+- **Fee Calculation**: Based on transfer method
+- **Processing Time**: Realistic estimates per method
 
-## Endpoints da API
+## API Endpoints
 
-### Financeiro - `/api/financial`
+### Financial - `/api/financial`
 
-#### Resumo Financeiro do Evento
+#### Event Financial Summary
 
 ```http
 GET /api/financial/events/{eventId}/summary
 Authorization: Bearer {token}
 ```
 
-#### Criar Transferência Manual
+#### Create Manual Transfer
 
 ```http
 POST /api/financial/events/{eventId}/transfers
@@ -122,89 +122,89 @@ Authorization: Bearer {token}
 }
 ```
 
-#### Calcular Taxa de Transferência
+#### Calculate Transfer Fee
 
 ```http
 GET /api/financial/transfer-fee?amount=100.00&method=PIX
 Authorization: Bearer {token}
 ```
 
-#### Processar Transferências (Admin)
+#### Process Transfers (Admin)
 
 ```http
 POST /api/financial/transfers/process
 Authorization: Bearer {token}
 ```
 
-## Configurações
+## Configuration
 
-### Taxas Padrão
+### Default Fees
 
-- **Taxa da Plataforma**: 5% (configurável por evento)
-- **Valor Mínimo para Transferência**: R$ 10,00
-- **Taxa PIX**: 1% do valor
-- **Taxa TED**: R$ 5,00 fixo
-- **Taxa Transferência Bancária**: R$ 2,50 fixo
+- **Platform Fee**: 5% (configurable per event)
+- **Minimum Transfer Amount**: R$ 10.00
+- **PIX Fee**: 1% of the amount
+- **TED Fee**: R$ 5.00 fixed
+- **Bank Transfer Fee**: R$ 2.50 fixed
 
-### Agendamentos Automáticos
+### Automatic Scheduling
 
-- **Transferências Automáticas**: A cada hora
-- **Transferências Pendentes**: A cada 30 minutos
-- **Retry de Falhas**: A cada 4 horas
+- **Automatic Transfers**: Every hour
+- **Pending Transfers**: Every 30 minutes
+- **Failure Retry**: Every 4 hours
 
-## Segurança
+## Security
 
 ### Row Level Security (RLS)
 
 ```sql
--- Política de isolamento por evento
+-- Event isolation policy
 CREATE POLICY event_financials_isolation ON event_financials
     FOR ALL TO event_organizer
     USING (event_id = current_setting('app.current_event_id', true)::uuid);
 ```
 
-### Autorização JWT
+### JWT Authorization
 
-- **ORGANIZER**: Acesso aos dados do próprio evento
-- **ADMIN**: Acesso completo a todos os dados
-- **Context Aware**: Segurança baseada no contexto do evento
+- **ORGANIZER**: Access to own event data
+- **ADMIN**: Full access to all data
+- **Context Aware**: Security based on event context
 
-## Monitoramento
+## Monitoring
 
-### Logs Detalhados
+### Detailed Logs
 
-- Todas as operações financeiras são logadas
-- Transferências automáticas incluem métricas de desempenho
-- Falhas incluem razão detalhada e stack trace
+- All financial operations are logged
+- Automatic transfers include performance metrics
+- Failures include detailed reason and stack trace
 
-### Métricas Disponíveis
+### Available Metrics
 
-- Total de transferências pendentes
-- Volume total transferido
-- Taxa de sucesso das transferências
-- Tempo médio de processamento
+- Total pending transfers
+- Total transferred volume
+- Transfer success rate
+- Average processing time
 
-## Exemplo de Fluxo Completo
+## Complete Flow Example
 
-1. **Pagamento Recebido**: Sistema processa automaticamente
-2. **Taxa Calculada**: 5% retido pela plataforma
-3. **Valor Líquido**: Adicionado ao saldo pendente do organizador
-4. **Agendamento**: Próxima transferência programada conforme frequência
-5. **Transferência Automática**: Sistema executa no horário programado
-6. **Confirmação**: Gateway confirma sucesso/falha
-7. **Auditoria**: Todos os eventos registrados para compliance
+1. **Payment Received**: System processes automatically
+2. **Fee Calculated**: 5% retained by platform
+3. **Net Value**: Added to organizer's pending balance
+4. **Scheduling**: Next transfer scheduled according to frequency
+5. **Automatic Transfer**: System executes at scheduled time
+6. **Confirmation**: Gateway confirms success/failure
+7. **Audit**: All events recorded for compliance
 
-## Extensibilidade
+## Extensibility
 
-### Novos Gateways de Pagamento
+### New Payment Gateways
 
-Implementar interface `PaymentGatewayService` para adicionar novos provedores.
+Implement `PaymentGatewayService` interface to add new providers.
 
-### Novas Funcionalidades
+### New Features
 
-- Sistema de split payment para múltiplos beneficiários
-- Escrow para eventos com política de reembolso
-- Integração com sistemas de contabilidade
-- Dashboard financeiro em tempo real
+- Split payment system for multiple beneficiaries
+- Escrow for events with refund policy
+- Integration with accounting systems
+- Real-time financial dashboard
 
-Este sistema fornece uma base sólida e escalável para gestão financeira de plataformas de eventos esportivos, com foco em automação, segurança e auditabilidade.
+This system provides a solid and scalable foundation for financial management of sports event platforms, with a focus on automation, security, and auditability.

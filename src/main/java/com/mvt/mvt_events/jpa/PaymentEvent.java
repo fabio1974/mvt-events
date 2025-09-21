@@ -15,7 +15,7 @@ import java.util.Map;
 @EqualsAndHashCode(callSuper = true)
 public class PaymentEvent extends BaseEntity {
 
-    // Multi-tenant support: referência ao evento como tenant
+    // Multi-tenant support: reference to event as tenant
     @Column(name = "tenant_id", nullable = false)
     private Long tenantId;
 

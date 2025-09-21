@@ -91,7 +91,7 @@ class EventServiceTest {
     @Test
     void shouldGenerateSlugAutomaticallyFromName() {
         // Given
-        event.setSlug(null); // Slug não definido
+        event.setSlug(null); // Slug not defined
         when(organizationRepository.findById(1L)).thenReturn(Optional.of(organization));
         when(eventRepository.existsBySlug(anyString())).thenReturn(false);
         when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> {

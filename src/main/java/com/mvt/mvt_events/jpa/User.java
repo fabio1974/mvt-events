@@ -29,7 +29,7 @@ public class User implements UserDetails {
     @Column(columnDefinition = "UUID")
     private UUID id;
 
-    // Multi-tenant support: referência ao evento como tenant
+    // Multi-tenant support: reference to event as tenant
     @Column(name = "tenant_id", nullable = false)
     private Long tenantId;
 

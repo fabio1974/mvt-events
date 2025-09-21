@@ -1,8 +1,8 @@
 # Render Environment Variables
 
-Este projeto usa variáveis de ambiente configuradas diretamente no dashboard do Render para segurança.
+This project uses environment variables configured directly in the Render dashboard for security.
 
-## 🔐 Variáveis Obrigatórias no Render Dashboard:
+## 🔐 Required Variables in Render Dashboard:
 
 ### Database Connection:
 
@@ -10,16 +10,16 @@ Este projeto usa variáveis de ambiente configuradas diretamente no dashboard do
 - `SPRING_DATASOURCE_USERNAME` = `[USERNAME]`
 - `SPRING_DATASOURCE_PASSWORD` = `[PASSWORD]`
 
-### Como configurar:
+### How to configure:
 
-1. Acesse o dashboard do Render
-2. Vá para seu serviço `mvt-events-api`
-3. Clique em "Environment"
-4. Adicione as variáveis manualmente
-5. Faça redeploy
+1. Access the Render dashboard
+2. Go to your `mvt-events-api` service
+3. Click on "Environment"
+4. Add the variables manually
+5. Perform redeploy
 
-## ⚠️ IMPORTANTE:
+## ⚠️ IMPORTANT:
 
-- **NUNCA** commite senhas no Git
-- Use apenas o dashboard do Render para variáveis sensíveis
-- O `render.yaml` não contém credenciais por segurança
+- **NEVER** commit passwords to Git
+- Use only the Render dashboard for sensitive variables
+- The `render.yaml` does not contain credentials for security
