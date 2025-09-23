@@ -2,7 +2,9 @@ package com.mvt.mvt_events.controller;
 
 import com.mvt.mvt_events.common.JwtUtil;
 import com.mvt.mvt_events.jpa.User;
+import com.mvt.mvt_events.jpa.Organization;
 import com.mvt.mvt_events.repository.UserRepository;
+import com.mvt.mvt_events.repository.OrganizationRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +28,9 @@ public class AuthController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private OrganizationRepository organizationRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -63,13 +68,8 @@ public class AuthController {
         user.setUsername(registerRequest.getEmail()); // usar email como username
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setEmail(registerRequest.getEmail());
-
-        // If name contains "admin", create as ADMIN role
-        if (registerRequest.getName() != null && registerRequest.getName().toLowerCase().contains("admin")) {
-            user.setRole(User.Role.ADMIN);
-        } else {
-            user.setRole(User.Role.USER);
-        }
+        user.setName(registerRequest.getName()); // Set the name field
+        user.setRole(User.Role.valueOf(registerRequest.getRole().toUpperCase()));
 
         userRepository.save(user);
 
@@ -90,6 +90,119 @@ public class AuthController {
         response.put("principal", authentication.getPrincipal());
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/user-info")
+    public ResponseEntity<?> getUserInfo(Authentication authentication) {
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", user.getId());
+        response.put("email", user.getEmail());
+        response.put("name", user.getName());
+        response.put("role", user.getRole());
+        response.put("organizationId", user.getOrganization() != null ? user.getOrganization().getId() : null);
+        response.put("organizationName", user.getOrganization() != null ? user.getOrganization().getName() : null);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/users/{userId}/organization")
+    public ResponseEntity<?> updateUserOrganization(@PathVariable String userId,
+            @RequestBody UpdateOrganizationRequest request) {
+        try {
+            java.util.UUID userUuid = java.util.UUID.fromString(userId);
+            User user = userRepository.findById(userUuid)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Update organization
+            if (request.getOrganizationId() != null) {
+                Organization organization = organizationRepository.findById(request.getOrganizationId())
+                        .orElseThrow(() -> new RuntimeException("Organization not found"));
+                user.setOrganization(organization);
+            } else {
+                user.setOrganization(null); // Remove organization
+            }
+
+            userRepository.save(user);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "User organization updated successfully");
+            response.put("userId", user.getId());
+            response.put("organizationId", user.getOrganization() != null ? user.getOrganization().getId() : null);
+            response.put("organizationName", user.getOrganization() != null ? user.getOrganization().getName() : null);
+
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid user ID format");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/users/email/{email}/organization")
+    public ResponseEntity<?> updateUserOrganizationByEmail(@PathVariable String email,
+            @RequestBody UpdateOrganizationRequest request) {
+        try {
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+
+            // Update organization
+            if (request.getOrganizationId() != null) {
+                Organization organization = organizationRepository.findById(request.getOrganizationId())
+                        .orElseThrow(() -> new RuntimeException("Organization not found"));
+                user.setOrganization(organization);
+            } else {
+                user.setOrganization(null); // Remove organization
+            }
+
+            userRepository.save(user);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "User organization updated successfully");
+            response.put("userId", user.getId());
+            response.put("email", user.getEmail());
+            response.put("organizationId", user.getOrganization() != null ? user.getOrganization().getId() : null);
+            response.put("organizationName", user.getOrganization() != null ? user.getOrganization().getName() : null);
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/me/organization")
+    public ResponseEntity<?> updateMyOrganization(Authentication authentication,
+            @RequestBody UpdateOrganizationRequest request) {
+        try {
+            String username = authentication.getName();
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Update organization
+            if (request.getOrganizationId() != null) {
+                Organization organization = organizationRepository.findById(request.getOrganizationId())
+                        .orElseThrow(() -> new RuntimeException("Organization not found"));
+                user.setOrganization(organization);
+            } else {
+                user.setOrganization(null); // Remove organization
+            }
+
+            userRepository.save(user);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Your organization updated successfully");
+            response.put("userId", user.getId());
+            response.put("email", user.getEmail());
+            response.put("organizationId", user.getOrganization() != null ? user.getOrganization().getId() : null);
+            response.put("organizationName", user.getOrganization() != null ? user.getOrganization().getName() : null);
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     // DTOs
@@ -118,6 +231,7 @@ public class AuthController {
         private String name;
         private String email;
         private String password;
+        private String role;
 
         public String getName() {
             return name;
@@ -143,9 +257,29 @@ public class AuthController {
             this.password = password;
         }
 
+        public String getRole() {
+            return role;
+        }
+
+        public void setRole(String role) {
+            this.role = role;
+        }
+
         // Para compatibilidade
         public String getUsername() {
             return email; // usar email como username
+        }
+    }
+
+    public static class UpdateOrganizationRequest {
+        private Long organizationId;
+
+        public Long getOrganizationId() {
+            return organizationId;
+        }
+
+        public void setOrganizationId(Long organizationId) {
+            this.organizationId = organizationId;
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.mvt.mvt_events.common;
 
+import com.mvt.mvt_events.jpa.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -67,6 +68,19 @@ public class JwtUtil {
                 .toList();
         claims.put("authorities", authorities);
 
+        // Add additional user information if userDetails is a User instance
+        if (userDetails instanceof User user) {
+            claims.put("userId", user.getId().toString());
+            claims.put("email", user.getEmail());
+            claims.put("name", user.getName());
+            claims.put("role", user.getRole().name());
+
+            // Add organization_id for ORGANIZER users
+            if (user.getOrganization() != null) {
+                claims.put("organizationId", user.getOrganization().getId());
+            }
+        }
+
         return createToken(claims, userDetails.getUsername());
     }
 
@@ -94,5 +108,41 @@ public class JwtUtil {
     public List<String> getAuthoritiesFromToken(String token) {
         Claims claims = getAllClaimsFromToken(token);
         return claims.get("authorities", List.class);
+    }
+
+    // Extract user ID from token
+    public String getUserIdFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        return claims.get("userId", String.class);
+    }
+
+    // Extract email from token
+    public String getEmailFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        return claims.get("email", String.class);
+    }
+
+    // Extract name from token
+    public String getNameFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        return claims.get("name", String.class);
+    }
+
+    // Extract role from token
+    public String getRoleFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        return claims.get("role", String.class);
+    }
+
+    // Extract organization ID from token
+    public Long getOrganizationIdFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        Object orgId = claims.get("organizationId");
+        return orgId != null ? Long.valueOf(orgId.toString()) : null;
+    }
+
+    // Check if user has organization
+    public boolean hasOrganization(String token) {
+        return getOrganizationIdFromToken(token) != null;
     }
 }
