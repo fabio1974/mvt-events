@@ -33,11 +33,6 @@ public class RegistrationController {
         return service.getByEventId(eventId);
     }
 
-    @GetMapping("/athlete/{athleteId}")
-    public List<Registration> getByAthleteId(@PathVariable Long athleteId) {
-        return service.getByAthleteId(athleteId);
-    }
-
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Registration create(@RequestBody @Valid Registration payload) {

@@ -2,6 +2,7 @@ package com.mvt.mvt_events.common;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
@@ -15,10 +16,15 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    private static final String SECRET = "mvt-events-secret-key-for-jwt-authentication-very-long-secret-key-256-bits";
-    private static final int JWT_TOKEN_VALIDITY = 5 * 60 * 60; // 5 hours
+    @Value("${jwt.secret:mvt-events-secret-key-for-jwt-authentication-very-long-secret-key-256-bits}")
+    private String jwtSecret;
 
-    private final SecretKey key = Keys.hmacShaKeyFor(SECRET.getBytes());
+    @Value("${jwt.expiration:18000}") // 5 hours in seconds
+    private int jwtTokenValidity;
+
+    private SecretKey getSigningKey() {
+        return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+    }
 
     // Retrieve username from jwt token
     public String getUsernameFromToken(String token) {
@@ -38,7 +44,7 @@ public class JwtUtil {
     // For retrieving any information from token we will need the secret key
     private Claims getAllClaimsFromToken(String token) {
         return Jwts.parser()
-                .verifyWith(key)
+                .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
@@ -72,8 +78,8 @@ public class JwtUtil {
                 .claims(claims)
                 .subject(subject)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + JWT_TOKEN_VALIDITY * 1000L))
-                .signWith(key, Jwts.SIG.HS256)
+                .expiration(new Date(System.currentTimeMillis() + jwtTokenValidity * 1000L))
+                .signWith(getSigningKey(), Jwts.SIG.HS256)
                 .compact();
     }
 

@@ -1,95 +1,72 @@
 package com.mvt.mvt_events.jpa;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "registrations", uniqueConstraints = @UniqueConstraint(columnNames = { "tenant_id", "event_id",
-        "athlete_id" }))
-@Data
+@Table(name = "registrations")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class Registration extends BaseEntity {
 
-    // Multi-tenant support: reference to event as tenant
-    @Column(name = "tenant_id", nullable = false)
-    private Long tenantId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user; // Changed from athlete to user
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "athlete_id", nullable = false)
-    private Athlete athlete;
-
-    @Column(length = 100)
-    private String category;
-
-    @Column(name = "team_name")
-    private String teamName;
-
-    @Column(name = "bib_number")
-    private Integer bibNumber;
-
-    @Column(name = "registration_date", updatable = false)
-    private LocalDateTime registrationDate;
+    @Column(name = "registration_date", nullable = false)
+    private LocalDateTime registrationDate = LocalDateTime.now();
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_status", length = 20)
+    @Column(nullable = false)
+    private RegistrationStatus status = RegistrationStatus.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", nullable = false)
     private PaymentStatus paymentStatus = PaymentStatus.PENDING;
 
-    @Column(name = "amount_paid", precision = 10, scale = 2)
-    private BigDecimal amountPaid;
+    @Column(name = "payment_amount", precision = 10, scale = 2)
+    private BigDecimal paymentAmount;
 
-    @Column(name = "payment_method", length = 50)
-    private String paymentMethod;
+    @Column(name = "payment_date")
+    private LocalDateTime paymentDate;
 
-    @Column(name = "special_needs", columnDefinition = "TEXT")
-    private String specialNeeds;
+    @Column(name = "payment_reference")
+    private String paymentReference;
 
-    @Column(name = "t_shirt_size", length = 10)
-    private String tShirtSize;
-
-    @Enumerated(EnumType.STRING)
-    @Column(length = 20)
-    private RegistrationStatus status = RegistrationStatus.ACTIVE;
-
-    // Enums
-    public enum PaymentStatus {
-        PENDING("Pending"),
-        PAID("Paid"),
-        CANCELLED("Cancelled"),
-        REFUNDED("Refunded");
-
-        private final String displayName;
-
-        PaymentStatus(String displayName) {
-            this.displayName = displayName;
-        }
-
-        public String getDisplayName() {
-            return displayName;
-        }
-    }
+    @Column(columnDefinition = "TEXT")
+    private String notes;
 
     public enum RegistrationStatus {
-        ACTIVE("Active"),
-        CANCELLED("Cancelled"),
-        DNS("Did Not Start"),
-        DNF("Did Not Finish");
+        PENDING, ACTIVE, CANCELLED, COMPLETED
+    }
 
-        private final String displayName;
+    public enum PaymentStatus {
+        PENDING, PAID, FAILED, REFUNDED
+    }
 
-        RegistrationStatus(String displayName) {
-            this.displayName = displayName;
-        }
+    // ============================================================================
+    // HELPER METHODS
+    // ============================================================================
 
-        public String getDisplayName() {
-            return displayName;
-        }
+    public boolean isPaid() {
+        return paymentStatus == PaymentStatus.PAID;
+    }
+
+    public boolean isActive() {
+        return status == RegistrationStatus.ACTIVE;
+    }
+
+    public boolean canBeCancelled() {
+        return status == RegistrationStatus.PENDING || status == RegistrationStatus.ACTIVE;
     }
 }

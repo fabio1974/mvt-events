@@ -128,4 +128,24 @@ public class Event extends BaseEntity {
             return displayName;
         }
     }
+
+    public boolean isRegistrationOpen() {
+        if (!registrationOpen) {
+            return false;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        // Check if registration start date has passed
+        if (registrationStartDate != null && now.isBefore(registrationStartDate)) {
+            return false;
+        }
+
+        // Check if registration end date has not passed
+        if (registrationEndDate != null && now.isAfter(registrationEndDate)) {
+            return false;
+        }
+
+        return true;
+    }
 }
