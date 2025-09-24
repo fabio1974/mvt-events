@@ -29,6 +29,21 @@ public class EventController {
         return service.get(id);
     }
 
+    @GetMapping("/organization/{organizationId}")
+    public List<Event> getByOrganizationId(@PathVariable Long organizationId) {
+        return service.findByOrganizationId(organizationId);
+    }
+
+    @GetMapping("/public")
+    public List<Event> getPublicEvents() {
+        return service.findPublishedEvents();
+    }
+
+    @GetMapping("/public/{id}")
+    public Event getPublicEventById(@PathVariable Long id) {
+        return service.findPublishedEventById(id);
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Event create(@RequestBody @Valid EventCreateRequest request) {

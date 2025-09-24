@@ -137,6 +137,12 @@ public class EventService {
         return repository.findByStatus(Event.EventStatus.PUBLISHED);
     }
 
+    public Event findPublishedEventById(Long id) {
+        return repository.findById(id)
+                .filter(event -> event.getStatus() == Event.EventStatus.PUBLISHED)
+                .orElseThrow(() -> new RuntimeException("Evento público não encontrado"));
+    }
+
     public Event publishEvent(Long id) {
         Event event = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Evento não encontrado"));

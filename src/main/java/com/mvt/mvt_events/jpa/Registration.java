@@ -1,6 +1,8 @@
 package com.mvt.mvt_events.jpa;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -15,10 +17,12 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 public class Registration extends BaseEntity {
 
+    @NotNull(message = "User is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user; // Changed from athlete to user
 
+    @NotNull(message = "Event is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
@@ -34,6 +38,7 @@ public class Registration extends BaseEntity {
     @Column(name = "payment_status", nullable = false)
     private PaymentStatus paymentStatus = PaymentStatus.PENDING;
 
+    @PositiveOrZero(message = "Payment amount must be zero or positive")
     @Column(name = "payment_amount", precision = 10, scale = 2)
     private BigDecimal paymentAmount;
 
