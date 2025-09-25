@@ -12,6 +12,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/events")
 public class EventController {
+    @GetMapping("/stats")
+    public Object getStats() {
+        // TODO: Replace Object with your StatsResponse DTO
+        // Example implementation:
+        return service.getStats();
+    }
 
     private final EventService service;
 

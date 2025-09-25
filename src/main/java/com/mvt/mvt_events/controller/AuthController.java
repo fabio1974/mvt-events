@@ -60,14 +60,13 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
-        if (userRepository.findByUsername(registerRequest.getEmail()).isPresent()) {
+        if (userRepository.findByUsername(registerRequest.getUsername()).isPresent()) {
             return ResponseEntity.badRequest().body("Email is already taken!");
         }
 
         User user = new User();
-        user.setUsername(registerRequest.getEmail()); // usar email como username
+        user.setUsername(registerRequest.getUsername()); // usar email como username
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-        user.setEmail(registerRequest.getEmail());
         user.setName(registerRequest.getName()); // Set the name field
         user.setRole(User.Role.valueOf(registerRequest.getRole().toUpperCase()));
 
@@ -76,7 +75,6 @@ public class AuthController {
         Map<String, String> response = new HashMap<>();
         response.put("message", "User registered successfully!");
         response.put("username", user.getUsername());
-        response.put("email", user.getEmail());
         response.put("role", user.getRole().toString());
 
         return ResponseEntity.ok(response);
@@ -100,7 +98,7 @@ public class AuthController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("id", user.getId());
-        response.put("email", user.getEmail());
+        response.put("username", user.getUsername());
         response.put("name", user.getName());
         response.put("role", user.getRole());
         response.put("organizationId", user.getOrganization() != null ? user.getOrganization().getId() : null);
@@ -146,7 +144,7 @@ public class AuthController {
     public ResponseEntity<?> updateUserOrganizationByEmail(@PathVariable String email,
             @RequestBody UpdateOrganizationRequest request) {
         try {
-            User user = userRepository.findByEmail(email)
+            User user = userRepository.findByUsername(email)
                     .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
 
             // Update organization
@@ -163,7 +161,7 @@ public class AuthController {
             Map<String, Object> response = new HashMap<>();
             response.put("message", "User organization updated successfully");
             response.put("userId", user.getId());
-            response.put("email", user.getEmail());
+            response.put("username", user.getUsername());
             response.put("organizationId", user.getOrganization() != null ? user.getOrganization().getId() : null);
             response.put("organizationName", user.getOrganization() != null ? user.getOrganization().getName() : null);
 
@@ -195,9 +193,75 @@ public class AuthController {
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Your organization updated successfully");
             response.put("userId", user.getId());
-            response.put("email", user.getEmail());
+            response.put("username", user.getUsername());
             response.put("organizationId", user.getOrganization() != null ? user.getOrganization().getId() : null);
             response.put("organizationName", user.getOrganization() != null ? user.getOrganization().getName() : null);
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(Authentication authentication,
+            @RequestBody ChangePasswordRequest request) {
+        try {
+            String username = authentication.getName();
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Verify current password
+            if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+                return ResponseEntity.badRequest().body("Current password is incorrect");
+            }
+
+            // Validate new password
+            if (request.getNewPassword() == null || request.getNewPassword().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("New password cannot be empty");
+            }
+
+            if (request.getNewPassword().length() < 4) {
+                return ResponseEntity.badRequest().body("New password must be at least 4 characters long");
+            }
+
+            // Update password
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            userRepository.save(user);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Password changed successfully");
+            response.put("username", user.getUsername());
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+        try {
+            // Find user by email
+            User user = userRepository.findByUsername(request.getUsername())
+                    .orElseThrow(() -> new RuntimeException("User not found with email: " + request.getUsername()));
+
+            // Validate new password
+            if (request.getNewPassword() == null || request.getNewPassword().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("New password cannot be empty");
+            }
+
+            if (request.getNewPassword().length() < 4) {
+                return ResponseEntity.badRequest().body("New password must be at least 4 characters long");
+            }
+
+            // Update password (without requiring current password)
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            userRepository.save(user);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Password reset successfully");
+            response.put("username", user.getUsername());
 
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
@@ -229,7 +293,7 @@ public class AuthController {
 
     public static class RegisterRequest {
         private String name;
-        private String email;
+        private String username;
         private String password;
         private String role;
 
@@ -241,12 +305,12 @@ public class AuthController {
             this.name = name;
         }
 
-        public String getEmail() {
-            return email;
+        public String getUsername() {
+            return username;
         }
 
-        public void setEmail(String email) {
-            this.email = email;
+        public void setUsername(String username) {
+            this.username = username;
         }
 
         public String getPassword() {
@@ -264,11 +328,6 @@ public class AuthController {
         public void setRole(String role) {
             this.role = role;
         }
-
-        // Para compatibilidade
-        public String getUsername() {
-            return email; // usar email como username
-        }
     }
 
     public static class UpdateOrganizationRequest {
@@ -280,6 +339,48 @@ public class AuthController {
 
         public void setOrganizationId(Long organizationId) {
             this.organizationId = organizationId;
+        }
+    }
+
+    public static class ChangePasswordRequest {
+        private String currentPassword;
+        private String newPassword;
+
+        public String getCurrentPassword() {
+            return currentPassword;
+        }
+
+        public void setCurrentPassword(String currentPassword) {
+            this.currentPassword = currentPassword;
+        }
+
+        public String getNewPassword() {
+            return newPassword;
+        }
+
+        public void setNewPassword(String newPassword) {
+            this.newPassword = newPassword;
+        }
+    }
+
+    public static class ResetPasswordRequest {
+        private String username;
+        private String newPassword;
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+
+        public String getNewPassword() {
+            return newPassword;
+        }
+
+        public void setNewPassword(String newPassword) {
+            this.newPassword = newPassword;
         }
     }
 }

@@ -10,77 +10,70 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
 
-    Optional<User> findByUsername(String username);
-    
-    Optional<User> findByEmail(String email);
-    
-    boolean existsByUsername(String username);
-    
-    boolean existsByEmail(String email);
-    
-    boolean existsByDocumentNumber(String documentNumber);
+       Optional<User> findByUsername(String username);
 
-    // ============================================================================
-    // ROLE-BASED QUERIES
-    // ============================================================================
+       boolean existsByUsername(String username);
 
-    @Query("SELECT u FROM User u WHERE u.role = :role")
-    List<User> findByRole(@Param("role") User.Role role);
+       boolean existsByDocumentNumber(String documentNumber);
 
-    @Query("SELECT u FROM User u WHERE u.role = 'USER'")
-    List<User> findAllAthletes();
+       // ============================================================================
+       // ROLE-BASED QUERIES
+       // ============================================================================
 
-    @Query("SELECT u FROM User u WHERE u.role = 'ORGANIZER'")
-    List<User> findAllOrganizers();
+       @Query("SELECT u FROM User u WHERE u.role = :role")
+       List<User> findByRole(@Param("role") User.Role role);
 
-    @Query("SELECT u FROM User u WHERE u.role = 'ADMIN'")
-    List<User> findAllAdmins();
+       @Query("SELECT u FROM User u WHERE u.role = 'USER'")
+       List<User> findAllAthletes();
 
-    // ============================================================================
-    // ORGANIZATION-BASED QUERIES
-    // ============================================================================
+       @Query("SELECT u FROM User u WHERE u.role = 'ORGANIZER'")
+       List<User> findAllOrganizers();
 
-    @Query("SELECT u FROM User u WHERE u.organization.id = :organizationId")
-    List<User> findByOrganizationId(@Param("organizationId") Long organizationId);
+       @Query("SELECT u FROM User u WHERE u.role = 'ADMIN'")
+       List<User> findAllAdmins();
 
-    @Query("SELECT u FROM User u WHERE u.role = 'ORGANIZER' AND u.organization.id = :organizationId")
-    List<User> findOrganizersByOrganizationId(@Param("organizationId") Long organizationId);
+       // ============================================================================
+       // ORGANIZATION-BASED QUERIES
+       // ============================================================================
 
-    // ============================================================================
-    // ATHLETE-SPECIFIC QUERIES (for users with athlete data)
-    // ============================================================================
+       @Query("SELECT u FROM User u WHERE u.organization.id = :organizationId")
+       List<User> findByOrganizationId(@Param("organizationId") Long organizationId);
 
-    @Query("SELECT u FROM User u WHERE u.documentNumber = :documentNumber")
-    Optional<User> findByDocumentNumber(@Param("documentNumber") String documentNumber);
+       @Query("SELECT u FROM User u WHERE u.role = 'ORGANIZER' AND u.organization.id = :organizationId")
+       List<User> findOrganizersByOrganizationId(@Param("organizationId") Long organizationId);
 
-    @Query("SELECT u FROM User u WHERE u.gender = :gender")
-    List<User> findByGender(@Param("gender") User.Gender gender);
+       // ============================================================================
+       // ATHLETE-SPECIFIC QUERIES (for users with athlete data)
+       // ============================================================================
 
-    @Query("SELECT u FROM User u WHERE u.city = :city")
-    List<User> findByCity(@Param("city") String city);
+       @Query("SELECT u FROM User u WHERE u.documentNumber = :documentNumber")
+       Optional<User> findByDocumentNumber(@Param("documentNumber") String documentNumber);
 
-    @Query("SELECT u FROM User u WHERE u.state = :state")
-    List<User> findByState(@Param("state") String state);
+       @Query("SELECT u FROM User u WHERE u.gender = :gender")
+       List<User> findByGender(@Param("gender") User.Gender gender);
 
-    @Query("SELECT u FROM User u WHERE u.country = :country")
-    List<User> findByCountry(@Param("country") String country);
+       @Query("SELECT u FROM User u WHERE u.city = :city")
+       List<User> findByCity(@Param("city") String city);
 
-    // ============================================================================
-    // SEARCH QUERIES
-    // ============================================================================
+       @Query("SELECT u FROM User u WHERE u.state = :state")
+       List<User> findByState(@Param("state") String state);
 
-    @Query("SELECT u FROM User u WHERE " +
-           "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(u.username) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
-    List<User> searchUsers(@Param("searchTerm") String searchTerm);
+       @Query("SELECT u FROM User u WHERE u.country = :country")
+       List<User> findByCountry(@Param("country") String country);
 
-    @Query("SELECT u FROM User u WHERE u.role = 'USER' AND " +
-           "(LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
-    List<User> searchAthletes(@Param("searchTerm") String searchTerm);
+       // ============================================================================
+       // SEARCH QUERIES
+       // ============================================================================
+
+       @Query("SELECT u FROM User u WHERE " +
+                     "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+                     "LOWER(u.username) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
+       List<User> searchUsers(@Param("searchTerm") String searchTerm);
+
+       @Query("SELECT u FROM User u WHERE u.role = 'USER' AND " +
+                     "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
+       List<User> searchAthletes(@Param("searchTerm") String searchTerm);
 }

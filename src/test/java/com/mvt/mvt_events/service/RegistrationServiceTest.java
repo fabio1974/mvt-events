@@ -51,8 +51,7 @@ class RegistrationServiceTest {
         user = new User();
         user.setId(userId);
         user.setName("Carlos Silva");
-        user.setEmail("carlos.silva@email.com");
-        user.setUsername("carlos.silva");
+        user.setUsername("carlos.silva@email.com");
         user.setRole(User.Role.USER);
         user.setEnabled(true);
 
@@ -299,7 +298,7 @@ class RegistrationServiceTest {
         User organizer = new User();
         organizer.setId(UUID.randomUUID());
         organizer.setName("Maria Organizer");
-        organizer.setEmail("maria@org.com");
+        organizer.setUsername("maria@org.com");
         organizer.setRole(User.Role.ORGANIZER);
         organizer.setEnabled(true);
 

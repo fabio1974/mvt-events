@@ -71,7 +71,6 @@ public class JwtUtil {
         // Add additional user information if userDetails is a User instance
         if (userDetails instanceof User user) {
             claims.put("userId", user.getId().toString());
-            claims.put("email", user.getEmail());
             claims.put("name", user.getName());
             claims.put("role", user.getRole().name());
 
@@ -114,12 +113,6 @@ public class JwtUtil {
     public String getUserIdFromToken(String token) {
         Claims claims = getAllClaimsFromToken(token);
         return claims.get("userId", String.class);
-    }
-
-    // Extract email from token
-    public String getEmailFromToken(String token) {
-        Claims claims = getAllClaimsFromToken(token);
-        return claims.get("email", String.class);
     }
 
     // Extract name from token

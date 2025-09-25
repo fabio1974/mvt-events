@@ -17,6 +17,19 @@ import java.util.Optional;
 @Service
 @Transactional
 public class EventService {
+    public java.util.Map<String, Integer> getStats() {
+        int total = list().size();
+        int active = (int) list().stream().filter(e -> "PUBLISHED".equalsIgnoreCase(e.getStatus().name())).count();
+        int finished = (int) list().stream().filter(e -> "COMPLETED".equalsIgnoreCase(e.getStatus().name())).count();
+        int cancelled = (int) list().stream().filter(e -> "CANCELLED".equalsIgnoreCase(e.getStatus().name())).count();
+
+        java.util.Map<String, Integer> stats = new java.util.HashMap<>();
+        stats.put("total", total);
+        stats.put("active", active);
+        stats.put("finished", finished);
+        stats.put("cancelled", cancelled);
+        return stats;
+    }
 
     private final EventRepository repository;
     private final OrganizationRepository organizationRepository;

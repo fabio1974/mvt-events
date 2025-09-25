@@ -1,6 +1,7 @@
 package com.mvt.mvt_events.jpa;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -38,11 +39,9 @@ public class User implements UserDetails {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Email(message = "Username must be a valid email")
     @Column(unique = true, nullable = false)
     private String username;
-
-    @Column(unique = true, nullable = false)
-    private String email;
 
     @Column(nullable = false)
     private String password;
@@ -161,9 +160,8 @@ public class User implements UserDetails {
     // CONSTRUCTORS
     // ============================================================================
 
-    public User(String username, String email, String password, Role role) {
+    public User(String username, String password, Role role) {
         this.username = username;
-        this.email = email;
         this.password = password;
         this.role = role;
         this.enabled = true;

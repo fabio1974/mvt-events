@@ -58,10 +58,6 @@ public class OrganizationService {
         // Update fields
         if (organizationData.getName() != null)
             existing.setName(organizationData.getName());
-        if (organizationData.getSlug() != null)
-            existing.setSlug(organizationData.getSlug());
-        if (organizationData.getContactEmail() != null)
-            existing.setContactEmail(organizationData.getContactEmail());
         if (organizationData.getPhone() != null)
             existing.setPhone(organizationData.getPhone());
         if (organizationData.getWebsite() != null)
