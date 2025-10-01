@@ -32,7 +32,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/events/public", "/api/events/public/**").permitAll()
-                        .requestMatchers("/api/payments/webhooks/**").permitAll() // Permitir webhooks
+                        .requestMatchers("/api/webhooks/**").permitAll() // Permitir todos os webhooks
+                        .requestMatchers("/api/payments/webhooks/**").permitAll() // Permitir webhooks de pagamento
                         .requestMatchers("/api/payments/methods").permitAll() // Permitir consulta de métodos
                         .requestMatchers("/api/payments/calculate-fee").permitAll() // Permitir cálculo de taxa
                         .requestMatchers("/actuator/health").permitAll()

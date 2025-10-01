@@ -21,7 +21,8 @@ public class RegistrationController {
     private final UserService userService;
     private final RegistrationMapperService mapperService;
 
-    public RegistrationController(RegistrationService service, UserService userService, RegistrationMapperService mapperService) {
+    public RegistrationController(RegistrationService service, UserService userService,
+            RegistrationMapperService mapperService) {
         this.service = service;
         this.userService = userService;
         this.mapperService = mapperService;

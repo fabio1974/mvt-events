@@ -8,6 +8,10 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Service responsible for mapping Registration entities to DTOs
+ * to avoid circular references and provide clean API responses
+ */
 @Service
 public class RegistrationMapperService {
 
