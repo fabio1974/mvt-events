@@ -1,5 +1,6 @@
 package com.mvt.mvt_events.service;
 
+import com.mvt.mvt_events.exception.RegistrationConflictException;
 import com.mvt.mvt_events.jpa.Registration;
 import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.jpa.Event;
@@ -42,7 +43,7 @@ public class RegistrationService {
 
         // Check if user is already registered for this event
         if (registrationRepository.existsByUserIdAndEventId(user.getId(), event.getId())) {
-            throw new RuntimeException("Usuário já está inscrito neste evento");
+            throw new RegistrationConflictException("Usuário já está inscrito neste evento");
         }
 
         // Check registration period - check specific dates first for detailed error
@@ -72,9 +73,9 @@ public class RegistrationService {
         if (registration.getStatus() == null) {
             registration.setStatus(Registration.RegistrationStatus.PENDING);
         }
-        if (registration.getPaymentStatus() == null) {
-            registration.setPaymentStatus(Registration.PaymentStatus.PENDING);
-        }
+
+        // Set tenant_id = event_id (multitenancy requirement)
+        registration.setTenantId(event.getId());
 
         return registrationRepository.save(registration);
     }
@@ -84,7 +85,7 @@ public class RegistrationService {
     }
 
     public Registration get(Long id) {
-        return registrationRepository.findById(id)
+        return registrationRepository.findByIdWithUserEventAndPayments(id)
                 .orElseThrow(() -> new RuntimeException("Inscrição não encontrada"));
     }
 
@@ -93,21 +94,7 @@ public class RegistrationService {
     }
 
     public List<Registration> findByUserId(UUID userId) {
-        return registrationRepository.findByUserId(userId);
-    }
-
-    public Registration updatePaymentStatus(Long id, Registration.PaymentStatus paymentStatus) {
-        Registration registration = get(id);
-        registration.setPaymentStatus(paymentStatus);
-
-        if (paymentStatus == Registration.PaymentStatus.PAID) {
-            registration.setPaymentDate(LocalDateTime.now());
-            registration.setStatus(Registration.RegistrationStatus.ACTIVE);
-        } else if (paymentStatus == Registration.PaymentStatus.FAILED) {
-            registration.setStatus(Registration.RegistrationStatus.CANCELLED);
-        }
-
-        return registrationRepository.save(registration);
+        return registrationRepository.findByUserIdWithUserEventAndPayments(userId);
     }
 
     public Registration updateStatus(Long id, Registration.RegistrationStatus status) {
@@ -120,23 +107,11 @@ public class RegistrationService {
         Registration existing = get(id);
 
         // Update allowed fields
-        if (payload.getPaymentAmount() != null) {
-            existing.setPaymentAmount(payload.getPaymentAmount());
-        }
-        if (payload.getPaymentReference() != null) {
-            existing.setPaymentReference(payload.getPaymentReference());
-        }
         if (payload.getNotes() != null) {
             existing.setNotes(payload.getNotes());
         }
         if (payload.getStatus() != null) {
             existing.setStatus(payload.getStatus());
-        }
-        if (payload.getPaymentStatus() != null) {
-            existing.setPaymentStatus(payload.getPaymentStatus());
-            if (payload.getPaymentStatus() == Registration.PaymentStatus.PAID) {
-                existing.setPaymentDate(LocalDateTime.now());
-            }
         }
 
         return registrationRepository.save(existing);
@@ -156,6 +131,13 @@ public class RegistrationService {
     public void delete(Long id) {
         Registration registration = get(id);
         registrationRepository.delete(registration);
+    }
+
+    /**
+     * Save a registration entity to the database
+     */
+    public Registration save(Registration registration) {
+        return registrationRepository.save(registration);
     }
 
     // Backward compatibility methods

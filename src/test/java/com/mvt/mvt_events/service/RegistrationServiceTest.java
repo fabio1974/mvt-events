@@ -68,7 +68,6 @@ class RegistrationServiceTest {
         registration.setId(1L);
         registration.setUser(user);
         registration.setEvent(event);
-        registration.setPaymentStatus(Registration.PaymentStatus.PENDING);
     }
 
     @Test
@@ -87,7 +86,6 @@ class RegistrationServiceTest {
         assertNotNull(result);
         assertEquals(user, result.getUser());
         assertEquals(event, result.getEvent());
-        assertEquals(Registration.PaymentStatus.PENDING, result.getPaymentStatus());
 
         verify(userRepository).findById(userId);
         verify(eventRepository).findById(1L);
@@ -249,7 +247,7 @@ class RegistrationServiceTest {
     void shouldFindRegistrationsByUserId() {
         // Given
         List<Registration> registrations = Arrays.asList(registration);
-        when(registrationRepository.findByUserId(userId)).thenReturn(registrations);
+        when(registrationRepository.findByUserIdWithUserEventAndPayments(userId)).thenReturn(registrations);
 
         // When
         List<Registration> result = registrationService.findByUserId(userId);
@@ -258,38 +256,7 @@ class RegistrationServiceTest {
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals(registration, result.get(0));
-        verify(registrationRepository).findByUserId(userId);
-    }
-
-    @Test
-    void shouldUpdatePaymentStatus() {
-        // Given
-        when(registrationRepository.findById(1L)).thenReturn(Optional.of(registration));
-        when(registrationRepository.save(any(Registration.class))).thenReturn(registration);
-
-        // When
-        Registration result = registrationService.updatePaymentStatus(1L, Registration.PaymentStatus.PAID);
-
-        // Then
-        assertNotNull(result);
-        assertEquals(Registration.PaymentStatus.PAID, result.getPaymentStatus());
-        verify(registrationRepository).findById(1L);
-        verify(registrationRepository).save(registration);
-    }
-
-    @Test
-    void shouldThrowExceptionWhenUpdatingPaymentStatusOfNonExistentRegistration() {
-        // Given
-        when(registrationRepository.findById(99L)).thenReturn(Optional.empty());
-
-        // When & Then
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> registrationService.updatePaymentStatus(99L, Registration.PaymentStatus.PAID));
-
-        assertEquals("Inscrição não encontrada", exception.getMessage());
-        verify(registrationRepository).findById(99L);
-        verify(registrationRepository, never()).save(any());
+        verify(registrationRepository).findByUserIdWithUserEventAndPayments(userId);
     }
 
     @Test

@@ -47,10 +47,14 @@ public class AuthController {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             String token = jwtUtil.generateToken(userDetails);
 
-            Map<String, String> response = new HashMap<>();
+            Map<String, Object> response = new HashMap<>();
             response.put("token", token);
             response.put("type", "Bearer");
             response.put("username", userDetails.getUsername());
+
+            // Add user data from token
+            Map<String, Object> userData = jwtUtil.getUserDataFromToken(token);
+            response.put("user", userData);
 
             return ResponseEntity.ok(response);
         } catch (BadCredentialsException e) {

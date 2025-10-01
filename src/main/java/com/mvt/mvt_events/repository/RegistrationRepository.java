@@ -23,10 +23,6 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
         Optional<Registration> findByEventIdAndUserId(@Param("eventId") Long eventId,
                         @Param("userId") UUID userId);
 
-        @Query("SELECT r FROM Registration r WHERE r.event.id = :eventId AND r.paymentStatus = :paymentStatus")
-        List<Registration> findByEventIdAndPaymentStatus(@Param("eventId") Long eventId,
-                        @Param("paymentStatus") Registration.PaymentStatus paymentStatus);
-
         @Query("SELECT r FROM Registration r WHERE r.event.id = :eventId AND r.status = :status")
         List<Registration> findByEventIdAndStatus(@Param("eventId") Long eventId,
                         @Param("status") Registration.RegistrationStatus status);
@@ -42,6 +38,36 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
 
         @Query("SELECT r FROM Registration r JOIN FETCH r.event WHERE r.user.id = :userId")
         List<Registration> findByUserIdWithEvent(@Param("userId") UUID userId);
+
+        @Query("SELECT r FROM Registration r " +
+                        "JOIN FETCH r.user u " +
+                        "LEFT JOIN FETCH u.organization " +
+                        "JOIN FETCH r.event " +
+                        "WHERE r.user.id = :userId")
+        List<Registration> findByUserIdWithUserAndEvent(@Param("userId") UUID userId);
+
+        @Query("SELECT r FROM Registration r " +
+                        "JOIN FETCH r.user u " +
+                        "LEFT JOIN FETCH u.organization " +
+                        "JOIN FETCH r.event " +
+                        "LEFT JOIN FETCH r.payments " +
+                        "WHERE r.user.id = :userId")
+        List<Registration> findByUserIdWithUserEventAndPayments(@Param("userId") UUID userId);
+
+        @Query("SELECT r FROM Registration r " +
+                        "JOIN FETCH r.user u " +
+                        "LEFT JOIN FETCH u.organization " +
+                        "JOIN FETCH r.event " +
+                        "WHERE r.id = :id")
+        Optional<Registration> findByIdWithUserAndEvent(@Param("id") Long id);
+
+        @Query("SELECT r FROM Registration r " +
+                        "JOIN FETCH r.user u " +
+                        "LEFT JOIN FETCH u.organization " +
+                        "JOIN FETCH r.event " +
+                        "LEFT JOIN FETCH r.payments " +
+                        "WHERE r.id = :id")
+        Optional<Registration> findByIdWithUserEventAndPayments(@Param("id") Long id);
 
         boolean existsByEventIdAndUserId(Long eventId, UUID userId);
 

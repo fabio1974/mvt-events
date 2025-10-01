@@ -92,6 +92,7 @@ public class Payment extends BaseEntity {
         DEBIT_CARD("Debit Card"),
         PIX("PIX"),
         BANK_TRANSFER("Bank Transfer"),
+        PAYPAL_ACCOUNT("PayPal Account"),
         CASH("Cash"),
         OTHER("Other");
 

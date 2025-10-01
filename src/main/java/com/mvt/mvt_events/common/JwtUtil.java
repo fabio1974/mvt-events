@@ -73,6 +73,33 @@ public class JwtUtil {
             claims.put("userId", user.getId().toString());
             claims.put("name", user.getName());
             claims.put("role", user.getRole().name());
+            claims.put("email", user.getUsername()); // username is the email
+
+            // Add personal information
+            if (user.getDateOfBirth() != null) {
+                claims.put("dateOfBirth", user.getDateOfBirth().toString());
+            }
+            if (user.getGender() != null) {
+                claims.put("gender", user.getGender().name());
+            }
+            if (user.getCity() != null) {
+                claims.put("city", user.getCity());
+            }
+            if (user.getState() != null) {
+                claims.put("state", user.getState());
+            }
+            if (user.getDocumentNumber() != null) {
+                claims.put("cpf", user.getDocumentNumber());
+            }
+            if (user.getPhone() != null) {
+                claims.put("phone", user.getPhone());
+            }
+            if (user.getAddress() != null) {
+                claims.put("address", user.getAddress());
+            }
+            if (user.getCountry() != null) {
+                claims.put("country", user.getCountry());
+            }
 
             // Add organization_id for ORGANIZER users
             if (user.getOrganization() != null) {
@@ -137,5 +164,82 @@ public class JwtUtil {
     // Check if user has organization
     public boolean hasOrganization(String token) {
         return getOrganizationIdFromToken(token) != null;
+    }
+
+    // Extract email from token
+    public String getEmailFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        return claims.get("email", String.class);
+    }
+
+    // Extract date of birth from token
+    public String getDateOfBirthFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        return claims.get("dateOfBirth", String.class);
+    }
+
+    // Extract gender from token
+    public String getGenderFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        return claims.get("gender", String.class);
+    }
+
+    // Extract city from token
+    public String getCityFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        return claims.get("city", String.class);
+    }
+
+    // Extract state from token
+    public String getStateFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        return claims.get("state", String.class);
+    }
+
+    // Extract CPF from token
+    public String getCpfFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        return claims.get("cpf", String.class);
+    }
+
+    // Extract phone from token
+    public String getPhoneFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        return claims.get("phone", String.class);
+    }
+
+    // Extract address from token
+    public String getAddressFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        return claims.get("address", String.class);
+    }
+
+    // Extract country from token
+    public String getCountryFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        return claims.get("country", String.class);
+    }
+
+    // Get all user data from token as a Map
+    public Map<String, Object> getUserDataFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        Map<String, Object> userData = new HashMap<>();
+
+        userData.put("userId", claims.get("userId"));
+        userData.put("username", claims.getSubject());
+        userData.put("email", claims.get("email"));
+        userData.put("name", claims.get("name"));
+        userData.put("role", claims.get("role"));
+        userData.put("dateOfBirth", claims.get("dateOfBirth"));
+        userData.put("gender", claims.get("gender"));
+        userData.put("city", claims.get("city"));
+        userData.put("state", claims.get("state"));
+        userData.put("cpf", claims.get("cpf"));
+        userData.put("phone", claims.get("phone"));
+        userData.put("address", claims.get("address"));
+        userData.put("country", claims.get("country"));
+        userData.put("organizationId", claims.get("organizationId"));
+
+        return userData;
     }
 }

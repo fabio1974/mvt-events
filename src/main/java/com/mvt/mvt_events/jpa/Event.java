@@ -113,10 +113,10 @@ public class Event extends BaseEntity {
     }
 
     public enum EventStatus {
-        DRAFT("Draft"),
-        PUBLISHED("Published"),
-        CANCELLED("Cancelled"),
-        COMPLETED("Completed");
+        DRAFT("Rascunho"),
+        PUBLISHED("Publicado"),
+        CANCELLED("Cancelado"),
+        COMPLETED("Concluído");
 
         private final String displayName;
 
