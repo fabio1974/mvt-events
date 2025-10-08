@@ -31,11 +31,14 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/metadata", "/api/metadata/**").permitAll() // Permitir acesso público aos
+                                                                                          // metadados
                         .requestMatchers("/api/events/public", "/api/events/public/**").permitAll()
                         .requestMatchers("/api/webhooks/**").permitAll() // Permitir todos os webhooks
                         .requestMatchers("/api/payments/webhooks/**").permitAll() // Permitir webhooks de pagamento
                         .requestMatchers("/api/payments/methods").permitAll() // Permitir consulta de métodos
                         .requestMatchers("/api/payments/calculate-fee").permitAll() // Permitir cálculo de taxa
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll() // Swagger
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
                         .requestMatchers("/api/**").authenticated()

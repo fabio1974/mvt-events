@@ -3,7 +3,12 @@ package com.mvt.mvt_events.service;
 import com.mvt.mvt_events.controller.UserController.UserUpdateRequest;
 import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.repository.UserRepository;
+import com.mvt.mvt_events.specification.UserSpecification;
+import com.mvt.mvt_events.util.CPFUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +27,28 @@ public class UserService {
 
     public List<User> findAll() {
         return userRepository.findAll();
+    }
+
+    /**
+     * Lista usuários com filtros dinâmicos
+     */
+    @Transactional(readOnly = true)
+    public Page<User> listWithFilters(
+            User.Role role,
+            Long organizationId,
+            Boolean enabled,
+            Pageable pageable) {
+        Specification<User> spec = UserSpecification.withFilters(role, organizationId, enabled);
+        Page<User> users = userRepository.findAll(spec, pageable);
+
+        // Force load das organizations para evitar lazy loading
+        users.getContent().forEach(user -> {
+            if (user.getOrganization() != null) {
+                user.getOrganization().getName(); // Trigger lazy loading
+            }
+        });
+
+        return users;
     }
 
     public User findById(UUID id) {
@@ -116,12 +143,12 @@ public class UserService {
         // Atualizar documento (CPF)
         if (request.getCpf() != null && !request.getCpf().trim().isEmpty()) {
             String cpf = request.getCpf().trim();
-            // Validação básica de CPF (11 dígitos)
-            cpf = cpf.replaceAll("[^0-9]", ""); // Remove caracteres não numéricos
-            if (cpf.length() == 11) {
-                user.setDocumentNumber(cpf);
+            // Clean CPF (remove formatting) and validate
+            cpf = CPFUtil.clean(cpf);
+            if (CPFUtil.isValid(cpf)) {
+                user.setCpf(cpf);
             } else {
-                throw new RuntimeException("CPF deve conter 11 dígitos");
+                throw new RuntimeException("CPF inválido");
             }
         }
 

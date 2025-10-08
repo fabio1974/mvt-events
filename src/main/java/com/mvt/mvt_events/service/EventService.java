@@ -1,11 +1,19 @@
 package com.mvt.mvt_events.service;
 
 import com.mvt.mvt_events.dto.EventCreateRequest;
+import com.mvt.mvt_events.dto.EventUpdateRequest;
 import com.mvt.mvt_events.jpa.Event;
+import com.mvt.mvt_events.jpa.EventCategory;
 import com.mvt.mvt_events.jpa.Organization;
 import com.mvt.mvt_events.jpa.TransferFrequency;
+import com.mvt.mvt_events.repository.EventCategoryRepository;
 import com.mvt.mvt_events.repository.EventRepository;
 import com.mvt.mvt_events.repository.OrganizationRepository;
+import com.mvt.mvt_events.specification.EventCategorySpecification;
+import com.mvt.mvt_events.specification.EventSpecification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,10 +26,12 @@ import java.util.Optional;
 @Transactional
 public class EventService {
     public java.util.Map<String, Integer> getStats() {
-        int total = list().size();
-        int active = (int) list().stream().filter(e -> "PUBLISHED".equalsIgnoreCase(e.getStatus().name())).count();
-        int finished = (int) list().stream().filter(e -> "COMPLETED".equalsIgnoreCase(e.getStatus().name())).count();
-        int cancelled = (int) list().stream().filter(e -> "CANCELLED".equalsIgnoreCase(e.getStatus().name())).count();
+        List<Event> allEvents = findAll();
+        int total = allEvents.size();
+        int active = (int) allEvents.stream().filter(e -> "PUBLISHED".equalsIgnoreCase(e.getStatus().name())).count();
+        int finished = (int) allEvents.stream().filter(e -> "COMPLETED".equalsIgnoreCase(e.getStatus().name())).count();
+        int cancelled = (int) allEvents.stream().filter(e -> "CANCELLED".equalsIgnoreCase(e.getStatus().name()))
+                .count();
 
         java.util.Map<String, Integer> stats = new java.util.HashMap<>();
         stats.put("total", total);
@@ -33,10 +43,13 @@ public class EventService {
 
     private final EventRepository repository;
     private final OrganizationRepository organizationRepository;
+    private final EventCategoryRepository categoryRepository;
 
-    public EventService(EventRepository repository, OrganizationRepository organizationRepository) {
+    public EventService(EventRepository repository, OrganizationRepository organizationRepository,
+            EventCategoryRepository categoryRepository) {
         this.repository = repository;
         this.organizationRepository = organizationRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     public Event create(EventCreateRequest request) {
@@ -92,7 +105,32 @@ public class EventService {
             event.setSlug(request.getSlug());
         }
 
-        return repository.save(event);
+        // Save event first
+        Event savedEvent = repository.save(event);
+
+        // Create categories if provided
+        if (request.getCategories() != null && !request.getCategories().isEmpty()) {
+            for (EventCreateRequest.CategoryRequest catRequest : request.getCategories()) {
+                EventCategory category = new EventCategory();
+                category.setEvent(savedEvent);
+                category.setTenantId(savedEvent.getId()); // Event is the tenant
+                category.setName(catRequest.getName());
+                category.setMinAge(catRequest.getMinAge());
+                category.setMaxAge(catRequest.getMaxAge());
+                category.setGender(catRequest.getGender());
+                category.setDistance(catRequest.getDistance());
+                category.setDistanceUnit(catRequest.getDistanceUnit());
+                category.setPrice(catRequest.getPrice());
+                category.setMaxParticipants(catRequest.getMaxParticipants());
+                category.setCurrentParticipants(0);
+                category.setIsActive(catRequest.getIsActive() != null ? catRequest.getIsActive() : true);
+                category.setObservations(catRequest.getObservations());
+
+                categoryRepository.save(category);
+            }
+        }
+
+        return savedEvent;
     }
 
     public Event create(Event event) {
@@ -130,8 +168,10 @@ public class EventService {
         return repository.save(event);
     }
 
+    @Transactional(readOnly = true)
     public List<Event> findAll() {
-        return repository.findAll();
+        // Use pageable version with categories loaded
+        return repository.findAllWithCategories(Pageable.unpaged()).getContent();
     }
 
     public Optional<Event> findById(Long id) {
@@ -142,18 +182,32 @@ public class EventService {
         return repository.findBySlug(slug);
     }
 
+    @Transactional(readOnly = true)
     public List<Event> findByOrganizationId(Long organizationId) {
-        return repository.findByOrganizationId(organizationId);
+        Specification<Event> spec = EventSpecification.hasOrganizationId(organizationId);
+        List<Event> events = repository.findAll(spec);
+        // Force load categories
+        events.forEach(e -> e.getCategories().size());
+        return events;
     }
 
+    @Transactional(readOnly = true)
     public List<Event> findPublishedEvents() {
-        return repository.findByStatus(Event.EventStatus.PUBLISHED);
+        Specification<Event> spec = EventSpecification.hasStatus(Event.EventStatus.PUBLISHED);
+        List<Event> events = repository.findAll(spec);
+        // Force load categories
+        events.forEach(e -> e.getCategories().size());
+        return events;
     }
 
+    @Transactional(readOnly = true)
     public Event findPublishedEventById(Long id) {
-        return repository.findById(id)
-                .filter(event -> event.getStatus() == Event.EventStatus.PUBLISHED)
+        Event event = repository.findById(id)
+                .filter(e -> e.getStatus() == Event.EventStatus.PUBLISHED)
                 .orElseThrow(() -> new RuntimeException("Evento público não encontrado"));
+        // Force load categories
+        event.getCategories().size();
+        return event;
     }
 
     public Event publishEvent(Long id) {
@@ -227,6 +281,171 @@ public class EventService {
         return repository.save(existing);
     }
 
+    /**
+     * Update event with categories in a single transaction
+     */
+    @Transactional
+    public Event updateWithCategories(Long id, EventUpdateRequest request) {
+        Event existing = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Evento não encontrado"));
+
+        // Update organization if changed
+        if (request.getOrganizationId() != null) {
+            Organization organization = organizationRepository.findById(request.getOrganizationId())
+                    .orElseThrow(() -> new RuntimeException("Organização não encontrada"));
+            existing.setOrganization(organization);
+        }
+
+        // Validate slug if changed
+        if (request.getSlug() != null && !request.getSlug().equals(existing.getSlug())) {
+            if (repository.existsBySlugAndIdNot(request.getSlug(), id)) {
+                throw new RuntimeException("Já existe um evento com este slug");
+            }
+            existing.setSlug(request.getSlug());
+        }
+
+        // Update event fields
+        if (request.getName() != null)
+            existing.setName(request.getName());
+        if (request.getDescription() != null)
+            existing.setDescription(request.getDescription());
+        if (request.getEventType() != null)
+            existing.setEventType(request.getEventType());
+        if (request.getEventDate() != null)
+            existing.setEventDate(request.getEventDate());
+        if (request.getEventTime() != null)
+            existing.setEventTime(request.getEventTime());
+        if (request.getLocation() != null)
+            existing.setLocation(request.getLocation());
+        if (request.getAddress() != null)
+            existing.setAddress(request.getAddress());
+        if (request.getMaxParticipants() != null)
+            existing.setMaxParticipants(request.getMaxParticipants());
+        if (request.getRegistrationOpen() != null)
+            existing.setRegistrationOpen(request.getRegistrationOpen());
+        if (request.getRegistrationStartDate() != null) {
+            existing.setRegistrationStartDate(request.getRegistrationStartDate().atStartOfDay());
+        }
+        if (request.getRegistrationEndDate() != null) {
+            existing.setRegistrationEndDate(request.getRegistrationEndDate().atTime(23, 59, 59));
+        }
+        if (request.getPrice() != null)
+            existing.setPrice(request.getPrice());
+        if (request.getCurrency() != null)
+            existing.setCurrency(request.getCurrency());
+        if (request.getBannerUrl() != null)
+            existing.setBannerUrl(request.getBannerUrl());
+        if (request.getPlatformFeePercentage() != null)
+            existing.setPlatformFeePercentage(request.getPlatformFeePercentage());
+        if (request.getTermsAndConditions() != null)
+            existing.setTermsAndConditions(request.getTermsAndConditions());
+        if (request.getStatus() != null)
+            existing.setStatus(request.getStatus());
+
+        // Update startsAt if date or time changed
+        if (request.getEventDate() != null || request.getEventTime() != null) {
+            LocalTime time = existing.getEventTime() != null ? existing.getEventTime() : LocalTime.of(0, 0);
+            existing.setStartsAt(LocalDateTime.of(existing.getEventDate(), time));
+        }
+
+        // Save event
+        Event savedEvent = repository.save(existing);
+
+        // Handle categories if provided
+        if (request.getCategories() != null) {
+            // Buscar todas as categorias existentes do evento usando Specification
+            Specification<EventCategory> spec = EventCategorySpecification.belongsToEvent(savedEvent.getId());
+            java.util.List<EventCategory> existingCategories = categoryRepository.findAll(spec);
+
+            // Pegar os IDs das categorias enviadas na requisição que já existem (para
+            // update)
+            java.util.Set<Long> requestCategoryIds = request.getCategories().stream()
+                    .map(EventUpdateRequest.CategoryUpdateRequest::getId)
+                    .filter(id2 -> id2 != null)
+                    .collect(java.util.stream.Collectors.toSet());
+
+            System.out.println("Categorias existentes no banco: " + existingCategories.size());
+            System.out.println("IDs das categorias na requisição: " + requestCategoryIds);
+
+            // Deletar categorias que não estão mais na requisição
+            java.util.List<EventCategory> categoriesToDelete = new java.util.ArrayList<>();
+            for (EventCategory existingCat : existingCategories) {
+                if (!requestCategoryIds.contains(existingCat.getId())) {
+                    System.out
+                            .println("Deletando categoria ID: " + existingCat.getId() + " - " + existingCat.getName());
+                    categoriesToDelete.add(existingCat);
+                }
+            }
+
+            if (!categoriesToDelete.isEmpty()) {
+                categoryRepository.deleteAll(categoriesToDelete);
+                categoryRepository.flush(); // Force immediate deletion
+            }
+
+            // Processar as categorias da requisição
+            for (EventUpdateRequest.CategoryUpdateRequest catRequest : request.getCategories()) {
+                if (catRequest.get_delete() != null && catRequest.get_delete()) {
+                    // Delete category
+                    if (catRequest.getId() != null) {
+                        categoryRepository.deleteById(catRequest.getId());
+                    }
+                } else if (catRequest.getId() != null) {
+                    // Update existing category
+                    EventCategory existingCat = categoryRepository.findById(catRequest.getId())
+                            .orElseThrow(() -> new RuntimeException("Categoria não encontrada: " + catRequest.getId()));
+
+                    if (catRequest.getName() != null)
+                        existingCat.setName(catRequest.getName());
+                    if (catRequest.getMinAge() != null)
+                        existingCat.setMinAge(catRequest.getMinAge());
+                    if (catRequest.getMaxAge() != null)
+                        existingCat.setMaxAge(catRequest.getMaxAge());
+                    if (catRequest.getGender() != null)
+                        existingCat.setGender(catRequest.getGender());
+                    if (catRequest.getDistance() != null)
+                        existingCat.setDistance(catRequest.getDistance());
+                    if (catRequest.getDistanceUnit() != null)
+                        existingCat.setDistanceUnit(catRequest.getDistanceUnit());
+                    if (catRequest.getPrice() != null)
+                        existingCat.setPrice(catRequest.getPrice());
+                    if (catRequest.getMaxParticipants() != null)
+                        existingCat.setMaxParticipants(catRequest.getMaxParticipants());
+                    if (catRequest.getIsActive() != null)
+                        existingCat.setIsActive(catRequest.getIsActive());
+                    if (catRequest.getObservations() != null)
+                        existingCat.setObservations(catRequest.getObservations());
+
+                    categoryRepository.save(existingCat);
+                } else {
+                    // Create new category
+                    EventCategory newCategory = new EventCategory();
+                    newCategory.setEvent(savedEvent);
+                    newCategory.setTenantId(savedEvent.getId());
+                    newCategory.setName(catRequest.getName());
+                    newCategory.setMinAge(catRequest.getMinAge());
+                    newCategory.setMaxAge(catRequest.getMaxAge());
+                    newCategory.setGender(catRequest.getGender());
+                    newCategory.setDistance(catRequest.getDistance());
+                    newCategory.setDistanceUnit(catRequest.getDistanceUnit());
+                    newCategory.setPrice(catRequest.getPrice());
+                    newCategory.setMaxParticipants(catRequest.getMaxParticipants());
+                    newCategory.setCurrentParticipants(0);
+                    newCategory.setIsActive(catRequest.getIsActive() != null ? catRequest.getIsActive() : true);
+                    newCategory.setObservations(catRequest.getObservations());
+
+                    categoryRepository.save(newCategory);
+                }
+            }
+        }
+
+        // Refresh event to load categories
+        Event refreshedEvent = repository.findById(savedEvent.getId())
+                .orElseThrow(() -> new RuntimeException("Evento não encontrado"));
+        refreshedEvent.getCategories().size(); // Force load
+
+        return refreshedEvent;
+    }
+
     public void delete(Long id) {
         if (!repository.existsById(id)) {
             throw new RuntimeException("Evento não encontrado");
@@ -258,12 +477,32 @@ public class EventService {
     }
 
     // Legacy methods for compatibility
-    public List<Event> list() {
-        return findAll();
+    public Page<Event> list(Pageable pageable) {
+        return repository.findAllWithCategories(pageable);
+    }
+
+    /**
+     * Lista eventos com filtros dinâmicos
+     */
+    @Transactional(readOnly = true)
+    public Page<Event> listWithFilters(
+            Event.EventStatus status,
+            Long organizationId,
+            Long categoryId,
+            String city,
+            String state,
+            Pageable pageable) {
+        Specification<Event> spec = EventSpecification.withFilters(status, organizationId, categoryId, city, state);
+        return repository.findAll(spec, pageable);
     }
 
     public Event get(Long id) {
-        return findById(id)
+        Event event = findById(id)
                 .orElseThrow(() -> new RuntimeException("Event not found with id: " + id));
+
+        // Force load categories to avoid lazy loading issues
+        event.getCategories().size();
+
+        return event;
     }
 }

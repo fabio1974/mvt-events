@@ -2,10 +2,9 @@ package com.mvt.mvt_events.jpa;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
 import lombok.*;
+import org.hibernate.annotations.Filter;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -15,6 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
+@Filter(name = "organizationFilter", condition = "event_id IN (SELECT e.id FROM events e WHERE e.organization_id = :organizationId)")
 public class Registration extends BaseEntity {
 
     @NotNull(message = "User is required")

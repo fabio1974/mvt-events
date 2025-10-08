@@ -8,8 +8,15 @@ build/
 # Environment files with sensitive data
 .env
 .env.local
+.env.*.local
+.env.development
 .env.production
-render-secrets.yaml
+
+### Secrets ###
+application-secrets.properties
+application-local.properties
+*.key
+*.pem
 
 ### STS ###
 .apt_generated

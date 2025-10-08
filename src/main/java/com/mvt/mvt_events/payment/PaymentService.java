@@ -244,4 +244,19 @@ public class PaymentService {
 
         log.info("Payment failure recorded for registration: {}", registrationId);
     }
+
+    /**
+     * List payments with filters
+     */
+    public org.springframework.data.domain.Page<Payment> listWithFilters(
+            Payment.PaymentStatus status,
+            Long registrationId,
+            String provider,
+            org.springframework.data.domain.Pageable pageable) {
+
+        org.springframework.data.jpa.domain.Specification<Payment> spec = com.mvt.mvt_events.specification.PaymentSpecification
+                .buildSpecification(status, registrationId, provider);
+
+        return paymentRepository.findAll(spec, pageable);
+    }
 }

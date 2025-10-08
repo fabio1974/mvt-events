@@ -1,6 +1,8 @@
 package com.mvt.mvt_events.common;
 
+import com.mvt.mvt_events.exception.EmailAlreadyExistsException;
 import com.mvt.mvt_events.exception.RegistrationConflictException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -81,6 +83,58 @@ public class GlobalExceptionHandler {
         Map<String, Object> errorResponse = new HashMap<>();
         errorResponse.put("error", "Conflict");
         errorResponse.put("message", ex.getMessage());
+        errorResponse.put("timestamp", LocalDateTime.now());
+        errorResponse.put("path", request.getDescription(false).replace("uri=", ""));
+        errorResponse.put("status", 409);
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    /**
+     * Handle email already exists exceptions (duplicate user registration)
+     */
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleEmailAlreadyExistsException(
+            EmailAlreadyExistsException ex, WebRequest request) {
+
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Conflict");
+        errorResponse.put("message", ex.getMessage());
+        errorResponse.put("timestamp", LocalDateTime.now());
+        errorResponse.put("path", request.getDescription(false).replace("uri=", ""));
+        errorResponse.put("status", 409);
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    /**
+     * Handle database constraint violations (duplicate keys, etc)
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolationException(
+            DataIntegrityViolationException ex, WebRequest request) {
+
+        String message = "Data integrity violation";
+
+        // Extract more specific error message
+        if (ex.getRootCause() != null) {
+            String rootMessage = ex.getRootCause().getMessage();
+            if (rootMessage != null) {
+                if (rootMessage.contains("document_number")) {
+                    message = "CPF já cadastrado no sistema";
+                } else if (rootMessage.contains("username")) {
+                    message = "Email já cadastrado no sistema";
+                } else if (rootMessage.contains("duplicate key")) {
+                    message = "Registro duplicado no sistema";
+                } else {
+                    message = "Erro de integridade de dados: " + rootMessage;
+                }
+            }
+        }
+
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Conflict");
+        errorResponse.put("message", message);
         errorResponse.put("timestamp", LocalDateTime.now());
         errorResponse.put("path", request.getDescription(false).replace("uri=", ""));
         errorResponse.put("status", 409);

@@ -88,8 +88,8 @@ public class JwtUtil {
             if (user.getState() != null) {
                 claims.put("state", user.getState());
             }
-            if (user.getDocumentNumber() != null) {
-                claims.put("cpf", user.getDocumentNumber());
+            if (user.getCpf() != null) {
+                claims.put("cpf", user.getCpfFormatted());
             }
             if (user.getPhone() != null) {
                 claims.put("phone", user.getPhone());

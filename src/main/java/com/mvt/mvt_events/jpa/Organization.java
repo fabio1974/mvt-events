@@ -1,6 +1,7 @@
 package com.mvt.mvt_events.jpa;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.mvt.mvt_events.metadata.DisplayLabel;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -17,6 +18,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public class Organization extends BaseEntity {
 
+    @DisplayLabel
     @NotBlank(message = "Name is required")
     @Size(max = 255, message = "Name must not exceed 255 characters")
     @Column(nullable = false)

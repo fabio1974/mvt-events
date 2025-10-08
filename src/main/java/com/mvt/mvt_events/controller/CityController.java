@@ -2,6 +2,9 @@ package com.mvt.mvt_events.controller;
 
 import com.mvt.mvt_events.entity.City;
 import com.mvt.mvt_events.service.CityService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,16 +16,15 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/cities")
 @CrossOrigin(origins = "*")
+@Tag(name = "Cidades", description = "Busca de cidades brasileiras")
+@SecurityRequirement(name = "bearerAuth")
 public class CityController {
 
     @Autowired
     private CityService cityService;
 
-    /**
-     * Search cities for autocomplete with enhanced fuzzy search
-     * GET /api/cities/search?q=são+jose
-     */
     @GetMapping("/search")
+    @Operation(summary = "Buscar cidades", description = "Autocomplete com busca fuzzy (mínimo 2 caracteres)")
     public ResponseEntity<List<City>> searchCities(@RequestParam("q") String query) {
         if (query == null || query.trim().length() < 2) {
             return ResponseEntity.badRequest().build();

@@ -4,6 +4,8 @@ import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
 import com.stripe.net.Webhook;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -13,16 +15,15 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/payments/webhook")
+@Tag(name = "Webhooks de Pagamento", description = "Endpoints para webhooks de gateways de pagamento (acesso público)")
 @Slf4j
 public class PaymentWebhookController {
 
     @Value("${payment.stripe.webhook-secret:}")
     private String stripeWebhookSecret;
 
-    /**
-     * Stripe webhook endpoint
-     */
     @PostMapping("/stripe")
+    @Operation(summary = "Webhook Stripe", description = "Endpoint público para notificações do Stripe")
     public ResponseEntity<?> stripeWebhook(@RequestBody String payload,
             @RequestHeader("Stripe-Signature") String signature) {
         try {

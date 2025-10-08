@@ -1,21 +1,72 @@
 package com.mvt.mvt_events.service;
 
+import com.mvt.mvt_events.controller.OrganizationController.OrganizationCreateRequest;
 import com.mvt.mvt_events.jpa.Organization;
+import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.repository.OrganizationRepository;
+import com.mvt.mvt_events.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Transactional
 public class OrganizationService {
 
     private final OrganizationRepository repository;
+    private final UserRepository userRepository;
 
-    public OrganizationService(OrganizationRepository repository) {
+    public OrganizationService(OrganizationRepository repository, UserRepository userRepository) {
         this.repository = repository;
+        this.userRepository = userRepository;
+    }
+
+    /**
+     * Create organization and assign to user in a single transaction
+     */
+    @Transactional
+    public Organization createWithUser(OrganizationCreateRequest request) {
+        // Create organization
+        Organization organization = new Organization();
+        organization.setName(request.getName());
+        organization.setContactEmail(request.getContactEmail());
+        organization.setPhone(request.getPhone());
+        organization.setWebsite(request.getWebsite());
+        organization.setDescription(request.getDescription());
+        organization.setLogoUrl(request.getLogoUrl());
+
+        // Generate slug from name if not provided
+        if (request.getSlug() == null || request.getSlug().trim().isEmpty()) {
+            organization.setSlug(generateUniqueSlug(request.getName()));
+        } else {
+            // Check if slug already exists
+            if (repository.existsBySlug(request.getSlug())) {
+                throw new RuntimeException("Já existe uma organização com este slug");
+            }
+            organization.setSlug(request.getSlug());
+        }
+
+        // Save organization first
+        Organization savedOrganization = repository.save(organization);
+
+        // Update user with organization if userId is provided
+        if (request.getUserId() != null) {
+            User user = userRepository.findById(request.getUserId())
+                    .orElseThrow(() -> new RuntimeException("Usuário não encontrado com ID: " + request.getUserId()));
+
+            // Verify user is an organizer
+            if (user.getRole() != User.Role.ORGANIZER) {
+                throw new RuntimeException("Apenas usuários com role ORGANIZER podem ser vinculados a uma organização");
+            }
+
+            user.setOrganization(savedOrganization);
+            userRepository.save(user);
+        }
+
+        return savedOrganization;
     }
 
     public Organization create(Organization organization) {
@@ -106,5 +157,19 @@ public class OrganizationService {
     public Organization get(Long id) {
         return findById(id)
                 .orElseThrow(() -> new RuntimeException("Organization not found with id: " + id));
+    }
+
+    /**
+     * Get organization by user ID
+     */
+    public Organization getByUserId(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado com ID: " + userId));
+
+        if (user.getOrganization() == null) {
+            throw new RuntimeException("Usuário não está vinculado a nenhuma organização");
+        }
+
+        return user.getOrganization();
     }
 }

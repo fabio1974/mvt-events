@@ -1,5 +1,7 @@
 package com.mvt.mvt_events.jpa;
 
+import com.mvt.mvt_events.metadata.DisplayLabel;
+import com.mvt.mvt_events.validation.CPF;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import lombok.*;
@@ -69,8 +71,9 @@ public class User implements UserDetails {
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
-    @Column(name = "document_number", length = 20)
-    private String documentNumber;
+    @CPF(message = "CPF inválido")
+    @Column(name = "document_number", unique = true, nullable = false, length = 14)
+    private String cpf; // CPF do usuário (obrigatório e único)
 
     @Column(name = "emergency_contact")
     private String emergencyContact;
@@ -79,6 +82,7 @@ public class User implements UserDetails {
     @Column(length = 10)
     private Gender gender;
 
+    @DisplayLabel
     private String name;
 
     private String phone;
@@ -154,6 +158,48 @@ public class User implements UserDetails {
 
     public boolean canRegisterForEvents() {
         return true; // All users can register for events
+    }
+
+    /**
+     * Retorna o CPF sem formatação (apenas números)
+     */
+    public String getCpfClean() {
+        return cpf != null ? cpf.replaceAll("[^0-9]", "") : null;
+    }
+
+    /**
+     * Retorna o CPF formatado (XXX.XXX.XXX-XX)
+     */
+    public String getCpfFormatted() {
+        String clean = getCpfClean();
+        if (clean == null || clean.length() != 11) {
+            return cpf;
+        }
+        return String.format("%s.%s.%s-%s",
+                clean.substring(0, 3),
+                clean.substring(3, 6),
+                clean.substring(6, 9),
+                clean.substring(9, 11));
+    }
+
+    /**
+     * Método de compatibilidade - retorna CPF
+     * 
+     * @deprecated Use getCpf() ao invés
+     */
+    @Deprecated
+    public String getDocumentNumber() {
+        return cpf;
+    }
+
+    /**
+     * Método de compatibilidade - define CPF
+     * 
+     * @deprecated Use setCpf() ao invés
+     */
+    @Deprecated
+    public void setDocumentNumber(String documentNumber) {
+        this.cpf = documentNumber;
     }
 
     // ============================================================================

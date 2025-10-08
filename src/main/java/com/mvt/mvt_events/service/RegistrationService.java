@@ -1,5 +1,6 @@
 package com.mvt.mvt_events.service;
 
+import com.mvt.mvt_events.dto.RegistrationListDTO;
 import com.mvt.mvt_events.exception.RegistrationConflictException;
 import com.mvt.mvt_events.jpa.Registration;
 import com.mvt.mvt_events.jpa.User;
@@ -7,7 +8,11 @@ import com.mvt.mvt_events.jpa.Event;
 import com.mvt.mvt_events.repository.RegistrationRepository;
 import com.mvt.mvt_events.repository.UserRepository;
 import com.mvt.mvt_events.repository.EventRepository;
+import com.mvt.mvt_events.specification.RegistrationSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -80,8 +85,125 @@ public class RegistrationService {
         return registrationRepository.save(registration);
     }
 
-    public List<Registration> list() {
-        return registrationRepository.findAll();
+    /**
+     * Lista leve PAGINADA - retorna apenas dados essenciais sem lazy loading
+     * Ideal para listagens e tabelas
+     */
+    @Transactional(readOnly = true)
+    public Page<RegistrationListDTO> list(Pageable pageable) {
+        Page<Registration> registrations = registrationRepository.findAll(pageable);
+        return registrations.map(r -> new RegistrationListDTO(
+                r.getId(),
+                r.getRegistrationDate(),
+                r.getStatus(),
+                r.getNotes(),
+                r.getUser().getId().toString(),
+                r.getUser().getName(),
+                r.getUser().getUsername(),
+                r.getEvent().getId(),
+                r.getEvent().getName(),
+                r.getEvent().getEventDate(),
+                r.getEvent().getEventTime()));
+    }
+
+    /**
+     * Lista leve - retorna apenas dados essenciais sem lazy loading (SEM PAGINAÇÃO)
+     * Mantido para compatibilidade
+     */
+    @Transactional(readOnly = true)
+    public List<RegistrationListDTO> listAll() {
+        List<Registration> registrations = registrationRepository.findAll();
+        return registrations.stream()
+                .map(r -> new RegistrationListDTO(
+                        r.getId(),
+                        r.getRegistrationDate(),
+                        r.getStatus(),
+                        r.getNotes(),
+                        r.getUser().getId().toString(),
+                        r.getUser().getName(),
+                        r.getUser().getUsername(),
+                        r.getEvent().getId(),
+                        r.getEvent().getName(),
+                        r.getEvent().getEventDate(),
+                        r.getEvent().getEventTime()))
+                .toList();
+    }
+
+    /**
+     * Lista com filtros dinâmicos usando Specifications
+     * Suporta filtro por status, eventId e userId (todos opcionais)
+     */
+    @Transactional(readOnly = true)
+    public Page<RegistrationListDTO> listWithFilters(
+            Registration.RegistrationStatus status,
+            Long eventId,
+            UUID userId,
+            Pageable pageable) {
+
+        Specification<Registration> spec = RegistrationSpecification.withFilters(status, eventId, userId);
+        Page<Registration> registrations = registrationRepository.findAll(spec, pageable);
+
+        return registrations.map(r -> new RegistrationListDTO(
+                r.getId(),
+                r.getRegistrationDate(),
+                r.getStatus(),
+                r.getNotes(),
+                r.getUser().getId().toString(),
+                r.getUser().getName(),
+                r.getUser().getUsername(),
+                r.getEvent().getId(),
+                r.getEvent().getName(),
+                r.getEvent().getEventDate(),
+                r.getEvent().getEventTime()));
+    }
+
+    /**
+     * Lista por status PAGINADA - retorna apenas inscrições com o status
+     * especificado
+     * DEPRECATED: Use listWithFilters() ao invés deste método
+     */
+    @Deprecated
+    @Transactional(readOnly = true)
+    public Page<RegistrationListDTO> listByStatus(Registration.RegistrationStatus status, Pageable pageable) {
+        Specification<Registration> spec = RegistrationSpecification.hasStatus(status);
+        Page<Registration> registrations = registrationRepository.findAll(spec, pageable);
+        return registrations.map(r -> new RegistrationListDTO(
+                r.getId(),
+                r.getRegistrationDate(),
+                r.getStatus(),
+                r.getNotes(),
+                r.getUser().getId().toString(),
+                r.getUser().getName(),
+                r.getUser().getUsername(),
+                r.getEvent().getId(),
+                r.getEvent().getName(),
+                r.getEvent().getEventDate(),
+                r.getEvent().getEventTime()));
+    }
+
+    /**
+     * Lista por status - retorna apenas inscrições com o status especificado (SEM
+     * PAGINAÇÃO)
+     * Mantido para compatibilidade
+     */
+    @Transactional(readOnly = true)
+    public List<RegistrationListDTO> listByStatus(Registration.RegistrationStatus status) {
+        Specification<Registration> spec = RegistrationSpecification.hasStatus(status);
+        List<Registration> registrations = registrationRepository.findAll(spec);
+        return registrations.stream()
+                .map(r -> new RegistrationListDTO(
+                        r.getId(),
+                        r.getRegistrationDate(),
+                        r.getStatus(),
+                        r.getNotes(),
+                        r.getUser().getId().toString(),
+                        r.getUser().getName(),
+                        r.getUser().getUsername(),
+                        r.getEvent().getId(),
+                        r.getEvent().getName(),
+                        r.getEvent().getEventDate(),
+                        r.getEvent().getEventTime()))
+                .toList();
     }
 
     public Registration get(Long id) {
@@ -140,9 +262,10 @@ public class RegistrationService {
         return registrationRepository.save(registration);
     }
 
-    // Backward compatibility methods
+    // Backward compatibility methods - retorna entidades completas quando
+    // necessário
     public List<Registration> findAll() {
-        return list();
+        return registrationRepository.findAllWithUserAndEvent();
     }
 
     public List<Registration> findByEventId(Long eventId) {

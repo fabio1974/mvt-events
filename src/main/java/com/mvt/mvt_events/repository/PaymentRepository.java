@@ -2,6 +2,7 @@ package com.mvt.mvt_events.repository;
 
 import com.mvt.mvt_events.jpa.Payment;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -11,31 +12,23 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-
 @Repository
-public interface PaymentRepository extends JpaRepository<Payment, Long> {
+public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpecificationExecutor<Payment> {
 
-    List<Payment> findByRegistrationId(Long registrationId);
+    // Métodos de busca única - mantidos
+    Optional<Payment> findByGatewayPaymentId(String gatewayPaymentId);
 
-    List<Payment> findByStatus(Payment.PaymentStatus status);
-
-    @Query("SELECT p FROM Payment p WHERE p.registration.event.id = :eventId")
-    List<Payment> findByEventId(@Param("eventId") Long eventId);
-
-    @Query("SELECT p FROM Payment p WHERE p.registration.event.organization.id = :organizationId")
-    List<Payment> findByOrganizationId(@Param("organizationId") Long organizationId);
-
+    // Métodos de agregação e cálculos - mantidos (lógica de negócio)
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.registration.event.id = :eventId AND p.status = 'COMPLETED'")
     BigDecimal getTotalPaidByEvent(@Param("eventId") Long eventId);
 
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.registration.event.organization.id = :organizationId AND p.status = 'COMPLETED'")
     BigDecimal getTotalPaidByOrganization(@Param("organizationId") Long organizationId);
 
+    // Queries complexas com datas - mantidos (lógica de negócio específica)
     @Query("SELECT p FROM Payment p WHERE p.registration.event.id = :eventId AND p.status = 'COMPLETED' AND p.processedAt >= :since")
     List<Payment> findCompletedPaymentsByEventSince(@Param("eventId") Long eventId,
             @Param("since") LocalDateTime since);
-
-    Optional<Payment> findByGatewayPaymentId(String gatewayPaymentId);
 
     @Query("SELECT COUNT(p) FROM Payment p WHERE p.status = 'PENDING'")
     long countPendingPayments();

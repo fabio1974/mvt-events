@@ -1,224 +1,230 @@
-# 🏃‍♂️ MVT Events - Sports Events Management Platform
+# 🎫 MVT Events - Sistema de Gestão de Eventos
 
-A **comprehensive multi-tenant sports events management platform** built with **Spring Boot 3.5.6**, featuring **JWT authentication**, **PostgreSQL with Row Level Security (RLS)**, **automated financial management**, and **enterprise-grade multi-tenancy architecture**. Designed for organizing and managing sporting events like marathons, cycling races, triathlons, and more.
+Sistema completo de gestão de eventos com multi-tenancy, filtros dinâmicos e integração de pagamentos.
 
-## 🚀 **Latest Updates**
+---
 
-### 🏗️ **Multi-Tenancy Architecture** (September 2025)
+## 📚 Documentação
 
-- **🎯 Events-as-Tenants**: Each event operates as an independent tenant
-- **🔒 PostgreSQL RLS**: Row Level Security for automatic data isolation
-- **🌐 Global Organizations**: Shared across all events
-- **🛡️ Automatic Security**: Context-aware database policies
-- **⚡ Performance Optimized**: Composite indexes for multi-tenant queries
+> **Toda a documentação técnica está em [`/docs`](./docs/README.md)**
 
-### ✅ **Complete CRUD Implementation** (September 2025)
+### 🚀 Quick Links
 
-- **Full TDD development** with JUnit 5 + Mockito test coverage
-- **All entity CRUD operations** implemented and tested
-- **API-first design** with comprehensive REST endpoints
-- **Event creation with DTO pattern** for complex object handling
-- **Lazy loading optimization** with strategic @JsonIgnore annotations
-- **Live API testing validated** via Postman with JWT authentication
+- [📖 Documentação Completa](./docs/README.md)
+- [🏗️ Arquitetura de Metadata](./docs/architecture/METADATA_ARCHITECTURE.md)
+- [🔍 Guia de Filtros API](./docs/api/FILTERS_GUIDE.md)
+- [🔗 Entity Filters](./docs/features/ENTITY_FILTERS.md)
+- [📊 Status do Projeto](./docs/implementation/STATUS.md)
+- [🧪 Testing Documentation](./docs/TESTING.md)
+- [🔒 Segurança](./docs/SECURITY.md)
 
-### 🎯 **Core Entities & Features Implemented**
+---
 
-#### 🏢 **Organizations**
+## 🚀 Getting Started
 
-- ✅ Complete CRUD with automatic slug generation
-- ✅ Contact validation and address management
-- ✅ Event ownership and hierarchy
+### Pré-requisitos
 
-#### 🏆 **Events**
+- Java 17+
+- PostgreSQL 13+
+- Gradle 7+
 
-- ✅ **EventCreateRequest DTO** for clean API design
-- ✅ Automatic `startsAt` calculation from date + time
-- ✅ Organization validation and association
-- ✅ Unique slug generation and validation
-- ✅ Multiple event types (Running, Cycling, Triathlon, etc.)
+### Configuração
 
-#### 👤 **Athletes**
+1. **Clone o repositório:**
 
-- ✅ Complete profile management with demographics
-- ✅ Unique email and document validation
-- ✅ Emergency contact and address information
-- ✅ Gender and date of birth tracking
+   ```bash
+   git clone https://github.com/fabio1974/mvt-events.git
+   cd mvt-events
+   ```
 
-#### 📝 **Registrations**
+2. **Configure as variáveis de ambiente:**
 
-- ✅ **Athlete ↔ Event relationship management**
-- ✅ Unique constraint (one athlete per event)
-- ✅ Payment status and method tracking
-- ✅ Category and team assignment
-- ✅ Special needs and T-shirt size management
+   ```bash
+   cp .env.example .env
+   # Edite .env com suas credenciais
+   ```
 
-### 🔐 **Authentication & Security**
+3. **Inicie o banco de dados:**
 
-#### 🛡️ **JWT Authentication System**
+   ```bash
+   docker-compose up -d postgres
+   ```
 
-- ✅ User registration with name/email/password
-- ✅ JWT token generation and validation
-- ✅ Bearer token authentication for all protected endpoints
-- ✅ Role-based access control
-- ✅ **Live tested** with Postman authentication flow
+4. **Execute a aplicação:**
 
-#### 🏛️ **Multi-Tenant Architecture**
+   ```bash
+   ./gradlew bootRun
+   ```
 
-- ✅ **PostgreSQL Row Level Security (RLS)** implementation
-- ✅ Event-as-Tenant strategy for data isolation
-- ✅ Tenant-aware queries and operations
-- ✅ Security context propagation
+5. **Acesse:**
+   - API: http://localhost:8080
+   - Swagger: http://localhost:8080/swagger-ui.html
+   - Actuator: http://localhost:8080/actuator/health
 
-## ✨ **Key Features**
+---
 
-### 🏆 **Sports Events Management**
+## 🏗️ Arquitetura
 
-- **Multi-tenant architecture** with event-level isolation using PostgreSQL Row Level Security (RLS)
-- **Comprehensive event types**: Running, cycling, triathlon, swimming, trail running, mountain biking, and more
-- **Organization management** with event hierarchies
-- **Athlete registration system** with category management
-- **Results tracking** and performance analytics
-- **Event categories** and participant management
+### Stack Tecnológica
 
-### 🏗️ **Multi-Tenancy Architecture**
+- **Backend:** Spring Boot 3.x
+- **Database:** PostgreSQL
+- **ORM:** JPA/Hibernate
+- **Security:** Spring Security + JWT
+- **Payments:** Stripe, MercadoPago, PayPal
+- **Migration:** Flyway
 
-Our platform implements a sophisticated **Events-as-Tenants** architecture:
+### Principais Features
 
-#### 🎯 **Tenant Strategy**
+✅ **Multi-tenancy** por organização  
+✅ **Filtros dinâmicos** com JPA Specifications  
+✅ **Entity Filters** autodiscovery  
+✅ **Metadata API** para frontend dinâmico  
+✅ **Pagamentos integrados** (Stripe, MP, PayPal)  
+✅ **Webhook handlers** para pagamentos
 
-- **Events are Tenants**: Each event operates as an independent data silo
-- **Organizations are Global**: Shared across all events for scalability
-- **Automatic Isolation**: Row Level Security (RLS) policies enforce data separation
+---
 
-#### 🔒 **Security Implementation**
+## 📦 Estrutura do Projeto
 
-```sql
--- Set event context at request start
-SELECT set_current_event(123);
-
--- All queries automatically filtered by tenant_id
-SELECT * FROM athletes; -- Only returns athletes for event 123
+```
+mvt-events/
+├── docs/                      # 📚 Documentação completa
+│   ├── architecture/          # Arquitetura e padrões
+│   ├── api/                   # Documentação de API
+│   ├── features/              # Features específicas
+│   └── implementation/        # Status e changelog
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/mvt/mvt_events/
+│   │   │       ├── controller/
+│   │   │       ├── service/
+│   │   │       ├── repository/
+│   │   │       ├── jpa/       # Entidades JPA
+│   │   │       ├── metadata/  # Sistema de metadata
+│   │   │       ├── payment/   # Integrações de pagamento
+│   │   │       └── security/  # Autenticação e autorização
+│   │   └── resources/
+│   │       ├── db/migration/  # Flyway migrations
+│   │       └── application.properties
+│   └── test/
+├── .env.example               # Template de variáveis de ambiente
+├── docker-compose.yml         # Serviços Docker
+└── README.md                  # Este arquivo
 ```
 
-#### 📊 **Isolated Entities**
+---
 
-- ✅ **Athletes** - Scoped per event
-- ✅ **Registrations** - Event-specific enrollments
-- ✅ **Payments** - Isolated financial records
-- ✅ **Transfers** - Event-based financial operations
-- ✅ **Users** - Event-context user management
-- ✅ **Event Financials** - Per-event financial tracking
+## 🔐 Segurança
 
-#### 🌐 **Global Entities**
+### Variáveis de Ambiente
 
-- ✅ **Organizations** - Shared across all events
-- ✅ **Events** - Tenant definitions themselves
-
-### 💰 **Financial Management System**
-
-- **Automated payment processing** with configurable platform fees
-- **Flexible transfer scheduling**: Immediate, daily, weekly, monthly, or on-demand
-- **Multi-payment method support**: PIX, credit card, bank transfer, TED
-- **Gateway integration** with retry logic and failure handling
-- **Complete audit trail** with payment events tracking
-- **Real-time financial reporting** per event and organization
-
-### 🔐 **Security & Authentication**
-
-- **JWT Authentication** with tenant-aware authorization
-- **Role-based access control** (`ORGANIZER`, `ATHLETE`, `ADMIN`)
-- **Event-context security** ensuring data isolation
-- **Spring Security 6** with custom authentication filters
-- **Multi-tenant Row Level Security** at database level
-
-### 🗄️ **Database & Architecture**
-
-- **PostgreSQL 16** with Row Level Security (RLS)
-- **Event-as-Tenant strategy** for optimal scalability
-- **Flyway migrations** with multi-tenancy support:
-  - **V1**: Initial schema from production dump
-  - **V2**: Complete multi-tenancy implementation with RLS
-- **Spring Data JPA** with optimized queries
-- **Connection pooling** with HikariCP
-
-#### 🔄 **Migration Strategy**
+**Nunca** commite secrets no código. Use variáveis de ambiente:
 
 ```bash
-# V1: Initialize complete schema
-./gradlew flywayMigrate -Dflyway.target=1
-
-# V2: Enable multi-tenancy with RLS
-./gradlew flywayMigrate -Dflyway.target=2
+# .env (não commitado)
+STRIPE_SECRET_KEY=sk_test_xxx
+JWT_SECRET=your-secret-here
+DB_PASSWORD=secure-password
 ```
 
-### 🐳 **DevOps & Deployment**
+📖 **Leia mais:** [Guia de Segurança](./docs/SECURITY.md)
 
-- **Multi-stage Dockerfile** optimized for production
-- **Docker Compose** setup for local development
-- **GitHub Actions CI/CD** with automated GHCR publishing
-- **Render.com deployment** configuration
-- **Health checks** via Spring Boot Actuator
+---
 
-### 🔧 **Troubleshooting**
-
-#### 🚨 **Flyway Checksum Mismatch**
-
-If you encounter migration checksum errors in production:
+## 🧪 Testes
 
 ```bash
-# The platform includes automatic repair for production
-# FlywayConfig.java handles this automatically in @Profile("prod")
+# Testes unitários
+./gradlew test
+
+# Testes de integração
+./gradlew integrationTest
+
+# Coverage
+./gradlew jacocoTestReport
 ```
 
-**What happens automatically:**
+---
 
-1. **Repair executed**: `flyway.repair()` before migration
-2. **Validation disabled**: No checksum validation in production
-3. **Graceful handling**: Continues even if repair fails
-4. **Logging**: Clear success/failure messages
+## 🚢 Deploy
 
-#### 🔄 **Migration Issues**
+### Docker
 
 ```bash
-# Check migration status
-./gradlew flywayInfo
+# Build
+docker build -t mvt-events .
 
-# Manual repair if needed locally
-./gradlew flywayRepair
+# Run
+docker-compose up -d
 ```
 
-## 🔗 **API Endpoints**
+### Heroku
 
-### � **Authentication**
-
-```http
-POST /api/auth/register    # User registration (name, email, password)
-POST /api/auth/login       # JWT token generation
+```bash
+heroku create mvt-events-prod
+heroku addons:create heroku-postgresql:hobby-dev
+heroku config:set STRIPE_SECRET_KEY=sk_live_xxx
+git push heroku main
 ```
 
-### 🏢 **Organizations** (Protected)
+---
 
-```http
-GET    /api/organizations           # List all organizations
-GET    /api/organizations/{id}      # Get organization by ID
-GET    /api/organizations/slug/{slug} # Get organization by slug
-POST   /api/organizations           # Create organization
-PUT    /api/organizations/{id}      # Update organization
-DELETE /api/organizations/{id}      # Delete organization
-```
+## 📊 API Endpoints
 
-### 🏆 **Events** (Protected)
+### Principais Recursos
 
-```http
-GET    /api/events                  # List all events
-GET    /api/events/{id}             # Get event by ID
-GET    /api/events/slug/{slug}      # Get event by slug
-POST   /api/events                  # Create event (uses EventCreateRequest DTO)
-PUT    /api/events/{id}             # Update event
-DELETE /api/events/{id}             # Delete event
-```
+| Recurso       | Endpoint             | Descrição                   |
+| ------------- | -------------------- | --------------------------- |
+| Events        | `/api/events`        | CRUD de eventos             |
+| Registrations | `/api/registrations` | Inscrições em eventos       |
+| Users         | `/api/users`         | Gestão de usuários          |
+| Payments      | `/api/payments`      | Processamento de pagamentos |
+| Metadata      | `/api/metadata`      | Metadata para frontend      |
 
-### 👤 **Athletes** (Protected)
+📖 **Documentação completa:** [Guia de Filtros](./docs/api/FILTERS_GUIDE.md)
+
+---
+
+## 🤝 Contribuindo
+
+1. Fork o projeto
+2. Crie uma feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+---
+
+## 📝 License
+
+Este projeto está sob a licença MIT. Veja [LICENSE](LICENSE) para mais informações.
+
+---
+
+## 👥 Time
+
+- **Backend Lead:** [Nome]
+- **Frontend Lead:** [Nome]
+- **DevOps:** [Nome]
+
+---
+
+## 📞 Suporte
+
+- **Issues:** [GitHub Issues](https://github.com/fabio1974/mvt-events/issues)
+- **Docs:** [Documentação Completa](./docs/README.md)
+- **Email:** support@mvt-events.com
+
+---
+
+## 🔗 Links Úteis
+
+- [Documentação](./docs/README.md)
+- [Changelog](./docs/implementation/CHANGELOG.md)
+- [Status do Projeto](./docs/implementation/STATUS.md)
+- [Segurança](./docs/SECURITY.md)
 
 ```http
 GET    /api/athletes                # List all athletes

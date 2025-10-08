@@ -1,19 +1,27 @@
 package com.mvt.mvt_events.jpa;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.mvt.mvt_events.metadata.DisplayLabel;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "events")
 @Data
 @EqualsAndHashCode(callSuper = true)
+@FilterDef(name = "organizationFilter", parameters = @ParamDef(name = "organizationId", type = Long.class))
+@Filter(name = "organizationFilter", condition = "organization_id = :organizationId")
 public class Event extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -21,6 +29,7 @@ public class Event extends BaseEntity {
     @JsonIgnore
     private Organization organization;
 
+    @DisplayLabel
     @Column(nullable = false)
     private String name;
 
@@ -83,6 +92,10 @@ public class Event extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "transfer_frequency", length = 20)
     private TransferFrequency transferFrequency = TransferFrequency.WEEKLY;
+
+    // Relationships
+    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<EventCategory> categories = new ArrayList<>();
 
     // Enums
     public enum EventType {

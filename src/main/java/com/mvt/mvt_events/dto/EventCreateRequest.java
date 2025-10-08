@@ -1,6 +1,7 @@
 package com.mvt.mvt_events.dto;
 
 import com.mvt.mvt_events.jpa.Event;
+import com.mvt.mvt_events.jpa.EventCategory;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -9,6 +10,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 @Data
 public class EventCreateRequest {
@@ -55,4 +57,21 @@ public class EventCreateRequest {
     private String termsAndConditions;
 
     private String transferFrequency;
+
+    // Categories
+    private List<CategoryRequest> categories;
+
+    @Data
+    public static class CategoryRequest {
+        private String name;
+        private Integer minAge;
+        private Integer maxAge;
+        private EventCategory.Gender gender;
+        private BigDecimal distance;
+        private String distanceUnit;
+        private BigDecimal price;
+        private Integer maxParticipants;
+        private Boolean isActive = true;
+        private String observations;
+    }
 }

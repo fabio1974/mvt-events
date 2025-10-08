@@ -2,12 +2,18 @@ package com.mvt.mvt_events.controller;
 
 import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,34 +22,42 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
+@Tag(name = "Usuários", description = "Gerenciamento de usuários")
+@SecurityRequirement(name = "bearerAuth")
 public class UserController {
 
     @Autowired
     private UserService userService;
 
     @GetMapping
-    public List<User> list() {
-        return userService.findAll();
+    @Operation(summary = "Listar usuários", description = "Suporta filtros: role, organizationId, enabled")
+    @Transactional(readOnly = true)
+    public Page<UserResponse> list(
+            @RequestParam(required = false) User.Role role,
+            @RequestParam(required = false) Long organizationId,
+            @RequestParam(required = false) Boolean enabled,
+            Pageable pageable) {
+        Page<User> users = userService.listWithFilters(role, organizationId, enabled, pageable);
+        return users.map(UserResponse::new);
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Buscar usuário por ID")
     public UserResponse get(@PathVariable UUID id) {
         User user = userService.findById(id);
         return new UserResponse(user);
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Atualizar usuário")
     public ResponseEntity<UserResponse> update(@PathVariable UUID id, @RequestBody @Valid UserUpdateRequest request,
             Authentication authentication) {
-        try {
-            User updatedUser = userService.updateUser(id, request, authentication);
-            return ResponseEntity.ok(new UserResponse(updatedUser));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        User updatedUser = userService.updateUser(id, request, authentication);
+        return ResponseEntity.ok(new UserResponse(updatedUser));
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Excluir usuário")
     public ResponseEntity<Void> delete(@PathVariable UUID id, Authentication authentication) {
         try {
             userService.deleteUser(id, authentication);
@@ -83,7 +97,7 @@ public class UserController {
         private String country;
         private String dateOfBirth;
         private String gender;
-        private String documentNumber;
+        private String cpf;
         private String emergencyContact;
         private String role;
         private Long organizationId;
@@ -100,7 +114,7 @@ public class UserController {
             this.country = user.getCountry();
             this.dateOfBirth = user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : null;
             this.gender = user.getGender() != null ? user.getGender().toString() : null;
-            this.documentNumber = user.getDocumentNumber();
+            this.cpf = user.getCpfFormatted();
             this.emergencyContact = user.getEmergencyContact();
             this.role = user.getRole() != null ? user.getRole().toString() : null;
 

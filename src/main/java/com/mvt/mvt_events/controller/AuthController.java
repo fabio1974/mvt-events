@@ -1,10 +1,21 @@
 package com.mvt.mvt_events.controller;
 
 import com.mvt.mvt_events.common.JwtUtil;
+import com.mvt.mvt_events.exception.EmailAlreadyExistsException;
 import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.jpa.Organization;
 import com.mvt.mvt_events.repository.UserRepository;
 import com.mvt.mvt_events.repository.OrganizationRepository;
+import com.mvt.mvt_events.validation.CPF;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +32,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Autenticação", description = "Login, registro e gerenciamento de usuários")
 public class AuthController {
 
     @Autowired
@@ -39,6 +51,7 @@ public class AuthController {
     private JwtUtil jwtUtil;
 
     @PostMapping("/login")
+    @Operation(summary = "Login de usuário", description = "Autenticação via email e senha, retorna token JWT")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         try {
             Authentication authentication = authenticationManager.authenticate(
@@ -63,9 +76,10 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
+    @Operation(summary = "Registrar novo usuário", description = "Criação de conta (acesso público)")
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest) {
         if (userRepository.findByUsername(registerRequest.getUsername()).isPresent()) {
-            return ResponseEntity.badRequest().body("Email is already taken!");
+            throw new EmailAlreadyExistsException(registerRequest.getUsername(), "Email");
         }
 
         User user = new User();
@@ -73,6 +87,11 @@ public class AuthController {
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setName(registerRequest.getName()); // Set the name field
         user.setRole(User.Role.valueOf(registerRequest.getRole().toUpperCase()));
+
+        // Set CPF if provided
+        if (registerRequest.getCpf() != null && !registerRequest.getCpf().trim().isEmpty()) {
+            user.setCpf(registerRequest.getCpf());
+        }
 
         userRepository.save(user);
 
@@ -85,6 +104,8 @@ public class AuthController {
     }
 
     @GetMapping("/me")
+    @Operation(summary = "Dados do usuário autenticado")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<?> getCurrentUser(Authentication authentication) {
         Map<String, Object> response = new HashMap<>();
         response.put("username", authentication.getName());
@@ -95,6 +116,8 @@ public class AuthController {
     }
 
     @GetMapping("/user-info")
+    @Operation(summary = "Informações completas do usuário autenticado")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<?> getUserInfo(Authentication authentication) {
         String username = authentication.getName();
         User user = userRepository.findByUsername(username)
@@ -296,10 +319,22 @@ public class AuthController {
     }
 
     public static class RegisterRequest {
+        @NotBlank(message = "Nome é obrigatório")
         private String name;
+
+        @NotBlank(message = "Email é obrigatório")
+        @Email(message = "Email deve ser válido")
         private String username;
+
+        @NotBlank(message = "Senha é obrigatória")
+        @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres")
         private String password;
+
+        @NotBlank(message = "Role é obrigatório")
         private String role;
+
+        @CPF(message = "CPF inválido", required = true)
+        private String cpf;
 
         public String getName() {
             return name;
@@ -331,6 +366,14 @@ public class AuthController {
 
         public void setRole(String role) {
             this.role = role;
+        }
+
+        public String getCpf() {
+            return cpf;
+        }
+
+        public void setCpf(String cpf) {
+            this.cpf = cpf;
         }
     }
 

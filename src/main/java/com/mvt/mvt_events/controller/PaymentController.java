@@ -5,9 +5,13 @@ import com.mvt.mvt_events.jpa.Registration;
 import com.mvt.mvt_events.payment.PaymentRequest;
 import com.mvt.mvt_events.payment.PaymentResult;
 import com.mvt.mvt_events.payment.PaymentService;
-import com.mvt.mvt_events.repository.RegistrationRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +22,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/payments")
+@Tag(name = "Pagamentos", description = "Processamento de pagamentos via Stripe e Mercado Pago")
 @Slf4j
 public class PaymentController {
 
@@ -25,15 +30,22 @@ public class PaymentController {
     private PaymentService paymentService;
 
     @Autowired
-    private RegistrationRepository registrationRepository;
-
-    @Autowired
     private com.mvt.mvt_events.service.RegistrationService registrationService;
 
-    /**
-     * Create a new payment
-     */
+    @GetMapping
+    @Operation(summary = "Listar pagamentos", description = "Lista paginada com filtros opcionais por status, registrationId e provider")
+    @SecurityRequirement(name = "bearerAuth")
+    public Page<Payment> listPayments(
+            @RequestParam(required = false) Payment.PaymentStatus status,
+            @RequestParam(required = false) Long registrationId,
+            @RequestParam(required = false) String provider,
+            Pageable pageable) {
+        return paymentService.listWithFilters(status, registrationId, provider, pageable);
+    }
+
     @PostMapping("/create")
+    @Operation(summary = "Criar pagamento", description = "Cria novo pagamento para inscrição")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<?> createPayment(@RequestBody CreatePaymentRequest request) {
         try {
             log.info("Creating payment for registration: {} method: {}",
@@ -50,7 +62,7 @@ public class PaymentController {
                     .paymentMethod(request.getPaymentMethod())
                     .customerEmail(registration.getUser().getUsername())
                     .customerName(registration.getUser().getName())
-                    .customerDocumentNumber(registration.getUser().getDocumentNumber())
+                    .customerDocumentNumber(registration.getUser().getCpfClean())
                     .customerPhone(registration.getUser().getPhone())
                     .description("Inscrição para evento: " + registration.getEvent().getName())
                     .returnUrl(request.getReturnUrl())
@@ -80,6 +92,8 @@ public class PaymentController {
      * Confirm a payment
      */
     @PostMapping("/{paymentId}/confirm")
+    @Operation(summary = "Confirmar pagamento")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<?> confirmPayment(@PathVariable String paymentId,
             @RequestBody(required = false) Map<String, Object> params) {
         try {
@@ -106,6 +120,8 @@ public class PaymentController {
      * Get payment status
      */
     @GetMapping("/{paymentId}/status")
+    @Operation(summary = "Consultar status do pagamento")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<?> getPaymentStatus(@PathVariable String paymentId) {
         try {
             PaymentResult result = paymentService.getPaymentStatus(paymentId);
@@ -127,6 +143,8 @@ public class PaymentController {
      * Refund a payment
      */
     @PostMapping("/{paymentId}/refund")
+    @Operation(summary = "Reembolsar pagamento")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<?> refundPayment(@PathVariable String paymentId,
             @RequestBody RefundRequest request) {
         try {
