@@ -1,15 +1,33 @@
 package com.mvt.mvt_events.metadata;
 
+import com.mvt.mvt_events.metadata.FilterMetadata.FilterOption;
+import java.util.List;
+
 public class FieldMetadata {
     private String name;
     private String label;
-    private String type; // string, number, date, boolean, enum
+    private String type; // string, number, date, boolean, enum, nested
     private boolean sortable;
     private boolean searchable;
     private boolean visible;
     private String format; // para datas, números, etc
     private Integer width; // largura da coluna
     private String align; // left, center, right
+
+    // Form-specific properties
+    private Boolean required;
+    private String placeholder;
+    private Integer minLength;
+    private Integer maxLength;
+    private Double min;
+    private Double max;
+    private String pattern;
+
+    // Enum/Select options (para type="enum" ou type="select")
+    private List<FilterOption> options;
+
+    // Relationship metadata (para type="nested")
+    private RelationshipMetadata relationship;
 
     public FieldMetadata() {
     }
@@ -95,5 +113,77 @@ public class FieldMetadata {
 
     public void setAlign(String align) {
         this.align = align;
+    }
+
+    public Boolean getRequired() {
+        return required;
+    }
+
+    public void setRequired(Boolean required) {
+        this.required = required;
+    }
+
+    public String getPlaceholder() {
+        return placeholder;
+    }
+
+    public void setPlaceholder(String placeholder) {
+        this.placeholder = placeholder;
+    }
+
+    public Integer getMinLength() {
+        return minLength;
+    }
+
+    public void setMinLength(Integer minLength) {
+        this.minLength = minLength;
+    }
+
+    public Integer getMaxLength() {
+        return maxLength;
+    }
+
+    public void setMaxLength(Integer maxLength) {
+        this.maxLength = maxLength;
+    }
+
+    public Double getMin() {
+        return min;
+    }
+
+    public void setMin(Double min) {
+        this.min = min;
+    }
+
+    public Double getMax() {
+        return max;
+    }
+
+    public void setMax(Double max) {
+        this.max = max;
+    }
+
+    public String getPattern() {
+        return pattern;
+    }
+
+    public void setPattern(String pattern) {
+        this.pattern = pattern;
+    }
+
+    public List<FilterOption> getOptions() {
+        return options;
+    }
+
+    public void setOptions(List<FilterOption> options) {
+        this.options = options;
+    }
+
+    public RelationshipMetadata getRelationship() {
+        return relationship;
+    }
+
+    public void setRelationship(RelationshipMetadata relationship) {
+        this.relationship = relationship;
     }
 }

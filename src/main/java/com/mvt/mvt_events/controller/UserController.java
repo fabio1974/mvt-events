@@ -16,7 +16,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -30,14 +29,15 @@ public class UserController {
     private UserService userService;
 
     @GetMapping
-    @Operation(summary = "Listar usuários", description = "Suporta filtros: role, organizationId, enabled")
+    @Operation(summary = "Listar usuários", description = "Suporta filtros: role, organizationId, enabled, search (nome ou email)")
     @Transactional(readOnly = true)
     public Page<UserResponse> list(
             @RequestParam(required = false) User.Role role,
             @RequestParam(required = false) Long organizationId,
             @RequestParam(required = false) Boolean enabled,
+            @RequestParam(required = false) String search,
             Pageable pageable) {
-        Page<User> users = userService.listWithFilters(role, organizationId, enabled, pageable);
+        Page<User> users = userService.listWithFilters(role, organizationId, enabled, search, pageable);
         return users.map(UserResponse::new);
     }
 

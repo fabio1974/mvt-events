@@ -12,7 +12,8 @@ public class UserSpecification {
     public static Specification<User> withFilters(
             User.Role role,
             Long organizationId,
-            Boolean enabled) {
+            Boolean enabled,
+            String search) {
 
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -27,6 +28,17 @@ public class UserSpecification {
 
             if (enabled != null) {
                 predicates.add(criteriaBuilder.equal(root.get("enabled"), enabled));
+            }
+
+            // Busca por nome, email ou username (case-insensitive)
+            if (search != null && !search.trim().isEmpty()) {
+                String searchPattern = "%" + search.toLowerCase().trim() + "%";
+                Predicate namePredicate = criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("name")), searchPattern);
+                Predicate emailPredicate = criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("username")), searchPattern);
+
+                predicates.add(criteriaBuilder.or(namePredicate, emailPredicate));
             }
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));

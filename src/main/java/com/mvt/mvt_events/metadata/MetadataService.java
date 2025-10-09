@@ -1,6 +1,8 @@
 package com.mvt.mvt_events.metadata;
 
+import com.mvt.mvt_events.jpa.*;
 import com.mvt.mvt_events.metadata.FilterMetadata.FilterOption;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -11,6 +13,21 @@ import java.util.Map;
 
 @Service
 public class MetadataService {
+
+    @Autowired
+    private JpaMetadataExtractor jpaExtractor;
+
+    // Mapa de classes das entidades
+    private static final Map<String, Class<?>> ENTITY_CLASSES = new HashMap<>();
+
+    static {
+        ENTITY_CLASSES.put("event", Event.class);
+        ENTITY_CLASSES.put("registration", Registration.class);
+        ENTITY_CLASSES.put("organization", Organization.class);
+        ENTITY_CLASSES.put("user", User.class);
+        ENTITY_CLASSES.put("payment", Payment.class);
+        ENTITY_CLASSES.put("eventCategory", EventCategory.class);
+    }
 
     public Map<String, EntityMetadata> getAllEntitiesMetadata() {
         Map<String, EntityMetadata> metadata = new HashMap<>();
@@ -123,7 +140,40 @@ public class MetadataService {
         PaginationConfig pagination = new PaginationConfig(5, new int[] { 5, 10, 20, 50 });
         metadata.setPagination(pagination);
 
+        // ✅ CAMPOS ESPECÍFICOS PARA TABELA
+        metadata.setTableFields(fields);
+
+        // ✅ CAMPOS ESPECÍFICOS PARA FORMULÁRIO (via JPA)
+        List<FieldMetadata> formFields = jpaExtractor.extractFields(Event.class);
+        customizeEventFormFields(formFields);
+        metadata.setFormFields(formFields);
+
+        // Compatibilidade: fields = tableFields
+        metadata.setFields(fields);
+
         return metadata;
+    }
+
+    private void customizeEventFormFields(List<FieldMetadata> fields) {
+        for (FieldMetadata field : fields) {
+            switch (field.getName()) {
+                case "name":
+                    field.setPlaceholder("Digite o nome do evento");
+                    break;
+                case "eventType":
+                    field.setPlaceholder("Selecione o esporte");
+                    break;
+                case "status":
+                    field.setPlaceholder("Selecione o status");
+                    break;
+                case "location":
+                    field.setPlaceholder("Digite o local do evento");
+                    break;
+                case "description":
+                    field.setPlaceholder("Descreva o evento");
+                    break;
+            }
+        }
     }
 
     private EntityMetadata getRegistrationMetadata() {
@@ -185,6 +235,9 @@ public class MetadataService {
         metadata.setFilters(filters);
         metadata.setPagination(new PaginationConfig());
 
+        // ✅ Adiciona formFields
+        addFormFieldsToMetadata(metadata, "registration", Registration.class);
+
         return metadata;
     }
 
@@ -214,6 +267,9 @@ public class MetadataService {
         metadata.setFields(fields);
         metadata.setFilters(new ArrayList<>());
         metadata.setPagination(new PaginationConfig());
+
+        // ✅ Adiciona formFields
+        addFormFieldsToMetadata(metadata, "organization", Organization.class);
 
         return metadata;
     }
@@ -275,6 +331,9 @@ public class MetadataService {
 
         metadata.setFilters(filters);
         metadata.setPagination(new PaginationConfig());
+
+        // ✅ Adiciona formFields
+        addFormFieldsToMetadata(metadata, "user", User.class);
 
         return metadata;
     }
@@ -351,6 +410,9 @@ public class MetadataService {
         metadata.setFilters(filters);
         metadata.setPagination(new PaginationConfig());
 
+        // ✅ Adiciona formFields
+        addFormFieldsToMetadata(metadata, "payment", Payment.class);
+
         return metadata;
     }
 
@@ -424,6 +486,123 @@ public class MetadataService {
         metadata.setFilters(filters);
         metadata.setPagination(new PaginationConfig());
 
+        // ✅ Adiciona formFields
+        addFormFieldsToMetadata(metadata, "eventCategory", EventCategory.class);
+
         return metadata;
+    }
+
+    /**
+     * Método auxiliar para adicionar formFields extraídos via JPA
+     */
+    private void addFormFieldsToMetadata(EntityMetadata metadata, String entityName, Class<?> entityClass) {
+        List<FieldMetadata> tableFields = metadata.getFields();
+
+        // Extrai campos de formulário via JPA
+        List<FieldMetadata> formFields = jpaExtractor.extractFields(entityClass);
+
+        // Aplica customizações específicas
+        customizeFormFieldsByEntity(entityName, formFields);
+
+        // Define tableFields e formFields separadamente
+        metadata.setTableFields(tableFields);
+        metadata.setFormFields(formFields);
+
+        // Mantém compatibilidade com código antigo
+        metadata.setFields(tableFields);
+    }
+
+    /**
+     * Customiza placeholders e outros detalhes dos campos de formulário
+     */
+    private void customizeFormFieldsByEntity(String entityName, List<FieldMetadata> fields) {
+        switch (entityName) {
+            case "event":
+                customizeEventFormFields(fields);
+                break;
+            case "registration":
+                customizeRegistrationFormFields(fields);
+                break;
+            case "organization":
+                customizeOrganizationFormFields(fields);
+                break;
+            case "user":
+                customizeUserFormFields(fields);
+                break;
+            case "payment":
+                customizePaymentFormFields(fields);
+                break;
+            case "eventCategory":
+                customizeEventCategoryFormFields(fields);
+                break;
+        }
+    }
+
+    private void customizeRegistrationFormFields(List<FieldMetadata> fields) {
+        for (FieldMetadata field : fields) {
+            switch (field.getName()) {
+                case "status":
+                    field.setPlaceholder("Selecione o status");
+                    break;
+            }
+        }
+    }
+
+    private void customizeOrganizationFormFields(List<FieldMetadata> fields) {
+        for (FieldMetadata field : fields) {
+            switch (field.getName()) {
+                case "name":
+                    field.setPlaceholder("Nome da organização");
+                    break;
+                case "contactEmail":
+                    field.setPlaceholder("E-mail de contato");
+                    break;
+            }
+        }
+    }
+
+    private void customizeUserFormFields(List<FieldMetadata> fields) {
+        for (FieldMetadata field : fields) {
+            switch (field.getName()) {
+                case "name":
+                    field.setPlaceholder("Nome completo");
+                    break;
+                case "username":
+                    field.setPlaceholder("E-mail do usuário");
+                    break;
+                case "role":
+                    field.setPlaceholder("Selecione o perfil");
+                    break;
+            }
+        }
+    }
+
+    private void customizePaymentFormFields(List<FieldMetadata> fields) {
+        for (FieldMetadata field : fields) {
+            switch (field.getName()) {
+                case "amount":
+                    field.setPlaceholder("Valor do pagamento");
+                    break;
+                case "paymentMethod":
+                    field.setPlaceholder("Método de pagamento");
+                    break;
+            }
+        }
+    }
+
+    private void customizeEventCategoryFormFields(List<FieldMetadata> fields) {
+        for (FieldMetadata field : fields) {
+            switch (field.getName()) {
+                case "name":
+                    field.setPlaceholder("Nome da categoria");
+                    break;
+                case "gender":
+                    field.setPlaceholder("Selecione o gênero");
+                    break;
+                case "distanceUnit":
+                    field.setPlaceholder("Unidade de distância");
+                    break;
+            }
+        }
     }
 }

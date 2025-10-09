@@ -6,7 +6,9 @@ public class EntityMetadata {
     private String name;
     private String label;
     private String endpoint;
-    private List<FieldMetadata> fields;
+    private List<FieldMetadata> fields; // Campos genéricos (compatibilidade)
+    private List<FieldMetadata> tableFields; // Campos específicos para TABELA
+    private List<FieldMetadata> formFields; // Campos específicos para FORMULÁRIO
     private List<FilterMetadata> filters;
     private PaginationConfig pagination;
 
@@ -50,6 +52,22 @@ public class EntityMetadata {
 
     public void setFields(List<FieldMetadata> fields) {
         this.fields = fields;
+    }
+
+    public List<FieldMetadata> getTableFields() {
+        return tableFields;
+    }
+
+    public void setTableFields(List<FieldMetadata> tableFields) {
+        this.tableFields = tableFields;
+    }
+
+    public List<FieldMetadata> getFormFields() {
+        return formFields;
+    }
+
+    public void setFormFields(List<FieldMetadata> formFields) {
+        this.formFields = formFields;
     }
 
     public List<FilterMetadata> getFilters() {

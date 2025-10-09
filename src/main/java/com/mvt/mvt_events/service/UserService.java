@@ -37,8 +37,9 @@ public class UserService {
             User.Role role,
             Long organizationId,
             Boolean enabled,
+            String search,
             Pageable pageable) {
-        Specification<User> spec = UserSpecification.withFilters(role, organizationId, enabled);
+        Specification<User> spec = UserSpecification.withFilters(role, organizationId, enabled, search);
         Page<User> users = userRepository.findAll(spec, pageable);
 
         // Force load das organizations para evitar lazy loading
