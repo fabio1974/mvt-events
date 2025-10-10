@@ -53,7 +53,6 @@ class EventServiceTest {
         event.setEventDate(LocalDate.of(2025, 12, 15));
         event.setEventTime(LocalTime.of(7, 0));
         event.setLocation("Parque Ibirapuera");
-        event.setAddress("Av. Paulista, 1000 - São Paulo, SP");
         event.setMaxParticipants(500);
         event.setPrice(new BigDecimal("75.00"));
         event.setCurrency("BRL");
@@ -102,7 +101,7 @@ class EventServiceTest {
         });
 
         // When
-        Event result = eventService.create(event);
+        eventService.create(event);
 
         // Then
         verify(eventRepository).save(any(Event.class));
@@ -322,7 +321,7 @@ class EventServiceTest {
         });
 
         // When
-        Event result = eventService.create(event);
+        eventService.create(event);
 
         // Then
         verify(eventRepository).existsBySlug("corrida-de-sao-paulo-2025");

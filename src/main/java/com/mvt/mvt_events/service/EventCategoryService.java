@@ -40,9 +40,6 @@ public class EventCategoryService {
         category.setEvent(event);
 
         // Set defaults
-        if (category.getIsActive() == null) {
-            category.setIsActive(true);
-        }
         if (category.getCurrentParticipants() == null) {
             category.setCurrentParticipants(0);
         }
@@ -86,9 +83,6 @@ public class EventCategoryService {
         }
         if (updatedCategory.getMaxParticipants() != null) {
             existingCategory.setMaxParticipants(updatedCategory.getMaxParticipants());
-        }
-        if (updatedCategory.getIsActive() != null) {
-            existingCategory.setIsActive(updatedCategory.getIsActive());
         }
         if (updatedCategory.getObservations() != null) {
             existingCategory.setObservations(updatedCategory.getObservations());
@@ -178,15 +172,6 @@ public class EventCategoryService {
         }
 
         categoryRepository.deleteById(categoryId);
-    }
-
-    /**
-     * Activate/Deactivate category
-     */
-    public EventCategory toggleActive(Long categoryId) {
-        EventCategory category = get(categoryId);
-        category.setIsActive(!category.getIsActive());
-        return categoryRepository.save(category);
     }
 
     /**

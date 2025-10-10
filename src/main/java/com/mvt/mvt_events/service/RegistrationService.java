@@ -16,6 +16,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -53,7 +54,7 @@ public class RegistrationService {
 
         // Check registration period - check specific dates first for detailed error
         // messages
-        LocalDateTime now = LocalDateTime.now();
+        LocalDate now = LocalDate.now();
         if (event.getRegistrationStartDate() != null && now.isBefore(event.getRegistrationStartDate())) {
             throw new RuntimeException("Período de inscrição ainda não começou");
         }
@@ -102,8 +103,7 @@ public class RegistrationService {
                 r.getUser().getUsername(),
                 r.getEvent().getId(),
                 r.getEvent().getName(),
-                r.getEvent().getEventDate(),
-                r.getEvent().getEventTime()));
+                r.getEvent().getEventDate()));
     }
 
     /**
@@ -124,8 +124,7 @@ public class RegistrationService {
                         r.getUser().getUsername(),
                         r.getEvent().getId(),
                         r.getEvent().getName(),
-                        r.getEvent().getEventDate(),
-                        r.getEvent().getEventTime()))
+                        r.getEvent().getEventDate()))
                 .toList();
     }
 
@@ -153,8 +152,7 @@ public class RegistrationService {
                 r.getUser().getUsername(),
                 r.getEvent().getId(),
                 r.getEvent().getName(),
-                r.getEvent().getEventDate(),
-                r.getEvent().getEventTime()));
+                r.getEvent().getEventDate()));
     }
 
     /**
@@ -177,8 +175,7 @@ public class RegistrationService {
                 r.getUser().getUsername(),
                 r.getEvent().getId(),
                 r.getEvent().getName(),
-                r.getEvent().getEventDate(),
-                r.getEvent().getEventTime()));
+                r.getEvent().getEventDate()));
     }
 
     /**
@@ -201,8 +198,7 @@ public class RegistrationService {
                         r.getUser().getUsername(),
                         r.getEvent().getId(),
                         r.getEvent().getName(),
-                        r.getEvent().getEventDate(),
-                        r.getEvent().getEventTime()))
+                        r.getEvent().getEventDate()))
                 .toList();
     }
 

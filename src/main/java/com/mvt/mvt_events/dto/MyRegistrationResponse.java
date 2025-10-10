@@ -4,8 +4,6 @@ import com.mvt.mvt_events.jpa.Registration;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,9 +21,7 @@ public class MyRegistrationResponse {
         private Long id;
         private String name;
         private String description;
-        private LocalDateTime startsAt;
-        private LocalDate eventDate;
-        private LocalTime eventTime;
+        private LocalDateTime eventDate;
         private String location;
         private java.math.BigDecimal price;
     }

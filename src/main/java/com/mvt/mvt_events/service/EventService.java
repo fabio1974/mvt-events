@@ -17,8 +17,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -71,28 +69,17 @@ public class EventService {
         event.setDescription(request.getDescription());
         event.setEventType(request.getEventType());
         event.setEventDate(request.getEventDate());
-        event.setEventTime(request.getEventTime());
         event.setLocation(request.getLocation());
-        event.setAddress(request.getAddress());
         event.setMaxParticipants(request.getMaxParticipants());
         event.setRegistrationOpen(request.getRegistrationOpen());
-        event.setRegistrationStartDate(
-                request.getRegistrationStartDate() != null ? request.getRegistrationStartDate().atStartOfDay() : null);
-        event.setRegistrationEndDate(
-                request.getRegistrationEndDate() != null ? request.getRegistrationEndDate().atTime(23, 59, 59) : null);
+        event.setRegistrationStartDate(request.getRegistrationStartDate());
+        event.setRegistrationEndDate(request.getRegistrationEndDate());
         event.setPrice(request.getPrice());
         event.setCurrency(request.getCurrency());
-        event.setBannerUrl(request.getBannerUrl());
         event.setPlatformFeePercentage(request.getPlatformFeePercentage());
         event.setTermsAndConditions(request.getTermsAndConditions());
         event.setTransferFrequency(TransferFrequency.WEEKLY); // Default value
         event.setStatus(Event.EventStatus.DRAFT); // Default status
-
-        // Set startsAt from eventDate and eventTime
-        if (event.getEventDate() != null) {
-            LocalTime time = event.getEventTime() != null ? event.getEventTime() : LocalTime.of(0, 0);
-            event.setStartsAt(LocalDateTime.of(event.getEventDate(), time));
-        }
 
         // Generate slug from name if not provided
         if (request.getSlug() == null || request.getSlug().trim().isEmpty()) {
@@ -119,11 +106,11 @@ public class EventService {
                 category.setMaxAge(catRequest.getMaxAge());
                 category.setGender(catRequest.getGender());
                 category.setDistance(catRequest.getDistance());
-                category.setDistanceUnit(catRequest.getDistanceUnit());
+                if (catRequest.getDistanceUnit() != null)
+                    category.setDistanceUnit(EventCategory.DistanceUnit.valueOf(catRequest.getDistanceUnit()));
                 category.setPrice(catRequest.getPrice());
                 category.setMaxParticipants(catRequest.getMaxParticipants());
                 category.setCurrentParticipants(0);
-                category.setIsActive(catRequest.getIsActive() != null ? catRequest.getIsActive() : true);
                 category.setObservations(catRequest.getObservations());
 
                 categoryRepository.save(category);
@@ -147,12 +134,6 @@ public class EventService {
             event.setOrganization(organization);
         } else {
             throw new RuntimeException("ID da organização é obrigatório");
-        }
-
-        // Set startsAt from eventDate and eventTime
-        if (event.getEventDate() != null) {
-            LocalTime time = event.getEventTime() != null ? event.getEventTime() : LocalTime.of(0, 0);
-            event.setStartsAt(LocalDateTime.of(event.getEventDate(), time));
         }
 
         // Generate slug from name if not provided
@@ -245,16 +226,10 @@ public class EventService {
             existing.setDescription(eventData.getDescription());
         if (eventData.getEventType() != null)
             existing.setEventType(eventData.getEventType());
-        if (eventData.getStartsAt() != null)
-            existing.setStartsAt(eventData.getStartsAt());
         if (eventData.getEventDate() != null)
             existing.setEventDate(eventData.getEventDate());
-        if (eventData.getEventTime() != null)
-            existing.setEventTime(eventData.getEventTime());
         if (eventData.getLocation() != null)
             existing.setLocation(eventData.getLocation());
-        if (eventData.getAddress() != null)
-            existing.setAddress(eventData.getAddress());
         if (eventData.getMaxParticipants() != null)
             existing.setMaxParticipants(eventData.getMaxParticipants());
         if (eventData.getRegistrationOpen() != null)
@@ -269,8 +244,6 @@ public class EventService {
             existing.setCurrency(eventData.getCurrency());
         if (eventData.getTermsAndConditions() != null)
             existing.setTermsAndConditions(eventData.getTermsAndConditions());
-        if (eventData.getBannerUrl() != null)
-            existing.setBannerUrl(eventData.getBannerUrl());
         if (eventData.getStatus() != null)
             existing.setStatus(eventData.getStatus());
         if (eventData.getPlatformFeePercentage() != null)
@@ -313,40 +286,26 @@ public class EventService {
             existing.setEventType(request.getEventType());
         if (request.getEventDate() != null)
             existing.setEventDate(request.getEventDate());
-        if (request.getEventTime() != null)
-            existing.setEventTime(request.getEventTime());
         if (request.getLocation() != null)
             existing.setLocation(request.getLocation());
-        if (request.getAddress() != null)
-            existing.setAddress(request.getAddress());
         if (request.getMaxParticipants() != null)
             existing.setMaxParticipants(request.getMaxParticipants());
         if (request.getRegistrationOpen() != null)
             existing.setRegistrationOpen(request.getRegistrationOpen());
-        if (request.getRegistrationStartDate() != null) {
-            existing.setRegistrationStartDate(request.getRegistrationStartDate().atStartOfDay());
-        }
-        if (request.getRegistrationEndDate() != null) {
-            existing.setRegistrationEndDate(request.getRegistrationEndDate().atTime(23, 59, 59));
-        }
+        if (request.getRegistrationStartDate() != null)
+            existing.setRegistrationStartDate(request.getRegistrationStartDate());
+        if (request.getRegistrationEndDate() != null)
+            existing.setRegistrationEndDate(request.getRegistrationEndDate());
         if (request.getPrice() != null)
             existing.setPrice(request.getPrice());
         if (request.getCurrency() != null)
             existing.setCurrency(request.getCurrency());
-        if (request.getBannerUrl() != null)
-            existing.setBannerUrl(request.getBannerUrl());
         if (request.getPlatformFeePercentage() != null)
             existing.setPlatformFeePercentage(request.getPlatformFeePercentage());
         if (request.getTermsAndConditions() != null)
             existing.setTermsAndConditions(request.getTermsAndConditions());
         if (request.getStatus() != null)
             existing.setStatus(request.getStatus());
-
-        // Update startsAt if date or time changed
-        if (request.getEventDate() != null || request.getEventTime() != null) {
-            LocalTime time = existing.getEventTime() != null ? existing.getEventTime() : LocalTime.of(0, 0);
-            existing.setStartsAt(LocalDateTime.of(existing.getEventDate(), time));
-        }
 
         // Save event
         Event savedEvent = repository.save(existing);
@@ -405,13 +364,11 @@ public class EventService {
                     if (catRequest.getDistance() != null)
                         existingCat.setDistance(catRequest.getDistance());
                     if (catRequest.getDistanceUnit() != null)
-                        existingCat.setDistanceUnit(catRequest.getDistanceUnit());
+                        existingCat.setDistanceUnit(EventCategory.DistanceUnit.valueOf(catRequest.getDistanceUnit()));
                     if (catRequest.getPrice() != null)
                         existingCat.setPrice(catRequest.getPrice());
                     if (catRequest.getMaxParticipants() != null)
                         existingCat.setMaxParticipants(catRequest.getMaxParticipants());
-                    if (catRequest.getIsActive() != null)
-                        existingCat.setIsActive(catRequest.getIsActive());
                     if (catRequest.getObservations() != null)
                         existingCat.setObservations(catRequest.getObservations());
 
@@ -426,11 +383,10 @@ public class EventService {
                     newCategory.setMaxAge(catRequest.getMaxAge());
                     newCategory.setGender(catRequest.getGender());
                     newCategory.setDistance(catRequest.getDistance());
-                    newCategory.setDistanceUnit(catRequest.getDistanceUnit());
+                    newCategory.setDistanceUnit(EventCategory.DistanceUnit.valueOf(catRequest.getDistanceUnit()));
                     newCategory.setPrice(catRequest.getPrice());
                     newCategory.setMaxParticipants(catRequest.getMaxParticipants());
                     newCategory.setCurrentParticipants(0);
-                    newCategory.setIsActive(catRequest.getIsActive() != null ? catRequest.getIsActive() : true);
                     newCategory.setObservations(catRequest.getObservations());
 
                     categoryRepository.save(newCategory);

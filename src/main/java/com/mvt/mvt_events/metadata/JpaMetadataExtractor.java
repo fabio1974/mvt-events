@@ -46,8 +46,6 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("endDate", "Data de Término");
         FIELD_TRANSLATIONS.put("registrationStartDate", "Início das Inscrições");
         FIELD_TRANSLATIONS.put("registrationEndDate", "Fim das Inscrições");
-        FIELD_TRANSLATIONS.put("eventTime", "Horário");
-        FIELD_TRANSLATIONS.put("startsAt", "Inicia em");
         FIELD_TRANSLATIONS.put("dateOfBirth", "Data de Nascimento");
         FIELD_TRANSLATIONS.put("processedAt", "Processado em");
         FIELD_TRANSLATIONS.put("refundedAt", "Reembolsado em");
@@ -61,7 +59,6 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("categories", "Categorias");
         FIELD_TRANSLATIONS.put("currency", "Moeda");
         FIELD_TRANSLATIONS.put("termsAndConditions", "Termos e Condições");
-        FIELD_TRANSLATIONS.put("bannerUrl", "URL do Banner");
         FIELD_TRANSLATIONS.put("platformFeePercentage", "Taxa da Plataforma (%)");
         FIELD_TRANSLATIONS.put("transferFrequency", "Frequência de Transferência");
 
@@ -72,7 +69,6 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("distance", "Distância");
         FIELD_TRANSLATIONS.put("distanceUnit", "Unidade de Distância");
         FIELD_TRANSLATIONS.put("observations", "Observações");
-        FIELD_TRANSLATIONS.put("isActive", "Ativa");
 
         // ==================== FINANCEIRO/PAYMENT ====================
         FIELD_TRANSLATIONS.put("price", "Preço");
@@ -188,9 +184,8 @@ public class JpaMetadataExtractor {
 
         // Processa todos os campos da classe e superclasses
         getAllFields(entityClass).forEach(field -> {
-            // Ignora campos anotados com @Transient ou @JsonIgnore
-            if (field.isAnnotationPresent(Transient.class) ||
-                    field.isAnnotationPresent(com.fasterxml.jackson.annotation.JsonIgnore.class)) {
+            // Ignora apenas campos anotados com @Transient
+            if (field.isAnnotationPresent(Transient.class)) {
                 return;
             }
 
@@ -217,14 +212,14 @@ public class JpaMetadataExtractor {
         String label = extractLabel(field);
         String type = determineFieldType(field);
 
-        // Ignora relacionamentos ManyToOne/OneToOne aqui (serão tratados separadamente)
-        if (field.isAnnotationPresent(ManyToOne.class) || field.isAnnotationPresent(OneToOne.class)) {
-            return null;
-        }
-
         // Se for OneToMany, cria metadata de relacionamento
         if (field.isAnnotationPresent(OneToMany.class)) {
             return createRelationshipField(field);
+        }
+
+        // Se for ManyToOne ou OneToOne, cria metadata de relacionamento simples
+        if (field.isAnnotationPresent(ManyToOne.class) || field.isAnnotationPresent(OneToOne.class)) {
+            return createManyToOneField(field);
         }
 
         FieldMetadata metadata = new FieldMetadata(fieldName, label, type);
@@ -244,13 +239,141 @@ public class JpaMetadataExtractor {
             }
         }
 
+        // Extrai validações da anotação @Size (Bean Validation)
+        if (field.isAnnotationPresent(jakarta.validation.constraints.Size.class)) {
+            jakarta.validation.constraints.Size size = field.getAnnotation(jakarta.validation.constraints.Size.class);
+            if (size.max() > 0) {
+                metadata.setMaxLength(size.max());
+            }
+            if (size.min() > 0) {
+                metadata.setMinLength(size.min());
+            }
+        }
+
+        // Extrai validações da anotação @Max (Bean Validation)
+        if (field.isAnnotationPresent(jakarta.validation.constraints.Max.class)) {
+            jakarta.validation.constraints.Max max = field.getAnnotation(jakarta.validation.constraints.Max.class);
+            metadata.setMax((double) max.value());
+        }
+
+        // Extrai validações da anotação @Min (Bean Validation)
+        if (field.isAnnotationPresent(jakarta.validation.constraints.Min.class)) {
+            jakarta.validation.constraints.Min min = field.getAnnotation(jakarta.validation.constraints.Min.class);
+            metadata.setMin((double) min.value());
+        }
+
+        // Define width automaticamente baseado no tipo e tamanho
+        metadata.setWidth(calculateWidth(field, type, metadata.getMaxLength()));
+
+        // Define align baseado no tipo
+        if (type.equals("number") || type.equals("currency")) {
+            metadata.setAlign("right");
+        } else if (type.equals("boolean") || type.equals("date") || type.equals("select")) {
+            metadata.setAlign("center");
+        }
+
+        // Define format para tipos específicos
+        if (type.equals("date")) {
+            metadata.setFormat("dd/MM/yyyy");
+        } else if (type.equals("datetime")) {
+            metadata.setFormat("dd/MM/yyyy HH:mm");
+        } else if (type.equals("currency")) {
+            metadata.setFormat("currency");
+        }
+
         // Se for ENUM, extrai as opções
         if (field.isAnnotationPresent(Enumerated.class) && field.getType().isEnum()) {
             metadata.setType("select"); // Enum sempre é select
             metadata.setOptions(extractEnumOptions(field.getType()));
         }
 
+        // ✅ Verifica anotação @Visible (será processada pelo MetadataService para cada contexto)
+        // Aqui apenas armazenamos os flags para uso posterior
+        if (field.isAnnotationPresent(Visible.class)) {
+            Visible visible = field.getAnnotation(Visible.class);
+            
+            System.out.println("DEBUG JpaExtractor: Campo '" + field.getName() + "' tem @Visible - form=" + visible.form() + ", table=" + visible.table() + ", filter=" + visible.filter());
+            
+            // Armazena os flags para processamento posterior
+            metadata.setHiddenFromForm(!visible.form());
+            metadata.setHiddenFromTable(!visible.table());
+            metadata.setHiddenFromFilter(!visible.filter());
+            
+            System.out.println("DEBUG JpaExtractor: Campo '" + field.getName() + "' - hiddenFromForm=" + metadata.getHiddenFromForm() + ", hiddenFromTable=" + metadata.getHiddenFromTable());
+        }
+
+        // ✅ Extrai valor default do campo
+        Object defaultValue = extractDefaultValue(entityClass, field);
+        if (defaultValue != null) {
+            metadata.setDefaultValue(defaultValue);
+        }
+
         return metadata;
+    }
+
+    /**
+     * Calcula width ideal para a coluna da tabela baseado no tipo e tamanho
+     */
+    private Integer calculateWidth(Field field, String type, Integer maxLength) {
+        // Se for @DisplayLabel ou campo principal, usa width maior
+        if (field.isAnnotationPresent(DisplayLabel.class) || "name".equals(field.getName())) {
+            return 200;
+        }
+
+        switch (type) {
+            case "boolean":
+                return 80;
+            case "date":
+                return 120;
+            case "datetime":
+                return 160;
+            case "number":
+                return 100;
+            case "currency":
+                return 120;
+            case "select":
+                return 120;
+            case "string":
+                // Para strings, baseamos no maxLength
+                if (maxLength != null) {
+                    if (maxLength <= 50)
+                        return 120;
+                    if (maxLength <= 100)
+                        return 150;
+                    if (maxLength <= 255)
+                        return 180;
+                    return 200;
+                }
+                return 150; // default para strings sem maxLength
+            default:
+                return 150;
+        }
+    }
+
+    /**
+     * Extrai o valor default de um campo instanciando a entidade
+     */
+    private Object extractDefaultValue(Class<?> entityClass, Field field) {
+        try {
+            // Instancia a entidade usando o construtor padrão
+            Object instance = entityClass.getDeclaredConstructor().newInstance();
+
+            // Torna o campo acessível
+            field.setAccessible(true);
+
+            // Lê o valor default do campo
+            Object value = field.get(instance);
+
+            // Se for enum, retorna o nome do enum (não o objeto)
+            if (value != null && value.getClass().isEnum()) {
+                return ((Enum<?>) value).name();
+            }
+
+            return value;
+        } catch (Exception e) {
+            // Se não conseguir instanciar ou ler o campo, retorna null
+            return null;
+        }
     }
 
     /**
@@ -287,6 +410,58 @@ public class JpaMetadataExtractor {
         metadata.setSortable(false);
         metadata.setSearchable(false);
         metadata.setRelationship(relationship);
+
+        return metadata;
+    }
+
+    /**
+     * Cria FieldMetadata para relacionamento ManyToOne ou OneToOne
+     */
+    private FieldMetadata createManyToOneField(Field field) {
+        String fieldName = field.getName();
+        String label = extractLabel(field);
+        Class<?> targetEntity = field.getType();
+
+        // Cria metadata como tipo "entity" para exibir na tabela e formulário
+        FieldMetadata metadata = new FieldMetadata(fieldName, label, "entity");
+
+        // Configuração do relacionamento
+        String targetEntityName = toEntityName(targetEntity.getSimpleName());
+        String targetEndpoint = "/api/" + toKebabCase(toPlural(targetEntity.getSimpleName()));
+
+        RelationshipMetadata relationship = new RelationshipMetadata(
+                "MANY_TO_ONE",
+                targetEntityName,
+                targetEndpoint);
+
+        metadata.setRelationship(relationship);
+
+        // Configuração para exibição na tabela
+        metadata.setVisible(true);
+        metadata.setSortable(true);
+        metadata.setSearchable(true);
+        metadata.setWidth(150);
+        metadata.setAlign("left");
+
+        // Verifica se é obrigatório
+        if (field.isAnnotationPresent(JoinColumn.class)) {
+            JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
+            metadata.setRequired(!joinColumn.nullable());
+        }
+
+        // ✅ Verifica anotação @Visible também para relacionamentos
+        if (field.isAnnotationPresent(Visible.class)) {
+            Visible visible = field.getAnnotation(Visible.class);
+            
+            System.out.println("DEBUG JpaExtractor (ManyToOne): Campo '" + field.getName() + "' tem @Visible - form=" + visible.form() + ", table=" + visible.table() + ", filter=" + visible.filter());
+            
+            // Armazena os flags para processamento posterior
+            metadata.setHiddenFromForm(!visible.form());
+            metadata.setHiddenFromTable(!visible.table());
+            metadata.setHiddenFromFilter(!visible.filter());
+            
+            System.out.println("DEBUG JpaExtractor (ManyToOne): Campo '" + field.getName() + "' - hiddenFromForm=" + metadata.getHiddenFromForm() + ", hiddenFromTable=" + metadata.getHiddenFromTable());
+        }
 
         return metadata;
     }
@@ -466,5 +641,157 @@ public class JpaMetadataExtractor {
                 || fieldName.equals("createdDate")
                 || fieldName.equals("lastModifiedDate")
                 || fieldName.equals("tenantId");
+    }
+
+    /**
+     * Extrai filtros automaticamente a partir dos campos da entidade JPA.
+     * Cria filtros baseados no tipo de campo e anotações.
+     */
+    public List<FilterMetadata> extractFilters(Class<?> entityClass) {
+        List<FilterMetadata> filters = new ArrayList<>();
+        Field[] fields = entityClass.getDeclaredFields();
+
+        for (Field field : fields) {
+            // Ignora campos de sistema e relacionamentos OneToMany/OneToOne lazy
+            if (isSystemField(field.getName()) || field.isAnnotationPresent(OneToMany.class)) {
+                continue;
+            }
+
+            // Ignora campos @Transient
+            if (field.isAnnotationPresent(Transient.class)) {
+                continue;
+            }
+
+            FilterMetadata filter = createFilterFromField(field);
+            if (filter != null) {
+                filters.add(filter);
+            }
+        }
+
+        return filters;
+    }
+
+    /**
+     * Cria um FilterMetadata a partir de um campo JPA
+     */
+    private FilterMetadata createFilterFromField(Field field) {
+        String fieldName = field.getName();
+        String label = extractLabel(field);
+        Class<?> fieldType = field.getType();
+
+        FilterMetadata filter = new FilterMetadata();
+        filter.setName(fieldName);
+        filter.setLabel(label);
+        filter.setField(fieldName);
+
+        // Determina o tipo do filtro baseado no tipo do campo
+
+        // 1. ENUM → Select com opções
+        if (fieldType.isEnum()) {
+            filter.setType("select");
+            filter.setOptions(extractEnumOptions(fieldType));
+            return filter;
+        }
+
+        // 2. BOOLEAN → Boolean select (Sim/Não/Todos)
+        if (fieldType == Boolean.class || fieldType == boolean.class) {
+            filter.setType("boolean");
+            return filter;
+        }
+
+        // 3. DATA → Date picker
+        if (fieldType == LocalDate.class) {
+            filter.setType("date");
+            filter.setPlaceholder("Selecione a data");
+            return filter;
+        }
+
+        // 4. DATA/HORA → DateTime picker
+        if (fieldType == LocalDateTime.class) {
+            filter.setType("datetime");
+            filter.setPlaceholder("Selecione data e hora");
+            return filter;
+        }
+
+        // 5. NÚMERO → Number input
+        if (fieldType == Integer.class || fieldType == int.class ||
+                fieldType == Long.class || fieldType == long.class) {
+            filter.setType("number");
+            filter.setPlaceholder("Digite um número");
+            return filter;
+        }
+
+        // 6. DECIMAL/MOEDA → Number input
+        if (fieldType == BigDecimal.class || fieldType == Double.class || fieldType == double.class) {
+            Column column = field.getAnnotation(Column.class);
+            if (column != null && column.name().toLowerCase().contains("price")) {
+                filter.setType("currency");
+                filter.setPlaceholder("R$ 0,00");
+            } else {
+                filter.setType("number");
+                filter.setPlaceholder("Digite um valor");
+            }
+            return filter;
+        }
+
+        // 7. RELACIONAMENTO @ManyToOne → Entity filter (typeahead/select)
+        if (field.isAnnotationPresent(ManyToOne.class)) {
+            Class<?> targetEntity = field.getType();
+
+            filter.setType("entity");
+            filter.setField(fieldName + ".id"); // Filtra pelo ID da entidade relacionada
+
+            EntityFilterConfig entityConfig = EntityFilterConfig.builder()
+                    .entityName(toEntityName(targetEntity.getSimpleName()))
+                    .endpoint("/api/" + toKebabCase(toPlural(targetEntity.getSimpleName())))
+                    .labelField("name") // Assume que a entidade tem campo "name"
+                    .valueField("id")
+                    .renderAs("typeahead") // Typeahead para busca dinâmica
+                    .searchable(true)
+                    .searchPlaceholder("Digite para buscar...")
+                    .build();
+
+            filter.setEntityConfig(entityConfig);
+            return filter;
+        }
+
+        // 8. STRING → Text input
+        if (fieldType == String.class) {
+            Column column = field.getAnnotation(Column.class);
+
+            // Se é um campo único (slug, email), não é bom para filtro
+            if (column != null && column.unique()) {
+                return null; // Não adiciona filtro para campos únicos
+            }
+
+            // Se é um campo de texto longo (TEXT), não adiciona filtro
+            if (column != null && column.columnDefinition() != null &&
+                    column.columnDefinition().toUpperCase().contains("TEXT")) {
+                return null;
+            }
+
+            filter.setType("text");
+
+            // Define placeholder personalizado baseado no nome do campo
+            String placeholder = "Buscar por " + label.toLowerCase() + "...";
+            filter.setPlaceholder(placeholder);
+
+            return filter;
+        }
+
+        return null; // Tipo não suportado para filtro
+    }
+
+    /**
+     * Converte nome de classe para plural (aproximado)
+     */
+    private String toPlural(String className) {
+        if (className.endsWith("y")) {
+            return className.substring(0, className.length() - 1) + "ies";
+        }
+        if (className.endsWith("s")) {
+            return className + "es";
+        }
+        return className + "s";
     }
 }

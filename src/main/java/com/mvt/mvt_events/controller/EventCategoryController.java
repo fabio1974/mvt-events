@@ -149,17 +149,6 @@ public class EventCategoryController {
     }
 
     /**
-     * Toggle category active status
-     * Only ORGANIZER and ADMIN
-     */
-    @PatchMapping("/{id}/toggle-active")
-    @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN')")
-    public CategoryResponse toggleActive(@PathVariable Long id) {
-        EventCategory category = categoryService.toggleActive(id);
-        return new CategoryResponse(category);
-    }
-
-    /**
      * Check if category is available for registration
      * Public endpoint
      */
@@ -208,7 +197,6 @@ public class EventCategoryController {
         private String distanceUnit;
         private BigDecimal price;
         private Integer maxParticipants;
-        private Boolean isActive;
         private String observations;
     }
 
@@ -230,7 +218,6 @@ public class EventCategoryController {
         private Integer maxParticipants;
         private Integer currentParticipants;
         private Integer availableSpots;
-        private Boolean isActive;
         private Boolean isFull;
         private Boolean isAvailableForRegistration;
         private String observations;
@@ -247,13 +234,12 @@ public class EventCategoryController {
             this.gender = category.getGender() != null ? category.getGender().name() : null;
             this.genderDisplayName = category.getGender() != null ? category.getGender().getDisplayName() : null;
             this.distance = category.getDistance();
-            this.distanceUnit = category.getDistanceUnit();
+            this.distanceUnit = category.getDistanceUnit() != null ? category.getDistanceUnit().name() : null;
             this.distanceFormatted = category.getDistanceFormatted();
             this.price = category.getPrice();
             this.maxParticipants = category.getMaxParticipants();
             this.currentParticipants = category.getCurrentParticipants();
             this.availableSpots = category.getAvailableSpots();
-            this.isActive = category.getIsActive();
             this.isFull = category.isFull();
             this.isAvailableForRegistration = category.isAvailableForRegistration();
             this.observations = category.getObservations();
@@ -277,10 +263,11 @@ public class EventCategoryController {
         }
 
         category.setDistance(request.getDistance());
-        category.setDistanceUnit(request.getDistanceUnit());
+        if (request.getDistanceUnit() != null)
+            category.setDistanceUnit(
+                    com.mvt.mvt_events.jpa.EventCategory.DistanceUnit.valueOf(request.getDistanceUnit()));
         category.setPrice(request.getPrice());
         category.setMaxParticipants(request.getMaxParticipants());
-        category.setIsActive(request.getIsActive());
         category.setObservations(request.getObservations());
 
         return category;

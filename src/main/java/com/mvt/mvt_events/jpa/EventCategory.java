@@ -2,6 +2,8 @@ package com.mvt.mvt_events.jpa;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.mvt.mvt_events.metadata.DisplayLabel;
+import com.mvt.mvt_events.metadata.Visible;
+
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -9,7 +11,6 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 /**
  * Event Category - Represents different categories within an event
@@ -26,6 +27,7 @@ public class EventCategory extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
     @JsonIgnore
+    @Visible(form = false, filter = true, table = true)
     private Event event;
 
     @DisplayLabel
@@ -48,10 +50,12 @@ public class EventCategory extends BaseEntity {
     @Column(precision = 10, scale = 2)
     private BigDecimal distance;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "distance_unit", length = 10)
-    private String distanceUnit; // KM, MI, METERS
+    private DistanceUnit distanceUnit;
 
     // Registration
+    @Visible(filter = false, table = false, form = true)
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price = BigDecimal.ZERO;
 
@@ -61,12 +65,9 @@ public class EventCategory extends BaseEntity {
     @Column(name = "current_participants", nullable = false)
     private Integer currentParticipants = 0;
 
-    // Status
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive = true;
-
     // Additional info
     @Column(columnDefinition = "TEXT")
+    @Visible(filter = false, table = false, form = true)
     private String observations;
 
     // Tenant ID for multi-tenancy
@@ -94,6 +95,22 @@ public class EventCategory extends BaseEntity {
         }
     }
 
+    public enum DistanceUnit {
+        KM("Quilômetros"),
+        MI("Milhas"),
+        METERS("Metros");
+
+        private final String displayName;
+
+        DistanceUnit(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
+    }
+
     // ============================================================================
     // HELPER METHODS
     // ============================================================================
@@ -109,10 +126,6 @@ public class EventCategory extends BaseEntity {
      * Check if category is available for registration
      */
     public boolean isAvailableForRegistration() {
-        if (!isActive) {
-            return false;
-        }
-
         return !isFull();
     }
 
@@ -190,7 +203,7 @@ public class EventCategory extends BaseEntity {
         if (distance == null) {
             return "";
         }
-        String unit = distanceUnit != null ? distanceUnit : "KM";
-        return distance + " " + unit;
+        DistanceUnit unit = distanceUnit != null ? distanceUnit : DistanceUnit.KM;
+        return distance + " " + unit.getDisplayName();
     }
 }

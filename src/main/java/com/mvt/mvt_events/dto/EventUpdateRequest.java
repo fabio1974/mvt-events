@@ -6,7 +6,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -17,8 +17,7 @@ public class EventUpdateRequest {
     private String slug;
     private String description;
     private Event.EventType eventType;
-    private LocalDate eventDate;
-    private LocalTime eventTime;
+    private LocalDateTime eventDate;
     private String location;
     private String address;
     private Integer maxParticipants;
@@ -27,7 +26,6 @@ public class EventUpdateRequest {
     private LocalDate registrationEndDate;
     private BigDecimal price;
     private String currency;
-    private String bannerUrl;
     private BigDecimal platformFeePercentage;
     private String termsAndConditions;
     private String transferFrequency;
@@ -47,7 +45,6 @@ public class EventUpdateRequest {
         private String distanceUnit;
         private BigDecimal price;
         private Integer maxParticipants;
-        private Boolean isActive;
         private String observations;
         private Boolean _delete = false; // flag to delete category
     }

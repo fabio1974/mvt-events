@@ -9,7 +9,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -29,9 +29,7 @@ public class EventCreateRequest {
     private Event.EventType eventType;
 
     @NotNull(message = "Event date is required")
-    private LocalDate eventDate;
-
-    private LocalTime eventTime;
+    private LocalDateTime eventDate;
 
     private String location;
 
@@ -49,8 +47,6 @@ public class EventCreateRequest {
     private BigDecimal price;
 
     private String currency = "BRL";
-
-    private String bannerUrl;
 
     private BigDecimal platformFeePercentage;
 
@@ -71,7 +67,6 @@ public class EventCreateRequest {
         private String distanceUnit;
         private BigDecimal price;
         private Integer maxParticipants;
-        private Boolean isActive = true;
         private String observations;
     }
 }

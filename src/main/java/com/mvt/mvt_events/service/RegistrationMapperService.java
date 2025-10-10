@@ -33,9 +33,7 @@ public class RegistrationMapperService {
             eventSummary.setId(registration.getEvent().getId());
             eventSummary.setName(registration.getEvent().getName());
             eventSummary.setDescription(registration.getEvent().getDescription());
-            eventSummary.setStartsAt(registration.getEvent().getStartsAt());
             eventSummary.setEventDate(registration.getEvent().getEventDate());
-            eventSummary.setEventTime(registration.getEvent().getEventTime());
             eventSummary.setLocation(registration.getEvent().getLocation());
             eventSummary.setPrice(registration.getEvent().getPrice());
             response.setEvent(eventSummary);

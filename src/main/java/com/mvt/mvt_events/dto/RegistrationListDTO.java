@@ -2,9 +2,7 @@ package com.mvt.mvt_events.dto;
 
 import com.mvt.mvt_events.jpa.Registration;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 
 /**
  * DTO leve para listagem de registrations
@@ -25,8 +23,7 @@ public class RegistrationListDTO {
     // Dados essenciais do Event
     private Long eventId;
     private String eventName;
-    private LocalDate eventDate;
-    private LocalTime eventTime;
+    private LocalDateTime eventDate;
 
     public RegistrationListDTO() {
     }
@@ -35,7 +32,7 @@ public class RegistrationListDTO {
     public RegistrationListDTO(Long id, LocalDateTime registrationDate,
             Registration.RegistrationStatus status, String notes,
             String userId, String userName, String userUsername,
-            Long eventId, String eventName, LocalDate eventDate, LocalTime eventTime) {
+            Long eventId, String eventName, LocalDateTime eventDate) {
         this.id = id;
         this.registrationDate = registrationDate;
         this.status = status;
@@ -46,7 +43,6 @@ public class RegistrationListDTO {
         this.eventId = eventId;
         this.eventName = eventName;
         this.eventDate = eventDate;
-        this.eventTime = eventTime;
     }
 
     // Getters and Setters
@@ -122,19 +118,11 @@ public class RegistrationListDTO {
         this.eventName = eventName;
     }
 
-    public LocalDate getEventDate() {
+    public LocalDateTime getEventDate() {
         return eventDate;
     }
 
-    public void setEventDate(LocalDate eventDate) {
+    public void setEventDate(LocalDateTime eventDate) {
         this.eventDate = eventDate;
-    }
-
-    public LocalTime getEventTime() {
-        return eventTime;
-    }
-
-    public void setEventTime(LocalTime eventTime) {
-        this.eventTime = eventTime;
     }
 }

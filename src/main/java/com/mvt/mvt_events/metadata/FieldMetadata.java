@@ -1,5 +1,6 @@
 package com.mvt.mvt_events.metadata;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.mvt.mvt_events.metadata.FilterMetadata.FilterOption;
 import java.util.List;
 
@@ -28,6 +29,14 @@ public class FieldMetadata {
 
     // Relationship metadata (para type="nested")
     private RelationshipMetadata relationship;
+
+    // Flags para controlar onde o campo deve ser oculto (@HideFromMetadata)
+    private Boolean hiddenFromTable;
+    private Boolean hiddenFromForm;
+    private Boolean hiddenFromFilter;
+
+    // Default value
+    private Object defaultValue;
 
     public FieldMetadata() {
     }
@@ -185,5 +194,40 @@ public class FieldMetadata {
 
     public void setRelationship(RelationshipMetadata relationship) {
         this.relationship = relationship;
+    }
+
+    @JsonIgnore
+    public Boolean getHiddenFromTable() {
+        return hiddenFromTable;
+    }
+
+    public void setHiddenFromTable(Boolean hiddenFromTable) {
+        this.hiddenFromTable = hiddenFromTable;
+    }
+
+    @JsonIgnore
+    public Boolean getHiddenFromForm() {
+        return hiddenFromForm;
+    }
+
+    public void setHiddenFromForm(Boolean hiddenFromForm) {
+        this.hiddenFromForm = hiddenFromForm;
+    }
+
+    @JsonIgnore
+    public Boolean getHiddenFromFilter() {
+        return hiddenFromFilter;
+    }
+
+    public void setHiddenFromFilter(Boolean hiddenFromFilter) {
+        this.hiddenFromFilter = hiddenFromFilter;
+    }
+
+    public Object getDefaultValue() {
+        return defaultValue;
+    }
+
+    public void setDefaultValue(Object defaultValue) {
+        this.defaultValue = defaultValue;
     }
 }
