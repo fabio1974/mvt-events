@@ -33,9 +33,9 @@ public class EventCategoryController {
     private EventCategoryService categoryService;
 
     @GetMapping
-    @Operation(summary = "Listar categorias", description = "Lista paginada com filtro opcional por eventId")
+    @Operation(summary = "Listar categorias", description = "Lista paginada com filtro opcional por event/eventId")
     public Page<EventCategory> list(
-            @RequestParam(required = false) Long eventId,
+            @RequestParam(value = "event", required = false) Long eventId,
             Pageable pageable) {
         return categoryService.listWithFilters(eventId, pageable);
     }

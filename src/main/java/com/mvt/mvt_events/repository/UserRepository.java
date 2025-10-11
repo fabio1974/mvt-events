@@ -1,6 +1,7 @@
 package com.mvt.mvt_events.repository;
 
 import com.mvt.mvt_events.jpa.User;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -15,6 +16,7 @@ import java.util.UUID;
 public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificationExecutor<User> {
 
        // Métodos de busca única e validação - mantidos
+       @EntityGraph(attributePaths = { "organization" })
        Optional<User> findByUsername(String username);
 
        boolean existsByUsername(String username);

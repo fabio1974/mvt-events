@@ -287,19 +287,22 @@ public class JpaMetadataExtractor {
             metadata.setOptions(extractEnumOptions(field.getType()));
         }
 
-        // ✅ Verifica anotação @Visible (será processada pelo MetadataService para cada contexto)
+        // ✅ Verifica anotação @Visible (será processada pelo MetadataService para cada
+        // contexto)
         // Aqui apenas armazenamos os flags para uso posterior
         if (field.isAnnotationPresent(Visible.class)) {
             Visible visible = field.getAnnotation(Visible.class);
-            
-            System.out.println("DEBUG JpaExtractor: Campo '" + field.getName() + "' tem @Visible - form=" + visible.form() + ", table=" + visible.table() + ", filter=" + visible.filter());
-            
+
+            System.out.println("DEBUG JpaExtractor: Campo '" + field.getName() + "' tem @Visible - form="
+                    + visible.form() + ", table=" + visible.table() + ", filter=" + visible.filter());
+
             // Armazena os flags para processamento posterior
             metadata.setHiddenFromForm(!visible.form());
             metadata.setHiddenFromTable(!visible.table());
             metadata.setHiddenFromFilter(!visible.filter());
-            
-            System.out.println("DEBUG JpaExtractor: Campo '" + field.getName() + "' - hiddenFromForm=" + metadata.getHiddenFromForm() + ", hiddenFromTable=" + metadata.getHiddenFromTable());
+
+            System.out.println("DEBUG JpaExtractor: Campo '" + field.getName() + "' - hiddenFromForm="
+                    + metadata.getHiddenFromForm() + ", hiddenFromTable=" + metadata.getHiddenFromTable());
         }
 
         // ✅ Extrai valor default do campo
@@ -452,15 +455,17 @@ public class JpaMetadataExtractor {
         // ✅ Verifica anotação @Visible também para relacionamentos
         if (field.isAnnotationPresent(Visible.class)) {
             Visible visible = field.getAnnotation(Visible.class);
-            
-            System.out.println("DEBUG JpaExtractor (ManyToOne): Campo '" + field.getName() + "' tem @Visible - form=" + visible.form() + ", table=" + visible.table() + ", filter=" + visible.filter());
-            
+
+            System.out.println("DEBUG JpaExtractor (ManyToOne): Campo '" + field.getName() + "' tem @Visible - form="
+                    + visible.form() + ", table=" + visible.table() + ", filter=" + visible.filter());
+
             // Armazena os flags para processamento posterior
             metadata.setHiddenFromForm(!visible.form());
             metadata.setHiddenFromTable(!visible.table());
             metadata.setHiddenFromFilter(!visible.filter());
-            
-            System.out.println("DEBUG JpaExtractor (ManyToOne): Campo '" + field.getName() + "' - hiddenFromForm=" + metadata.getHiddenFromForm() + ", hiddenFromTable=" + metadata.getHiddenFromTable());
+
+            System.out.println("DEBUG JpaExtractor (ManyToOne): Campo '" + field.getName() + "' - hiddenFromForm="
+                    + metadata.getHiddenFromForm() + ", hiddenFromTable=" + metadata.getHiddenFromTable());
         }
 
         return metadata;

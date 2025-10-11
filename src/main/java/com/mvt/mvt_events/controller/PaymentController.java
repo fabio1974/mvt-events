@@ -33,11 +33,31 @@ public class PaymentController {
     private com.mvt.mvt_events.service.RegistrationService registrationService;
 
     @GetMapping
-    @Operation(summary = "Listar pagamentos", description = "Lista paginada com filtros opcionais por status, registrationId e provider")
+    @Operation(summary = "Listar pagamentos", description = """
+            Lista pagamentos com suporte a filtros e paginação.
+
+            **Filtros Disponíveis:**
+            - `status` - Status do pagamento (PENDING, COMPLETED, FAILED, REFUNDED)
+            - `registration` ou `registrationId` - ID da inscrição
+            - `provider` - Gateway de pagamento (stripe, mercadopago)
+
+            **Paginação:**
+            - `page` - Número da página (default: 0)
+            - `size` - Tamanho da página (default: 20)
+            - `sort` - Ordenação (ex: processedAt,desc)
+
+            **Exemplos:**
+            ```
+            /api/payments?status=COMPLETED
+            /api/payments?registration=15&status=PENDING
+            /api/payments?provider=stripe&status=COMPLETED
+            /api/payments?sort=processedAt,desc&size=50
+            ```
+            """)
     @SecurityRequirement(name = "bearerAuth")
     public Page<Payment> listPayments(
             @RequestParam(required = false) Payment.PaymentStatus status,
-            @RequestParam(required = false) Long registrationId,
+            @RequestParam(value = "registration", required = false) Long registrationId,
             @RequestParam(required = false) String provider,
             Pageable pageable) {
         return paymentService.listWithFilters(status, registrationId, provider, pageable);

@@ -38,6 +38,9 @@ dependencies {
 	// OpenAPI/Swagger Documentation
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'
 	
+	// Jackson Hibernate module para serialização de proxies LAZY
+	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-hibernate6'
+	
 	// JWT dependencies
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'

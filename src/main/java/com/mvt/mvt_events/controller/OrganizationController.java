@@ -10,10 +10,11 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -29,9 +30,37 @@ public class OrganizationController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar organizações")
-    public List<Organization> list() {
-        return service.list();
+    @Operation(summary = "Listar organizações (paginado)", description = """
+            Lista organizações com suporte a busca e filtros.
+
+            **Filtros Disponíveis:**
+            - `search` - Busca em nome, slug ou email (case-insensitive, parcial)
+            - `active` - Filtrar por status ativo/inativo (true/false)
+
+            **Paginação:**
+            - `page` - Número da página (default: 0)
+            - `size` - Tamanho da página (default: 20)
+            - `sort` - Ordenação (ex: name,asc)
+
+            **Exemplos:**
+            ```
+            /api/organizations?search=sport
+            /api/organizations?active=true
+            /api/organizations?search=club&active=true
+            /api/organizations?sort=name,asc&size=50
+            ```
+            """)
+    public Page<Organization> list(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean active,
+            Pageable pageable) {
+
+        // Se houver algum filtro, usa o método com filtros
+        if (search != null || active != null) {
+            return service.listWithFilters(search, active, pageable);
+        }
+
+        return service.list(pageable);
     }
 
     @GetMapping("/{id}")

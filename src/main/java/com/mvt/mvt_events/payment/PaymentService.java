@@ -193,7 +193,6 @@ public class PaymentService {
         // Criar novo Payment
         Payment payment = new Payment();
         payment.setRegistration(registration);
-        payment.setTenantId(registration.getTenantId());
         payment.setAmount(new java.math.BigDecimal(amountInCents).divide(new java.math.BigDecimal(100)));
         payment.setCurrency(currency);
         payment.setStatus(Payment.PaymentStatus.COMPLETED);
@@ -227,7 +226,6 @@ public class PaymentService {
         // Criar novo Payment com status FAILED
         Payment payment = new Payment();
         payment.setRegistration(registration);
-        payment.setTenantId(registration.getTenantId());
         payment.setAmount(new java.math.BigDecimal(amountInCents).divide(new java.math.BigDecimal(100)));
         payment.setCurrency(currency);
         payment.setStatus(Payment.PaymentStatus.FAILED);

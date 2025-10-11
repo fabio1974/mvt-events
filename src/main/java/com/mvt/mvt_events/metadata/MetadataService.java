@@ -61,7 +61,8 @@ public class MetadataService {
                     FieldMetadata copy = copyField(f);
                     // Se @Visible(form = false), marca como não visível
                     if (f.getHiddenFromForm() != null && f.getHiddenFromForm()) {
-                        System.out.println("DEBUG: Campo '" + f.getName() + "' - hiddenFromForm=" + f.getHiddenFromForm() + ", setando visible=false");
+                        System.out.println("DEBUG: Campo '" + f.getName() + "' - hiddenFromForm="
+                                + f.getHiddenFromForm() + ", setando visible=false");
                         copy.setVisible(false);
                     }
                     return copy;

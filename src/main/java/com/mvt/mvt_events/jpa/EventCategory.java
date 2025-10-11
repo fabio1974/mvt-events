@@ -70,10 +70,6 @@ public class EventCategory extends BaseEntity {
     @Visible(filter = false, table = false, form = true)
     private String observations;
 
-    // Tenant ID for multi-tenancy
-    @Column(name = "tenant_id")
-    private Long tenantId;
-
     // ============================================================================
     // ENUMS
     // ============================================================================

@@ -1,5 +1,6 @@
 package com.mvt.mvt_events.common;
 
+import com.mvt.mvt_events.tenant.TenantFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +21,9 @@ public class SecurityConfig {
 
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Autowired
+    private TenantFilter tenantFilter;
 
     @Autowired
     private CorsConfigurationSource corsConfigurationSource;
@@ -55,7 +59,8 @@ public class SecurityConfig {
                             response.setContentType("application/json");
                             response.getWriter().write("{\"error\":\"Forbidden\",\"message\":\"Access denied\"}");
                         }))
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(tenantFilter, JwtAuthenticationFilter.class); // TenantFilter DEPOIS do JWT
 
         return http.build();
     }

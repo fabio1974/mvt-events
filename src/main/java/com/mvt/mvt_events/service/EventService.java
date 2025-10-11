@@ -2,15 +2,19 @@ package com.mvt.mvt_events.service;
 
 import com.mvt.mvt_events.dto.EventCreateRequest;
 import com.mvt.mvt_events.dto.EventUpdateRequest;
+import com.mvt.mvt_events.entity.City;
 import com.mvt.mvt_events.jpa.Event;
 import com.mvt.mvt_events.jpa.EventCategory;
 import com.mvt.mvt_events.jpa.Organization;
 import com.mvt.mvt_events.jpa.TransferFrequency;
+import com.mvt.mvt_events.repository.CityRepository;
 import com.mvt.mvt_events.repository.EventCategoryRepository;
 import com.mvt.mvt_events.repository.EventRepository;
 import com.mvt.mvt_events.repository.OrganizationRepository;
 import com.mvt.mvt_events.specification.EventCategorySpecification;
 import com.mvt.mvt_events.specification.EventSpecification;
+import com.mvt.mvt_events.specification.EventSpecifications;
+import com.mvt.mvt_events.tenant.TenantContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -18,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -42,12 +47,19 @@ public class EventService {
     private final EventRepository repository;
     private final OrganizationRepository organizationRepository;
     private final EventCategoryRepository categoryRepository;
+    private final CityRepository cityRepository;
 
     public EventService(EventRepository repository, OrganizationRepository organizationRepository,
-            EventCategoryRepository categoryRepository) {
+            EventCategoryRepository categoryRepository, CityRepository cityRepository) {
         this.repository = repository;
         this.organizationRepository = organizationRepository;
         this.categoryRepository = categoryRepository;
+        this.cityRepository = cityRepository;
+    }
+
+    // DEBUG: Expor repository temporariamente
+    public EventRepository getRepository() {
+        return repository;
     }
 
     public Event create(EventCreateRequest request) {
@@ -100,7 +112,6 @@ public class EventService {
             for (EventCreateRequest.CategoryRequest catRequest : request.getCategories()) {
                 EventCategory category = new EventCategory();
                 category.setEvent(savedEvent);
-                category.setTenantId(savedEvent.getId()); // Event is the tenant
                 category.setName(catRequest.getName());
                 category.setMinAge(catRequest.getMinAge());
                 category.setMaxAge(catRequest.getMaxAge());
@@ -123,8 +134,6 @@ public class EventService {
     public Event create(Event event) {
         // Handle organization - either from organization object or organizationId
         if (event.getOrganization() == null) {
-            // For now, we need a way to get organizationId from the request
-            // This is a temporary fix - ideally we should use a DTO
             throw new RuntimeException("Organização é obrigatória para criar um evento");
         }
 
@@ -134,6 +143,13 @@ public class EventService {
             event.setOrganization(organization);
         } else {
             throw new RuntimeException("ID da organização é obrigatório");
+        }
+
+        // Handle city if provided
+        if (event.getCity() != null && event.getCity().getId() != null) {
+            City city = cityRepository.findById(event.getCity().getId())
+                    .orElseThrow(() -> new RuntimeException("Cidade não encontrada"));
+            event.setCity(city);
         }
 
         // Generate slug from name if not provided
@@ -146,13 +162,29 @@ public class EventService {
             }
         }
 
+        // Set default values if not provided
+        if (event.getStatus() == null) {
+            event.setStatus(Event.EventStatus.DRAFT);
+        }
+        if (event.getTransferFrequency() == null) {
+            event.setTransferFrequency(TransferFrequency.WEEKLY);
+        }
+        if (event.getRegistrationOpen() == null) {
+            event.setRegistrationOpen(true);
+        }
+
         return repository.save(event);
     }
 
     @Transactional(readOnly = true)
     public List<Event> findAll() {
-        // Use pageable version with categories loaded
-        return repository.findAllWithCategories(Pageable.unpaged()).getContent();
+        // Buscar todos os IDs primeiro
+        List<Long> allIds = repository.findAll().stream()
+                .map(Event::getId)
+                .collect(java.util.stream.Collectors.toList());
+
+        // Buscar eventos completos com EntityGraph
+        return repository.findAllByIds(allIds);
     }
 
     public Optional<Event> findById(Long id) {
@@ -208,6 +240,13 @@ public class EventService {
             Organization organization = organizationRepository.findById(eventData.getOrganization().getId())
                     .orElseThrow(() -> new RuntimeException("Organização não encontrada"));
             existing.setOrganization(organization);
+        }
+
+        // Validate city if changed
+        if (eventData.getCity() != null && eventData.getCity().getId() != null) {
+            City city = cityRepository.findById(eventData.getCity().getId())
+                    .orElseThrow(() -> new RuntimeException("Cidade não encontrada"));
+            existing.setCity(city);
         }
 
         // Validate slug if changed
@@ -377,7 +416,6 @@ public class EventService {
                     // Create new category
                     EventCategory newCategory = new EventCategory();
                     newCategory.setEvent(savedEvent);
-                    newCategory.setTenantId(savedEvent.getId());
                     newCategory.setName(catRequest.getName());
                     newCategory.setMinAge(catRequest.getMinAge());
                     newCategory.setMaxAge(catRequest.getMaxAge());
@@ -433,8 +471,51 @@ public class EventService {
     }
 
     // Legacy methods for compatibility
+    /**
+     * Lista eventos com paginação SIMPLES (aceita HHH90003004)
+     */
+    @Transactional(readOnly = true)
     public Page<Event> list(Pageable pageable) {
-        return repository.findAllWithCategories(pageable);
+        Long tenantId = TenantContext.getCurrentTenantId();
+        boolean isAdmin = TenantContext.isAdmin();
+
+        System.out.println("🔍 EventService.list - Tenant ID: " + tenantId);
+        System.out.println("🔍 EventService.list - Is Admin: " + isAdmin);
+
+        Page<Event> events;
+
+        if (isAdmin) {
+            // ADMIN vê todos os eventos, sem filtro
+            System.out.println("👑 EventService.list - ADMIN mode: returning ALL events");
+            events = repository.findAll(pageable);
+        } else {
+            // Usuário normal: aplica filtro de organização
+            if (tenantId == null) {
+                throw new RuntimeException("Tenant ID não encontrado no contexto");
+            }
+
+            Specification<Event> spec = EventSpecifications.forOrganization(tenantId);
+            events = repository.findAll(spec, pageable);
+        }
+
+        // IMPORTANTE: Força carregamento de relações LAZY dentro da transação
+        // para evitar LazyInitializationException
+        events.getContent().forEach(event -> {
+            if (event.getOrganization() != null) {
+                event.getOrganization().getName(); // Força carregamento
+            }
+            if (event.getCategories() != null) {
+                event.getCategories().size(); // Força carregamento
+            }
+            if (event.getCity() != null) {
+                event.getCity().getName(); // Força carregamento
+            }
+        });
+
+        System.out.println("🔍 EventService.list - Total elements: " + events.getTotalElements());
+        System.out.println("🔍 EventService.list - Content size: " + events.getContent().size());
+
+        return events;
     }
 
     /**
@@ -447,17 +528,94 @@ public class EventService {
             Long categoryId,
             String city,
             String state,
+            Event.EventType eventType,
+            String name,
             Pageable pageable) {
-        Specification<Event> spec = EventSpecification.withFilters(status, organizationId, categoryId, city, state);
-        return repository.findAll(spec, pageable);
+
+        boolean isAdmin = TenantContext.isAdmin();
+        Specification<Event> combinedSpec;
+
+        if (isAdmin) {
+            // ADMIN vê todos - apenas aplica filtros fornecidos
+            System.out.println("👑 EventService.listWithFilters - ADMIN mode: no tenant filter");
+            combinedSpec = EventSpecification.withFilters(status, organizationId, categoryId, city, state,
+                    eventType, name);
+        } else {
+            // Usuário normal: sempre aplica filtro de tenant primeiro
+            Long tenantId = TenantContext.getCurrentTenantId();
+            if (tenantId == null) {
+                throw new RuntimeException("Tenant ID não encontrado no contexto");
+            }
+
+            // Combina filtro de tenant com outros filtros
+            Specification<Event> tenantSpec = EventSpecifications.forOrganization(tenantId);
+            Specification<Event> filterSpec = EventSpecification.withFilters(status, organizationId, categoryId, city,
+                    state,
+                    eventType, name);
+
+            combinedSpec = tenantSpec.and(filterSpec);
+        }
+
+        Page<Event> events = repository.findAll(combinedSpec, pageable);
+
+        // IMPORTANTE: Força carregamento de relações LAZY
+        events.getContent().forEach(event -> {
+            if (event.getOrganization() != null) {
+                event.getOrganization().getName();
+            }
+            if (event.getCategories() != null) {
+                event.getCategories().size();
+            }
+            if (event.getCity() != null) {
+                event.getCity().getName();
+            }
+        });
+
+        return events;
     }
 
+    @Transactional(readOnly = true)
     public Event get(Long id) {
+        boolean isAdmin = TenantContext.isAdmin();
+        Long tenantId = TenantContext.getCurrentTenantId();
+
+        System.out.println("🔍 EventService.get - ID: " + id);
+        System.out.println("🔍 EventService.get - Is Admin: " + isAdmin);
+        System.out.println("🔍 EventService.get - Tenant ID: " + tenantId);
+
         Event event = findById(id)
                 .orElseThrow(() -> new RuntimeException("Event not found with id: " + id));
 
+        System.out.println("🔍 EventService.get - Event found: " + event.getName());
+        System.out.println("🔍 EventService.get - Event org ID: "
+                + (event.getOrganization() != null ? event.getOrganization().getId() : "null"));
+
+        // Se não for ADMIN, valida se o evento pertence à organização do usuário
+        if (!isAdmin) {
+            if (tenantId == null) {
+                throw new RuntimeException("Tenant ID não encontrado no contexto");
+            }
+
+            if (event.getOrganization() == null || !event.getOrganization().getId().equals(tenantId)) {
+                System.out.println("⛔ EventService.get - Access denied: event belongs to org " +
+                        (event.getOrganization() != null ? event.getOrganization().getId() : "null") +
+                        " but user is from org " + tenantId);
+                throw new RuntimeException("Event not found with id: " + id);
+            }
+        }
+
         // Force load categories to avoid lazy loading issues
         event.getCategories().size();
+
+        // Force load organization
+        if (event.getOrganization() != null) {
+            event.getOrganization().getName();
+        }
+
+        // Force load city
+        if (event.getCity() != null) {
+            event.getCity().getName();
+        }
 
         return event;
     }

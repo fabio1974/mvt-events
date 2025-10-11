@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,6 +18,7 @@ import com.mvt.mvt_events.service.CustomUserDetailsService;
 import java.io.IOException;
 
 @Component
+@Order(0) // Executa ANTES do TenantFilter (que tem @Order(1))
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired

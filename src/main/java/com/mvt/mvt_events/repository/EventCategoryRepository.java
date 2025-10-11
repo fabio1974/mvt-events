@@ -1,10 +1,16 @@
 package com.mvt.mvt_events.repository;
 
 import com.mvt.mvt_events.jpa.EventCategory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -58,4 +64,16 @@ public interface EventCategoryRepository
          * Delete all categories for an event
          */
         void deleteByEventId(Long eventId);
+
+        // Override findAll with Specification to include EntityGraph
+        @Override
+        @EntityGraph(attributePaths = { "event" })
+        @NonNull
+        Page<EventCategory> findAll(@Nullable Specification<EventCategory> spec, @NonNull Pageable pageable);
+
+        // Override findById to include EntityGraph
+        @Override
+        @EntityGraph(attributePaths = { "event" })
+        @NonNull
+        Optional<EventCategory> findById(@NonNull Long id);
 }

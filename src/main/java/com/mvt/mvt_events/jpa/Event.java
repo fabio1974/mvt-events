@@ -1,6 +1,5 @@
 package com.mvt.mvt_events.jpa;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.mvt.mvt_events.entity.City;
 import com.mvt.mvt_events.metadata.DisplayLabel;
 import com.mvt.mvt_events.metadata.Visible;
@@ -10,9 +9,6 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
-import org.hibernate.annotations.ParamDef;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -24,13 +20,10 @@ import java.util.List;
 @Table(name = "events")
 @Data
 @EqualsAndHashCode(callSuper = true)
-@FilterDef(name = "organizationFilter", parameters = @ParamDef(name = "organizationId", type = Long.class))
-@Filter(name = "organizationFilter", condition = "organization_id = :organizationId")
 public class Event extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
     @Visible(form = false)
     private Organization organization;
 

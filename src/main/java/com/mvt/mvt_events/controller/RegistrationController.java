@@ -38,11 +38,31 @@ public class RegistrationController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar inscrições", description = "Lista paginada com filtros opcionais: status, eventId (ID do evento), userId (UUID do usuário)")
+    @Operation(summary = "Listar inscrições", description = """
+            Lista inscrições com suporte a filtros e paginação.
+
+            **Filtros Disponíveis:**
+            - `status` - Status da inscrição (PENDING, CONFIRMED, CANCELLED, WAITLISTED)
+            - `event` ou `eventId` - ID do evento
+            - `user` ou `userId` - UUID do usuário
+
+            **Paginação:**
+            - `page` - Número da página (default: 0)
+            - `size` - Tamanho da página (default: 20)
+            - `sort` - Ordenação (ex: registrationDate,desc)
+
+            **Exemplos:**
+            ```
+            /api/registrations?status=CONFIRMED
+            /api/registrations?event=10&status=PENDING
+            /api/registrations?user=742f58ea-5bc1-4bb5-84dc-5ea463d15044
+            /api/registrations?sort=registrationDate,desc&size=50
+            ```
+            """)
     public Page<RegistrationListDTO> list(
             @RequestParam(required = false) Registration.RegistrationStatus status,
-            @RequestParam(required = false) Long eventId,
-            @RequestParam(required = false) UUID userId,
+            @RequestParam(value = "event", required = false) Long eventId,
+            @RequestParam(value = "user", required = false) UUID userId,
             Pageable pageable) {
         return service.listWithFilters(status, eventId, userId, pageable);
     }

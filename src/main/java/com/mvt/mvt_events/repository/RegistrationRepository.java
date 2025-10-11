@@ -1,10 +1,16 @@
 package com.mvt.mvt_events.repository;
 
 import com.mvt.mvt_events.jpa.Registration;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -53,4 +59,16 @@ public interface RegistrationRepository
         // compatibilidade
         @Query("SELECT r FROM Registration r WHERE r.event.id = :eventId")
         List<Registration> findByEventId(@Param("eventId") Long eventId);
+
+        // Override findAll with Specification to include EntityGraph
+        @Override
+        @EntityGraph(attributePaths = { "user", "event", "payments" })
+        @NonNull
+        Page<Registration> findAll(@Nullable Specification<Registration> spec, @NonNull Pageable pageable);
+
+        // Override findById to include EntityGraph
+        @Override
+        @EntityGraph(attributePaths = { "user", "event", "payments" })
+        @NonNull
+        Optional<Registration> findById(@NonNull Long id);
 }

@@ -10,14 +10,15 @@ import java.lang.annotation.Target;
  * Each parameter only affects its corresponding list:
  * 
  * - @Visible(table = false) → Sets visible=false ONLY in tableFields
- * - @Visible(form = false) → Sets visible=false ONLY in formFields  
+ * - @Visible(form = false) → Sets visible=false ONLY in formFields
  * - @Visible(filter = false) → Hides the filter (removes from filters list)
  * 
  * The field always appears in all lists, but with different visible values.
  * 
  * Examples:
  * - @Visible(form = false) → visible=true in table, visible=false in form
- * - @Visible(table = false, form = true) → visible=false in table, visible=true in form
+ * - @Visible(table = false, form = true) → visible=false in table, visible=true
+ * in form
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)

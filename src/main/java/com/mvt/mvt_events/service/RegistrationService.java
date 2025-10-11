@@ -80,9 +80,6 @@ public class RegistrationService {
             registration.setStatus(Registration.RegistrationStatus.PENDING);
         }
 
-        // Set tenant_id = event_id (multitenancy requirement)
-        registration.setTenantId(event.getId());
-
         return registrationRepository.save(registration);
     }
 

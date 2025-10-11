@@ -5,6 +5,10 @@ import com.mvt.mvt_events.jpa.Organization;
 import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.repository.OrganizationRepository;
 import com.mvt.mvt_events.repository.UserRepository;
+import com.mvt.mvt_events.specification.OrganizationSpecification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -152,6 +156,23 @@ public class OrganizationService {
     // Legacy methods for compatibility
     public List<Organization> list() {
         return findAll();
+    }
+
+    /**
+     * Lista organizações com paginação e busca
+     */
+    @Transactional(readOnly = true)
+    public Page<Organization> list(Pageable pageable) {
+        return repository.findAll(pageable);
+    }
+
+    /**
+     * Lista organizações com filtros dinâmicos
+     */
+    @Transactional(readOnly = true)
+    public Page<Organization> listWithFilters(String search, Boolean active, Pageable pageable) {
+        Specification<Organization> spec = OrganizationSpecification.withFilters(search, active);
+        return repository.findAll(spec, pageable);
     }
 
     public Organization get(Long id) {

@@ -37,9 +37,6 @@ public class Registration extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
-    @Column(name = "tenant_id", nullable = false)
-    private Long tenantId;
-
     // Relacionamento com Payment
     @OneToMany(mappedBy = "registration", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private java.util.List<Payment> payments = new java.util.ArrayList<>();

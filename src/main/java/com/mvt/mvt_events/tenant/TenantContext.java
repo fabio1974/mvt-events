@@ -7,6 +7,7 @@ package com.mvt.mvt_events.tenant;
 public class TenantContext {
 
     private static final ThreadLocal<Long> currentTenantId = new ThreadLocal<>();
+    private static final ThreadLocal<Boolean> isAdmin = new ThreadLocal<>();
 
     /**
      * Define o tenant ID para a thread atual
@@ -23,6 +24,21 @@ public class TenantContext {
     }
 
     /**
+     * Define se o usuário atual é ADMIN
+     */
+    public static void setIsAdmin(boolean admin) {
+        isAdmin.set(admin);
+    }
+
+    /**
+     * Verifica se o usuário atual é ADMIN
+     */
+    public static boolean isAdmin() {
+        Boolean admin = isAdmin.get();
+        return admin != null && admin;
+    }
+
+    /**
      * Verifica se há um tenant definido
      */
     public static boolean hasTenant() {
@@ -34,5 +50,6 @@ public class TenantContext {
      */
     public static void clear() {
         currentTenantId.remove();
+        isAdmin.remove();
     }
 }

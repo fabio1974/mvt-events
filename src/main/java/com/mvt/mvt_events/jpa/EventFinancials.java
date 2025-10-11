@@ -13,10 +13,6 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 public class EventFinancials extends BaseEntity {
 
-    // Multi-tenant support: reference to event as tenant
-    @Column(name = "tenant_id", nullable = false)
-    private Long tenantId;
-
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false, unique = true)
     private Event event;

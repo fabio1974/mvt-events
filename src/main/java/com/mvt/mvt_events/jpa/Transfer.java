@@ -16,10 +16,6 @@ import java.util.Map;
 @EqualsAndHashCode(callSuper = true)
 public class Transfer extends BaseEntity {
 
-    // Multi-tenant support: reference to event as tenant
-    @Column(name = "tenant_id", nullable = false)
-    private Long tenantId;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
