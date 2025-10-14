@@ -311,6 +311,16 @@ public class JpaMetadataExtractor {
             metadata.setDefaultValue(defaultValue);
         }
 
+        // ✅ Verifica anotação @Computed para campos computados
+        if (field.isAnnotationPresent(Computed.class)) {
+            Computed computed = field.getAnnotation(Computed.class);
+            metadata.setComputed(computed.function());
+            metadata.setComputedDependencies(java.util.Arrays.asList(computed.dependencies()));
+
+            System.out.println("DEBUG JpaExtractor: Campo '" + field.getName() + "' é computado - function="
+                    + computed.function() + ", dependencies=" + java.util.Arrays.toString(computed.dependencies()));
+        }
+
         return metadata;
     }
 

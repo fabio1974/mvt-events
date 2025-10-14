@@ -6,6 +6,7 @@ public class EntityMetadata {
     private String name;
     private String label;
     private String endpoint;
+    private String labelField; // Campo anotado com @DisplayLabel (usado para exibir a entidade em selects)
     private List<FieldMetadata> fields; // Campos genéricos (compatibilidade)
     private List<FieldMetadata> tableFields; // Campos específicos para TABELA
     private List<FieldMetadata> formFields; // Campos específicos para FORMULÁRIO
@@ -44,6 +45,14 @@ public class EntityMetadata {
 
     public void setEndpoint(String endpoint) {
         this.endpoint = endpoint;
+    }
+
+    public String getLabelField() {
+        return labelField;
+    }
+
+    public void setLabelField(String labelField) {
+        this.labelField = labelField;
     }
 
     public List<FieldMetadata> getFields() {

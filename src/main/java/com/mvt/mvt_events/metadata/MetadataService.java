@@ -59,8 +59,15 @@ public class MetadataService {
                 .filter(f -> !isSystemField(f.getName()))
                 .map(f -> {
                     FieldMetadata copy = copyField(f);
-                    // Se @Visible(form = false), marca como não visível
-                    if (f.getHiddenFromForm() != null && f.getHiddenFromForm()) {
+                    // ⚠️ IMPORTANTE: Campos com @DisplayLabel devem SEMPRE estar visíveis no form
+                    // porque são usados como label em relacionamentos
+                    boolean isDisplayLabel = isDisplayLabelField(config.entityClass, f.getName());
+
+                    if (isDisplayLabel) {
+                        // Campos @DisplayLabel sempre visíveis
+                        copy.setVisible(true);
+                    } else if (f.getHiddenFromForm() != null && f.getHiddenFromForm()) {
+                        // Se @Visible(form = false), marca como não visível
                         System.out.println("DEBUG: Campo '" + f.getName() + "' - hiddenFromForm="
                                 + f.getHiddenFromForm() + ", setando visible=false");
                         copy.setVisible(false);
@@ -71,6 +78,12 @@ public class MetadataService {
 
         metadata.setTableFields(tableFields);
         metadata.setFormFields(formFields);
+
+        // Detectar e definir o labelField (campo com @DisplayLabel)
+        String labelField = findDisplayLabelField(config.entityClass);
+        if (labelField != null) {
+            metadata.setLabelField(labelField);
+        }
 
         // Extrair filtros e remover apenas os marcados com @Visible(filter = false)
         List<FilterMetadata> filters = jpaExtractor.extractFilters(config.entityClass).stream()
@@ -107,6 +120,8 @@ public class MetadataService {
         copy.setHiddenFromTable(source.getHiddenFromTable());
         copy.setHiddenFromForm(source.getHiddenFromForm());
         copy.setHiddenFromFilter(source.getHiddenFromFilter());
+        copy.setComputed(source.getComputed());
+        copy.setComputedDependencies(source.getComputedDependencies());
         return copy;
     }
 
@@ -123,6 +138,59 @@ public class MetadataService {
         return fields.stream()
                 .filter(f -> f.getName().equals(filterName))
                 .anyMatch(f -> f.getHiddenFromFilter() != null && f.getHiddenFromFilter());
+    }
+
+    /**
+     * Verifica se um campo tem a anotação @DisplayLabel.
+     * Campos com @DisplayLabel devem sempre estar visíveis no formFields
+     * porque são usados como label em relacionamentos.
+     */
+    private boolean isDisplayLabelField(Class<?> entityClass, String fieldName) {
+        try {
+            java.lang.reflect.Field field = entityClass.getDeclaredField(fieldName);
+            return field.isAnnotationPresent(DisplayLabel.class);
+        } catch (NoSuchFieldException e) {
+            // Campo pode estar em superclasse
+            Class<?> superclass = entityClass.getSuperclass();
+            if (superclass != null) {
+                try {
+                    java.lang.reflect.Field field = superclass.getDeclaredField(fieldName);
+                    return field.isAnnotationPresent(DisplayLabel.class);
+                } catch (NoSuchFieldException ex) {
+                    return false;
+                }
+            }
+            return false;
+        }
+    }
+
+    /**
+     * Encontra o nome do campo anotado com @DisplayLabel.
+     * Retorna o nome do campo, ou null se não encontrado.
+     */
+    private String findDisplayLabelField(Class<?> entityClass) {
+        try {
+            // Procura nos campos da classe
+            for (java.lang.reflect.Field field : entityClass.getDeclaredFields()) {
+                if (field.isAnnotationPresent(DisplayLabel.class)) {
+                    return field.getName();
+                }
+            }
+
+            // Procura nos campos da superclasse
+            Class<?> superclass = entityClass.getSuperclass();
+            if (superclass != null) {
+                for (java.lang.reflect.Field field : superclass.getDeclaredFields()) {
+                    if (field.isAnnotationPresent(DisplayLabel.class)) {
+                        return field.getName();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println(
+                    "Error finding display label field for: " + entityClass.getName() + " - " + e.getMessage());
+        }
+        return null;
     }
 
     private static class EntityConfig {

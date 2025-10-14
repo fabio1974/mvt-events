@@ -15,6 +15,7 @@ import com.mvt.mvt_events.specification.EventCategorySpecification;
 import com.mvt.mvt_events.specification.EventSpecification;
 import com.mvt.mvt_events.specification.EventSpecifications;
 import com.mvt.mvt_events.tenant.TenantContext;
+import com.mvt.mvt_events.util.CascadeUpdateHelper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -22,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -48,13 +48,16 @@ public class EventService {
     private final OrganizationRepository organizationRepository;
     private final EventCategoryRepository categoryRepository;
     private final CityRepository cityRepository;
+    private final CascadeUpdateHelper cascadeUpdateHelper;
 
     public EventService(EventRepository repository, OrganizationRepository organizationRepository,
-            EventCategoryRepository categoryRepository, CityRepository cityRepository) {
+            EventCategoryRepository categoryRepository, CityRepository cityRepository,
+            CascadeUpdateHelper cascadeUpdateHelper) {
         this.repository = repository;
         this.organizationRepository = organizationRepository;
         this.categoryRepository = categoryRepository;
         this.cityRepository = cityRepository;
+        this.cascadeUpdateHelper = cascadeUpdateHelper;
     }
 
     // DEBUG: Expor repository temporariamente
@@ -171,6 +174,11 @@ public class EventService {
         }
         if (event.getRegistrationOpen() == null) {
             event.setRegistrationOpen(true);
+        }
+
+        // Establish bidirectional relationship with categories
+        if (event.getCategories() != null && !event.getCategories().isEmpty()) {
+            event.getCategories().forEach(category -> category.setEvent(event));
         }
 
         return repository.save(event);
@@ -290,7 +298,58 @@ public class EventService {
         if (eventData.getTransferFrequency() != null)
             existing.setTransferFrequency(eventData.getTransferFrequency());
 
-        return repository.save(existing);
+        // Save event first
+        Event savedEvent = repository.save(existing);
+
+        // ==================== HANDLE CATEGORIES (CASCADE UPDATE) ====================
+        // Usa CascadeUpdateHelper para gerenciar relacionamento 1:N
+        if (eventData.getCategories() != null) {
+            // Buscar categorias existentes
+            Specification<EventCategory> spec = EventCategorySpecification.belongsToEvent(savedEvent.getId());
+            List<EventCategory> existingCategories = categoryRepository.findAll(spec);
+
+            // Usar helper genérico para cascade update
+            cascadeUpdateHelper.updateChildrenWithInit(
+                    savedEvent, // Entidade pai
+                    eventData.getCategories(), // Lista de filhos do payload
+                    existingCategories, // Lista de filhos existentes
+                    EventCategory::getId, // Função para extrair ID
+                    EventCategory::setEvent, // Setter para vincular ao pai
+                    (existingCat, payloadCat) -> { // Função de update de campos
+                        if (payloadCat.getName() != null)
+                            existingCat.setName(payloadCat.getName());
+                        if (payloadCat.getMinAge() != null)
+                            existingCat.setMinAge(payloadCat.getMinAge());
+                        if (payloadCat.getMaxAge() != null)
+                            existingCat.setMaxAge(payloadCat.getMaxAge());
+                        if (payloadCat.getGender() != null)
+                            existingCat.setGender(payloadCat.getGender());
+                        if (payloadCat.getDistance() != null)
+                            existingCat.setDistance(payloadCat.getDistance());
+                        if (payloadCat.getDistanceUnit() != null)
+                            existingCat.setDistanceUnit(payloadCat.getDistanceUnit());
+                        if (payloadCat.getPrice() != null)
+                            existingCat.setPrice(payloadCat.getPrice());
+                        if (payloadCat.getMaxParticipants() != null)
+                            existingCat.setMaxParticipants(payloadCat.getMaxParticipants());
+                        if (payloadCat.getObservations() != null)
+                            existingCat.setObservations(payloadCat.getObservations());
+                    },
+                    (child) -> { // Função de inicialização para novos filhos
+                        if (child.getCurrentParticipants() == null) {
+                            child.setCurrentParticipants(0);
+                        }
+                    },
+                    categoryRepository // Repository JPA
+            );
+        }
+
+        // Refresh event to load updated categories
+        Event refreshedEvent = repository.findById(savedEvent.getId())
+                .orElseThrow(() -> new RuntimeException("Evento não encontrado"));
+        refreshedEvent.getCategories().size(); // Force load
+
+        return refreshedEvent;
     }
 
     /**

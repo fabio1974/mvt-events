@@ -38,6 +38,10 @@ public class FieldMetadata {
     // Default value
     private Object defaultValue;
 
+    // Computed field properties (@Computed)
+    private String computed; // Nome da função de cálculo (ex: "categoryName")
+    private List<String> computedDependencies; // Campos que disparam recálculo
+
     public FieldMetadata() {
     }
 
@@ -229,5 +233,21 @@ public class FieldMetadata {
 
     public void setDefaultValue(Object defaultValue) {
         this.defaultValue = defaultValue;
+    }
+
+    public String getComputed() {
+        return computed;
+    }
+
+    public void setComputed(String computed) {
+        this.computed = computed;
+    }
+
+    public List<String> getComputedDependencies() {
+        return computedDependencies;
+    }
+
+    public void setComputedDependencies(List<String> computedDependencies) {
+        this.computedDependencies = computedDependencies;
     }
 }

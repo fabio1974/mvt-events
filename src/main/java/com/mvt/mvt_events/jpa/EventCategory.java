@@ -1,6 +1,7 @@
 package com.mvt.mvt_events.jpa;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.mvt.mvt_events.metadata.Computed;
 import com.mvt.mvt_events.metadata.DisplayLabel;
 import com.mvt.mvt_events.metadata.Visible;
 
@@ -30,9 +31,14 @@ public class EventCategory extends BaseEntity {
     @Visible(form = false, filter = true, table = true)
     private Event event;
 
-    @DisplayLabel
-    @Column(nullable = false, length = 100)
-    private String name;
+    // Distance
+    @Column(precision = 10, scale = 2)
+    private BigDecimal distance;
+
+    // Gender
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private Gender gender;
 
     // Age range
     @Column(name = "min_age")
@@ -41,18 +47,14 @@ public class EventCategory extends BaseEntity {
     @Column(name = "max_age")
     private Integer maxAge;
 
-    // Gender
-    @Enumerated(EnumType.STRING)
-    @Column(length = 20)
-    private Gender gender;
-
-    // Distance
-    @Column(precision = 10, scale = 2)
-    private BigDecimal distance;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "distance_unit", length = 10)
-    private DistanceUnit distanceUnit;
+    private DistanceUnit distanceUnit = DistanceUnit.KM;
+
+    @DisplayLabel
+    @Computed(function = "categoryName", dependencies = { "distance", "gender", "minAge", "maxAge", "distanceUnit" })
+    @Column(nullable = false, length = 100)
+    private String name;
 
     // Registration
     @Visible(filter = false, table = false, form = true)
@@ -62,7 +64,8 @@ public class EventCategory extends BaseEntity {
     @Column(name = "max_participants")
     private Integer maxParticipants;
 
-    @Column(name = "current_participants", nullable = false)
+    @Visible(form = false, table = false, filter = false)
+    @Column(name = "current_participants", nullable = true)
     private Integer currentParticipants = 0;
 
     // Additional info

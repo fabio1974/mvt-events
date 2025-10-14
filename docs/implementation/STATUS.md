@@ -1,7 +1,7 @@
 # 🚀 Status do Projeto MVT Events
 
-**Última Atualização:** 06/01/2025  
-**Versão:** 1.0.0
+**Última Atualização:** 14 de outubro de 2025  
+**Versão:** 1.1.0
 
 ---
 
@@ -9,19 +9,25 @@
 
 ### 🏗️ Arquitetura
 
-- [x] Sistema de Metadata completo
+- [x] Sistema de Metadata completo e unificado
 - [x] JPA Specifications para queries dinâmicas
 - [x] Pattern Repository otimizado
 - [x] Entity Filter autodiscovery
+- [x] Multi-tenancy com TenantContext
+- [x] Autenticação JWT
 
-### 🔧 Backend
+### 🔧 Backend - Core
 
 - [x] Limpeza de Repositories (40-50% código removido)
 - [x] MetadataService alinhado com Specifications
 - [x] EntityFilterHelper com reflection
 - [x] @DisplayLabel annotation
+- [x] @Computed annotation para campos calculados
+- [x] @Visible annotation para controle de visibilidade
 - [x] Correção de LazyInitializationException
 - [x] UserController com DTOs e @Transactional
+- [x] **CascadeUpdateHelper** - Helper genérico para relacionamentos 1:N ✨ **NOVO**
+- [x] Fix de @DisplayLabel no formFields ✨ **NOVO**
 
 ### 📊 Metadata
 
@@ -30,15 +36,33 @@
 - [x] Users metadata completo
 - [x] Payments metadata completo
 - [x] EventCategories metadata completo
+- [x] Organizations metadata completo
 - [x] Entity filters configurados automaticamente
+- [x] Tradução PT-BR de todos os campos e enums
+- [x] labelField no metadata de cada entidade ✨ **NOVO**
+
+### 🔄 Relacionamentos 1:N
+
+- [x] Event → EventCategory com cascade update ✨ **NOVO**
+- [x] Helper genérico reutilizável (CascadeUpdateHelper) ✨ **NOVO**
+- [x] Suporte a INSERT, UPDATE e DELETE em transação única
+- [x] Logs de debug padronizados (📦, ➕, ✏️, 🗑️)
 
 ### 📚 Documentação
 
-- [x] Arquitetura de Metadata
-- [x] Guia de Filtros API
-- [x] Breaking Changes documentados
-- [x] Entity Filters feature
-- [x] Select vs Typeahead guide
+- [x] Arquitetura de Metadata consolidada
+- [x] Guia de Filtros API completo
+- [x] Entity Filters feature documentada
+- [x] **Cascade Update - 3 documentos completos** ✨ **NOVO**
+  - [x] CASCADE_HELPER_README.md (quick reference)
+  - [x] CASCADE_UPDATE_HELPER_USAGE.md (exemplos completos)
+  - [x] CASCADE_UPDATE_1_N.md (detalhes técnicos)
+- [x] @DisplayLabel fix documentado
+- [x] **Reorganização completa da documentação** ✨ **NOVO**
+  - [x] README.md principal atualizado
+  - [x] INDEX.md - índice completo
+  - [x] READMEs em cada subpasta
+  - [x] Arquivos legados movidos para archive/
 
 ---
 

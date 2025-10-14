@@ -4,6 +4,57 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ---
 
+## [1.1.0] - 2025-10-14
+
+### ✨ Adicionado
+
+- **CascadeUpdateHelper** - Helper genérico para relacionamentos 1:N
+  - Suporta INSERT, UPDATE e DELETE em transação única
+  - Reutilizável para qualquer relacionamento pai → filhos
+  - Logs padronizados (📦, ➕, ✏️, 🗑️)
+  - 3 métodos: `updateChildren()`, `updateChildrenWithInit()`, e versão simples
+- **EventService.update()** - Agora usa CascadeUpdateHelper para categories
+- **MetadataService** - Campo `labelField` adicionado ao metadata de cada entidade
+- **@DisplayLabel** - Fix para garantir que campos apareçam sempre no formFields
+- **Documentação completa reorganizada:**
+  - `CASCADE_HELPER_README.md` - Quick reference
+  - `CASCADE_UPDATE_HELPER_USAGE.md` - 5 exemplos completos
+  - `CASCADE_UPDATE_1_N.md` - Detalhes técnicos
+  - `DISPLAYLABEL_FORMFIELDS_FIX.md` - Correção do @DisplayLabel
+  - `INDEX.md` - Índice completo de toda documentação
+  - READMEs em cada subpasta (architecture/, api/, features/, etc.)
+
+### 🔄 Modificado
+
+- **EventService.update()** - Refatorado de ~80 linhas para ~15 usando helper
+- **MetadataService** - Adicionado `findDisplayLabelField()` e `isDisplayLabelField()`
+- **EntityMetadata** - Adicionado campo `labelField`
+- **Documentação** - README principal completamente reescrito
+- **Estrutura docs/** - Arquivos legados movidos para `docs/archive/`
+
+### 🗂️ Organização
+
+- Criada pasta `docs/archive/` com documentação legada
+- Movidos 6 arquivos obsoletos da raiz para archive/
+- Movida pasta `docs/metadata/` completa para archive/
+- Criados READMEs em: architecture/, api/, features/, implementation/, backend/, archive/
+- Criado INDEX.md com mapa completo da documentação
+
+### 📚 Documentação
+
+- **Consolidação:** Múltiplos docs sobre metadata unificados em `METADATA_ARCHITECTURE.md`
+- **Novos guias:** 3 documentos completos sobre cascade updates
+- **Índice:** Criado INDEX.md com guia de leitura por perfil (backend/frontend/PO/arquiteto)
+- **Navegação:** Links cruzados entre documentos relacionados
+
+### 🐛 Corrigido
+
+- Campos com @DisplayLabel agora sempre aparecem no formFields
+- labelField agora é incluído no metadata JSON
+- Imports não utilizados removidos (java.util.Map em EventService)
+
+---
+
 ## [1.0.0] - 2025-01-06
 
 ### ✨ Adicionado
