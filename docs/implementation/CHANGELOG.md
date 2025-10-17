@@ -4,6 +4,34 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ---
 
+## [1.1.1] - 2025-10-15
+
+### 🐛 Corrigido
+
+- **MultipleBagFetchException** - Erro 500 no endpoint `/api/registrations/my-registrations`
+  - Adicionado `@Fetch(FetchMode.SUBSELECT)` em `Event.categories`
+  - Adicionado `@Fetch(FetchMode.SUBSELECT)` em `Registration.payments`
+  - Documentação completa em `MULTIPLEBAGFETCH_FIX.md`
+
+### 📚 Documentação
+
+- **ANNOTATIONS_GUIDE.md** - Guia completo de annotations customizadas (@DisplayLabel, @Visible, @Computed)
+  - 665 linhas com exemplos práticos
+  - Matriz de visibilidade
+  - Troubleshooting
+  - Exercícios com soluções
+- **CLEANUP_SUMMARY.md** - Resumo da reorganização de documentação
+- **SESSION_SUMMARY.md** - Resumo executivo da sessão de 14-15/10
+- **MULTIPLEBAGFETCH_FIX.md** - Fix detalhado do MultipleBagFetchException
+
+### 🗑️ Limpeza
+
+- Removido `HIDE_FROM_METADATA_EXAMPLES.md` (substituído por ANNOTATIONS_GUIDE.md)
+- Movidos 6 arquivos .md da raiz para `docs/api/` e `docs/archive/`
+- Raiz do projeto: 9 arquivos → 2 arquivos (redução de 77%)
+
+---
+
 ## [1.1.0] - 2025-10-14
 
 ### ✨ Adicionado

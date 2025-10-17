@@ -2,7 +2,6 @@ package com.mvt.mvt_events.service;
 
 import com.mvt.mvt_events.dto.MyRegistrationResponse;
 import com.mvt.mvt_events.jpa.Registration;
-import com.mvt.mvt_events.jpa.Payment;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -47,24 +46,23 @@ public class RegistrationMapperService {
             response.setUser(userSummary);
         }
 
-        // Payments summary
-        if (registration.getPayments() != null) {
-            List<MyRegistrationResponse.PaymentSummary> paymentSummaries = registration.getPayments().stream()
-                    .map(this::toPaymentSummary)
-                    .collect(Collectors.toList());
-            response.setPayments(paymentSummaries);
+        // Category summary
+        if (registration.getCategory() != null) {
+            MyRegistrationResponse.CategorySummary categorySummary = new MyRegistrationResponse.CategorySummary();
+            categorySummary.setId(registration.getCategory().getId());
+            categorySummary.setName(registration.getCategory().getName());
+            categorySummary.setDistance(registration.getCategory().getDistance());
+            categorySummary.setGender(registration.getCategory().getGender() != null
+                    ? registration.getCategory().getGender().getDisplayName()
+                    : null);
+            categorySummary.setMinAge(registration.getCategory().getMinAge());
+            categorySummary.setMaxAge(registration.getCategory().getMaxAge());
+            categorySummary.setPrice(registration.getCategory().getPrice());
+            response.setCategory(categorySummary);
         }
 
-        return response;
-    }
+        // Payments removido - não necessário neste endpoint
 
-    private MyRegistrationResponse.PaymentSummary toPaymentSummary(Payment payment) {
-        MyRegistrationResponse.PaymentSummary summary = new MyRegistrationResponse.PaymentSummary();
-        summary.setId(payment.getId());
-        summary.setAmount(payment.getAmount());
-        summary.setPaymentMethod(payment.getPaymentMethod().getDisplayName());
-        summary.setStatus(payment.getStatus().name());
-        summary.setCreatedAt(payment.getCreatedAt());
-        return summary;
+        return response;
     }
 }

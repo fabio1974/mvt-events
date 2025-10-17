@@ -2,6 +2,8 @@ package com.mvt.mvt_events.jpa;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.mvt.mvt_events.metadata.DisplayLabel;
+import com.mvt.mvt_events.metadata.Visible;
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -33,14 +35,17 @@ public class Organization extends BaseEntity {
     @Column(name = "contact_email", nullable = false)
     private String contactEmail;
 
+    @Column(length = 20, nullable = false)
     private String phone;
 
+    @Column(length = 255)
     private String website;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(name = "logo_url")
+    @Visible(filter = true, table = true, form = false)
     private String logoUrl;
 
     // Relationships

@@ -13,6 +13,7 @@ public class MyRegistrationResponse {
     private LocalDateTime registrationDate;
     private Registration.RegistrationStatus status;
     private EventSummary event;
+    private CategorySummary category; // Categoria escolhida na inscrição
     private UserSummary user;
     private List<PaymentSummary> payments;
 
@@ -23,6 +24,17 @@ public class MyRegistrationResponse {
         private String description;
         private LocalDateTime eventDate;
         private String location;
+        private java.math.BigDecimal price;
+    }
+
+    @Data
+    public static class CategorySummary {
+        private Long id;
+        private String name;
+        private java.math.BigDecimal distance;
+        private String gender;
+        private Integer minAge;
+        private Integer maxAge;
         private java.math.BigDecimal price;
     }
 

@@ -100,7 +100,9 @@ public class RegistrationService {
                 r.getUser().getUsername(),
                 r.getEvent().getId(),
                 r.getEvent().getName(),
-                r.getEvent().getEventDate()));
+                r.getEvent().getEventDate(),
+                r.getCategory() != null ? r.getCategory().getId() : null,
+                r.getCategory() != null ? r.getCategory().getName() : null));
     }
 
     /**
@@ -121,7 +123,9 @@ public class RegistrationService {
                         r.getUser().getUsername(),
                         r.getEvent().getId(),
                         r.getEvent().getName(),
-                        r.getEvent().getEventDate()))
+                        r.getEvent().getEventDate(),
+                        r.getCategory() != null ? r.getCategory().getId() : null,
+                        r.getCategory() != null ? r.getCategory().getName() : null))
                 .toList();
     }
 
@@ -149,7 +153,9 @@ public class RegistrationService {
                 r.getUser().getUsername(),
                 r.getEvent().getId(),
                 r.getEvent().getName(),
-                r.getEvent().getEventDate()));
+                r.getEvent().getEventDate(),
+                r.getCategory() != null ? r.getCategory().getId() : null,
+                r.getCategory() != null ? r.getCategory().getName() : null));
     }
 
     /**
@@ -172,7 +178,9 @@ public class RegistrationService {
                 r.getUser().getUsername(),
                 r.getEvent().getId(),
                 r.getEvent().getName(),
-                r.getEvent().getEventDate()));
+                r.getEvent().getEventDate(),
+                r.getCategory() != null ? r.getCategory().getId() : null,
+                r.getCategory() != null ? r.getCategory().getName() : null));
     }
 
     /**
@@ -195,7 +203,9 @@ public class RegistrationService {
                         r.getUser().getUsername(),
                         r.getEvent().getId(),
                         r.getEvent().getName(),
-                        r.getEvent().getEventDate()))
+                        r.getEvent().getEventDate(),
+                        r.getCategory() != null ? r.getCategory().getId() : null,
+                        r.getCategory() != null ? r.getCategory().getName() : null))
                 .toList();
     }
 

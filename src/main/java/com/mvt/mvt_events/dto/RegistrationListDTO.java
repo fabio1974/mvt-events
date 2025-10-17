@@ -25,6 +25,10 @@ public class RegistrationListDTO {
     private String eventName;
     private LocalDateTime eventDate;
 
+    // Dados essenciais da Category
+    private Long categoryId;
+    private String categoryName;
+
     public RegistrationListDTO() {
     }
 
@@ -32,7 +36,8 @@ public class RegistrationListDTO {
     public RegistrationListDTO(Long id, LocalDateTime registrationDate,
             Registration.RegistrationStatus status, String notes,
             String userId, String userName, String userUsername,
-            Long eventId, String eventName, LocalDateTime eventDate) {
+            Long eventId, String eventName, LocalDateTime eventDate,
+            Long categoryId, String categoryName) {
         this.id = id;
         this.registrationDate = registrationDate;
         this.status = status;
@@ -43,6 +48,8 @@ public class RegistrationListDTO {
         this.eventId = eventId;
         this.eventName = eventName;
         this.eventDate = eventDate;
+        this.categoryId = categoryId;
+        this.categoryName = categoryName;
     }
 
     // Getters and Setters
@@ -124,5 +131,21 @@ public class RegistrationListDTO {
 
     public void setEventDate(LocalDateTime eventDate) {
         this.eventDate = eventDate;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
     }
 }

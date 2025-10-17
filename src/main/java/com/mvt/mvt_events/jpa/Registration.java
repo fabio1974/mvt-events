@@ -3,6 +3,8 @@ package com.mvt.mvt_events.jpa;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 import org.hibernate.annotations.Filter;
 
 import java.time.LocalDateTime;
@@ -27,6 +29,10 @@ public class Registration extends BaseEntity {
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private EventCategory category;
+
     @Column(name = "registration_date", nullable = false)
     private LocalDateTime registrationDate = LocalDateTime.now();
 
@@ -39,6 +45,7 @@ public class Registration extends BaseEntity {
 
     // Relacionamento com Payment
     @OneToMany(mappedBy = "registration", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Fetch(FetchMode.SUBSELECT) // Evita MultipleBagFetchException
     private java.util.List<Payment> payments = new java.util.ArrayList<>();
 
     public enum RegistrationStatus {

@@ -6,6 +6,22 @@ Documentação técnica de implementações específicas.
 
 ## 📄 Documentos
 
+### [MULTIPLEBAGFETCH_FIX.md](./MULTIPLEBAGFETCH_FIX.md) 🐛 **NOVO**
+
+**Fix detalhado** do erro MultipleBagFetchException.
+
+**Para:** Developers que encontram erro 500 em endpoints com múltiplos relacionamentos @OneToMany.
+
+**Inclui:**
+
+- Causa raiz do problema
+- Solução implementada (@Fetch(FetchMode.SUBSELECT))
+- Comparação de alternativas
+- Impacto de performance
+- Como testar
+
+---
+
 ### [ANNOTATIONS_QUICK_REFERENCE.md](./ANNOTATIONS_QUICK_REFERENCE.md) ⚡ **NOVO**
 
 **Cheat sheet** rápido para consulta durante desenvolvimento.
