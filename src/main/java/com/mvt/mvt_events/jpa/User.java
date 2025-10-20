@@ -85,10 +85,21 @@ public class User implements UserDetails {
     @DisplayLabel
     private String name;
 
+    @Column(length = 20)
     private String phone;
 
     @Column(length = 100)
     private String state;
+
+    // ============================================================================
+    // ZAPI10 GEOLOCATION FIELDS
+    // ============================================================================
+
+    @Column(precision = 10, scale = 7)
+    private Double latitude;
+
+    @Column(precision = 10, scale = 7)
+    private Double longitude;
 
     // Organization relationship for ORGANIZER role
     @ManyToOne(fetch = FetchType.LAZY)
@@ -100,7 +111,12 @@ public class User implements UserDetails {
     // ============================================================================
 
     public enum Role {
-        USER, ORGANIZER, ADMIN
+        USER, // Mantido para compatibilidade
+        ORGANIZER, // Mantido para compatibilidade
+        ADMIN, // Admin do sistema
+        CLIENT, // Cliente que solicita entregas
+        COURIER, // Motoboy que realiza entregas
+        ADM // Gerente local (tenant)
     }
 
     public enum Gender {

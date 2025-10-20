@@ -22,7 +22,7 @@ Adicionar relacionamento `Registration → EventCategory` para registrar a categ
 
 ## 📊 Mudanças no Schema
 
-### Migration: V19__add_category_to_registrations.sql
+### Migration: V19\_\_add_category_to_registrations.sql
 
 ```sql
 -- Adicionar coluna category_id
@@ -41,6 +41,7 @@ CREATE INDEX idx_registration_category_id ON registrations(category_id);
 ```
 
 **Características:**
+
 - ✅ `category_id` é **opcional** (`NULL` permitido)
 - ✅ `ON DELETE SET NULL` - Se categoria for deletada, inscrição mantém-se válida
 - ✅ Índice criado para queries mais rápidas
@@ -55,20 +56,21 @@ CREATE INDEX idx_registration_category_id ON registrations(category_id);
 @Entity
 @Table(name = "registrations")
 public class Registration extends BaseEntity {
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")  // ← NOVO
     private EventCategory category;
-    
+
     // ...existing fields...
 }
 ```
 
 **Características:**
+
 - ✅ `@ManyToOne` - Muitas inscrições → Uma categoria
 - ✅ `FetchType.LAZY` - Não carrega categoria automaticamente
 - ✅ **Não é obrigatório** - Pode ser `null`
@@ -86,7 +88,7 @@ public class MyRegistrationResponse {
     private EventSummary event;
     private CategorySummary category;  // ← NOVO
     private UserSummary user;
-    
+
     @Data
     public static class CategorySummary {
         private Long id;
@@ -115,11 +117,11 @@ public class MyRegistrationResponse {
   "category": {
     "id": 22,
     "name": "5KM - Masculino - 30 a 39 anos",
-    "distance": 5.00,
+    "distance": 5.0,
     "gender": "Masculino",
     "minAge": 30,
     "maxAge": 39,
-    "price": 100.00
+    "price": 100.0
   },
   "user": {
     "id": "fdb72229-2c17-4a3d-8951-066f82305155",
@@ -137,15 +139,15 @@ Adicionados campos de categoria:
 ```java
 public class RegistrationListDTO {
     // ...existing fields...
-    
+
     // Event
     private Long eventId;
     private String eventName;
-    
+
     // Category
     private Long categoryId;      // ← NOVO
     private String categoryName;  // ← NOVO
-    
+
     // Construtor atualizado com 2 novos parâmetros
     public RegistrationListDTO(Long id, LocalDateTime registrationDate,
             RegistrationStatus status, String notes,
@@ -164,25 +166,25 @@ public class RegistrationListDTO {
 ```java
 @Service
 public class RegistrationMapperService {
-    
+
     public MyRegistrationResponse toMyRegistrationResponse(Registration registration) {
         MyRegistrationResponse response = new MyRegistrationResponse();
         // ...existing code...
-        
+
         // Category summary
         if (registration.getCategory() != null) {
             CategorySummary categorySummary = new CategorySummary();
             categorySummary.setId(registration.getCategory().getId());
             categorySummary.setName(registration.getCategory().getName());
             categorySummary.setDistance(registration.getCategory().getDistance());
-            categorySummary.setGender(registration.getCategory().getGender() != null ? 
+            categorySummary.setGender(registration.getCategory().getGender() != null ?
                 registration.getCategory().getGender().getDisplayName() : null);
             categorySummary.setMinAge(registration.getCategory().getMinAge());
             categorySummary.setMaxAge(registration.getCategory().getMaxAge());
             categorySummary.setPrice(registration.getCategory().getPrice());
             response.setCategory(categorySummary);
         }
-        
+
         return response;
     }
 }
@@ -213,6 +215,7 @@ return registrations.map(r -> new RegistrationListDTO(
 ```
 
 **Métodos atualizados:**
+
 - ✅ `list(Pageable)`
 - ✅ `listAll()`
 - ✅ `listWithFilters()`
@@ -306,9 +309,9 @@ Authorization: Bearer {token}
     "category": {
       "id": 22,
       "name": "5KM - Masculino - 30 a 39 anos",
-      "distance": 5.00,
+      "distance": 5.0,
       "gender": "Masculino",
-      "price": 100.00
+      "price": 100.0
     },
     "user": {
       "name": "Maria Organizadora"
@@ -326,17 +329,19 @@ Authorization: Bearer {token}
 **Evento:** Corrida da Pampulha 2025
 
 **Categorias:**
+
 - 5KM - Masculino - 18 a 29 anos (R$ 80)
 - 5KM - Feminino - 18 a 29 anos (R$ 80)
 - 10KM - Masculino - 30 a 39 anos (R$ 100)
 - 10KM - Feminino - 30 a 39 anos (R$ 100)
 
 **Inscrição:**
+
 ```json
 {
   "user": { "id": "..." },
   "event": { "id": 19 },
-  "category": { "id": 22 }  // 5KM - Masculino - 18 a 29 anos
+  "category": { "id": 22 } // 5KM - Masculino - 18 a 29 anos
 }
 ```
 
@@ -347,11 +352,12 @@ Authorization: Bearer {token}
 **Evento:** Workshop de Running
 
 **Inscrição sem categoria:**
+
 ```json
 {
   "user": { "id": "..." },
   "event": { "id": 20 },
-  "category": null  // Não tem categorias
+  "category": null // Não tem categorias
 }
 ```
 
@@ -366,17 +372,19 @@ Inscrições criadas **antes** desta migration terão `category_id = NULL`.
 **Opções:**
 
 ### 1. Manter NULL (Recomendado)
+
 - Inscrições antigas não têm categoria definida
 - Compatibilidade total
 
 ### 2. Preencher com Primeira Categoria do Evento
+
 ```sql
 -- Script opcional para popular category_id
 UPDATE registrations r
 SET category_id = (
-    SELECT ec.id 
-    FROM event_categories ec 
-    WHERE ec.event_id = r.event_id 
+    SELECT ec.id
+    FROM event_categories ec
+    WHERE ec.event_id = r.event_id
     LIMIT 1
 )
 WHERE r.category_id IS NULL;
@@ -395,20 +403,20 @@ WHERE r.category_id IS NULL;
 ```java
 @Service
 public class RegistrationService {
-    
+
     public Registration create(Registration registration) {
         // Validar se categoria pertence ao evento
         if (registration.getCategory() != null) {
             EventCategory category = registration.getCategory();
             Event event = registration.getEvent();
-            
+
             if (!category.getEvent().getId().equals(event.getId())) {
                 throw new IllegalArgumentException(
                     "Category does not belong to the selected event"
                 );
             }
         }
-        
+
         return registrationRepository.save(registration);
     }
 }
