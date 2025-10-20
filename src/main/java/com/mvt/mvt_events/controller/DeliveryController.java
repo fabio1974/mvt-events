@@ -176,21 +176,14 @@ public class DeliveryController {
         delivery.setFromAddress(request.getFromAddress());
         delivery.setFromLatitude(request.getFromLatitude());
         delivery.setFromLongitude(request.getFromLongitude());
-        delivery.setFromCity(request.getFromCity());
-        delivery.setFromState(request.getFromState());
-        delivery.setFromZipCode(request.getFromZipCode());
 
         delivery.setToAddress(request.getToAddress());
         delivery.setToLatitude(request.getToLatitude());
         delivery.setToLongitude(request.getToLongitude());
-        delivery.setToCity(request.getToCity());
-        delivery.setToState(request.getToState());
-        delivery.setToZipCode(request.getToZipCode());
 
         delivery.setRecipientName(request.getRecipientName());
         delivery.setRecipientPhone(request.getRecipientPhone());
-        delivery.setTotalAmount(request.getTotalAmount());
-        delivery.setNotes(request.getNotes());
+        // Nota: campo notes não existe na entidade Delivery
 
         // Client e Partnership serão setados no service
         return delivery;
@@ -210,22 +203,17 @@ public class DeliveryController {
                 .fromAddress(delivery.getFromAddress())
                 .fromLatitude(delivery.getFromLatitude())
                 .fromLongitude(delivery.getFromLongitude())
-                .fromCity(delivery.getFromCity())
                 .toAddress(delivery.getToAddress())
                 .toLatitude(delivery.getToLatitude())
                 .toLongitude(delivery.getToLongitude())
-                .toCity(delivery.getToCity())
                 .recipientName(delivery.getRecipientName())
                 .recipientPhone(delivery.getRecipientPhone())
                 .totalAmount(delivery.getTotalAmount())
                 .status(delivery.getStatus().name())
-                .scheduledPickupAt(delivery.getScheduledPickupAt())
                 .pickedUpAt(delivery.getPickedUpAt())
                 .completedAt(delivery.getCompletedAt())
-                .cancelledAt(delivery.getCancelledAt())
                 .partnershipId(delivery.getPartnership() != null ? delivery.getPartnership().getId() : null)
                 .partnershipName(delivery.getPartnership() != null ? delivery.getPartnership().getName() : null)
-                .notes(delivery.getNotes())
                 .build();
     }
 }

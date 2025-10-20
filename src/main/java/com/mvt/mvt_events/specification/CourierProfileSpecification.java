@@ -32,7 +32,7 @@ public class CourierProfileSpecification {
     }
 
     public static Specification<CourierProfile> isActive() {
-        return (root, query, cb) -> cb.equal(root.get("status"), CourierProfile.CourierStatus.ACTIVE);
+        return (root, query, cb) -> cb.equal(root.get("status"), CourierProfile.CourierStatus.AVAILABLE);
     }
 
     // Filtros de veículo

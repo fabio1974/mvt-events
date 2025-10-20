@@ -39,7 +39,7 @@ public class EvaluationController {
         Evaluation evaluation = new Evaluation();
         evaluation.setRating(request.getRating());
         evaluation.setEvaluationType(Evaluation.EvaluationType.valueOf(request.getEvaluationType()));
-        evaluation.setComments(request.getComments());
+        evaluation.setComment(request.getComments()); // Campo correto é 'comment' não 'comments'
 
         Evaluation created = evaluationService.create(evaluation, request.getDeliveryId(), evaluatorId);
 
@@ -88,7 +88,7 @@ public class EvaluationController {
                 .evaluatorName(evaluation.getEvaluator().getName())
                 .rating(evaluation.getRating())
                 .evaluationType(evaluation.getEvaluationType().name())
-                .comments(evaluation.getComments())
+                .comments(evaluation.getComment()) // Campo correto é 'comment' não 'comments'
                 .courierId(evaluation.getDelivery().getCourier() != null
                         ? evaluation.getDelivery().getCourier().getId().toString()
                         : null)

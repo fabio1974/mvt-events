@@ -15,8 +15,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-@Component
 @Slf4j
+@Component
 public class MercadoPagoPaymentProvider implements PaymentProvider {
 
     @Value("${payment.mercadopago.access-token:}")

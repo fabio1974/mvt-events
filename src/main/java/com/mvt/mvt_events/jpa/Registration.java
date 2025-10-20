@@ -71,7 +71,7 @@ public class Registration extends BaseEntity {
 
     public Payment getLatestPayment() {
         return payments.stream()
-                .max(java.util.Comparator.comparing(Payment::getCreatedAt))
+                .max(java.util.Comparator.comparing(BaseEntity::getCreatedAt))
                 .orElse(null);
     }
 }

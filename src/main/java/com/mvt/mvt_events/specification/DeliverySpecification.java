@@ -133,7 +133,7 @@ public class DeliverySpecification {
 
     public static Specification<Delivery> isActive() {
         return (root, query, cb) -> root.get("status").in(
-                Delivery.DeliveryStatus.ASSIGNED,
+                Delivery.DeliveryStatus.ACCEPTED,
                 Delivery.DeliveryStatus.PICKED_UP,
                 Delivery.DeliveryStatus.IN_TRANSIT);
     }

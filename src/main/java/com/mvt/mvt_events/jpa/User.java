@@ -95,10 +95,10 @@ public class User implements UserDetails {
     // ZAPI10 GEOLOCATION FIELDS
     // ============================================================================
 
-    @Column(precision = 10, scale = 7)
+    @Column
     private Double latitude;
 
-    @Column(precision = 10, scale = 7)
+    @Column
     private Double longitude;
 
     // Organization relationship for ORGANIZER role
@@ -227,6 +227,15 @@ public class User implements UserDetails {
         this.password = password;
         this.role = role;
         this.enabled = true;
+    }
+
+    // ============================================================================
+    // USERDETAILS IMPLEMENTATION
+    // ============================================================================
+
+    @Override
+    public String getUsername() {
+        return username;
     }
 
     // ============================================================================

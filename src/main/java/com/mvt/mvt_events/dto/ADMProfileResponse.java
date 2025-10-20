@@ -33,6 +33,10 @@ public class ADMProfileResponse {
     private BigDecimal commissionPercentage;
     private BigDecimal totalCommission;
 
+    // Métricas
+    private Integer totalDeliveriesManaged;
+    private Integer activeDeliveriesCount;
+
     // Status
     private String status;
 

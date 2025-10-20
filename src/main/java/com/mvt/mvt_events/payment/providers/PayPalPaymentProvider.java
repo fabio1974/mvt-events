@@ -19,8 +19,8 @@ import java.util.UUID;
  * PayPal payment provider implementation
  * Supports PayPal accounts, credit cards, and bank transfers
  */
-@Component
 @Slf4j
+@Component
 public class PayPalPaymentProvider implements PaymentProvider {
 
     @Value("${payment.paypal.client-id:}")
@@ -75,8 +75,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
                     "provider", "PAYPAL",
                     "payment_method", request.getPaymentMethod().name(),
                     "approval_url", approvalUrl,
-                    "environment", environment
-            );
+                    "environment", environment);
 
             switch (request.getPaymentMethod()) {
                 case PAYPAL_ACCOUNT:
@@ -85,8 +84,8 @@ public class PayPalPaymentProvider implements PaymentProvider {
                             "payment_method", "PAYPAL_ACCOUNT",
                             "approval_url", approvalUrl,
                             "redirect_url", approvalUrl,
-                            "expires_at", LocalDateTime.now().plusHours(3).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-                    );
+                            "expires_at",
+                            LocalDateTime.now().plusHours(3).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     break;
 
                 case CREDIT_CARD:
@@ -95,8 +94,8 @@ public class PayPalPaymentProvider implements PaymentProvider {
                             "payment_method", "CREDIT_CARD",
                             "approval_url", approvalUrl,
                             "card_funding_type", "CREDIT",
-                            "expires_at", LocalDateTime.now().plusHours(1).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-                    );
+                            "expires_at",
+                            LocalDateTime.now().plusHours(1).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     break;
 
                 case BANK_TRANSFER:
@@ -106,13 +105,14 @@ public class PayPalPaymentProvider implements PaymentProvider {
                             "approval_url", approvalUrl,
                             "bank_transfer_type", "ACH",
                             "processing_time", "1-3 business days",
-                            "expires_at", LocalDateTime.now().plusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-                    );
+                            "expires_at",
+                            LocalDateTime.now().plusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     resultBuilder.expiresAt(LocalDateTime.now().plusDays(7));
                     break;
 
                 default:
-                    return PaymentResult.error("Unsupported payment method: " + request.getPaymentMethod(), "UNSUPPORTED_METHOD");
+                    return PaymentResult.error("Unsupported payment method: " + request.getPaymentMethod(),
+                            "UNSUPPORTED_METHOD");
             }
 
             resultBuilder.metadata(metadata);
@@ -151,13 +151,13 @@ public class PayPalPaymentProvider implements PaymentProvider {
                             "payer_id", payerId,
                             "token", token,
                             "transaction_id", "TXN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase(),
-                            "fee_paid_by", "merchant"
-                    ))
+                            "fee_paid_by", "merchant"))
                     .build();
 
         } catch (Exception e) {
             log.error("Error confirming PayPal payment: {}", paymentId, e);
-            return PaymentResult.error("Failed to confirm PayPal payment: " + e.getMessage(), "PAYMENT_CONFIRMATION_ERROR");
+            return PaymentResult.error("Failed to confirm PayPal payment: " + e.getMessage(),
+                    "PAYMENT_CONFIRMATION_ERROR");
         }
     }
 
@@ -179,8 +179,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
                             "original_payment_id", paymentId,
                             "refund_reason", reason,
                             "refund_type", "FULL",
-                            "processing_time", "5-7 business days"
-                    ))
+                            "processing_time", "5-7 business days"))
                     .build();
 
         } catch (Exception e) {
@@ -209,8 +208,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
                     .metadata(Map.of(
                             "provider", "PAYPAL",
                             "last_updated", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                            "payment_method", "paypal"
-                    ))
+                            "payment_method", "paypal"))
                     .build();
 
         } catch (Exception e) {
@@ -262,10 +260,10 @@ public class PayPalPaymentProvider implements PaymentProvider {
      * Generate mock PayPal approval URL
      */
     private String generateMockApprovalUrl(String paymentId, PaymentRequest request) {
-        String baseUrl = environment.equals("sandbox") 
-            ? "https://www.sandbox.paypal.com" 
-            : "https://www.paypal.com";
-        
+        String baseUrl = environment.equals("sandbox")
+                ? "https://www.sandbox.paypal.com"
+                : "https://www.paypal.com";
+
         return String.format("%s/webapps/hermes?cmd=_express-checkout&useraction=commit&token=%s",
                 baseUrl, paymentId);
     }

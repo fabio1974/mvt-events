@@ -158,8 +158,6 @@ public class StripePaymentProvider implements PaymentProvider {
         log.info("Processing Stripe refund: paymentId={}, amount={}, reason={}", paymentId, amount, reason);
 
         try {
-            PaymentIntent intent = PaymentIntent.retrieve(paymentId);
-
             // Create refund using Stripe API
             com.stripe.param.RefundCreateParams refundParams = com.stripe.param.RefundCreateParams.builder()
                     .setPaymentIntent(paymentId)

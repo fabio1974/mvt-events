@@ -128,7 +128,7 @@ public class DeliveryService {
                 .orElseThrow(() -> new RuntimeException("Perfil ADM não encontrado"));
 
         boolean hasLink = courierADMLinkRepository.existsActiveLinkBetween(
-                courier.getId(), admProfile.getId());
+                courier.getUser().getId(), admProfile.getUser().getId());
 
         if (!hasLink) {
             throw new RuntimeException("Courier não está vinculado a este ADM");

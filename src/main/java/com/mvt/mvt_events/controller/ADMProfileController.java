@@ -39,15 +39,16 @@ public class ADMProfileController {
         ADMProfile profile = new ADMProfile();
         profile.setRegion(request.getRegion());
         profile.setCommissionPercentage(request.getCommissionPercentage());
-        
+
         UUID userId = UUID.fromString(request.getUserId());
-        
+
         ADMProfile created = admProfileService.create(profile, userId);
-        
+
         // Vincular parceria se fornecida
         if (request.getPartnershipId() != null) {
             created = admProfileService.linkToPartnership(userId, request.getPartnershipId());
-        }        return ResponseEntity.status(HttpStatus.CREATED).body(mapToResponse(created));
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapToResponse(created));
     }
 
     @GetMapping
@@ -57,10 +58,11 @@ public class ADMProfileController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String search,
             Pageable pageable) {
-        
+
         ADMProfile.ADMStatus admStatus = status != null ? ADMProfile.ADMStatus.valueOf(status) : null;
-        
-        Page<ADMProfile> adms = admProfileService.findAll(region, admStatus, search, pageable);        return adms.map(this::mapToResponse);
+
+        Page<ADMProfile> adms = admProfileService.findAll(region, admStatus, search, pageable);
+        return adms.map(this::mapToResponse);
     }
 
     @GetMapping("/me")
@@ -91,9 +93,10 @@ public class ADMProfileController {
     public ResponseEntity<ADMProfileResponse> updateCommission(
             @RequestParam BigDecimal percentage,
             Authentication authentication) {
-        
+
         UUID userId = UUID.fromString(authentication.getName());
-        ADMProfile updated = admProfileService.updateCommission(userId, percentage);        return ResponseEntity.ok(mapToResponse(updated));
+        ADMProfile updated = admProfileService.updateCommission(userId, percentage);
+        return ResponseEntity.ok(mapToResponse(updated));
     }
 
     @PutMapping("/status")
@@ -101,10 +104,11 @@ public class ADMProfileController {
     public ResponseEntity<ADMProfileResponse> updateStatus(
             @RequestParam String status,
             Authentication authentication) {
-        
+
         UUID userId = UUID.fromString(authentication.getName());
         ADMProfile.ADMStatus newStatus = ADMProfile.ADMStatus.valueOf(status);
-        ADMProfile updated = admProfileService.updateStatus(userId, newStatus);        return ResponseEntity.ok(mapToResponse(updated));
+        ADMProfile updated = admProfileService.updateStatus(userId, newStatus);
+        return ResponseEntity.ok(mapToResponse(updated));
     }
 
     @PostMapping("/link-partnership")
@@ -112,9 +116,10 @@ public class ADMProfileController {
     public ResponseEntity<ADMProfileResponse> linkToPartnership(
             @RequestParam Long partnershipId,
             Authentication authentication) {
-        
+
         UUID userId = UUID.fromString(authentication.getName());
-        ADMProfile updated = admProfileService.linkToPartnership(userId, partnershipId);        return ResponseEntity.ok(mapToResponse(updated));
+        ADMProfile updated = admProfileService.linkToPartnership(userId, partnershipId);
+        return ResponseEntity.ok(mapToResponse(updated));
     }
 
     private ADMProfileResponse mapToResponse(ADMProfile profile) {
@@ -126,7 +131,7 @@ public class ADMProfileController {
                 .userPhone(profile.getUser().getPhone())
                 .region(profile.getRegion())
                 .commissionPercentage(profile.getCommissionPercentage())
-                .accumulatedCommission(profile.getTotalCommission())
+                .totalCommission(profile.getTotalCommission()) // Campo correto
                 .totalDeliveriesManaged(profile.getTotalDeliveriesManaged())
                 .activeDeliveriesCount(0) // Campo calculado - adicionar lógica se necessário
                 .status(profile.getStatus().name())

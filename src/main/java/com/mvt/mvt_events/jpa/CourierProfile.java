@@ -98,11 +98,11 @@ public class CourierProfile extends BaseEntity {
     @Visible(table = false, form = false, filter = false)
     private LocalDateTime lastLocationUpdate;
 
-    @Column(name = "current_latitude", precision = 10, scale = 7)
+    @Column(name = "current_latitude")
     @Visible(table = false, form = false, filter = false)
     private Double currentLatitude;
 
-    @Column(name = "current_longitude", precision = 10, scale = 7)
+    @Column(name = "current_longitude")
     @Visible(table = false, form = false, filter = false)
     private Double currentLongitude;
 
@@ -110,7 +110,8 @@ public class CourierProfile extends BaseEntity {
     // RELATIONSHIPS (N:M WITH ADM VIA COURIER_ADM_LINKS)
     // ============================================================================
 
-    @OneToMany(mappedBy = "courier", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "courier_id", referencedColumnName = "user_id")
     @Visible(table = false, form = false, filter = false)
     private Set<CourierADMLink> admLinks = new HashSet<>();
 
@@ -147,8 +148,8 @@ public class CourierProfile extends BaseEntity {
      */
     public User getPrimaryADM() {
         return admLinks.stream()
-                .filter(link -> link.getIsPrimary() && link.getIsActive())
-                .map(CourierADMLink::getAdm)
+                .filter(link -> Boolean.TRUE.equals(link.getIsPrimary()) && Boolean.TRUE.equals(link.getIsActive()))
+                .map(link -> link.getAdm())
                 .findFirst()
                 .orElse(null);
     }
@@ -158,8 +159,8 @@ public class CourierProfile extends BaseEntity {
      */
     public Set<User> getAllActiveADMs() {
         return admLinks.stream()
-                .filter(CourierADMLink::getIsActive)
-                .map(CourierADMLink::getAdm)
+                .filter(link -> Boolean.TRUE.equals(link.getIsActive()))
+                .map(link -> link.getAdm())
                 .collect(Collectors.toSet());
     }
 

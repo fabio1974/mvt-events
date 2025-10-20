@@ -105,13 +105,13 @@ public class CourierProfileService {
                 .orElseThrow(() -> new RuntimeException("ADM não encontrado"));
 
         // Verificar se já existe link
-        if (courierADMLinkRepository.existsActiveLinkBetween(courier.getId(), adm.getId())) {
+        if (courierADMLinkRepository.existsActiveLinkBetween(courier.getUser().getId(), adm.getUser().getId())) {
             throw new RuntimeException("Courier já está vinculado a este ADM");
         }
 
         // Se for primário, desativar outros primários
         if (isPrimary) {
-            var currentPrimary = courierADMLinkRepository.findPrimaryActiveByCourierProfileId(courier.getId());
+            var currentPrimary = courierADMLinkRepository.findPrimaryActiveByCourierId(courier.getUser().getId());
             currentPrimary.ifPresent(link -> {
                 link.setIsPrimary(false);
                 courierADMLinkRepository.save(link);
@@ -130,19 +130,19 @@ public class CourierProfileService {
     /**
      * Define ADM primário do courier
      */
-    public void setPrimaryADM(UUID courierId, Long admProfileId) {
+    public void setPrimaryADM(UUID courierId, UUID admId) {
         CourierProfile courier = findByUserId(courierId);
 
         // Remover primário atual
-        var currentPrimary = courierADMLinkRepository.findPrimaryActiveByCourierProfileId(courier.getId());
+        var currentPrimary = courierADMLinkRepository.findPrimaryActiveByCourierId(courier.getUser().getId());
         currentPrimary.ifPresent(link -> {
             link.setIsPrimary(false);
             courierADMLinkRepository.save(link);
         });
 
         // Setar novo primário
-        CourierADMLink newPrimary = courierADMLinkRepository.findByCourierProfileIdAndAdmProfileId(
-                courier.getId(), admProfileId)
+        CourierADMLink newPrimary = courierADMLinkRepository.findByCourierIdAndAdmId(
+                courier.getUser().getId(), admId)
                 .orElseThrow(() -> new RuntimeException("Link não encontrado"));
 
         newPrimary.setIsPrimary(true);
@@ -189,6 +189,6 @@ public class CourierProfileService {
      */
     public List<CourierADMLink> findActiveADMs(UUID courierId) {
         CourierProfile courier = findByUserId(courierId);
-        return courierADMLinkRepository.findActiveByourierProfileId(courier.getId());
+        return courierADMLinkRepository.findActiveByCourierId(courier.getUser().getId());
     }
 }

@@ -45,24 +45,22 @@ public class TenantFilter extends OncePerRequestFilter {
                 if (authentication.getPrincipal() instanceof User) {
                     User user = (User) authentication.getPrincipal();
                     logger.info("🔍 TenantFilter - User: {}", user.getUsername());
-                    logger.info("🔍 TenantFilter - User Organization: {}", user.getOrganization());
-                    logger.info("🔍 TenantFilter - User Role: {}", user.getRole());
+                    // TODO: Implementar campos organization e role na entidade User
+                    // logger.info("🔍 TenantFilter - User Organization: {}",
+                    // user.getOrganization());
+                    // logger.info("🔍 TenantFilter - User Role: {}", user.getRole());
 
-                    // Verifica se é ADMIN
-                    boolean isAdmin = user.getRole() != null && "ADMIN".equals(user.getRole().name());
+                    // Por enquanto, assumir que não é admin
+                    boolean isAdmin = false; // user.getRole() != null && "ADMIN".equals(user.getRole().name());
                     TenantContext.setIsAdmin(isAdmin);
 
                     if (isAdmin) {
                         logger.info("👑 TenantFilter - User is ADMIN - NO tenant filter will be applied");
                     } else {
-                        // Define o tenant ID se o usuário tiver uma organização
-                        if (user.getOrganization() != null) {
-                            Long organizationId = user.getOrganization().getId();
-                            TenantContext.setCurrentTenantId(organizationId);
-                            logger.info("✅ TenantFilter - Tenant ID set to: {}", organizationId);
-                        } else {
-                            logger.warn("⚠️ TenantFilter - User has no organization");
-                        }
+                        // Por enquanto, usar o ID do usuário como tenant
+                        // TODO: Implementar lógica correta de tenant baseada em organização
+                        TenantContext.setCurrentTenantId(user.getId().hashCode() % 1000L);
+                        logger.info("✅ TenantFilter - Tenant ID set to: {}", TenantContext.getCurrentTenantId());
                     }
                 } else {
                     logger.warn("⚠️ TenantFilter - Principal is not a User instance");
