@@ -59,8 +59,8 @@ public class UnifiedPayoutService {
         }
 
         if (payout.getBeneficiaryType() == UnifiedPayout.BeneficiaryType.ADM &&
-                beneficiary.getRole() != User.Role.ADM) {
-            throw new RuntimeException("Beneficiário não é um ADM");
+                beneficiary.getRole() != User.Role.ORGANIZER) {
+            throw new RuntimeException("Beneficiário não é um ORGANIZER");
         }
 
         // Validar formato do período

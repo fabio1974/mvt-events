@@ -48,6 +48,14 @@ public class UserController {
         return new UserResponse(user);
     }
 
+    @PostMapping
+    @Operation(summary = "Criar novo usuário")
+    public ResponseEntity<UserResponse> create(@RequestBody @Valid UserCreateRequest request,
+            Authentication authentication) {
+        User createdUser = userService.createUser(request, authentication);
+        return ResponseEntity.ok(new UserResponse(createdUser));
+    }
+
     @PutMapping("/{id}")
     @Operation(summary = "Atualizar usuário")
     public ResponseEntity<UserResponse> update(@PathVariable UUID id, @RequestBody @Valid UserUpdateRequest request,
@@ -67,6 +75,60 @@ public class UserController {
         }
     }
 
+    // DTO para criação de usuário
+    @Data
+    @NoArgsConstructor
+    public static class UserCreateRequest {
+        private String username; // email (obrigatório)
+        private String name; // nome completo (obrigatório)
+        private String password; // senha (opcional - padrão: "12345678" para ADM, "senha123" para outros)
+        private String role; // USER, COURIER, CLIENT, ADM, ADMIN (obrigatório)
+        private String cpf; // CPF (obrigatório)
+        private String phone;
+        private String address;
+        private Long cityId; // ID da cidade relacionada (aceita direto)
+        private CityIdWrapper city; // Aceita também {"id": 1058}
+        private String state;
+        private String country;
+        private String dateOfBirth; // ISO format: YYYY-MM-DD ou YYYY-MM-DDTHH:mm:ss.sssZ
+        private String gender; // MALE, FEMALE, OTHER
+        private String emergencyContact;
+        private Long organizationId; // ID da organização (opcional, aceita direto)
+        private OrganizationIdWrapper organization; // Aceita também {"id": 6}
+        private Boolean enabled = true; // default true
+
+        // Método helper para obter o cityId de qualquer formato
+        public Long getCityIdResolved() {
+            if (cityId != null)
+                return cityId;
+            if (city != null && city.getId() != null)
+                return city.getId();
+            return null;
+        }
+
+        // Método helper para obter o organizationId de qualquer formato
+        public Long getOrganizationIdResolved() {
+            if (organizationId != null)
+                return organizationId;
+            if (organization != null && organization.getId() != null)
+                return organization.getId();
+            return null;
+        }
+    }
+
+    // Wrapper para aceitar {"id": valor}
+    @Data
+    @NoArgsConstructor
+    public static class CityIdWrapper {
+        private Long id;
+    }
+
+    @Data
+    @NoArgsConstructor
+    public static class OrganizationIdWrapper {
+        private Long id;
+    }
+
     // DTO para atualização de usuário
     @Data
     @NoArgsConstructor
@@ -74,7 +136,7 @@ public class UserController {
         private String name;
         private String phone;
         private String address;
-        private String city;
+        private Long cityId; // ID da cidade relacionada
         private String state;
         private String country;
         private String birthDate; // Mapeia para "birthDate" do front-end
@@ -92,7 +154,9 @@ public class UserController {
         private String name;
         private String phone;
         private String address;
-        private String city;
+        private Long cityId;
+        private String cityName;
+        private String cityState;
         private String state;
         private String country;
         private String dateOfBirth;
@@ -109,7 +173,6 @@ public class UserController {
             this.name = user.getName();
             this.phone = user.getPhone();
             this.address = user.getAddress();
-            this.city = user.getCity();
             this.state = user.getState();
             this.country = user.getCountry();
             this.dateOfBirth = user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : null;
@@ -117,6 +180,13 @@ public class UserController {
             this.cpf = user.getCpfFormatted();
             this.emergencyContact = user.getEmergencyContact();
             this.role = user.getRole() != null ? user.getRole().toString() : null;
+
+            // Carregar dados da cidade se existir
+            if (user.getCity() != null) {
+                this.cityId = user.getCity().getId();
+                this.cityName = user.getCity().getName();
+                this.cityState = user.getCity().getState();
+            }
 
             // Evitar lazy loading da organização
             if (user.getOrganization() != null) {

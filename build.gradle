@@ -1,8 +1,15 @@
+buildscript {
+	dependencies {
+		classpath 'org.flywaydb:flyway-database-postgresql:11.7.2'
+	}
+}
+
 plugins {
 	id 'java'
 	id 'war'
 	id 'org.springframework.boot' version '3.5.6'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'org.flywaydb.flyway' version '11.7.2'
 }
 
 group = 'com.mvt'
@@ -67,4 +74,24 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+// ============================================================================
+// FLYWAY CONFIGURATION
+// ============================================================================
+flyway {
+	// Database connection (usando as mesmas configurações do Spring)
+	url = System.getenv('SPRING_DATASOURCE_URL') ?: 'jdbc:postgresql://localhost:5435/mvt-events'
+	user = System.getenv('SPRING_DATASOURCE_USERNAME') ?: 'mvt'
+	password = System.getenv('SPRING_DATASOURCE_PASSWORD') ?: 'mvtpass'
+	
+	// Migration settings
+	locations = ['classpath:db/migration']
+	baselineOnMigrate = true
+	baselineVersion = '0'
+	validateOnMigrate = true
+	
+	// PostgreSQL specific settings
+	schemas = ['public']
+	defaultSchema = 'public'
 }

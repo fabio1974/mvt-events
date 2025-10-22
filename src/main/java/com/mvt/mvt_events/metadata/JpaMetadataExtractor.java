@@ -95,10 +95,73 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("emergencyContact", "Contato de Emergência");
 
         // ==================== ORGANIZATION ====================
-        FIELD_TRANSLATIONS.put("organization", "Organização");
+        FIELD_TRANSLATIONS.put("organization", "Grupo");
         FIELD_TRANSLATIONS.put("contactEmail", "E-mail de Contato");
         FIELD_TRANSLATIONS.put("contactPhone", "Telefone de Contato");
         FIELD_TRANSLATIONS.put("logoUrl", "URL do Logo");
+        FIELD_TRANSLATIONS.put("commissionPercentage", "Comissão (%)");
+
+        // ==================== ZAPI10 - DELIVERY ====================
+        FIELD_TRANSLATIONS.put("client", "Cliente");
+        FIELD_TRANSLATIONS.put("courier", "Motoboy");
+        FIELD_TRANSLATIONS.put("adm", "Gerente");
+        FIELD_TRANSLATIONS.put("fromAddress", "Endereço de Origem");
+        FIELD_TRANSLATIONS.put("fromLatitude", "Latitude de Origem");
+        FIELD_TRANSLATIONS.put("fromLongitude", "Longitude de Origem");
+        FIELD_TRANSLATIONS.put("toAddress", "Endereço de Destino");
+        FIELD_TRANSLATIONS.put("toLatitude", "Latitude de Destino");
+        FIELD_TRANSLATIONS.put("toLongitude", "Longitude de Destino");
+        FIELD_TRANSLATIONS.put("distanceKm", "Distância (km)");
+        FIELD_TRANSLATIONS.put("estimatedTimeMinutes", "Tempo Estimado (min)");
+        FIELD_TRANSLATIONS.put("itemDescription", "Descrição do Item");
+        FIELD_TRANSLATIONS.put("recipientName", "Nome do Destinatário");
+        FIELD_TRANSLATIONS.put("recipientPhone", "Telefone do Destinatário");
+        FIELD_TRANSLATIONS.put("totalAmount", "Valor Total");
+        FIELD_TRANSLATIONS.put("scheduledPickupAt", "Data/Hora Agendada");
+        FIELD_TRANSLATIONS.put("acceptedAt", "Aceita em");
+        FIELD_TRANSLATIONS.put("pickedUpAt", "Coletada em");
+        FIELD_TRANSLATIONS.put("completedAt", "Concluída em");
+        FIELD_TRANSLATIONS.put("cancelledAt", "Cancelada em");
+        FIELD_TRANSLATIONS.put("cancellationReason", "Motivo do Cancelamento");
+        FIELD_TRANSLATIONS.put("partnership", "Parceria Municipal");
+
+        // ==================== ZAPI10 - COURIER PROFILE ====================
+        FIELD_TRANSLATIONS.put("vehicleType", "Tipo de Veículo");
+        FIELD_TRANSLATIONS.put("vehiclePlate", "Placa do Veículo");
+        FIELD_TRANSLATIONS.put("cnh", "CNH");
+        FIELD_TRANSLATIONS.put("cnhCategory", "Categoria da CNH");
+        FIELD_TRANSLATIONS.put("profileStatus", "Status do Perfil");
+        FIELD_TRANSLATIONS.put("approvedAt", "Aprovado em");
+        FIELD_TRANSLATIONS.put("totalDeliveries", "Total de Entregas");
+        FIELD_TRANSLATIONS.put("averageRating", "Avaliação Média");
+        FIELD_TRANSLATIONS.put("isAvailable", "Disponível");
+        FIELD_TRANSLATIONS.put("currentLatitude", "Latitude Atual");
+        FIELD_TRANSLATIONS.put("currentLongitude", "Longitude Atual");
+        FIELD_TRANSLATIONS.put("lastLocationUpdate", "Última Atualização de Localização");
+
+        // ==================== ZAPI10 - EVALUATION ====================
+        FIELD_TRANSLATIONS.put("delivery", "Entrega");
+        FIELD_TRANSLATIONS.put("evaluator", "Avaliador");
+        FIELD_TRANSLATIONS.put("evaluated", "Avaliado");
+        FIELD_TRANSLATIONS.put("rating", "Nota");
+        FIELD_TRANSLATIONS.put("comment", "Comentário");
+
+        // ==================== ZAPI10 - MUNICIPAL PARTNERSHIP ====================
+        FIELD_TRANSLATIONS.put("partnershipName", "Nome da Parceria");
+        FIELD_TRANSLATIONS.put("municipality", "Município");
+        FIELD_TRANSLATIONS.put("contractNumber", "Número do Contrato");
+        FIELD_TRANSLATIONS.put("startDate", "Data de Início");
+        FIELD_TRANSLATIONS.put("endDate", "Data de Término");
+        FIELD_TRANSLATIONS.put("discountPercentage", "Desconto (%)");
+        FIELD_TRANSLATIONS.put("active", "Ativo");
+
+        // ==================== ZAPI10 - PAYOUT ====================
+        FIELD_TRANSLATIONS.put("payoutType", "Tipo de Repasse");
+        FIELD_TRANSLATIONS.put("totalPayout", "Valor Total");
+        FIELD_TRANSLATIONS.put("netAmount", "Valor Líquido");
+        FIELD_TRANSLATIONS.put("platformFee", "Taxa da Plataforma");
+        FIELD_TRANSLATIONS.put("processedAt", "Processado em");
+        FIELD_TRANSLATIONS.put("recipient", "Destinatário");
 
         // ==================== RELACIONAMENTOS ====================
         FIELD_TRANSLATIONS.put("event", "Evento");
@@ -171,6 +234,36 @@ public class JpaMetadataExtractor {
         ENUM_TRANSLATIONS.put("USER", "Usuário");
         ENUM_TRANSLATIONS.put("ORGANIZER", "Organizador");
         ENUM_TRANSLATIONS.put("ADMIN", "Administrador");
+        ENUM_TRANSLATIONS.put("CLIENT", "Cliente");
+        ENUM_TRANSLATIONS.put("COURIER", "Motoboy");
+
+        // ==================== ORGANIZATION STATUS ====================
+        ENUM_TRANSLATIONS.put("INACTIVE", "Inativo");
+        ENUM_TRANSLATIONS.put("SUSPENDED", "Suspenso");
+        // ACTIVE já existe na seção STATUS acima
+
+        // ==================== ZAPI10 - DELIVERY STATUS (feminino: "Entrega")
+        // ====================
+        ENUM_TRANSLATIONS.put("ACCEPTED", "Aceita");
+        ENUM_TRANSLATIONS.put("PICKED_UP", "Coletada");
+        ENUM_TRANSLATIONS.put("IN_TRANSIT", "Em Trânsito");
+        // Sobrescrever STATUS genéricos para usar no contexto de Delivery (feminino)
+        ENUM_TRANSLATIONS.put("PENDING", "Pendente");
+        ENUM_TRANSLATIONS.put("COMPLETED", "Concluída");
+        ENUM_TRANSLATIONS.put("CANCELLED", "Cancelada");
+
+        // ==================== ZAPI10 - VEHICLE TYPE ====================
+        ENUM_TRANSLATIONS.put("MOTORCYCLE", "Moto");
+        ENUM_TRANSLATIONS.put("BICYCLE", "Bicicleta");
+        ENUM_TRANSLATIONS.put("CAR", "Carro");
+        ENUM_TRANSLATIONS.put("SCOOTER", "Patinete/Scooter");
+        ENUM_TRANSLATIONS.put("ON_FOOT", "A Pé");
+
+        // ==================== ZAPI10 - COURIER STATUS ====================
+        ENUM_TRANSLATIONS.put("AVAILABLE", "Disponível");
+        ENUM_TRANSLATIONS.put("ON_DELIVERY", "Em Entrega");
+        ENUM_TRANSLATIONS.put("OFFLINE", "Offline");
+        // SUSPENDED já existe acima
 
         // ==================== GENERIC ====================
         ENUM_TRANSLATIONS.put("OTHER", "Outro");
@@ -293,16 +386,15 @@ public class JpaMetadataExtractor {
         if (field.isAnnotationPresent(Visible.class)) {
             Visible visible = field.getAnnotation(Visible.class);
 
-            System.out.println("DEBUG JpaExtractor: Campo '" + field.getName() + "' tem @Visible - form="
-                    + visible.form() + ", table=" + visible.table() + ", filter=" + visible.filter());
-
             // Armazena os flags para processamento posterior
             metadata.setHiddenFromForm(!visible.form());
             metadata.setHiddenFromTable(!visible.table());
             metadata.setHiddenFromFilter(!visible.filter());
 
-            System.out.println("DEBUG JpaExtractor: Campo '" + field.getName() + "' - hiddenFromForm="
-                    + metadata.getHiddenFromForm() + ", hiddenFromTable=" + metadata.getHiddenFromTable());
+            // Define readonly se especificado
+            if (visible.readonly()) {
+                metadata.setReadonly(true);
+            }
         }
 
         // ✅ Extrai valor default do campo
@@ -316,9 +408,6 @@ public class JpaMetadataExtractor {
             Computed computed = field.getAnnotation(Computed.class);
             metadata.setComputed(computed.function());
             metadata.setComputedDependencies(java.util.Arrays.asList(computed.dependencies()));
-
-            System.out.println("DEBUG JpaExtractor: Campo '" + field.getName() + "' é computado - function="
-                    + computed.function() + ", dependencies=" + java.util.Arrays.toString(computed.dependencies()));
         }
 
         return metadata;
@@ -466,16 +555,15 @@ public class JpaMetadataExtractor {
         if (field.isAnnotationPresent(Visible.class)) {
             Visible visible = field.getAnnotation(Visible.class);
 
-            System.out.println("DEBUG JpaExtractor (ManyToOne): Campo '" + field.getName() + "' tem @Visible - form="
-                    + visible.form() + ", table=" + visible.table() + ", filter=" + visible.filter());
-
             // Armazena os flags para processamento posterior
             metadata.setHiddenFromForm(!visible.form());
             metadata.setHiddenFromTable(!visible.table());
             metadata.setHiddenFromFilter(!visible.filter());
 
-            System.out.println("DEBUG JpaExtractor (ManyToOne): Campo '" + field.getName() + "' - hiddenFromForm="
-                    + metadata.getHiddenFromForm() + ", hiddenFromTable=" + metadata.getHiddenFromTable());
+            // Define readonly se especificado
+            if (visible.readonly()) {
+                metadata.setReadonly(true);
+            }
         }
 
         return metadata;

@@ -17,6 +17,7 @@ public class FieldMetadata {
 
     // Form-specific properties
     private Boolean required;
+    private boolean readonly = false; // Campo é visível mas não editável (primitivo para sempre serializar)
     private String placeholder;
     private Integer minLength;
     private Integer maxLength;
@@ -134,6 +135,14 @@ public class FieldMetadata {
 
     public void setRequired(Boolean required) {
         this.required = required;
+    }
+
+    public boolean isReadonly() {
+        return readonly;
+    }
+
+    public void setReadonly(boolean readonly) {
+        this.readonly = readonly;
     }
 
     public String getPlaceholder() {

@@ -12,6 +12,8 @@ import java.lang.annotation.Target;
  * - @Visible(table = false) → Sets visible=false ONLY in tableFields
  * - @Visible(form = false) → Sets visible=false ONLY in formFields
  * - @Visible(filter = false) → Hides the filter (removes from filters list)
+ * - @Visible(readonly = true) → Sets readonly=true in formFields (field is
+ * visible but not editable)
  * 
  * The field always appears in all lists, but with different visible values.
  * 
@@ -19,6 +21,7 @@ import java.lang.annotation.Target;
  * - @Visible(form = false) → visible=true in table, visible=false in form
  * - @Visible(table = false, form = true) → visible=false in table, visible=true
  * in form
+ * - @Visible(readonly = true) → field is visible in form but not editable
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
@@ -46,4 +49,13 @@ public @interface Visible {
      * @return true if filter is shown (default), false to hide
      */
     boolean filter() default true;
+
+    /**
+     * Controls if the field is readonly in formFields.
+     * If true, the field appears in formFields with readonly=true (visible but not
+     * editable).
+     * 
+     * @return false if editable (default), true if readonly
+     */
+    boolean readonly() default false;
 }

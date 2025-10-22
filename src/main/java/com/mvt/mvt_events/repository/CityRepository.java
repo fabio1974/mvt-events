@@ -1,9 +1,10 @@
 package com.mvt.mvt_events.repository;
 
-import com.mvt.mvt_events.entity.City;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+
+import com.mvt.mvt_events.jpa.City;
 
 import java.util.List;
 import java.util.Map;

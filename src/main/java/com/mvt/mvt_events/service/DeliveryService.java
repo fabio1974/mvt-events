@@ -43,12 +43,12 @@ public class DeliveryService {
      * VALIDA: Cliente existe, ADM existe, parceria (se fornecida)
      */
     public Delivery create(Delivery delivery, UUID admId) {
-        // Validar ADM (TENANT)
+        // Validar ORGANIZER (TENANT)
         User adm = userRepository.findById(admId)
-                .orElseThrow(() -> new RuntimeException("ADM não encontrado"));
+                .orElseThrow(() -> new RuntimeException("ORGANIZER não encontrado"));
 
-        if (adm.getRole() != User.Role.ADM) {
-            throw new RuntimeException("Usuário não é um ADM");
+        if (adm.getRole() != User.Role.ORGANIZER) {
+            throw new RuntimeException("Usuário não é um ORGANIZER");
         }
 
         // Validar cliente

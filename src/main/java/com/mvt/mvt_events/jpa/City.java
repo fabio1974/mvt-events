@@ -1,4 +1,4 @@
-package com.mvt.mvt_events.entity;
+package com.mvt.mvt_events.jpa;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;

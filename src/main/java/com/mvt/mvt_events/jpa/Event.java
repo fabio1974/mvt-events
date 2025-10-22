@@ -1,6 +1,5 @@
 package com.mvt.mvt_events.jpa;
 
-import com.mvt.mvt_events.entity.City;
 import com.mvt.mvt_events.metadata.DisplayLabel;
 import com.mvt.mvt_events.metadata.Visible;
 
@@ -33,7 +32,7 @@ public class Event extends BaseEntity {
     @Column(nullable = false)
     private String name;
 
-    @Visible(table = false, form = false, filter = false)
+    @Visible(filter = false, table = false, form = true, readonly = true)
     @Column(nullable = false, unique = true, length = 100)
     private String slug;
 

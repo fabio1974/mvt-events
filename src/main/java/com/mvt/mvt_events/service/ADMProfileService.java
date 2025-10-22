@@ -43,8 +43,8 @@ public class ADMProfileService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
 
-        if (user.getRole() != User.Role.ADM) {
-            throw new RuntimeException("Usuário não tem role ADM");
+        if (user.getRole() != User.Role.ORGANIZER) {
+            throw new RuntimeException("Usuário não tem role ORGANIZER");
         }
 
         // Verificar se já existe perfil

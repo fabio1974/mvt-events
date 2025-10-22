@@ -16,12 +16,22 @@ public class MetadataService {
     private static final Map<String, EntityConfig> ENTITIES = new HashMap<>();
 
     static {
+        // ==================== MVT Events (Sistema de Eventos) ====================
         ENTITIES.put("event", new EntityConfig(Event.class, "Eventos", "/api/events"));
         ENTITIES.put("registration", new EntityConfig(Registration.class, "Inscrições", "/api/registrations"));
-        ENTITIES.put("organization", new EntityConfig(Organization.class, "Organizações", "/api/organizations"));
+        ENTITIES.put("organization", new EntityConfig(Organization.class, "Grupos", "/api/organizations"));
         ENTITIES.put("user", new EntityConfig(User.class, "Usuários", "/api/users"));
         ENTITIES.put("payment", new EntityConfig(Payment.class, "Pagamentos", "/api/payments"));
         ENTITIES.put("eventCategory", new EntityConfig(EventCategory.class, "Categorias", "/api/event-categories"));
+
+        // ==================== Zapi10 (Sistema de Entregas) ====================
+        ENTITIES.put("delivery", new EntityConfig(Delivery.class, "Entregas", "/api/deliveries"));
+        ENTITIES.put("courierProfile",
+                new EntityConfig(CourierProfile.class, "Perfis de Motoboy", "/api/courier-profiles"));
+        ENTITIES.put("evaluation", new EntityConfig(Evaluation.class, "Avaliações", "/api/evaluations"));
+        ENTITIES.put("municipalPartnership",
+                new EntityConfig(MunicipalPartnership.class, "Parcerias Municipais", "/api/municipal-partnerships"));
+        ENTITIES.put("unifiedPayout", new EntityConfig(UnifiedPayout.class, "Repasses", "/api/unified-payouts"));
     }
 
     public Map<String, EntityMetadata> getAllEntitiesMetadata() {
@@ -68,8 +78,6 @@ public class MetadataService {
                         copy.setVisible(true);
                     } else if (f.getHiddenFromForm() != null && f.getHiddenFromForm()) {
                         // Se @Visible(form = false), marca como não visível
-                        System.out.println("DEBUG: Campo '" + f.getName() + "' - hiddenFromForm="
-                                + f.getHiddenFromForm() + ", setando visible=false");
                         copy.setVisible(false);
                     }
                     return copy;
@@ -106,6 +114,7 @@ public class MetadataService {
         copy.setLabel(source.getLabel());
         copy.setType(source.getType());
         copy.setRequired(source.getRequired());
+        copy.setReadonly(source.isReadonly());
         copy.setSortable(source.isSortable());
         copy.setSearchable(source.isSearchable());
         copy.setVisible(source.isVisible());

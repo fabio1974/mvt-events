@@ -1,6 +1,6 @@
 package com.mvt.mvt_events.controller;
 
-import com.mvt.mvt_events.entity.City;
+import com.mvt.mvt_events.jpa.City;
 import com.mvt.mvt_events.service.CityService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

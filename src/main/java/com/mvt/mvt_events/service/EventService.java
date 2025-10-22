@@ -2,7 +2,7 @@ package com.mvt.mvt_events.service;
 
 import com.mvt.mvt_events.dto.EventCreateRequest;
 import com.mvt.mvt_events.dto.EventUpdateRequest;
-import com.mvt.mvt_events.entity.City;
+import com.mvt.mvt_events.jpa.City;
 import com.mvt.mvt_events.jpa.Event;
 import com.mvt.mvt_events.jpa.EventCategory;
 import com.mvt.mvt_events.jpa.Organization;

@@ -1,9 +1,11 @@
 package com.mvt.mvt_events.jpa;
 
 import com.mvt.mvt_events.metadata.DisplayLabel;
+import com.mvt.mvt_events.metadata.Visible;
 import com.mvt.mvt_events.validation.CPF;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -41,53 +43,59 @@ public class User implements UserDetails {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @DisplayLabel
+    @Column(nullable = false, length = 150)
+    private String name;
+
     @Email(message = "Username must be a valid email")
     @Column(unique = true, nullable = false)
     private String username;
 
+    @Visible(table = false, form = false, filter = false)
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
-    private boolean enabled = true;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role = Role.USER;
+    @Visible(readonly = true)
+    private Role role = Role.ORGANIZER;
 
-    // ============================================================================
-    // ATHLETE FIELDS (from migration V4)
-    // ============================================================================
-
+    @Visible(table = false, form = true, filter = false)
+    @Size(max = 500)
     @Column(columnDefinition = "TEXT")
     private String address;
 
-    @Column(length = 100)
-    private String city;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "city_id")
+    @Visible(table = true, form = true, filter = true)
+    private City city;
 
+    @Visible(table = false, form = false, filter = false)
     @Column(length = 100)
     private String country;
 
     @Column(name = "date_of_birth")
+    @Visible(table = false, form = true, filter = false)
     private LocalDate dateOfBirth;
 
     @CPF(message = "CPF inválido")
     @Column(name = "document_number", unique = true, nullable = false, length = 14)
     private String cpf; // CPF do usuário (obrigatório e único)
 
+    @Visible(table = false, form = true, filter = false)
     @Column(name = "emergency_contact")
     private String emergencyContact;
 
+    @Visible(table = false, form = true, filter = false)
     @Enumerated(EnumType.STRING)
     @Column(length = 10)
     private Gender gender;
 
-    @DisplayLabel
-    private String name;
-
+    @Visible(table = true, form = true, filter = false)
     @Column(length = 20)
     private String phone;
 
+    @Visible(table = false, form = false, filter = false)
     @Column(length = 100)
     private String state;
 
@@ -95,16 +103,22 @@ public class User implements UserDetails {
     // ZAPI10 GEOLOCATION FIELDS
     // ============================================================================
 
+    @Visible(table = false, form = false, filter = false)
     @Column
     private Double latitude;
 
+    @Visible(table = false, form = false, filter = false)
     @Column
     private Double longitude;
 
     // Organization relationship for ORGANIZER role
+    @Visible(table = false, form = false, filter = false)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organization_id")
     private Organization organization;
+
+    @Column(nullable = false)
+    private boolean enabled = true;
 
     // ============================================================================
     // ENUMS
@@ -112,11 +126,10 @@ public class User implements UserDetails {
 
     public enum Role {
         USER, // Mantido para compatibilidade
-        ORGANIZER, // Mantido para compatibilidade
+        ORGANIZER, // Dono da Organization (tenant)
         ADMIN, // Admin do sistema
         CLIENT, // Cliente que solicita entregas
-        COURIER, // Motoboy que realiza entregas
-        ADM // Gerente local (tenant)
+        COURIER // Motoboy que realiza entregas
     }
 
     public enum Gender {

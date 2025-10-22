@@ -1,6 +1,6 @@
 package com.mvt.mvt_events.startup;
 
-import com.mvt.mvt_events.entity.City;
+import com.mvt.mvt_events.jpa.City;
 import com.mvt.mvt_events.repository.CityRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

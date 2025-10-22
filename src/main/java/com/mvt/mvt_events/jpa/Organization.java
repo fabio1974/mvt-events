@@ -11,6 +11,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,6 +48,20 @@ public class Organization extends BaseEntity {
     @Column(name = "logo_url")
     @Visible(filter = true, table = true, form = false)
     private String logoUrl;
+
+    // Location (campo do antigo ADMProfile)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "city_id")
+    private City city;
+
+    // Commission
+    @Column(name = "commission_percentage", precision = 5, scale = 2, columnDefinition = "DECIMAL(5,2) DEFAULT 5.00")
+    private BigDecimal commissionPercentage = BigDecimal.valueOf(5.00);
+
+    // Status
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false, columnDefinition = "VARCHAR(20) DEFAULT 'ACTIVE'")
+    private OrganizationStatus status = OrganizationStatus.ACTIVE;
 
     // Relationships
     @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

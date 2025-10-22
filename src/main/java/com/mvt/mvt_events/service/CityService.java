@@ -1,6 +1,6 @@
 package com.mvt.mvt_events.service;
 
-import com.mvt.mvt_events.entity.City;
+import com.mvt.mvt_events.jpa.City;
 import com.mvt.mvt_events.repository.CityRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
