@@ -1,0 +1,7 @@
+
+> Task :compileJava
+
+> Task :compileJava FAILED
+
+[Incubating] Problems report is available at: file:///Users/jose.barros.br/Documents/projects/mvt-events/build/reports/problems/problems-report.html
+1 actionable task: 1 executed

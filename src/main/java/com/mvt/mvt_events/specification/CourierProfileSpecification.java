@@ -82,14 +82,18 @@ public class CourierProfileSpecification {
             if (admId == null)
                 return cb.conjunction();
 
-            var subquery = query.subquery(Long.class);
-            var linkRoot = subquery.from(com.mvt.mvt_events.jpa.CourierADMLink.class);
-            subquery.select(linkRoot.get("courierProfile").get("id"))
-                    .where(cb.and(
-                            cb.equal(linkRoot.get("admProfile").get("user").get("id"), admId),
-                            cb.equal(linkRoot.get("isActive"), true)));
+            // TODO: CourierADMLink removido - implementar filtro via EmploymentContract
+            // var subquery = query.subquery(Long.class);
+            // var linkRoot = subquery.from(com.mvt.mvt_events.jpa.CourierADMLink.class);
+            // subquery.select(linkRoot.get("courierProfile").get("id"))
+            // .where(cb.and(
+            // cb.equal(linkRoot.get("admProfile").get("user").get("id"), admId),
+            // cb.equal(linkRoot.get("isActive"), true)));
+            //
+            // return root.get("id").in(subquery);
 
-            return root.get("id").in(subquery);
+            // Temporariamente retorna todos os couriers (sem filtro por ADM)
+            return cb.conjunction();
         };
     }
 

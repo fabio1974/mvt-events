@@ -32,8 +32,9 @@ public class UnifiedPayoutService {
     @Autowired
     private PayoutItemRepository payoutItemRepository;
 
-    @Autowired
-    private PaymentRepository paymentRepository;
+    // TODO: Recriar PaymentRepository quando Payment for recriado para deliveries
+    // @Autowired
+    // private PaymentRepository paymentRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -226,38 +227,41 @@ public class UnifiedPayoutService {
 
     /**
      * Adiciona item ao payout
+     * TODO: Reabilitar quando Payment for recriado para deliveries
      */
-    public PayoutItem addItem(Long payoutId, Long paymentId, BigDecimal itemValue,
-            PayoutItem.ValueType valueType) {
-        UnifiedPayout payout = findById(payoutId);
+    // public PayoutItem addItem(Long payoutId, Long paymentId, BigDecimal
+    // itemValue,
+    // PayoutItem.ValueType valueType) {
+    // UnifiedPayout payout = findById(payoutId);
 
-        if (payout.getStatus() != UnifiedPayout.PayoutStatus.PENDING) {
-            throw new RuntimeException("Apenas payouts pendentes podem receber items");
-        }
+    // if (payout.getStatus() != UnifiedPayout.PayoutStatus.PENDING) {
+    // throw new RuntimeException("Apenas payouts pendentes podem receber items");
+    // }
 
-        Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new RuntimeException("Payment não encontrado"));
+    // Payment payment = paymentRepository.findById(paymentId)
+    // .orElseThrow(() -> new RuntimeException("Payment não encontrado"));
 
-        // Verificar se item já existe
-        if (payoutItemRepository.findByPayoutIdAndPaymentId(payoutId, paymentId).isPresent()) {
-            throw new RuntimeException("Item já existe no payout");
-        }
+    // // Verificar se item já existe
+    // if (payoutItemRepository.findByPayoutIdAndPaymentId(payoutId,
+    // paymentId).isPresent()) {
+    // throw new RuntimeException("Item já existe no payout");
+    // }
 
-        PayoutItem item = new PayoutItem();
-        item.setPayout(payout);
-        item.setPayment(payment);
-        item.setItemValue(itemValue);
-        item.setValueType(valueType);
+    // PayoutItem item = new PayoutItem();
+    // item.setPayout(payout);
+    // item.setPayment(payment);
+    // item.setItemValue(itemValue);
+    // item.setValueType(valueType);
 
-        PayoutItem saved = payoutItemRepository.save(item);
+    // PayoutItem saved = payoutItemRepository.save(item);
 
-        // Atualizar totais do payout
-        payout.setTotalAmount(payout.getTotalAmount().add(itemValue));
-        payout.setItemCount(payout.getItemCount() + 1);
-        payoutRepository.save(payout);
+    // // Atualizar totais do payout
+    // payout.setTotalAmount(payout.getTotalAmount().add(itemValue));
+    // payout.setItemCount(payout.getItemCount() + 1);
+    // payoutRepository.save(payout);
 
-        return saved;
-    }
+    // return saved;
+    // }
 
     /**
      * Busca items de um payout

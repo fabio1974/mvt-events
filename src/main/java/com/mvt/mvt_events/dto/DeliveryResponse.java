@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 
 /**
  * DTO de resposta para Delivery
+ * IMPORTANTE: Usa objetos aninhados para relacionamentos (não flat)
  */
 @Data
 @Builder
@@ -20,19 +21,14 @@ public class DeliveryResponse {
     private Long id;
     private LocalDateTime createdAt;
 
-    // Cliente
-    private String clientId;
-    private String clientName;
+    // Cliente (objeto aninhado)
+    private UserDTO client;
 
-    // Courier
-    private String courierId;
-    private String courierName;
-    private String courierPhone;
+    // Courier (objeto aninhado)
+    private UserDTO courier;
 
-    // ADM (Tenant)
-    private String admId;
-    private String admName;
-    private String admRegion;
+    // Organização do cliente (substitui ADM)
+    private OrganizationDTO organization;
 
     // Origem
     private String fromAddress;
@@ -60,13 +56,49 @@ public class DeliveryResponse {
     private LocalDateTime completedAt;
     private LocalDateTime cancelledAt;
 
-    // Parceria
-    private Long partnershipId;
-    private String partnershipName;
+    // Parceria (objeto aninhado)
+    private PartnershipDTO partnership;
 
     // Avaliação
     private Integer rating;
     private Boolean hasEvaluation;
 
     private String notes;
+
+    /**
+     * DTO simplificado para User (evitar lazy loading)
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UserDTO {
+        private String id;
+        private String name;
+        private String phone;
+    }
+
+    /**
+     * DTO simplificado para Partnership (evitar lazy loading)
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PartnershipDTO {
+        private Long id;
+        private String name;
+    }
+
+    /**
+     * DTO simplificado para Organization (substitui ADM)
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OrganizationDTO {
+        private Long id;
+        private String name;
+    }
 }

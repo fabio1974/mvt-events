@@ -32,9 +32,8 @@ public class PayoutItem extends BaseEntity {
     @Visible(table = false, form = false, filter = true)
     private UnifiedPayout payout;
 
-    @NotNull(message = "Pagamento é obrigatório")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "payment_id", nullable = false)
+    @JoinColumn(name = "payment_id")
     @Visible(table = true, form = true, filter = true)
     private Payment payment;
 

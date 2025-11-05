@@ -91,12 +91,13 @@ public class CourierProfileController {
             @RequestParam String admId,
             @RequestParam(defaultValue = "false") boolean isPrimary) {
 
-        UUID courierUuid = UUID.fromString(courierId);
-        UUID admUuid = UUID.fromString(admId);
+        // TODO: CourierADMLink removido - implementar via EmploymentContract
+        // UUID courierUuid = UUID.fromString(courierId);
+        // UUID admUuid = UUID.fromString(admId);
+        // courierProfileService.linkToADM(courierUuid, admUuid, isPrimary);
 
-        courierProfileService.linkToADM(courierUuid, admUuid, isPrimary);
-
-        return ResponseEntity.ok().body("Courier vinculado ao ADM com sucesso");
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+                .body("Método descontinuado - usar EmploymentContract");
     }
 
     @PutMapping("/status")

@@ -1,5 +1,8 @@
 package com.mvt.mvt_events.controller;
 
+import com.mvt.mvt_events.dto.common.CityDTO;
+import com.mvt.mvt_events.dto.common.OrganizationDTO;
+import com.mvt.mvt_events.dto.mapper.DTOMapper;
 import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,7 +48,19 @@ public class UserController {
     @Operation(summary = "Buscar usuário por ID")
     public UserResponse get(@PathVariable UUID id) {
         User user = userService.findById(id);
-        return new UserResponse(user);
+        UserResponse response = new UserResponse(user);
+
+        // Carregar contratos de trabalho (se for COURIER)
+        if (user.getRole() == User.Role.COURIER) {
+            response.setEmploymentContracts(buildEmploymentContractsForUser(id));
+        }
+
+        // Carregar contratos de serviço (se for CLIENT)
+        if (user.getRole() == User.Role.CLIENT) {
+            response.setClientContracts(buildServiceContractsForUser(id));
+        }
+
+        return response;
     }
 
     @PostMapping
@@ -73,6 +88,69 @@ public class UserController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
+    }
+
+    @PutMapping("/{id}/location")
+    @Operation(summary = "Atualizar localização do usuário", description = "Atualiza latitude, longitude e timestamp do usuário")
+    public ResponseEntity<UserResponse> updateLocation(
+            @PathVariable UUID id,
+            @RequestBody @Valid LocationUpdateRequest request,
+            Authentication authentication) {
+        User updatedUser = userService.updateUserLocation(id, request.getLatitude(), request.getLongitude(),
+                request.getUpdatedAt(), authentication);
+        return ResponseEntity.ok(new UserResponse(updatedUser));
+    }
+
+    // ============================================================================
+    // HELPER METHODS
+    // ============================================================================
+
+    /**
+     * Constrói lista de EmploymentContracts para um usuário COURIER
+     */
+    private java.util.List<EmploymentContractForUserResponse> buildEmploymentContractsForUser(UUID userId) {
+        java.util.List<Object[]> contractsData = userService.getEmploymentContractsForUser(userId);
+        return contractsData.stream()
+                .map(data -> {
+                    EmploymentContractForUserResponse response = new EmploymentContractForUserResponse();
+
+                    // Criar objeto aninhado OrganizationDTO (consistente com metadata)
+                    OrganizationDTO orgDto = new OrganizationDTO();
+                    orgDto.setId((Long) data[0]); // organization_id
+                    orgDto.setName((String) data[1]); // organization name
+                    response.setOrganization(orgDto);
+
+                    response.setLinkedAt(data[2] != null ? data[2].toString() : null);
+                    response.setIsActive((Boolean) data[3]);
+                    return response;
+                })
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Constrói lista de ServiceContracts para um usuário CLIENT
+     */
+    private java.util.List<ClientContractForUserResponse> buildServiceContractsForUser(UUID userId) {
+        java.util.List<Object[]> contractsData = userService.getServiceContractsForUser(userId);
+        return contractsData.stream()
+                .map(data -> {
+                    ClientContractForUserResponse response = new ClientContractForUserResponse();
+
+                    // Criar objeto aninhado OrganizationDTO (consistente com metadata)
+                    OrganizationDTO orgDto = new OrganizationDTO();
+                    orgDto.setId((Long) data[0]); // organization_id
+                    orgDto.setName((String) data[1]); // organization name
+                    response.setOrganization(orgDto);
+
+                    response.setContractNumber((String) data[2]);
+                    response.setIsPrimary((Boolean) data[3]);
+                    response.setStatus(data[4] != null ? data[4].toString() : null);
+                    response.setContractDate(data[5] != null ? data[5].toString() : null);
+                    response.setStartDate(data[6] != null ? data[6].toString() : null);
+                    response.setEndDate(data[7] != null ? data[7].toString() : null);
+                    return response;
+                })
+                .collect(java.util.stream.Collectors.toList());
     }
 
     // DTO para criação de usuário
@@ -145,6 +223,24 @@ public class UserController {
         private String emergencyContact;
     }
 
+    // DTO para atualização de localização
+    @Data
+    @NoArgsConstructor
+    public static class LocationUpdateRequest {
+        @jakarta.validation.constraints.NotNull(message = "Latitude é obrigatória")
+        @jakarta.validation.constraints.DecimalMin(value = "-90.0", message = "Latitude deve estar entre -90 e 90")
+        @jakarta.validation.constraints.DecimalMax(value = "90.0", message = "Latitude deve estar entre -90 e 90")
+        private Double latitude;
+
+        @jakarta.validation.constraints.NotNull(message = "Longitude é obrigatória")
+        @jakarta.validation.constraints.DecimalMin(value = "-180.0", message = "Longitude deve estar entre -180 e 180")
+        @jakarta.validation.constraints.DecimalMax(value = "180.0", message = "Longitude deve estar entre -180 e 180")
+        private Double longitude;
+
+        // Timestamp do GPS - se não fornecido, usa timestamp atual
+        private String updatedAt; // ISO DateTime string (ex: "2025-10-31T15:30:45.123Z")
+    }
+
     // DTO para resposta (evita problemas de lazy loading)
     @Data
     @NoArgsConstructor
@@ -154,9 +250,7 @@ public class UserController {
         private String name;
         private String phone;
         private String address;
-        private Long cityId;
-        private String cityName;
-        private String cityState;
+        private CityDTO city;
         private String state;
         private String country;
         private String dateOfBirth;
@@ -164,8 +258,16 @@ public class UserController {
         private String cpf;
         private String emergencyContact;
         private String role;
-        private Long organizationId;
-        private String organizationName;
+        private OrganizationDTO organization;
+
+        // Campos de localização
+        private Double latitude;
+        private Double longitude;
+        private String updatedAt; // Timestamp da última atualização
+
+        // Contratos (apenas para COURIER e CLIENT)
+        private java.util.List<EmploymentContractForUserResponse> employmentContracts;
+        private java.util.List<ClientContractForUserResponse> clientContracts;
 
         public UserResponse(User user) {
             this.id = user.getId();
@@ -181,18 +283,48 @@ public class UserController {
             this.emergencyContact = user.getEmergencyContact();
             this.role = user.getRole() != null ? user.getRole().toString() : null;
 
-            // Carregar dados da cidade se existir
-            if (user.getCity() != null) {
-                this.cityId = user.getCity().getId();
-                this.cityName = user.getCity().getName();
-                this.cityState = user.getCity().getState();
-            }
+            // Campos de localização
+            this.latitude = user.getLatitude();
+            this.longitude = user.getLongitude();
+            this.updatedAt = user.getUpdatedAt() != null ? user.getUpdatedAt().toString() : null;
 
-            // Evitar lazy loading da organização
-            if (user.getOrganization() != null) {
-                this.organizationId = user.getOrganization().getId();
-                this.organizationName = user.getOrganization().getName();
-            }
+            // Carregar dados da cidade como objeto usando DTOMapper
+            this.city = DTOMapper.toDTO(user.getCity());
+
+            // Carregar dados da organização como objeto usando DTOMapper
+            this.organization = DTOMapper.toDTO(user.getOrganization());
+
+            // Inicializar listas vazias (serão preenchidas no controller se necessário)
+            this.employmentContracts = new java.util.ArrayList<>();
+            this.clientContracts = new java.util.ArrayList<>();
         }
+    }
+
+    /**
+     * DTO para EmploymentContract na perspectiva do COURIER
+     * Mostra em quais organizações o motoboy trabalha
+     */
+    @Data
+    @NoArgsConstructor
+    public static class EmploymentContractForUserResponse {
+        private OrganizationDTO organization; // Objeto aninhado consistente com metadata
+        private String linkedAt;
+        private Boolean isActive;
+    }
+
+    /**
+     * DTO para ServiceContract na perspectiva do CLIENT
+     * Mostra os contratos de serviço do cliente
+     */
+    @Data
+    @NoArgsConstructor
+    public static class ClientContractForUserResponse {
+        private OrganizationDTO organization; // Objeto aninhado consistente com metadata
+        private String contractNumber;
+        private Boolean isPrimary;
+        private String status;
+        private String contractDate;
+        private String startDate;
+        private String endDate;
     }
 }

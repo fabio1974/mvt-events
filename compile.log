@@ -1,0 +1,421 @@
+
+> Task :compileJava
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/PayoutItem.java:39: error: cannot find symbol
+    private Payment payment;
+            ^
+  symbol:   class Payment
+  location: class PayoutItem
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/PayoutItem.java:39: error: cannot find symbol
+    private Payment payment;
+                    ^
+  symbol:   class Payment
+  location: class PayoutItem
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/PayoutItem.java:19: error: cannot find symbol
+@Setter
+^
+  symbol:   class Payment
+  location: class PayoutItem
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/PayoutItem.java:21: error: cannot find symbol
+@AllArgsConstructor
+^
+  symbol:   class Payment
+  location: class PayoutItem
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/Delivery.java:172: error: cannot find symbol
+    private Payment payment;
+            ^
+  symbol:   class Payment
+  location: class Delivery
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/Delivery.java:172: error: cannot find symbol
+    private Payment payment;
+                    ^
+  symbol:   class Payment
+  location: class Delivery
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/Delivery.java:24: error: cannot find symbol
+@Setter
+^
+  symbol:   class Payment
+  location: class Delivery
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/Delivery.java:26: error: cannot find symbol
+@AllArgsConstructor
+^
+  symbol:   class Payment
+  location: class Delivery
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/Transfer.java:21: error: cannot find symbol
+    private Event event;
+            ^
+  symbol:   class Event
+  location: class Transfer
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/Transfer.java:21: error: cannot find symbol
+    private Event event;
+                  ^
+  symbol:   class Event
+  location: class Transfer
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/Transfer.java:15: error: cannot find symbol
+@Data
+^
+  symbol:   class Event
+  location: class Transfer
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/StripePaymentProvider.java:4: error: cannot find symbol
+import com.mvt.mvt_events.payment.PaymentResult;
+                                 ^
+  symbol:   class PaymentResult
+  location: package com.mvt.mvt_events.payment
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/StripePaymentProvider.java:5: error: cannot find symbol
+import com.mvt.mvt_events.payment.PaymentRequest;
+                                 ^
+  symbol:   class PaymentRequest
+  location: package com.mvt.mvt_events.payment
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/StripePaymentProvider.java:6: error: cannot find symbol
+import com.mvt.mvt_events.jpa.Payment;
+                             ^
+  symbol:   class Payment
+  location: package com.mvt.mvt_events.jpa
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/StripePaymentProvider.java:50: error: cannot find symbol
+    public PaymentResult createPayment(PaymentRequest request) {
+                                       ^
+  symbol:   class PaymentRequest
+  location: class StripePaymentProvider
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/StripePaymentProvider.java:50: error: cannot find symbol
+    public PaymentResult createPayment(PaymentRequest request) {
+           ^
+  symbol:   class PaymentResult
+  location: class StripePaymentProvider
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/StripePaymentProvider.java:119: error: cannot find symbol
+    public PaymentResult confirmPayment(String paymentId, Map<String, Object> params) {
+           ^
+  symbol:   class PaymentResult
+  location: class StripePaymentProvider
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/StripePaymentProvider.java:157: error: cannot find symbol
+    public PaymentResult refundPayment(String paymentId, BigDecimal amount, String reason) {
+           ^
+  symbol:   class PaymentResult
+  location: class StripePaymentProvider
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/StripePaymentProvider.java:189: error: cannot find symbol
+    public PaymentResult getPaymentStatus(String paymentId) {
+           ^
+  symbol:   class PaymentResult
+  location: class StripePaymentProvider
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:3: error: cannot find symbol
+import com.mvt.mvt_events.jpa.Payment;
+                             ^
+  symbol:   class Payment
+  location: package com.mvt.mvt_events.jpa
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:5: error: cannot find symbol
+import com.mvt.mvt_events.payment.PaymentRequest;
+                                 ^
+  symbol:   class PaymentRequest
+  location: package com.mvt.mvt_events.payment
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:6: error: cannot find symbol
+import com.mvt.mvt_events.payment.PaymentResult;
+                                 ^
+  symbol:   class PaymentResult
+  location: package com.mvt.mvt_events.payment
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:35: error: cannot find symbol
+    public PaymentResult createPayment(PaymentRequest request) {
+                                       ^
+  symbol:   class PaymentRequest
+  location: class MercadoPagoPaymentProvider
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:35: error: cannot find symbol
+    public PaymentResult createPayment(PaymentRequest request) {
+           ^
+  symbol:   class PaymentResult
+  location: class MercadoPagoPaymentProvider
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:83: error: cannot find symbol
+    public PaymentResult confirmPayment(String paymentId, Map<String, Object> params) {
+           ^
+  symbol:   class PaymentResult
+  location: class MercadoPagoPaymentProvider
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:98: error: cannot find symbol
+    public PaymentResult refundPayment(String paymentId, BigDecimal amount, String reason) {
+           ^
+  symbol:   class PaymentResult
+  location: class MercadoPagoPaymentProvider
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:119: error: cannot find symbol
+    public PaymentResult getPaymentStatus(String paymentId) {
+           ^
+  symbol:   class PaymentResult
+  location: class MercadoPagoPaymentProvider
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:134: error: package Payment does not exist
+    public BigDecimal calculateFee(BigDecimal amount, Payment.PaymentMethod paymentMethod) {
+                                                             ^
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:152: error: package Payment does not exist
+    public boolean supportsPaymentMethod(Payment.PaymentMethod paymentMethod) {
+                                                ^
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:3: error: cannot find symbol
+import com.mvt.mvt_events.jpa.Payment;
+                             ^
+  symbol:   class Payment
+  location: package com.mvt.mvt_events.jpa
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:5: error: cannot find symbol
+import com.mvt.mvt_events.payment.PaymentRequest;
+                                 ^
+  symbol:   class PaymentRequest
+  location: package com.mvt.mvt_events.payment
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:6: error: cannot find symbol
+import com.mvt.mvt_events.payment.PaymentResult;
+                                 ^
+  symbol:   class PaymentResult
+  location: package com.mvt.mvt_events.payment
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:45: error: cannot find symbol
+    public PaymentResult createPayment(PaymentRequest request) {
+                                       ^
+  symbol:   class PaymentRequest
+  location: class PayPalPaymentProvider
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:45: error: cannot find symbol
+    public PaymentResult createPayment(PaymentRequest request) {
+           ^
+  symbol:   class PaymentResult
+  location: class PayPalPaymentProvider
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:131: error: cannot find symbol
+    public PaymentResult confirmPayment(String paymentId, Map<String, Object> params) {
+           ^
+  symbol:   class PaymentResult
+  location: class PayPalPaymentProvider
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:165: error: cannot find symbol
+    public PaymentResult refundPayment(String paymentId, BigDecimal amount, String reason) {
+           ^
+  symbol:   class PaymentResult
+  location: class PayPalPaymentProvider
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:192: error: cannot find symbol
+    public PaymentResult getPaymentStatus(String paymentId) {
+           ^
+  symbol:   class PaymentResult
+  location: class PayPalPaymentProvider
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:221: error: package Payment does not exist
+    public BigDecimal calculateFee(BigDecimal amount, Payment.PaymentMethod paymentMethod) {
+                                                             ^
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:252: error: package Payment does not exist
+    public boolean supportsPaymentMethod(Payment.PaymentMethod paymentMethod) {
+                                                ^
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:262: error: cannot find symbol
+    private String generateMockApprovalUrl(String paymentId, PaymentRequest request) {
+                                                             ^
+  symbol:   class PaymentRequest
+  location: class PayPalPaymentProvider
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:288: error: package Payment does not exist
+    private Payment.PaymentStatus convertStatusToEnum(String status) {
+                   ^
+/Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/service/UnifiedPayoutService.java:36: error: cannot find symbol
+    private PaymentRepository paymentRepository;
+            ^
+  symbol:   class PaymentRepository
+  location: class UnifiedPayoutService
+42 errors
+
+> Task :compileJava FAILED
+
+[Incubating] Problems report is available at: file:///Users/jose.barros.br/Documents/projects/mvt-events/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Compilation failed; see the compiler output below.
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/PayoutItem.java:39: error: cannot find symbol
+      private Payment payment;
+              ^
+    symbol:   class Payment
+    location: class PayoutItem
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/PayoutItem.java:39: error: cannot find symbol
+      private Payment payment;
+                      ^
+    symbol:   class Payment
+    location: class PayoutItem
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/PayoutItem.java:19: error: cannot find symbol
+  @Setter
+  ^
+    symbol:   class Payment
+    location: class PayoutItem
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/PayoutItem.java:21: error: cannot find symbol
+  @AllArgsConstructor
+  ^
+    symbol:   class Payment
+    location: class PayoutItem
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/Delivery.java:172: error: cannot find symbol
+      private Payment payment;
+              ^
+    symbol:   class Payment
+    location: class Delivery
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/Delivery.java:172: error: cannot find symbol
+      private Payment payment;
+                      ^
+    symbol:   class Payment
+    location: class Delivery
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/Delivery.java:24: error: cannot find symbol
+  @Setter
+  ^
+    symbol:   class Payment
+    location: class Delivery
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/Delivery.java:26: error: cannot find symbol
+  @AllArgsConstructor
+  ^
+    symbol:   class Payment
+    location: class Delivery
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/Transfer.java:21: error: cannot find symbol
+      private Event event;
+              ^
+    symbol:   class Event
+    location: class Transfer
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/Transfer.java:21: error: cannot find symbol
+      private Event event;
+                    ^
+    symbol:   class Event
+    location: class Transfer
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/Transfer.java:15: error: cannot find symbol
+  @Data
+  ^
+    symbol:   class Event
+    location: class Transfer
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/StripePaymentProvider.java:4: error: cannot find symbol
+  import com.mvt.mvt_events.payment.PaymentResult;
+                                   ^
+    symbol:   class PaymentResult
+    location: package com.mvt.mvt_events.payment
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/StripePaymentProvider.java:5: error: cannot find symbol
+  import com.mvt.mvt_events.payment.PaymentRequest;
+                                   ^
+    symbol:   class PaymentRequest
+    location: package com.mvt.mvt_events.payment
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/StripePaymentProvider.java:6: error: cannot find symbol
+  import com.mvt.mvt_events.jpa.Payment;
+                               ^
+    symbol:   class Payment
+    location: package com.mvt.mvt_events.jpa
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/StripePaymentProvider.java:50: error: cannot find symbol
+      public PaymentResult createPayment(PaymentRequest request) {
+                                         ^
+    symbol:   class PaymentRequest
+    location: class StripePaymentProvider
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/StripePaymentProvider.java:50: error: cannot find symbol
+      public PaymentResult createPayment(PaymentRequest request) {
+             ^
+    symbol:   class PaymentResult
+    location: class StripePaymentProvider
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/StripePaymentProvider.java:119: error: cannot find symbol
+      public PaymentResult confirmPayment(String paymentId, Map<String, Object> params) {
+             ^
+    symbol:   class PaymentResult
+    location: class StripePaymentProvider
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/StripePaymentProvider.java:157: error: cannot find symbol
+      public PaymentResult refundPayment(String paymentId, BigDecimal amount, String reason) {
+             ^
+    symbol:   class PaymentResult
+    location: class StripePaymentProvider
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/StripePaymentProvider.java:189: error: cannot find symbol
+      public PaymentResult getPaymentStatus(String paymentId) {
+             ^
+    symbol:   class PaymentResult
+    location: class StripePaymentProvider
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:3: error: cannot find symbol
+  import com.mvt.mvt_events.jpa.Payment;
+                               ^
+    symbol:   class Payment
+    location: package com.mvt.mvt_events.jpa
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:5: error: cannot find symbol
+  import com.mvt.mvt_events.payment.PaymentRequest;
+                                   ^
+    symbol:   class PaymentRequest
+    location: package com.mvt.mvt_events.payment
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:6: error: cannot find symbol
+  import com.mvt.mvt_events.payment.PaymentResult;
+                                   ^
+    symbol:   class PaymentResult
+    location: package com.mvt.mvt_events.payment
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:35: error: cannot find symbol
+      public PaymentResult createPayment(PaymentRequest request) {
+                                         ^
+    symbol:   class PaymentRequest
+    location: class MercadoPagoPaymentProvider
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:35: error: cannot find symbol
+      public PaymentResult createPayment(PaymentRequest request) {
+             ^
+    symbol:   class PaymentResult
+    location: class MercadoPagoPaymentProvider
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:83: error: cannot find symbol
+      public PaymentResult confirmPayment(String paymentId, Map<String, Object> params) {
+             ^
+    symbol:   class PaymentResult
+    location: class MercadoPagoPaymentProvider
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:98: error: cannot find symbol
+      public PaymentResult refundPayment(String paymentId, BigDecimal amount, String reason) {
+             ^
+    symbol:   class PaymentResult
+    location: class MercadoPagoPaymentProvider
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:119: error: cannot find symbol
+      public PaymentResult getPaymentStatus(String paymentId) {
+             ^
+    symbol:   class PaymentResult
+    location: class MercadoPagoPaymentProvider
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:3: error: cannot find symbol
+  import com.mvt.mvt_events.jpa.Payment;
+                               ^
+    symbol:   class Payment
+    location: package com.mvt.mvt_events.jpa
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:5: error: cannot find symbol
+  import com.mvt.mvt_events.payment.PaymentRequest;
+                                   ^
+    symbol:   class PaymentRequest
+    location: package com.mvt.mvt_events.payment
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:6: error: cannot find symbol
+  import com.mvt.mvt_events.payment.PaymentResult;
+                                   ^
+    symbol:   class PaymentResult
+    location: package com.mvt.mvt_events.payment
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:45: error: cannot find symbol
+      public PaymentResult createPayment(PaymentRequest request) {
+                                         ^
+    symbol:   class PaymentRequest
+    location: class PayPalPaymentProvider
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:45: error: cannot find symbol
+      public PaymentResult createPayment(PaymentRequest request) {
+             ^
+    symbol:   class PaymentResult
+    location: class PayPalPaymentProvider
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:131: error: cannot find symbol
+      public PaymentResult confirmPayment(String paymentId, Map<String, Object> params) {
+             ^
+    symbol:   class PaymentResult
+    location: class PayPalPaymentProvider
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:165: error: cannot find symbol
+      public PaymentResult refundPayment(String paymentId, BigDecimal amount, String reason) {
+             ^
+    symbol:   class PaymentResult
+    location: class PayPalPaymentProvider
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:192: error: cannot find symbol
+      public PaymentResult getPaymentStatus(String paymentId) {
+             ^
+    symbol:   class PaymentResult
+    location: class PayPalPaymentProvider
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:262: error: cannot find symbol
+      private String generateMockApprovalUrl(String paymentId, PaymentRequest request) {
+                                                               ^
+    symbol:   class PaymentRequest
+    location: class PayPalPaymentProvider
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/service/UnifiedPayoutService.java:36: error: cannot find symbol
+      private PaymentRepository paymentRepository;
+              ^
+    symbol:   class PaymentRepository
+    location: class UnifiedPayoutService
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:134: error: package Payment does not exist
+      public BigDecimal calculateFee(BigDecimal amount, Payment.PaymentMethod paymentMethod) {
+                                                               ^
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/MercadoPagoPaymentProvider.java:152: error: package Payment does not exist
+      public boolean supportsPaymentMethod(Payment.PaymentMethod paymentMethod) {
+                                                  ^
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:221: error: package Payment does not exist
+      public BigDecimal calculateFee(BigDecimal amount, Payment.PaymentMethod paymentMethod) {
+                                                               ^
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:252: error: package Payment does not exist
+      public boolean supportsPaymentMethod(Payment.PaymentMethod paymentMethod) {
+                                                  ^
+  /Users/jose.barros.br/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/providers.bak/PayPalPaymentProvider.java:288: error: package Payment does not exist
+      private Payment.PaymentStatus convertStatusToEnum(String status) {
+                     ^
+  42 errors
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights.
+
+BUILD FAILED in 13s
+1 actionable task: 1 executed

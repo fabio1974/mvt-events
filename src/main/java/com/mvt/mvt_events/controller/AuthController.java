@@ -269,9 +269,14 @@ public class AuthController {
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
         try {
-            // Find user by email
-            User user = userRepository.findByUsername(request.getUsername())
-                    .orElseThrow(() -> new RuntimeException("User not found with email: " + request.getUsername()));
+            // Log the request for debugging
+            System.out.println("Reset password request received for: " + request.getUsername());
+            System.out.println("New password provided: " + (request.getNewPassword() != null ? "Yes" : "No"));
+
+            // Validate request body
+            if (request.getUsername() == null || request.getUsername().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Username cannot be empty");
+            }
 
             // Validate new password
             if (request.getNewPassword() == null || request.getNewPassword().trim().isEmpty()) {
@@ -282,21 +287,31 @@ public class AuthController {
                 return ResponseEntity.badRequest().body("New password must be at least 4 characters long");
             }
 
-            // Update password (without requiring current password)
-            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-            userRepository.save(user);
+            // Check if user exists (lightweight check)
+            if (!userRepository.existsByUsername(request.getUsername())) {
+                return ResponseEntity.badRequest().body("User not found with email: " + request.getUsername());
+            }
+
+            // Update password directly (avoiding collection loading issues)
+            String encodedPassword = passwordEncoder.encode(request.getNewPassword());
+            int updatedRows = userRepository.updatePasswordByUsername(request.getUsername(), encodedPassword);
+
+            if (updatedRows == 0) {
+                return ResponseEntity.badRequest().body("Failed to update password");
+            }
 
             Map<String, String> response = new HashMap<>();
             response.put("message", "Password reset successfully");
-            response.put("username", user.getUsername());
+            response.put("username", request.getUsername());
 
             return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Error in reset password: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
-    }
+    } // DTOs
 
-    // DTOs
     public static class LoginRequest {
         private String username;
         private String password;

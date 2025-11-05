@@ -112,8 +112,10 @@ public class CourierProfile extends BaseEntity {
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "courier_id", referencedColumnName = "user_id")
-    @Visible(table = false, form = false, filter = false)
-    private Set<CourierADMLink> admLinks = new HashSet<>();
+    // TODO: CourierADMLink removido - agora Courier se relaciona com Organization
+    // via EmploymentContract
+    // @Visible(table = false, form = false, filter = false)
+    // private Set<CourierADMLink> admLinks = new HashSet<>();
 
     // ============================================================================
     // COMPUTED FIELDS (Helper methods for computed values)
@@ -131,13 +133,14 @@ public class CourierProfile extends BaseEntity {
                 .multiply(BigDecimal.valueOf(100));
     }
 
-    /**
-     * Retorna o nome do ADM principal
-     */
-    public String getPrimaryADMName() {
-        User primaryADM = getPrimaryADM();
-        return primaryADM != null ? primaryADM.getName() : "Sem ADM";
-    }
+    // TODO: Método removido - CourierADMLink não existe mais
+    // /**
+    // * Retorna o nome do ADM principal
+    // */
+    // public String getPrimaryADMName() {
+    // User primaryADM = getPrimaryADM();
+    // return primaryADM != null ? primaryADM.getName() : "Sem ADM";
+    // }
 
     // ============================================================================
     // HELPER METHODS
@@ -146,23 +149,25 @@ public class CourierProfile extends BaseEntity {
     /**
      * Retorna o ADM principal (is_primary = true e is_active = true)
      */
-    public User getPrimaryADM() {
-        return admLinks.stream()
-                .filter(link -> Boolean.TRUE.equals(link.getIsPrimary()) && Boolean.TRUE.equals(link.getIsActive()))
-                .map(link -> link.getAdm())
-                .findFirst()
-                .orElse(null);
-    }
+    // TODO: Métodos removidos - CourierADMLink não existe mais
+    // public User getPrimaryADM() {
+    // return admLinks.stream()
+    // .filter(link -> Boolean.TRUE.equals(link.getIsPrimary()) &&
+    // Boolean.TRUE.equals(link.getIsActive()))
+    // .map(link -> link.getAdm())
+    // .findFirst()
+    // .orElse(null);
+    // }
 
-    /**
-     * Retorna todos os ADMs ativos
-     */
-    public Set<User> getAllActiveADMs() {
-        return admLinks.stream()
-                .filter(link -> Boolean.TRUE.equals(link.getIsActive()))
-                .map(link -> link.getAdm())
-                .collect(Collectors.toSet());
-    }
+    // /**
+    // * Retorna todos os ADMs ativos
+    // */
+    // public Set<User> getAllActiveADMs() {
+    // return admLinks.stream()
+    // .filter(link -> Boolean.TRUE.equals(link.getIsActive()))
+    // .map(link -> link.getAdm())
+    // .collect(Collectors.toSet());
+    // }
 
     // ============================================================================
     // ENUMS

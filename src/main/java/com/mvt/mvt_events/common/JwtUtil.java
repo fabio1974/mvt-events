@@ -32,6 +32,12 @@ public class JwtUtil {
         return getClaimFromToken(token, Claims::getSubject);
     }
 
+    // Retrieve userId from jwt token
+    public String getUserIdFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        return claims.get("userId", String.class);
+    }
+
     // Retrieve expiration date from jwt token
     public Date getExpirationDateFromToken(String token) {
         return getClaimFromToken(token, Claims::getExpiration);
@@ -83,7 +89,9 @@ public class JwtUtil {
                 claims.put("gender", user.getGender().name());
             }
             if (user.getCity() != null) {
-                claims.put("city", user.getCity());
+                // Only store city name to avoid Hibernate proxy serialization issues
+                claims.put("city", user.getCity().getName());
+                claims.put("cityId", user.getCity().getId());
             }
             if (user.getState() != null) {
                 claims.put("state", user.getState());
@@ -134,12 +142,6 @@ public class JwtUtil {
     public List<String> getAuthoritiesFromToken(String token) {
         Claims claims = getAllClaimsFromToken(token);
         return claims.get("authorities", List.class);
-    }
-
-    // Extract user ID from token
-    public String getUserIdFromToken(String token) {
-        Claims claims = getAllClaimsFromToken(token);
-        return claims.get("userId", String.class);
     }
 
     // Extract name from token

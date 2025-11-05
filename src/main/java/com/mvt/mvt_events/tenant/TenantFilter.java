@@ -25,6 +25,23 @@ public class TenantFilter extends OncePerRequestFilter {
     private static final Logger logger = LoggerFactory.getLogger(TenantFilter.class);
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        // Skip tenant filtering for auth endpoints and public endpoints
+        return path.startsWith("/api/auth/") ||
+                path.startsWith("/api/metadata") ||
+                path.startsWith("/api/events/public") ||
+                path.startsWith("/api/webhooks/") ||
+                path.startsWith("/api/payments/webhooks/") ||
+                path.startsWith("/api/payments/methods") ||
+                path.startsWith("/api/payments/calculate-fee") ||
+                path.startsWith("/swagger-ui/") ||
+                path.startsWith("/v3/api-docs/") ||
+                path.equals("/swagger-ui.html") ||
+                path.startsWith("/actuator/");
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response,
             jakarta.servlet.FilterChain chain)
             throws IOException, jakarta.servlet.ServletException {

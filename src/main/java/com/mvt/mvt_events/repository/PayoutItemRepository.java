@@ -23,20 +23,22 @@ public interface PayoutItemRepository
          */
         List<PayoutItem> findByPayoutIdOrderByCreatedAtAsc(Long payoutId);
 
+        // TODO: Payment removido temporariamente - será recriado para deliveries
         /**
          * Busca items de um payment específico
          */
-        List<PayoutItem> findByPaymentId(Long paymentId);
+        // List<PayoutItem> findByPaymentId(Long paymentId);
 
         /**
          * Verifica se um payment já está em algum payout
          */
-        boolean existsByPaymentId(Long paymentId);
+        // boolean existsByPaymentId(Long paymentId);
 
         /**
          * Busca item específico por payout e payment
          */
-        Optional<PayoutItem> findByPayoutIdAndPaymentId(Long payoutId, Long paymentId);
+        // Optional<PayoutItem> findByPayoutIdAndPaymentId(Long payoutId, Long
+        // paymentId);
 
         /**
          * Busca items por tipo de valor
@@ -57,12 +59,26 @@ public interface PayoutItemRepository
         Long countByPayoutId(@Param("payoutId") Long payoutId);
 
         /**
+         * Busca items de um payment específico
+         */
+        List<PayoutItem> findByPaymentId(Long paymentId);
+
+        /**
+         * Verifica se um payment já está em algum payout
+         */
+        boolean existsByPaymentId(Long paymentId);
+
+        /**
+         * Busca item específico por payout e payment
+         */
+        Optional<PayoutItem> findByPayoutIdAndPaymentId(Long payoutId, Long paymentId);
+
+        /**
          * Busca payments não incluídos em nenhum payout
          * (para processamento de novos repasses)
          */
         @Query("SELECT p.id FROM Payment p " +
                         "WHERE NOT EXISTS (SELECT pi FROM PayoutItem pi WHERE pi.payment.id = p.id) " +
-                        "AND p.status = 'COMPLETED' " +
-                        "AND p.processedAt IS NOT NULL")
+                        "AND p.status = 'COMPLETED'")
         List<Long> findPaymentIdsNotInAnyPayout();
 }

@@ -1,5 +1,6 @@
 package com.mvt.mvt_events.controller;
 
+import com.mvt.mvt_events.common.JwtUtil;
 import com.mvt.mvt_events.dto.*;
 import com.mvt.mvt_events.jpa.Delivery;
 import com.mvt.mvt_events.service.DeliveryService;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -24,27 +26,38 @@ import java.util.UUID;
  * Todas as operações filtram por ADM (tenant)
  */
 @RestController
-@RequestMapping("/api/zapi10/deliveries")
+@RequestMapping("/api/deliveries")
 @CrossOrigin(origins = "*")
-@Tag(name = "Zapi10 - Deliveries", description = "Gerenciamento de entregas")
+@Tag(name = "Deliveries", description = "Gerenciamento de entregas")
 @SecurityRequirement(name = "bearerAuth")
 public class DeliveryController {
 
     @Autowired
     private DeliveryService deliveryService;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private com.mvt.mvt_events.repository.UserRepository userRepository;
+
+    @Autowired
+    private com.mvt.mvt_events.repository.OrganizationRepository organizationRepository;
+
+    @Autowired
+    private com.mvt.mvt_events.repository.EmploymentContractRepository employmentContractRepository;
+
     @PostMapping
-    @Operation(summary = "Criar nova delivery", description = "Requer role ADM. A delivery é criada com status PENDING.")
+    @Operation(summary = "Criar nova delivery", description = "Requer autenticação. A delivery é criada com status PENDING.")
     public ResponseEntity<DeliveryResponse> create(
             @RequestBody @Valid DeliveryCreateRequest request,
             Authentication authentication) {
 
-        // Obter ADM ID do usuário autenticado (simplificado - deve vir do
-        // token/session)
-        UUID admId = UUID.fromString(authentication.getName());
+        UUID creatorId = getUserIdFromAuthentication(authentication);
+        UUID clientId = UUID.fromString(request.getClient().getId());
 
         Delivery delivery = mapToEntity(request);
-        Delivery created = deliveryService.create(delivery, admId);
+        Delivery created = deliveryService.create(delivery, creatorId, clientId);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(mapToResponse(created));
     }
@@ -58,18 +71,45 @@ public class DeliveryController {
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
             Pageable pageable,
-            Authentication authentication) {
+            Authentication authentication,
+            jakarta.servlet.http.HttpServletRequest request) {
 
-        UUID admId = UUID.fromString(authentication.getName());
+        // Extrair dados do token JWT
+        String token = extractTokenFromRequest(request);
+        String role = jwtUtil.getRoleFromToken(token);
 
         UUID clientUuid = clientId != null ? UUID.fromString(clientId) : null;
         UUID courierUuid = courierId != null ? UUID.fromString(courierId) : null;
-        Delivery.DeliveryStatus deliveryStatus = status != null ? Delivery.DeliveryStatus.valueOf(status) : null;
+
+        Delivery.DeliveryStatus deliveryStatus = null;
+        if (status != null) {
+            try {
+                deliveryStatus = Delivery.DeliveryStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Status inválido: " + status + ". Valores válidos: " +
+                        java.util.Arrays.toString(Delivery.DeliveryStatus.values()));
+            }
+        }
+
         LocalDateTime start = startDate != null ? LocalDateTime.parse(startDate) : null;
         LocalDateTime end = endDate != null ? LocalDateTime.parse(endDate) : null;
 
-        Page<Delivery> deliveries = deliveryService.findAll(
-                admId, clientUuid, courierUuid, deliveryStatus, start, end, pageable);
+        Page<Delivery> deliveries;
+
+        if ("COURIER".equals(role)) {
+            // Para COURIERs: buscar deliveries das organizações onde ele trabalha
+            UUID courierUserId = UUID.fromString(jwtUtil.getUserIdFromToken(token));
+            deliveries = findDeliveriesForCourier(courierUserId, clientUuid, courierUuid,
+                    deliveryStatus, start, end, pageable);
+        } else {
+            // Para outros roles: usar organizationId do token
+            Long organizationId = jwtUtil.getOrganizationIdFromToken(token);
+            if (organizationId == null) {
+                throw new RuntimeException("Token não contém organizationId");
+            }
+            deliveries = deliveryService.findAll(organizationId, clientUuid, courierUuid,
+                    deliveryStatus, start, end, pageable);
+        }
 
         return deliveries.map(this::mapToResponse);
     }
@@ -78,10 +118,16 @@ public class DeliveryController {
     @Operation(summary = "Buscar delivery por ID", description = "Valida acesso por tenant")
     public ResponseEntity<DeliveryResponse> getById(
             @PathVariable Long id,
-            Authentication authentication) {
+            Authentication authentication,
+            jakarta.servlet.http.HttpServletRequest request) {
 
-        UUID admId = UUID.fromString(authentication.getName());
-        Delivery delivery = deliveryService.findById(id, admId);
+        String token = extractTokenFromRequest(request);
+        Long organizationId = jwtUtil.getOrganizationIdFromToken(token);
+        if (organizationId == null) {
+            throw new RuntimeException("Token não contém organizationId");
+        }
+
+        Delivery delivery = deliveryService.findById(id, organizationId);
 
         return ResponseEntity.ok(mapToResponse(delivery));
     }
@@ -91,12 +137,19 @@ public class DeliveryController {
     public ResponseEntity<DeliveryResponse> assign(
             @PathVariable Long id,
             @RequestBody @Valid DeliveryAssignRequest request,
-            Authentication authentication) {
+            Authentication authentication,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
 
-        UUID admId = UUID.fromString(authentication.getName());
+        // Extrair organizationId do token JWT
+        String token = extractTokenFromRequest(httpRequest);
+        Long organizationId = jwtUtil.getOrganizationIdFromToken(token);
+        if (organizationId == null) {
+            throw new RuntimeException("Token não contém organizationId");
+        }
+
         UUID courierId = UUID.fromString(request.getCourierId());
 
-        Delivery delivery = deliveryService.assignToCourier(id, courierId, admId);
+        Delivery delivery = deliveryService.assignToCourier(id, courierId, organizationId);
 
         return ResponseEntity.ok(mapToResponse(delivery));
     }
@@ -107,7 +160,7 @@ public class DeliveryController {
             @PathVariable Long id,
             Authentication authentication) {
 
-        UUID courierId = UUID.fromString(authentication.getName());
+        UUID courierId = getUserIdFromAuthentication(authentication);
         Delivery delivery = deliveryService.confirmPickup(id, courierId);
 
         return ResponseEntity.ok(mapToResponse(delivery));
@@ -119,7 +172,7 @@ public class DeliveryController {
             @PathVariable Long id,
             Authentication authentication) {
 
-        UUID courierId = UUID.fromString(authentication.getName());
+        UUID courierId = getUserIdFromAuthentication(authentication);
         Delivery delivery = deliveryService.startTransit(id, courierId);
 
         return ResponseEntity.ok(mapToResponse(delivery));
@@ -131,7 +184,7 @@ public class DeliveryController {
             @PathVariable Long id,
             Authentication authentication) {
 
-        UUID courierId = UUID.fromString(authentication.getName());
+        UUID courierId = getUserIdFromAuthentication(authentication);
         Delivery delivery = deliveryService.complete(id, courierId);
 
         return ResponseEntity.ok(mapToResponse(delivery));
@@ -142,26 +195,41 @@ public class DeliveryController {
     public ResponseEntity<DeliveryResponse> cancel(
             @PathVariable Long id,
             @RequestParam String reason,
-            Authentication authentication) {
+            Authentication authentication,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
 
-        UUID admId = UUID.fromString(authentication.getName());
-        Delivery delivery = deliveryService.cancel(id, admId, reason);
+        // Extrair organizationId do token JWT
+        String token = extractTokenFromRequest(httpRequest);
+        Long organizationId = jwtUtil.getOrganizationIdFromToken(token);
+        if (organizationId == null) {
+            throw new RuntimeException("Token não contém organizationId");
+        }
+
+        Delivery delivery = deliveryService.cancel(id, organizationId, reason);
 
         return ResponseEntity.ok(mapToResponse(delivery));
     }
 
     @GetMapping("/pending")
     @Operation(summary = "Listar deliveries pendentes de atribuição")
-    public ResponseEntity<?> listPending(Authentication authentication) {
-        UUID admId = UUID.fromString(authentication.getName());
-        var deliveries = deliveryService.findPendingAssignment(admId);
+    public ResponseEntity<?> listPending(Authentication authentication,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+
+        // Extrair organizationId do token JWT
+        String token = extractTokenFromRequest(httpRequest);
+        Long organizationId = jwtUtil.getOrganizationIdFromToken(token);
+        if (organizationId == null) {
+            throw new RuntimeException("Token não contém organizationId");
+        }
+
+        var deliveries = deliveryService.findPendingAssignment(organizationId);
         return ResponseEntity.ok(deliveries.stream().map(this::mapToResponse).toList());
     }
 
     @GetMapping("/courier/active")
     @Operation(summary = "Listar deliveries ativas do courier autenticado")
     public ResponseEntity<?> listCourierActive(Authentication authentication) {
-        UUID courierId = UUID.fromString(authentication.getName());
+        UUID courierId = getUserIdFromAuthentication(authentication);
         var deliveries = deliveryService.findActiveByCourier(courierId);
         return ResponseEntity.ok(deliveries.stream().map(this::mapToResponse).toList());
     }
@@ -183,7 +251,8 @@ public class DeliveryController {
 
         delivery.setRecipientName(request.getRecipientName());
         delivery.setRecipientPhone(request.getRecipientPhone());
-        // Nota: campo notes não existe na entidade Delivery
+        delivery.setTotalAmount(request.getTotalAmount());
+        delivery.setItemDescription(request.getItemDescription());
 
         // Client e Partnership serão setados no service
         return delivery;
@@ -193,27 +262,127 @@ public class DeliveryController {
         return DeliveryResponse.builder()
                 .id(delivery.getId())
                 .createdAt(delivery.getCreatedAt())
-                .clientId(delivery.getClient() != null ? delivery.getClient().getId().toString() : null)
-                .clientName(delivery.getClient() != null ? delivery.getClient().getName() : null)
-                .courierId(delivery.getCourier() != null ? delivery.getCourier().getId().toString() : null)
-                .courierName(delivery.getCourier() != null ? delivery.getCourier().getName() : null)
-                .courierPhone(delivery.getCourier() != null ? delivery.getCourier().getPhone() : null)
-                .admId(delivery.getAdm() != null ? delivery.getAdm().getId().toString() : null)
-                .admName(delivery.getAdm() != null ? delivery.getAdm().getName() : null)
+                // Client (objeto aninhado)
+                .client(delivery.getClient() != null ? DeliveryResponse.UserDTO.builder()
+                        .id(delivery.getClient().getId().toString())
+                        .name(delivery.getClient().getName())
+                        .phone(delivery.getClient().getPhone())
+                        .build() : null)
+                // Courier (objeto aninhado)
+                .courier(delivery.getCourier() != null ? DeliveryResponse.UserDTO.builder()
+                        .id(delivery.getCourier().getId().toString())
+                        .name(delivery.getCourier().getName())
+                        .phone(delivery.getCourier().getPhone())
+                        .build() : null)
+                // Organização vem do cliente agora
+                .organization(delivery.getClient() != null && delivery.getClient().getOrganization() != null
+                        ? DeliveryResponse.OrganizationDTO.builder()
+                                .id(delivery.getClient().getOrganization().getId())
+                                .name(delivery.getClient().getOrganization().getName())
+                                .build()
+                        : null)
+                // Addresses
                 .fromAddress(delivery.getFromAddress())
                 .fromLatitude(delivery.getFromLatitude())
                 .fromLongitude(delivery.getFromLongitude())
                 .toAddress(delivery.getToAddress())
                 .toLatitude(delivery.getToLatitude())
                 .toLongitude(delivery.getToLongitude())
+                // Recipient
                 .recipientName(delivery.getRecipientName())
                 .recipientPhone(delivery.getRecipientPhone())
+                // Amount & Status
                 .totalAmount(delivery.getTotalAmount())
                 .status(delivery.getStatus().name())
                 .pickedUpAt(delivery.getPickedUpAt())
                 .completedAt(delivery.getCompletedAt())
-                .partnershipId(delivery.getPartnership() != null ? delivery.getPartnership().getId() : null)
-                .partnershipName(delivery.getPartnership() != null ? delivery.getPartnership().getName() : null)
+                // Partnership (objeto aninhado)
+                .partnership(delivery.getPartnership() != null ? DeliveryResponse.PartnershipDTO.builder()
+                        .id(delivery.getPartnership().getId())
+                        .name(delivery.getPartnership().getName())
+                        .build() : null)
                 .build();
+    }
+
+    /**
+     * Helper para extrair userId do JWT token via email
+     */
+    private UUID getUserIdFromAuthentication(Authentication authentication) {
+        String email = authentication.getName();
+        com.mvt.mvt_events.jpa.User user = userRepository.findByUsername(email)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + email));
+        return user.getId();
+    }
+
+    /**
+     * Helper para extrair organizationId do JWT token
+     */
+    private UUID getOrganizationIdFromRequest(jakarta.servlet.http.HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            Long organizationId = jwtUtil.getOrganizationIdFromToken(token);
+            if (organizationId == null) {
+                throw new RuntimeException("Token não contém organizationId");
+            }
+            // Buscar a organização pelo ID para obter o UUID
+            return findOrganizationUuidById(organizationId);
+        }
+        throw new RuntimeException("Token de autorização não encontrado");
+    }
+
+    /**
+     * Helper para extrair token do request
+     */
+    private String extractTokenFromRequest(jakarta.servlet.http.HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        throw new RuntimeException("Token de autorização não encontrado");
+    }
+
+    /**
+     * Busca deliveries para um COURIER baseado nas organizações onde ele trabalha
+     */
+    private Page<Delivery> findDeliveriesForCourier(UUID courierUserId, UUID clientId, UUID courierId,
+            Delivery.DeliveryStatus status, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+
+        // Buscar contratos ativos do courier para saber as organizações
+        List<Object[]> contractData = employmentContractRepository.findContractDataByCourierId(courierUserId);
+
+        if (contractData.isEmpty()) {
+            // Se courier não tem contratos, retornar página vazia
+            return Page.empty(pageable);
+        }
+
+        // Extrair apenas contratos ativos
+        List<Long> organizationIds = contractData.stream()
+                .filter(data -> (Boolean) data[3]) // is_active = true
+                .map(data -> (Long) data[0]) // organization_id
+                .toList();
+
+        if (organizationIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        // Buscar deliveries de todas as organizações do courier
+        return deliveryService.findAllByOrganizationIds(organizationIds, clientId, courierId,
+                status, startDate, endDate, pageable);
+    }
+
+    /**
+     * Helper para buscar UUID da organização pelo ID Long
+     */
+    private UUID findOrganizationUuidById(Long organizationId) {
+        try {
+            com.mvt.mvt_events.jpa.Organization org = organizationRepository.findById(organizationId)
+                    .orElseThrow(() -> new RuntimeException("Organização não encontrada: " + organizationId));
+            // Como Organization usa Long ID, não podemos retornar UUID diretamente
+            // Vamos retornar null por enquanto e reformular a lógica
+            throw new RuntimeException("Incompatibilidade de tipos: Organization usa Long ID, não UUID");
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao buscar organização: " + e.getMessage());
+        }
     }
 }

@@ -1,7 +1,6 @@
 package com.mvt.mvt_events.common;
 
 import com.mvt.mvt_events.exception.EmailAlreadyExistsException;
-import com.mvt.mvt_events.exception.RegistrationConflictException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -71,23 +70,6 @@ public class GlobalExceptionHandler {
         errorResponse.put("status", 400);
 
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
-
-    /**
-     * Handle registration conflict exceptions (user already registered for event)
-     */
-    @ExceptionHandler(RegistrationConflictException.class)
-    public ResponseEntity<Map<String, Object>> handleRegistrationConflictException(
-            RegistrationConflictException ex, WebRequest request) {
-
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("error", "Conflict");
-        errorResponse.put("message", ex.getMessage());
-        errorResponse.put("timestamp", LocalDateTime.now());
-        errorResponse.put("path", request.getDescription(false).replace("uri=", ""));
-        errorResponse.put("status", 409);
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 
     /**
@@ -171,6 +153,31 @@ public class GlobalExceptionHandler {
         errorResponse.put("message", "An unexpected error occurred");
         errorResponse.put("timestamp", LocalDateTime.now());
         errorResponse.put("path", request.getDescription(false).replace("uri=", ""));
+        errorResponse.put("status", 500);
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    /**
+     * Handle ConcurrentModificationException with detailed stack trace
+     */
+    @ExceptionHandler(java.util.ConcurrentModificationException.class)
+    public ResponseEntity<Map<String, Object>> handleConcurrentModificationException(
+            java.util.ConcurrentModificationException ex, WebRequest request) {
+
+        // Log completo do stack trace
+        System.err.println("🔴 ConcurrentModificationException detectada:");
+        ex.printStackTrace();
+
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Internal Server Error");
+        errorResponse.put("message", "Concurrent modification detected: " + ex.getMessage());
+        errorResponse.put("timestamp", LocalDateTime.now());
+        errorResponse.put("path", request.getDescription(false).replace("uri=", ""));
+        errorResponse.put("stackTrace", java.util.Arrays.stream(ex.getStackTrace())
+                .limit(10)
+                .map(StackTraceElement::toString)
+                .collect(Collectors.toList()));
         errorResponse.put("status", 500);
 
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);

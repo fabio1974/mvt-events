@@ -1,0 +1,14 @@
+-- Migration V50: Add constraint to ensure only ORGANIZER can have organization_id
+-- Adicionar constraint que garante que apenas ORGANIZERs podem ter organization_id
+
+-- Adicionar constraint: apenas ORGANIZERs podem ter organization_id
+ALTER TABLE users 
+ADD CONSTRAINT chk_organization_only_for_organizer
+CHECK (organization_id IS NULL OR role = 'ORGANIZER');
+
+-- Comentário:
+-- Esta constraint garante que:
+-- 1. ORGANIZER: pode ter organization_id (NULL ou não NULL)  
+-- 2. COURIER: sempre organization_id = NULL (obtém via employment_contracts)
+-- 3. CLIENT: sempre organization_id = NULL (organização vem do contexto)
+-- 4. USER: sempre organization_id = NULL (usuários gerais)

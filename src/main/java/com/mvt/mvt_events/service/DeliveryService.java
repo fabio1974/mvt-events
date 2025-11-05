@@ -5,12 +5,12 @@ import com.mvt.mvt_events.repository.*;
 import com.mvt.mvt_events.specification.DeliverySpecification;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -33,55 +33,64 @@ public class DeliveryService {
     private CourierProfileRepository courierProfileRepository;
 
     @Autowired
-    private ADMProfileRepository admProfileRepository;
+    private DeliveryNotificationService deliveryNotificationService;
 
     @Autowired
-    private CourierADMLinkRepository courierADMLinkRepository;
+    private com.mvt.mvt_events.repository.OrganizationRepository organizationRepository;
+
+    // TODO: ADMProfileRepository não mais usado após remoção de CourierADMLink
+    // @Autowired
+    // private ADMProfileRepository admProfileRepository;
+
+    // TODO: CourierADMLinkRepository removido - agora Courier se relaciona com
+    // Organization via EmploymentContract
+    // @Autowired
+    // private CourierADMLinkRepository courierADMLinkRepository;
 
     /**
-     * Cria uma nova delivery
-     * VALIDA: Cliente existe, ADM existe, parceria (se fornecida)
+     * Criar nova delivery (qualquer usuário autenticado)
+     * VALIDA: Cliente existe, usuário existe, parceria (se fornecida)
      */
-    public Delivery create(Delivery delivery, UUID admId) {
-        // Validar ORGANIZER (TENANT)
-        User adm = userRepository.findById(admId)
-                .orElseThrow(() -> new RuntimeException("ORGANIZER não encontrado"));
-
-        if (adm.getRole() != User.Role.ORGANIZER) {
-            throw new RuntimeException("Usuário não é um ORGANIZER");
-        }
+    public Delivery create(Delivery delivery, UUID creatorId, UUID clientId) {
+        // Validar usuário que está criando (pode ser qualquer role)
+        User creator = userRepository.findById(creatorId)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
 
         // Validar cliente
-        User client = userRepository.findById(delivery.getClient().getId())
+        User client = userRepository.findById(clientId)
                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
 
         if (client.getRole() != User.Role.CLIENT) {
             throw new RuntimeException("Usuário não é um cliente");
         }
 
-        // Setar ADM (tenant) e status inicial
-        delivery.setAdm(adm);
+        // A organização da delivery é determinada pela organização do cliente
+        // Não precisamos mais do campo adm - usar client.organization
         delivery.setClient(client);
-        delivery.setStatus(Delivery.DeliveryStatus.PENDING);
-
-        // Calcular distância estimada (se coordenadas fornecidas)
+        delivery.setStatus(Delivery.DeliveryStatus.PENDING); // Calcular distância estimada (se coordenadas fornecidas)
         if (delivery.getFromLatitude() != null && delivery.getFromLongitude() != null &&
                 delivery.getToLatitude() != null && delivery.getToLongitude() != null) {
+            @SuppressWarnings("unused")
             double distance = calculateDistance(
                     delivery.getFromLatitude(), delivery.getFromLongitude(),
                     delivery.getToLatitude(), delivery.getToLongitude());
             // Apenas calcular, não salvar (campo não existe na entidade)
         }
 
-        return deliveryRepository.save(delivery);
+        Delivery savedDelivery = deliveryRepository.save(delivery);
+
+        // Iniciar processo de notificação para motoboys disponíveis
+        deliveryNotificationService.notifyAvailableDrivers(savedDelivery);
+
+        return savedDelivery;
     }
 
     /**
      * Busca delivery por ID com validação de tenant
      */
-    public Delivery findById(Long id, UUID admId) {
+    public Delivery findById(Long id, Long organizationId) {
         Specification<Delivery> spec = DeliverySpecification.hasId(id)
-                .and(DeliverySpecification.hasAdmId(admId));
+                .and(DeliverySpecification.hasClientOrganizationId(organizationId));
 
         return deliveryRepository.findOne(spec)
                 .orElseThrow(() -> new RuntimeException("Delivery não encontrada ou sem acesso"));
@@ -90,11 +99,60 @@ public class DeliveryService {
     /**
      * Lista deliveries com filtros e tenant
      */
-    public Page<Delivery> findAll(UUID admId, UUID clientId, UUID courierId,
+    public Page<Delivery> findAll(Long organizationId, UUID clientId, UUID courierId,
             Delivery.DeliveryStatus status,
             LocalDateTime startDate, LocalDateTime endDate,
             Pageable pageable) {
-        Specification<Delivery> spec = DeliverySpecification.hasAdmId(admId)
+        // Para simplificar e evitar o problema de lazy loading,
+        // vamos usar apenas o filtro por organizationId primeiro
+        if (clientId == null && courierId == null && status == null &&
+                startDate == null && endDate == null) {
+            // Caso simples - usar query com fetch joins por organização
+            List<Delivery> deliveries = deliveryRepository.findAllWithJoinsByOrganizationId(organizationId);
+            // Converter para Page manualmente
+            int start = (int) pageable.getOffset();
+            int end = Math.min(start + pageable.getPageSize(), deliveries.size());
+            List<Delivery> pageContent = deliveries.subList(start, end);
+            return new PageImpl<>(pageContent, pageable, deliveries.size());
+        }
+
+        // Caso complexo - usar specifications (pode ter lazy loading)
+        Specification<Delivery> spec = DeliverySpecification.hasClientOrganizationId(organizationId)
+                .and(DeliverySpecification.hasClientId(clientId))
+                .and(DeliverySpecification.hasCourierId(courierId))
+                .and(DeliverySpecification.hasStatus(status))
+                .and(DeliverySpecification.createdBetween(startDate, endDate));
+
+        return deliveryRepository.findAll(spec, pageable);
+    }
+
+    /**
+     * Busca deliveries de múltiplas organizações (para COURIERs)
+     */
+    public Page<Delivery> findAllByOrganizationIds(List<Long> organizationIds, UUID clientId, UUID courierId,
+            Delivery.DeliveryStatus status, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+
+        // Para evitar lazy loading, usar query com fetch joins
+        if (clientId == null && courierId == null && startDate == null && endDate == null) {
+            List<Delivery> deliveries;
+
+            if (status == null) {
+                // Sem filtro de status - usar query simples
+                deliveries = deliveryRepository.findAllWithJoinsByClientContracts(organizationIds);
+            } else {
+                // Com filtro de status - usar query com status
+                deliveries = deliveryRepository.findAllWithJoinsByClientContractsAndStatus(organizationIds, status);
+            }
+
+            // Converter para Page manualmente
+            int start = (int) pageable.getOffset();
+            int end = Math.min(start + pageable.getPageSize(), deliveries.size());
+            List<Delivery> pageContent = deliveries.subList(start, end);
+            return new PageImpl<>(pageContent, pageable, deliveries.size());
+        }
+
+        // Caso complexo - usar specifications (pode ter lazy loading)
+        Specification<Delivery> spec = DeliverySpecification.hasClientWithContractsInOrganizations(organizationIds)
                 .and(DeliverySpecification.hasClientId(clientId))
                 .and(DeliverySpecification.hasCourierId(courierId))
                 .and(DeliverySpecification.hasStatus(status))
@@ -107,8 +165,8 @@ public class DeliveryService {
      * Atribui delivery a um courier
      * VALIDA: Courier existe, está ativo, pertence ao ADM
      */
-    public Delivery assignToCourier(Long deliveryId, UUID courierId, UUID admId) {
-        Delivery delivery = findById(deliveryId, admId);
+    public Delivery assignToCourier(Long deliveryId, UUID courierId, Long organizationId) {
+        Delivery delivery = findById(deliveryId, organizationId);
 
         if (delivery.getStatus() != Delivery.DeliveryStatus.PENDING) {
             throw new RuntimeException("Delivery não está pendente");
@@ -123,16 +181,8 @@ public class DeliveryService {
             throw new RuntimeException("Courier não está disponível");
         }
 
-        // Validar que courier pertence ao ADM
-        ADMProfile admProfile = admProfileRepository.findByUserId(admId)
-                .orElseThrow(() -> new RuntimeException("Perfil ADM não encontrado"));
-
-        boolean hasLink = courierADMLinkRepository.existsActiveLinkBetween(
-                courier.getUser().getId(), admProfile.getUser().getId());
-
-        if (!hasLink) {
-            throw new RuntimeException("Courier não está vinculado a este ADM");
-        }
+        // TODO: Validação de vínculo courier-Organization via EmploymentContract
+        // Verificar se o courier tem contrato ativo com a organização do cliente
 
         // Atribuir
         delivery.setCourier(courier.getUser());
@@ -215,8 +265,8 @@ public class DeliveryService {
     /**
      * Cancela delivery
      */
-    public Delivery cancel(Long deliveryId, UUID admId, String reason) {
-        Delivery delivery = findById(deliveryId, admId);
+    public Delivery cancel(Long deliveryId, Long organizationId, String reason) {
+        Delivery delivery = findById(deliveryId, organizationId);
 
         if (delivery.getStatus() == Delivery.DeliveryStatus.COMPLETED) {
             throw new RuntimeException("Não é possível cancelar delivery completada");
@@ -244,8 +294,8 @@ public class DeliveryService {
     /**
      * Busca deliveries pendentes de atribuição
      */
-    public List<Delivery> findPendingAssignment(UUID admId) {
-        return deliveryRepository.findPendingAssignmentByAdmId(admId);
+    public List<Delivery> findPendingAssignment(Long organizationId) {
+        return deliveryRepository.findPendingAssignmentByOrganizationId(organizationId);
     }
 
     /**
@@ -258,8 +308,8 @@ public class DeliveryService {
     /**
      * Estatísticas de deliveries por status
      */
-    public Long countByStatus(UUID admId, Delivery.DeliveryStatus status) {
-        return deliveryRepository.countByAdmIdAndStatus(admId, status.name());
+    public Long countByStatus(Long organizationId, Delivery.DeliveryStatus status) {
+        return deliveryRepository.countByOrganizationIdAndStatus(organizationId, status.name());
     }
 
     /**

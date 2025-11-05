@@ -1,5 +1,6 @@
 package com.mvt.mvt_events.jpa;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.mvt.mvt_events.metadata.DisplayLabel;
 import com.mvt.mvt_events.metadata.Visible;
 import com.mvt.mvt_events.validation.CPF;
@@ -17,8 +18,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "users")
@@ -57,7 +61,7 @@ public class User implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    @Visible(readonly = true)
+    @Visible(readonly = false, table = false, form = true, filter = true)
     private Role role = Role.ORGANIZER;
 
     @Visible(table = false, form = true, filter = false)
@@ -111,14 +115,30 @@ public class User implements UserDetails {
     @Column
     private Double longitude;
 
-    // Organization relationship for ORGANIZER role
-    @Visible(table = false, form = false, filter = false)
+    // Organization relationship for Gerente ADM role
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organization_id")
+    @JsonIgnore // Evitar referência circular: User -> Organization -> Contracts -> User
     private Organization organization;
 
     @Column(nullable = false)
     private boolean enabled = true;
+
+    // ============================================================================
+    // N:M RELATIONSHIPS
+    // ============================================================================
+
+    // Para COURIER - contratos de trabalho (empregado-empresa)
+    @OneToMany(mappedBy = "courier", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnore
+    @Visible(table = false, form = true, filter = false)
+    private Set<EmploymentContract> employmentContracts = new HashSet<>();
+
+    // Para CLIENT - contratos de serviço (cliente-fornecedor)
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnore
+    @Visible(table = false, form = true, filter = false)
+    private Set<ClientContract> clientContracts = new HashSet<>();
 
     // ============================================================================
     // ENUMS
@@ -126,7 +146,7 @@ public class User implements UserDetails {
 
     public enum Role {
         USER, // Mantido para compatibilidade
-        ORGANIZER, // Dono da Organization (tenant)
+        ORGANIZER, // Gerente ADM - Dono da Organization (tenant)
         ADMIN, // Admin do sistema
         CLIENT, // Cliente que solicita entregas
         COURIER // Motoboy que realiza entregas
@@ -264,5 +284,63 @@ public class User implements UserDetails {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    // ============================================================================
+    // RELATIONSHIP HELPER METHODS
+    // ============================================================================
+
+    /**
+     * Retorna lista de organizações onde o usuário trabalha como COURIER
+     */
+    public Set<Organization> getEmployerOrganizations() {
+        return employmentContracts.stream()
+                .filter(EmploymentContract::isActive)
+                .map(EmploymentContract::getOrganization)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Retorna lista de organizações onde o usuário é CLIENT
+     */
+    public Set<Organization> getClientOrganizationsList() {
+        return clientContracts.stream()
+                .filter(ClientContract::isActive)
+                .map(ClientContract::getOrganization)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Retorna o contrato de serviço titular do cliente
+     */
+    public ClientContract getPrimaryContract() {
+        return clientContracts.stream()
+                .filter(ClientContract::isPrimary)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Retorna a organização do contrato titular (se CLIENT)
+     */
+    public Organization getPrimaryOrganization() {
+        ClientContract primary = getPrimaryContract();
+        return primary != null ? primary.getOrganization() : null;
+    }
+
+    /**
+     * Verifica se o usuário tem contratos de trabalho ativos como COURIER
+     */
+    public boolean hasActiveEmployment() {
+        return !employmentContracts.isEmpty() &&
+                employmentContracts.stream().anyMatch(EmploymentContract::isActive);
+    }
+
+    /**
+     * Verifica se o usuário tem contratos de serviço ativos como CLIENT
+     */
+    public boolean hasActiveContracts() {
+        return !clientContracts.isEmpty() &&
+                clientContracts.stream().anyMatch(ClientContract::isActive);
     }
 }

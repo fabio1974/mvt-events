@@ -12,8 +12,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "organizations")
@@ -29,6 +30,7 @@ public class Organization extends BaseEntity {
 
     @Size(max = 100, message = "Slug must not exceed 100 characters")
     @Column(nullable = false, unique = true, length = 100)
+    @Visible(filter = false, table = false, form = false)
     private String slug;
 
     @NotBlank(message = "Contact email is required")
@@ -40,13 +42,16 @@ public class Organization extends BaseEntity {
     private String phone;
 
     @Column(length = 255)
+    @Visible(filter = false, table = false, form = false)
     private String website;
 
     @Column(columnDefinition = "TEXT")
+    @Size(max = 200, message = "Description must not exceed 200 characters")
+    @Visible(filter = false, table = false, form = true)
     private String description;
 
     @Column(name = "logo_url")
-    @Visible(filter = true, table = true, form = false)
+    @Visible(filter = false, table = false, form = false)
     private String logoUrl;
 
     // Location (campo do antigo ADMProfile)
@@ -56,6 +61,7 @@ public class Organization extends BaseEntity {
 
     // Commission
     @Column(name = "commission_percentage", precision = 5, scale = 2, columnDefinition = "DECIMAL(5,2) DEFAULT 5.00")
+    @Visible(filter = false, table = true, form = true, readonly = true)
     private BigDecimal commissionPercentage = BigDecimal.valueOf(5.00);
 
     // Status
@@ -63,8 +69,58 @@ public class Organization extends BaseEntity {
     @Column(length = 20, nullable = false, columnDefinition = "VARCHAR(20) DEFAULT 'ACTIVE'")
     private OrganizationStatus status = OrganizationStatus.ACTIVE;
 
-    // Relationships
-    @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // N:M Relationships
+    // Contratos de trabalho (empregado-empresa) - Couriers que trabalham para esta
+    // organização
+    @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
-    private List<Event> events = new ArrayList<>();
+    private Set<EmploymentContract> employmentContracts = new HashSet<>();
+
+    // Contratos de serviço (cliente-fornecedor) - Clientes que contratam serviços
+    // desta organização
+    @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<ClientContract> clientContracts = new HashSet<>();
+
+    // ============================================================================
+    // RELATIONSHIP HELPER METHODS
+    // ============================================================================
+
+    /**
+     * Retorna lista de couriers (funcionários) ativos desta organização
+     */
+    public Set<User> getEmployees() {
+        return employmentContracts.stream()
+                .filter(EmploymentContract::isActive)
+                .map(EmploymentContract::getCourier)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Retorna lista de clientes com contratos de serviço ativos nesta organização
+     */
+    public Set<User> getClients() {
+        return clientContracts.stream()
+                .filter(ClientContract::isActive)
+                .map(ClientContract::getClient)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Retorna contagem de contratos de serviço ativos
+     */
+    public long getActiveServiceContractsCount() {
+        return clientContracts.stream()
+                .filter(ClientContract::isActive)
+                .count();
+    }
+
+    /**
+     * Retorna contagem de funcionários (couriers) ativos
+     */
+    public long getActiveEmployeesCount() {
+        return employmentContracts.stream()
+                .filter(EmploymentContract::isActive)
+                .count();
+    }
 }

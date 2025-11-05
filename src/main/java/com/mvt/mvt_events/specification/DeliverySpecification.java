@@ -18,11 +18,65 @@ public class DeliverySpecification {
 
     /**
      * TENANT FILTER - CRÍTICO
-     * Todas as queries devem incluir este filtro
+     * Filtra por organização do cliente (substitui hasAdmId)
      */
+    public static Specification<Delivery> hasClientOrganizationId(Long organizationId) {
+        return (root, query, cb) -> organizationId == null ? cb.conjunction()
+                : cb.equal(root.get("client").get("organization").get("id"), organizationId);
+    }
+
+    /**
+     * TENANT FILTER para múltiplas organizações - para COURIERs
+     * Busca deliveries onde o cliente tem contratos com as organizações
+     */
+    public static Specification<Delivery> hasClientOrganizationIdIn(List<Long> organizationIds) {
+        return (root, query, cb) -> organizationIds == null || organizationIds.isEmpty() ? cb.conjunction()
+                : root.get("client").get("organization").get("id").in(organizationIds);
+    }
+
+    /**
+     * NOVO: TENANT FILTER via contratos - busca deliveries cujos clientes têm
+     * contratos com as organizações
+     * Substitui hasClientOrganizationIdIn para nova arquitetura de contratos
+     */
+    public static Specification<Delivery> hasClientWithContractsInOrganizations(List<Long> organizationIds) {
+        return (root, query, cb) -> {
+            if (organizationIds == null || organizationIds.isEmpty()) {
+                return cb.conjunction();
+            }
+
+            // Subquery para buscar client_ids que têm contratos ativos com as organizações
+            var subquery = query.subquery(UUID.class);
+            var contractRoot = subquery.from(com.mvt.mvt_events.jpa.ClientContract.class);
+
+            subquery.select(contractRoot.get("client").get("id"))
+                    .where(cb.and(
+                            contractRoot.get("organization").get("id").in(organizationIds),
+                            cb.equal(contractRoot.get("status"),
+                                    com.mvt.mvt_events.jpa.ClientContract.ContractStatus.ACTIVE)));
+
+            return root.get("client").get("id").in(subquery);
+        };
+    }
+
+    /**
+     * DEPRECATED: TENANT FILTER - CRÍTICO
+     * 
+     * @deprecated Use hasClientOrganizationId instead
+     */
+    @Deprecated
     public static Specification<Delivery> hasAdmId(UUID admId) {
-        return (root, query, cb) -> admId == null ? cb.conjunction()
-                : cb.equal(root.get("adm").get("id"), admId);
+        return (root, query, cb) -> cb.conjunction(); // Sempre true para compatibilidade
+    }
+
+    /**
+     * DEPRECATED: TENANT FILTER para múltiplas organizações
+     * 
+     * @deprecated Use hasClientOrganizationIdIn instead
+     */
+    @Deprecated
+    public static Specification<Delivery> hasAdmIdIn(List<UUID> admIds) {
+        return (root, query, cb) -> cb.conjunction(); // Sempre true para compatibilidade
     }
 
     // Filtros de identificação

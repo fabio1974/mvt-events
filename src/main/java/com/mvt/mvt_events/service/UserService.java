@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -40,6 +41,12 @@ public class UserService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private com.mvt.mvt_events.repository.EmploymentContractRepository employmentContractRepository;
+
+    @Autowired
+    private com.mvt.mvt_events.repository.ClientContractRepository clientContractRepository;
 
     public List<User> findAll() {
         return userRepository.findAll();
@@ -316,6 +323,72 @@ public class UserService {
         return savedUser;
     }
 
+    /**
+     * Atualizar localização (latitude/longitude) do usuário
+     */
+    public User updateUserLocation(UUID id, Double latitude, Double longitude, String updatedAtString,
+            Authentication authentication) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+        // Verificar permissões: usuário só pode atualizar própria localização, ou admin
+        // pode atualizar qualquer um
+        String currentUsername = authentication.getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado"));
+
+        if (!currentUser.isAdmin() && !user.getUsername().equals(currentUsername)) {
+            throw new RuntimeException("Você só pode atualizar sua própria localização");
+        }
+
+        // Atualizar localização
+        user.setLatitude(latitude);
+        user.setLongitude(longitude);
+
+        // Atualizar timestamp - se fornecido pelo GPS, usar esse; senão usar timestamp
+        // atual
+        if (updatedAtString != null && !updatedAtString.trim().isEmpty()) {
+            try {
+                // Tentar parsear diferentes formatos de data
+                LocalDateTime gpsTimestamp;
+
+                if (updatedAtString.contains("T")) {
+                    // Formato ISO com T (ex: "2025-10-31T15:30:45.123Z" ou "2025-10-31T15:30:45")
+                    if (updatedAtString.endsWith("Z")) {
+                        gpsTimestamp = LocalDateTime.parse(updatedAtString.substring(0, updatedAtString.length() - 1));
+                    } else {
+                        gpsTimestamp = LocalDateTime.parse(updatedAtString);
+                    }
+                } else {
+                    // Formato simples (ex: "2025-10-31 15:30:45")
+                    gpsTimestamp = LocalDateTime.parse(updatedAtString.replace(" ", "T"));
+                }
+
+                user.setUpdatedAt(gpsTimestamp);
+            } catch (Exception e) {
+                // Se não conseguir parsear, usar timestamp atual e logar warning
+                System.err
+                        .println("Erro ao parsear timestamp do GPS: " + updatedAtString + ". Usando timestamp atual.");
+                user.setUpdatedAt(LocalDateTime.now());
+            }
+        } else {
+            // Se não fornecido, usar timestamp atual
+            user.setUpdatedAt(LocalDateTime.now());
+        }
+
+        User savedUser = userRepository.save(user);
+
+        // Force load da organization e city para evitar lazy loading
+        if (savedUser.getOrganization() != null) {
+            savedUser.getOrganization().getName(); // Trigger lazy loading
+        }
+        if (savedUser.getCity() != null) {
+            savedUser.getCity().getName(); // Trigger lazy loading
+        }
+
+        return savedUser;
+    }
+
     public void deleteUser(UUID id, Authentication authentication) {
         // Verificar se o usuário logado pode deletar este perfil
         String currentUsername = authentication.getName();
@@ -334,5 +407,29 @@ public class UserService {
     public User findByUsername(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+    }
+
+    // ============================================================================
+    // MÉTODOS PARA CONTRATOS (sem lazy loading)
+    // ============================================================================
+
+    /**
+     * Busca dados dos Employment Contracts de um COURIER SEM carregar objetos
+     * completos
+     * Retorna: [organization_id, organization_name, linked_at, is_active]
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<Object[]> getEmploymentContractsForUser(UUID userId) {
+        return employmentContractRepository.findContractDataByCourierId(userId);
+    }
+
+    /**
+     * Busca dados dos Service Contracts de um CLIENT SEM carregar objetos completos
+     * Retorna: [organization_id, organization_name, contract_number, is_primary,
+     * status, contract_date, start_date, end_date]
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<Object[]> getServiceContractsForUser(UUID userId) {
+        return clientContractRepository.findContractDataByClientId(userId);
     }
 }

@@ -1,7 +1,11 @@
 package com.mvt.mvt_events.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
@@ -9,10 +13,14 @@ import java.math.BigDecimal;
  * DTO para criação de Delivery
  */
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class DeliveryCreateRequest {
 
     @NotNull(message = "Cliente é obrigatório")
-    private String clientId; // UUID como String
+    @Valid
+    private EntityReference client;
 
     @NotBlank(message = "Endereço de origem é obrigatório")
     private String fromAddress;
@@ -50,7 +58,19 @@ public class DeliveryCreateRequest {
     @DecimalMin(value = "0.0", inclusive = false, message = "Valor deve ser maior que zero")
     private BigDecimal totalAmount;
 
-    private String notes;
-    private Long partnershipId;
+    private String itemDescription;
+    private EntityReference partnership;
     private String scheduledPickupAt; // ISO DateTime string
+
+    /**
+     * DTO interno para referenciar entidades por ID
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class EntityReference {
+        @NotBlank(message = "ID é obrigatório")
+        private String id;
+    }
 }

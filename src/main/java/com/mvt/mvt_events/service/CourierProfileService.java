@@ -1,12 +1,14 @@
 package com.mvt.mvt_events.service;
 
 import com.mvt.mvt_events.jpa.CourierProfile;
-import com.mvt.mvt_events.jpa.CourierADMLink;
-import com.mvt.mvt_events.jpa.ADMProfile;
+// TODO: CourierADMLink removido - import não mais necessário
+// import com.mvt.mvt_events.jpa.CourierADMLink;
+// import com.mvt.mvt_events.jpa.ADMProfile;
 import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.repository.CourierProfileRepository;
-import com.mvt.mvt_events.repository.CourierADMLinkRepository;
-import com.mvt.mvt_events.repository.ADMProfileRepository;
+// TODO: CourierADMLinkRepository removido - import não mais necessário
+// import com.mvt.mvt_events.repository.CourierADMLinkRepository;
+// import com.mvt.mvt_events.repository.ADMProfileRepository;
 import com.mvt.mvt_events.repository.UserRepository;
 import com.mvt.mvt_events.specification.CourierProfileSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,11 +36,12 @@ public class CourierProfileService {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-    private ADMProfileRepository admProfileRepository;
+    // TODO: CourierADMLinkRepository removido - não mais necessário
+    // @Autowired
+    // private ADMProfileRepository admProfileRepository;
 
-    @Autowired
-    private CourierADMLinkRepository courierADMLinkRepository;
+    // @Autowired
+    // private CourierADMLinkRepository courierADMLinkRepository;
 
     /**
      * Cria perfil de courier
@@ -95,60 +98,70 @@ public class CourierProfileService {
         return courierProfileRepository.findAll(spec, pageable);
     }
 
-    /**
+    // TODO: CourierADMLink removido - agora Courier se relaciona com Organization
+    // via EmploymentContract
+    /*
      * Vincula courier a um ADM
-     */
-    public CourierADMLink linkToADM(UUID courierId, UUID admId, boolean isPrimary) {
-        CourierProfile courier = findByUserId(courierId);
-
-        ADMProfile adm = admProfileRepository.findByUserId(admId)
-                .orElseThrow(() -> new RuntimeException("ADM não encontrado"));
-
-        // Verificar se já existe link
-        if (courierADMLinkRepository.existsActiveLinkBetween(courier.getUser().getId(), adm.getUser().getId())) {
-            throw new RuntimeException("Courier já está vinculado a este ADM");
-        }
-
-        // Se for primário, desativar outros primários
-        if (isPrimary) {
-            var currentPrimary = courierADMLinkRepository.findPrimaryActiveByCourierId(courier.getUser().getId());
-            currentPrimary.ifPresent(link -> {
-                link.setIsPrimary(false);
-                courierADMLinkRepository.save(link);
-            });
-        }
-
-        CourierADMLink link = new CourierADMLink();
-        link.setCourier(courier.getUser());
-        link.setAdm(adm.getUser());
-        link.setIsPrimary(isPrimary);
-        link.setIsActive(true);
-
-        return courierADMLinkRepository.save(link);
-    }
-
-    /**
+     *
+     * public CourierADMLink linkToADM(UUID courierId, UUID admId, boolean
+     * isPrimary) {
+     * CourierProfile courier = findByUserId(courierId);
+     * 
+     * ADMProfile adm = admProfileRepository.findByUserId(admId)
+     * .orElseThrow(() -> new RuntimeException("ADM não encontrado"));
+     * 
+     * // Verificar se já existe link
+     * if
+     * (courierADMLinkRepository.existsActiveLinkBetween(courier.getUser().getId(),
+     * adm.getUser().getId())) {
+     * throw new RuntimeException("Courier já está vinculado a este ADM");
+     * }
+     * 
+     * // Se for primário, desativar outros primários
+     * if (isPrimary) {
+     * var currentPrimary =
+     * courierADMLinkRepository.findPrimaryActiveByCourierId(courier.getUser().getId
+     * ());
+     * currentPrimary.ifPresent(link -> {
+     * link.setIsPrimary(false);
+     * courierADMLinkRepository.save(link);
+     * });
+     * }
+     * 
+     * CourierADMLink link = new CourierADMLink();
+     * link.setCourier(courier.getUser());
+     * link.setAdm(adm.getUser());
+     * link.setIsPrimary(isPrimary);
+     * link.setIsActive(true);
+     * 
+     * return courierADMLinkRepository.save(link);
+     * }
+     * 
+     * /**
      * Define ADM primário do courier
+     *
+     * public void setPrimaryADM(UUID courierId, UUID admId) {
+     * CourierProfile courier = findByUserId(courierId);
+     * 
+     * // Remover primário atual
+     * var currentPrimary =
+     * courierADMLinkRepository.findPrimaryActiveByCourierId(courier.getUser().getId
+     * ());
+     * currentPrimary.ifPresent(link -> {
+     * link.setIsPrimary(false);
+     * courierADMLinkRepository.save(link);
+     * });
+     * 
+     * // Setar novo primário
+     * CourierADMLink newPrimary = courierADMLinkRepository.findByCourierIdAndAdmId(
+     * courier.getUser().getId(), admId)
+     * .orElseThrow(() -> new RuntimeException("Link não encontrado"));
+     * 
+     * newPrimary.setIsPrimary(true);
+     * newPrimary.setIsActive(true);
+     * courierADMLinkRepository.save(newPrimary);
+     * }
      */
-    public void setPrimaryADM(UUID courierId, UUID admId) {
-        CourierProfile courier = findByUserId(courierId);
-
-        // Remover primário atual
-        var currentPrimary = courierADMLinkRepository.findPrimaryActiveByCourierId(courier.getUser().getId());
-        currentPrimary.ifPresent(link -> {
-            link.setIsPrimary(false);
-            courierADMLinkRepository.save(link);
-        });
-
-        // Setar novo primário
-        CourierADMLink newPrimary = courierADMLinkRepository.findByCourierIdAndAdmId(
-                courier.getUser().getId(), admId)
-                .orElseThrow(() -> new RuntimeException("Link não encontrado"));
-
-        newPrimary.setIsPrimary(true);
-        newPrimary.setIsActive(true);
-        courierADMLinkRepository.save(newPrimary);
-    }
 
     /**
      * Busca couriers disponíveis próximos a uma localização
@@ -187,8 +200,12 @@ public class CourierProfileService {
     /**
      * Lista ADMs ativos do courier
      */
-    public List<CourierADMLink> findActiveADMs(UUID courierId) {
-        CourierProfile courier = findByUserId(courierId);
-        return courierADMLinkRepository.findActiveByCourierId(courier.getUser().getId());
-    }
+    // TODO: CourierADMLink removido - implementar via EmploymentContract
+    /*
+     * public List<CourierADMLink> findActiveADMs(UUID courierId) {
+     * CourierProfile courier = findByUserId(courierId);
+     * return
+     * courierADMLinkRepository.findActiveByCourierId(courier.getUser().getId());
+     * }
+     */
 }

@@ -1,17 +1,23 @@
 package com.mvt.mvt_events.service;
 
 import com.mvt.mvt_events.controller.OrganizationController.OrganizationCreateRequest;
-import com.mvt.mvt_events.jpa.Organization;
-import com.mvt.mvt_events.jpa.User;
-import com.mvt.mvt_events.repository.OrganizationRepository;
-import com.mvt.mvt_events.repository.UserRepository;
+import com.mvt.mvt_events.controller.OrganizationController.OrganizationUpdateRequest;
+import com.mvt.mvt_events.controller.OrganizationController.EmploymentContractRequest;
+import com.mvt.mvt_events.controller.OrganizationController.ContractRequest;
+import com.mvt.mvt_events.jpa.*;
+import com.mvt.mvt_events.repository.*;
 import com.mvt.mvt_events.specification.OrganizationSpecification;
+import org.hibernate.Hibernate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,10 +28,18 @@ public class OrganizationService {
 
     private final OrganizationRepository repository;
     private final UserRepository userRepository;
+    private final CityRepository cityRepository;
+    private final EmploymentContractRepository employmentContractRepository;
+    private final ClientContractRepository clientContractRepository;
 
-    public OrganizationService(OrganizationRepository repository, UserRepository userRepository) {
+    public OrganizationService(OrganizationRepository repository, UserRepository userRepository,
+            CityRepository cityRepository, EmploymentContractRepository employmentContractRepository,
+            ClientContractRepository clientContractRepository) {
         this.repository = repository;
         this.userRepository = userRepository;
+        this.cityRepository = cityRepository;
+        this.employmentContractRepository = employmentContractRepository;
+        this.clientContractRepository = clientContractRepository;
     }
 
     /**
@@ -99,30 +113,72 @@ public class OrganizationService {
         return repository.findBySlug(slug);
     }
 
-    public Organization update(Long id, Organization organizationData) {
+    @Transactional
+    public Organization update(Long id, OrganizationUpdateRequest request) {
         Organization existing = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Organização não encontrada"));
 
         // Validate slug if changed
-        if (organizationData.getSlug() != null && !organizationData.getSlug().equals(existing.getSlug())) {
-            if (repository.existsBySlugAndIdNot(organizationData.getSlug(), id)) {
+        if (request.getSlug() != null && !request.getSlug().equals(existing.getSlug())) {
+            if (repository.existsBySlugAndIdNot(request.getSlug(), id)) {
                 throw new RuntimeException("Já existe uma organização com este slug");
             }
+            existing.setSlug(request.getSlug());
         }
 
         // Update fields
-        if (organizationData.getName() != null)
-            existing.setName(organizationData.getName());
-        if (organizationData.getPhone() != null)
-            existing.setPhone(organizationData.getPhone());
-        if (organizationData.getWebsite() != null)
-            existing.setWebsite(organizationData.getWebsite());
-        if (organizationData.getDescription() != null)
-            existing.setDescription(organizationData.getDescription());
-        if (organizationData.getLogoUrl() != null)
-            existing.setLogoUrl(organizationData.getLogoUrl());
+        if (request.getName() != null)
+            existing.setName(request.getName());
+        if (request.getContactEmail() != null)
+            existing.setContactEmail(request.getContactEmail());
+        if (request.getPhone() != null)
+            existing.setPhone(request.getPhone());
+        if (request.getWebsite() != null)
+            existing.setWebsite(request.getWebsite());
+        if (request.getDescription() != null)
+            existing.setDescription(request.getDescription());
+        if (request.getLogoUrl() != null)
+            existing.setLogoUrl(request.getLogoUrl());
 
-        return repository.save(existing);
+        // Update city relationship - aceita tanto cityId quanto city: {id: valor}
+        Long cityId = request.getCityIdResolved();
+        if (cityId != null) {
+            City city = cityRepository.findById(cityId)
+                    .orElseThrow(() -> new RuntimeException("Cidade não encontrada com ID: " + cityId));
+            existing.setCity(city);
+        }
+
+        // Update status if provided
+        if (request.getStatus() != null) {
+            try {
+                existing.setStatus(OrganizationStatus.valueOf(request.getStatus().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Status inválido: " + request.getStatus());
+            }
+        }
+
+        // Update commission percentage if provided
+        if (request.getCommissionPercentage() != null) {
+            existing.setCommissionPercentage(request.getCommissionPercentage());
+        }
+
+        // Process Employment Contracts (Contratos Motoboy)
+        if (request.getEmploymentContracts() != null) {
+            processEmploymentContracts(existing, request.getEmploymentContracts());
+        }
+
+        // Process Service Contracts (Contratos de Cliente)
+        if (request.getServiceContracts() != null) {
+            processServiceContracts(existing, request.getServiceContracts());
+        }
+
+        // Salvar organização
+        Organization saved = repository.save(existing);
+
+        // Forçar flush e retornar organização limpa (sem relacionamentos carregados)
+        repository.flush();
+
+        return saved;
     }
 
     public void delete(Long id) {
@@ -153,6 +209,97 @@ public class OrganizationService {
                 .replaceAll("^-|-$", "");
     }
 
+    @Transactional
+    private void processEmploymentContracts(Organization organization,
+            List<EmploymentContractRequest> contractRequests) {
+        // Clear existing contracts
+        employmentContractRepository.deleteAllByOrganization(organization);
+        organization.getEmploymentContracts().clear();
+
+        // Add new contracts
+        for (EmploymentContractRequest contractRequest : contractRequests) {
+            try {
+                UUID courierId = UUID.fromString(contractRequest.getCourier());
+                User courier = userRepository.findById(courierId)
+                        .orElseThrow(() -> new RuntimeException("Motoboy não encontrado: " + courierId));
+
+                EmploymentContract contract = new EmploymentContract();
+                contract.setOrganization(organization);
+                contract.setCourier(courier);
+
+                // Parse linkedAt date
+                if (contractRequest.getLinkedAt() != null) {
+                    contract.setLinkedAt(LocalDateTime.parse(contractRequest.getLinkedAt()));
+                } else {
+                    contract.setLinkedAt(LocalDateTime.now());
+                }
+
+                contract.setActive(contractRequest.getIsActive() != null ? contractRequest.getIsActive() : true);
+
+                // Salvar contrato (não adicionar à coleção da organização para evitar circular
+                // reference)
+                employmentContractRepository.save(contract);
+
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("ID de motoboy inválido: " + contractRequest.getCourier());
+            }
+        }
+    }
+
+    @Transactional
+    private void processServiceContracts(Organization organization, List<ContractRequest> contractRequests) {
+        // Clear existing contracts
+        clientContractRepository.deleteAllByOrganization(organization);
+        organization.getClientContracts().clear();
+
+        // Add new contracts
+        for (ContractRequest contractRequest : contractRequests) {
+            try {
+                UUID clientId = UUID.fromString(contractRequest.getClient());
+                User client = userRepository.findById(clientId)
+                        .orElseThrow(() -> new RuntimeException("Cliente não encontrado: " + clientId));
+
+                ClientContract contract = new ClientContract();
+                contract.setOrganization(organization);
+                contract.setClient(client);
+                contract.setContractNumber(contractRequest.getContractNumber());
+                contract.setPrimary(contractRequest.getIsPrimary() != null ? contractRequest.getIsPrimary() : false);
+
+                // Parse contract status
+                if (contractRequest.getStatus() != null) {
+                    try {
+                        contract.setStatus(
+                                ClientContract.ContractStatus.valueOf(contractRequest.getStatus().toUpperCase()));
+                    } catch (IllegalArgumentException e) {
+                        contract.setStatus(ClientContract.ContractStatus.ACTIVE); // Default
+                    }
+                } else {
+                    contract.setStatus(ClientContract.ContractStatus.ACTIVE);
+                }
+
+                // Parse dates - handle ISO 8601 with timezone (2025-10-25T03:00:00.000Z)
+                if (contractRequest.getContractDate() != null && !contractRequest.getContractDate().trim().isEmpty()) {
+                    contract.setContractDate(parseToLocalDate(contractRequest.getContractDate()));
+                }
+
+                if (contractRequest.getStartDate() != null && !contractRequest.getStartDate().trim().isEmpty()) {
+                    contract.setStartDate(parseToLocalDate(contractRequest.getStartDate()));
+                }
+
+                if (contractRequest.getEndDate() != null && !contractRequest.getEndDate().trim().isEmpty()) {
+                    contract.setEndDate(parseToLocalDate(contractRequest.getEndDate()));
+                }
+
+                // Salvar contrato (não adicionar à coleção da organização para evitar circular
+                // reference)
+                clientContractRepository.save(contract);
+
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("ID de cliente inválido: " + contractRequest.getClient());
+            }
+        }
+    }
+
     // Legacy methods for compatibility
     public List<Organization> list() {
         return findAll();
@@ -175,14 +322,29 @@ public class OrganizationService {
         return repository.findAll(spec, pageable);
     }
 
+    @Transactional(readOnly = true)
     public Organization get(Long id) {
-        return findById(id)
+        // Carregar organização SEM os contratos (evita JOIN FETCH que causa
+        // StackOverflow)
+        Organization organization = findById(id)
                 .orElseThrow(() -> new RuntimeException("Organization not found with id: " + id));
+
+        // Forçar inicialização apenas da cidade
+        if (organization.getCity() != null) {
+            Hibernate.initialize(organization.getCity());
+        }
+
+        // NÃO inicializar os contratos aqui - eles serão carregados via queries
+        // customizadas
+        // no controller se necessário
+
+        return organization;
     }
 
     /**
      * Get organization by user ID
      */
+    @Transactional(readOnly = true)
     public Organization getByUserId(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado com ID: " + userId));
@@ -191,6 +353,53 @@ public class OrganizationService {
             throw new RuntimeException("Usuário não está vinculado a nenhuma organização");
         }
 
-        return user.getOrganization();
+        Long organizationId = user.getOrganization().getId();
+        return get(organizationId); // Usa o método get() que já trata a inicialização
+    }
+
+    /**
+     * Helper method to parse date strings that may include timezone (ISO 8601)
+     * Handles formats like:
+     * - 2025-10-25
+     * - 2025-10-25T03:00:00.000Z
+     * - 2025-10-25T03:00:00
+     */
+    private LocalDate parseToLocalDate(String dateString) {
+        if (dateString == null || dateString.trim().isEmpty()) {
+            return null;
+        }
+
+        try {
+            // Try to parse as ZonedDateTime first (handles timezone 'Z')
+            if (dateString.contains("T")) {
+                ZonedDateTime zonedDateTime = ZonedDateTime.parse(dateString);
+                return zonedDateTime.toLocalDate();
+            } else {
+                // Simple date format
+                return LocalDate.parse(dateString);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Formato de data inválido: " + dateString
+                    + ". Use formato ISO 8601 (ex: 2025-10-25 ou 2025-10-25T03:00:00.000Z)");
+        }
+    }
+
+    /**
+     * Carrega dados dos Employment Contracts SEM carregar objetos User completos
+     * Retorna lista de Object[] com: [courier_id, linked_at, is_active]
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<Object[]> getEmploymentContractsData(Long organizationId) {
+        return employmentContractRepository.findContractDataByOrganizationId(organizationId);
+    }
+
+    /**
+     * Carrega dados dos Service Contracts SEM carregar objetos User completos
+     * Retorna lista de Object[] com: [client_id, contract_number, is_primary,
+     * status, contract_date, start_date, end_date]
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<Object[]> getServiceContractsData(Long organizationId) {
+        return clientContractRepository.findContractDataByOrganizationId(organizationId);
     }
 }

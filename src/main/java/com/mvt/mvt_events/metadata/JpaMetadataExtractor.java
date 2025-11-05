@@ -139,6 +139,22 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("currentLongitude", "Longitude Atual");
         FIELD_TRANSLATIONS.put("lastLocationUpdate", "Última Atualização de Localização");
 
+        // ==================== ZAPI10 - CONTRACTS ====================
+        FIELD_TRANSLATIONS.put("employmentContracts", "Contratos Motoboy");
+        FIELD_TRANSLATIONS.put("contracts", "Contratos de Cliente");
+        FIELD_TRANSLATIONS.put("serviceContracts", "Contratos de Cliente");
+
+        // Campos específicos de EmploymentContract
+        FIELD_TRANSLATIONS.put("linkedAt", "Vinculado em");
+        FIELD_TRANSLATIONS.put("isActive", "Ativo");
+
+        // Campos específicos de Contract
+        FIELD_TRANSLATIONS.put("contractNumber", "Número do Contrato");
+        FIELD_TRANSLATIONS.put("isPrimary", "Contrato Principal");
+        FIELD_TRANSLATIONS.put("contractDate", "Data do Contrato");
+        FIELD_TRANSLATIONS.put("client", "Cliente");
+        FIELD_TRANSLATIONS.put("organization", "Grupo");
+
         // ==================== ZAPI10 - EVALUATION ====================
         FIELD_TRANSLATIONS.put("delivery", "Entrega");
         FIELD_TRANSLATIONS.put("evaluator", "Avaliador");
@@ -232,7 +248,7 @@ public class JpaMetadataExtractor {
 
         // ==================== ROLE ====================
         ENUM_TRANSLATIONS.put("USER", "Usuário");
-        ENUM_TRANSLATIONS.put("ORGANIZER", "Organizador");
+        ENUM_TRANSLATIONS.put("ORGANIZER", "Gerente ADM");
         ENUM_TRANSLATIONS.put("ADMIN", "Administrador");
         ENUM_TRANSLATIONS.put("CLIENT", "Cliente");
         ENUM_TRANSLATIONS.put("COURIER", "Motoboy");
@@ -264,6 +280,11 @@ public class JpaMetadataExtractor {
         ENUM_TRANSLATIONS.put("ON_DELIVERY", "Em Entrega");
         ENUM_TRANSLATIONS.put("OFFLINE", "Offline");
         // SUSPENDED já existe acima
+
+        // ==================== ZAPI10 - CONTRACT STATUS ====================
+        // ACTIVE já existe na seção STATUS acima
+        // SUSPENDED já existe na seção ORGANIZATION STATUS acima
+        // CANCELLED já existe na seção DELIVERY STATUS acima
 
         // ==================== GENERIC ====================
         ENUM_TRANSLATIONS.put("OTHER", "Outro");
@@ -508,7 +529,23 @@ public class JpaMetadataExtractor {
         relationship.setFields(extractFields(targetEntity));
 
         FieldMetadata metadata = new FieldMetadata(fieldName, label, "nested");
-        metadata.setVisible(false); // Relacionamentos não aparecem na tabela
+
+        // IMPORTANTE: Respeitar anotação @Visible se presente
+        Visible visibleAnnotation = field.getAnnotation(Visible.class);
+        if (visibleAnnotation != null) {
+            // Setar propriedades baseado em @Visible
+            metadata.setVisible(visibleAnnotation.table()); // Visibilidade inicial baseada em table
+            metadata.setHiddenFromTable(!visibleAnnotation.table()); // Inverso de table()
+            metadata.setHiddenFromForm(!visibleAnnotation.form()); // Inverso de form()
+            metadata.setHiddenFromFilter(!visibleAnnotation.filter()); // Inverso de filter()
+        } else {
+            // Default: relacionamentos não aparecem na tabela
+            metadata.setVisible(false);
+            metadata.setHiddenFromTable(true); // Esconder por padrão da tabela
+            metadata.setHiddenFromForm(false); // Mostrar por padrão no formulário
+            metadata.setHiddenFromFilter(true); // Esconder por padrão dos filtros
+        }
+
         metadata.setSortable(false);
         metadata.setSearchable(false);
         metadata.setRelationship(relationship);

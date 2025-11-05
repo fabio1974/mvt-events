@@ -43,6 +43,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/payments/methods").permitAll() // Permitir consulta de métodos
                         .requestMatchers("/api/payments/calculate-fee").permitAll() // Permitir cálculo de taxa
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll() // Swagger
+                        .requestMatchers("/api/debug/**").permitAll() // Debug endpoints
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
                         .requestMatchers("/api/**").authenticated()

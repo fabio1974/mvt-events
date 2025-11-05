@@ -1,46 +1,46 @@
 package com.mvt.mvt_events.payment;
 
-import com.mvt.mvt_events.jpa.Payment;
 import java.math.BigDecimal;
-import java.util.Map;
 
 /**
- * Interface for payment providers (Stripe, Mercado Pago, etc.)
+ * Interface para providers de pagamento (Stripe, MercadoPago, PayPal).
+ * Será usada para processar pagamentos de deliveries no Zapi10.
  */
 public interface PaymentProvider {
 
     /**
-     * Create a payment intent/preference
+     * Processa um pagamento
+     * 
+     * @param amount             Valor do pagamento
+     * @param currency           Moeda (BRL, USD, etc)
+     * @param paymentMethodToken Token do método de pagamento
+     * @param metadata           Metadados adicionais
+     * @return ID da transação no provider
      */
-    PaymentResult createPayment(PaymentRequest request);
+    String processPayment(BigDecimal amount, String currency, String paymentMethodToken, Object metadata)
+            throws Exception;
 
     /**
-     * Confirm/capture a payment
+     * Calcula a taxa do provider sobre o valor
+     * 
+     * @param amount        Valor base
+     * @param paymentMethod Método de pagamento usado
+     * @return Valor da taxa
      */
-    PaymentResult confirmPayment(String paymentId, Map<String, Object> params);
+    BigDecimal calculateFee(BigDecimal amount, String paymentMethod);
 
     /**
-     * Refund a payment
+     * Verifica se o provider suporta determinado método de pagamento
+     * 
+     * @param paymentMethod Método a verificar
+     * @return true se suportado
      */
-    PaymentResult refundPayment(String paymentId, BigDecimal amount, String reason);
+    boolean supportsPaymentMethod(String paymentMethod);
 
     /**
-     * Get payment status
-     */
-    PaymentResult getPaymentStatus(String paymentId);
-
-    /**
-     * Calculate fees for the payment method
-     */
-    BigDecimal calculateFee(BigDecimal amount, Payment.PaymentMethod paymentMethod);
-
-    /**
-     * Get provider name
+     * Retorna o nome do provider
+     * 
+     * @return Nome (STRIPE, MERCADOPAGO, PAYPAL)
      */
     String getProviderName();
-
-    /**
-     * Check if payment method is supported
-     */
-    boolean supportsPaymentMethod(Payment.PaymentMethod paymentMethod);
 }

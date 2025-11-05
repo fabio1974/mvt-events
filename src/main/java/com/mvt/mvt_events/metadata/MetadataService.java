@@ -16,13 +16,13 @@ public class MetadataService {
     private static final Map<String, EntityConfig> ENTITIES = new HashMap<>();
 
     static {
-        // ==================== MVT Events (Sistema de Eventos) ====================
-        ENTITIES.put("event", new EntityConfig(Event.class, "Eventos", "/api/events"));
-        ENTITIES.put("registration", new EntityConfig(Registration.class, "Inscrições", "/api/registrations"));
+        // ==================== Sistema Base ====================
         ENTITIES.put("organization", new EntityConfig(Organization.class, "Grupos", "/api/organizations"));
         ENTITIES.put("user", new EntityConfig(User.class, "Usuários", "/api/users"));
-        ENTITIES.put("payment", new EntityConfig(Payment.class, "Pagamentos", "/api/payments"));
-        ENTITIES.put("eventCategory", new EntityConfig(EventCategory.class, "Categorias", "/api/event-categories"));
+
+        // TODO: Recriar Payment para deliveries
+        // ENTITIES.put("payment", new EntityConfig(Payment.class, "Pagamentos",
+        // "/api/payments"));
 
         // ==================== Zapi10 (Sistema de Entregas) ====================
         ENTITIES.put("delivery", new EntityConfig(Delivery.class, "Entregas", "/api/deliveries"));
@@ -79,6 +79,9 @@ public class MetadataService {
                     } else if (f.getHiddenFromForm() != null && f.getHiddenFromForm()) {
                         // Se @Visible(form = false), marca como não visível
                         copy.setVisible(false);
+                    } else if (f.getHiddenFromForm() != null && !f.getHiddenFromForm()) {
+                        // Se @Visible(form = true), marca como visível
+                        copy.setVisible(true);
                     }
                     return copy;
                 })

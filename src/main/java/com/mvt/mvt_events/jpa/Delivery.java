@@ -34,18 +34,15 @@ public class Delivery extends BaseEntity {
     @NotNull(message = "Cliente é obrigatório")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Visible(table = true, form = true, filter = true)
     private User client;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "courier_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Visible(table = true, form = true, filter = true)
     private User courier;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "adm_id")
-    @Visible(table = true, form = false, filter = true)
-    private User adm; // Denormalizado do ADM principal do courier
 
     // ============================================================================
     // ORIGIN (FROM)
@@ -53,15 +50,16 @@ public class Delivery extends BaseEntity {
 
     @NotBlank(message = "Endereço de origem é obrigatório")
     @Column(name = "from_address", columnDefinition = "TEXT", nullable = false)
+    @Size(max = 500, message = "Endereço de origem deve ter no máximo 500 caracteres")
     @Visible(table = false, form = true, filter = false)
     private String fromAddress;
 
     @Column(name = "from_lat")
-    @Visible(table = false, form = true, filter = false)
+    @Visible(table = false, form = true, filter = false, readonly = true)
     private Double fromLatitude;
 
     @Column(name = "from_lng")
-    @Visible(table = false, form = true, filter = false)
+    @Visible(table = false, form = true, filter = false, readonly = true)
     private Double fromLongitude;
 
     // ============================================================================
@@ -70,15 +68,16 @@ public class Delivery extends BaseEntity {
 
     @NotBlank(message = "Endereço de destino é obrigatório")
     @Column(name = "to_address", columnDefinition = "TEXT", nullable = false)
+    @Size(max = 500, message = "Endereço de destino deve ter no máximo 500 caracteres")
     @Visible(table = true, form = true, filter = false)
     private String toAddress;
 
     @Column(name = "to_lat")
-    @Visible(table = false, form = true, filter = false)
+    @Visible(table = false, form = true, filter = false, readonly = true)
     private Double toLatitude;
 
     @Column(name = "to_lng")
-    @Visible(table = false, form = true, filter = false)
+    @Visible(table = false, form = true, filter = false, readonly = true)
     private Double toLongitude;
 
     // ============================================================================
@@ -151,6 +150,7 @@ public class Delivery extends BaseEntity {
 
     @Column(name = "cancellation_reason", columnDefinition = "TEXT")
     @Visible(table = false, form = true, filter = false)
+    @Size(max = 200, message = "Motivo de cancelamento deve ter no máximo 200 caracteres")
     private String cancellationReason;
 
     // ============================================================================
@@ -159,6 +159,7 @@ public class Delivery extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "partnership_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Visible(table = false, form = true, filter = true)
     private MunicipalPartnership partnership;
 
@@ -166,12 +167,13 @@ public class Delivery extends BaseEntity {
     // RELATIONSHIPS
     // ============================================================================
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "payment_id")
+    @OneToOne(mappedBy = "delivery", fetch = FetchType.LAZY)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Visible(table = false, form = false, filter = false)
     private Payment payment;
 
     @OneToOne(mappedBy = "delivery", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Visible(table = false, form = false, filter = false)
     private Evaluation evaluation;
 
@@ -192,10 +194,6 @@ public class Delivery extends BaseEntity {
 
     public String getCourierName() {
         return courier != null ? courier.getName() : "Não atribuído";
-    }
-
-    public String getAdmName() {
-        return adm != null ? adm.getName() : "N/A";
     }
 
     // ============================================================================
