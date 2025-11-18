@@ -31,7 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping({"/api/auth", "/auth"})
 @Tag(name = "Autenticação", description = "Login, registro e gerenciamento de usuários")
 public class AuthController {
 

@@ -34,6 +34,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/auth/**").permitAll() // Permitir acesso sem /api prefix
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/metadata", "/api/metadata/**").permitAll() // Permitir acesso público aos
                                                                                           // metadados
