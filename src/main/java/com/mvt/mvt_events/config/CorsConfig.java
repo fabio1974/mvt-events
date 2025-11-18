@@ -15,9 +15,16 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Allow all origins during development (you might want to restrict this in
-        // production)
-        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        // Allow specific origins for production + localhost for development
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+                "https://zapi10.com.br",
+                "https://www.zapi10.com.br",
+                "http://zapi10.com.br",
+                "http://www.zapi10.com.br",
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "http://192.168.*.*:*"  // Para rede local durante desenvolvimento
+        ));
 
         // Allow common HTTP methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
