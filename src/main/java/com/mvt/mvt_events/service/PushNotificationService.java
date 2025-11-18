@@ -87,7 +87,8 @@ public class PushNotificationService {
                     .data(notificationData)
                     .sound("default")
                     .priority("high")
-                    .channelId("delivery")
+                    .channelId("delivery-invites")
+                    .displayInForeground(true) // ← Força foreground (serializa como _displayInForeground)
                     .badge(1)
                     .ttl(300) // 5 minutos
                     .build();
@@ -147,7 +148,8 @@ public class PushNotificationService {
                     .data(notificationData)
                     .sound("default")
                     .priority("high")
-                    .channelId("delivery")
+                    .channelId("delivery-invites")
+                    .displayInForeground(true) // ← Força foreground (serializa como _displayInForeground)
                     .badge(1)
                     .ttl(300) // 5 minutos
                     .build();
@@ -334,6 +336,8 @@ public class PushNotificationService {
                             .data(data != null ? data : Collections.emptyMap())
                             .sound("default")
                             .priority("high")
+                            .channelId("delivery-invites")
+                            .displayInForeground(true) // ← Força foreground (serializa como _displayInForeground)
                             .badge(1)
                             .build();
 

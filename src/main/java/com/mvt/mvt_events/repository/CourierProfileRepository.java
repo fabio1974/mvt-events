@@ -42,7 +42,7 @@ public interface CourierProfileRepository
      */
     @Query(value = "SELECT cp.* FROM courier_profiles cp " +
             "JOIN users u ON cp.user_id = u.id " +
-            "WHERE cp.status = 'ACTIVE' " +
+            "WHERE cp.status = 'AVAILABLE' " +
             "AND (6371 * acos(cos(radians(:latitude)) * cos(radians(u.latitude)) * " +
             "cos(radians(u.longitude) - radians(:longitude)) + sin(radians(:latitude)) * " +
             "sin(radians(u.latitude)))) <= :radiusKm " +

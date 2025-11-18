@@ -44,10 +44,8 @@ public class ADMProfileController {
 
         ADMProfile created = admProfileService.create(profile, userId);
 
-        // Vincular parceria se fornecida
-        if (request.getPartnershipId() != null) {
-            created = admProfileService.linkToPartnership(userId, request.getPartnershipId());
-        }
+        // REMOVIDO: linkToPartnership() - Municipal Partnerships foi removido
+        
         return ResponseEntity.status(HttpStatus.CREATED).body(mapToResponse(created));
     }
 
@@ -111,16 +109,7 @@ public class ADMProfileController {
         return ResponseEntity.ok(mapToResponse(updated));
     }
 
-    @PostMapping("/link-partnership")
-    @Operation(summary = "Vincular ADM autenticado a uma parceria municipal")
-    public ResponseEntity<ADMProfileResponse> linkToPartnership(
-            @RequestParam Long partnershipId,
-            Authentication authentication) {
-
-        UUID userId = UUID.fromString(authentication.getName());
-        ADMProfile updated = admProfileService.linkToPartnership(userId, partnershipId);
-        return ResponseEntity.ok(mapToResponse(updated));
-    }
+    // REMOVIDO: Endpoint linkToPartnership() - Municipal Partnerships foi removido do sistema
 
     private ADMProfileResponse mapToResponse(ADMProfile profile) {
         return ADMProfileResponse.builder()
@@ -131,13 +120,10 @@ public class ADMProfileController {
                 .userPhone(profile.getUser().getPhone())
                 .region(profile.getRegion())
                 .commissionPercentage(profile.getCommissionPercentage())
-                .totalCommission(profile.getTotalCommission()) // Campo correto
+                .totalCommission(profile.getTotalCommission())
                 .totalDeliveriesManaged(profile.getTotalDeliveriesManaged())
-                .activeDeliveriesCount(0) // Campo calculado - adicionar lógica se necessário
+                .activeDeliveriesCount(0)
                 .status(profile.getStatus().name())
-                .partnershipId(profile.getPartnership() != null ? profile.getPartnership().getId() : null)
-                .partnershipName(profile.getPartnership() != null ? profile.getPartnership().getName() : null)
-                .partnershipCity(profile.getPartnership() != null ? profile.getPartnership().getCity() : null)
                 .build();
     }
 }

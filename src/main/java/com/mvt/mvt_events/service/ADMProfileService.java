@@ -1,10 +1,8 @@
 package com.mvt.mvt_events.service;
 
 import com.mvt.mvt_events.jpa.ADMProfile;
-import com.mvt.mvt_events.jpa.MunicipalPartnership;
 import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.repository.ADMProfileRepository;
-import com.mvt.mvt_events.repository.MunicipalPartnershipRepository;
 import com.mvt.mvt_events.repository.UserRepository;
 import com.mvt.mvt_events.specification.ADMProfileSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,9 +29,6 @@ public class ADMProfileService {
 
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private MunicipalPartnershipRepository partnershipRepository;
 
     /**
      * Cria perfil de ADM
@@ -93,22 +88,7 @@ public class ADMProfileService {
         return admProfileRepository.findActiveByRegion(region);
     }
 
-    /**
-     * Vincula ADM a uma parceria
-     */
-    public ADMProfile linkToPartnership(UUID userId, Long partnershipId) {
-        ADMProfile adm = findByUserId(userId);
-
-        MunicipalPartnership partnership = partnershipRepository.findById(partnershipId)
-                .orElseThrow(() -> new RuntimeException("Parceria não encontrada"));
-
-        if (partnership.getStatus() != MunicipalPartnership.PartnershipStatus.ACTIVE) {
-            throw new RuntimeException("Parceria não está ativa");
-        }
-
-        adm.setPartnership(partnership);
-        return admProfileRepository.save(adm);
-    }
+    // REMOVIDO: linkToPartnership() - Municipal Partnerships foi removido do sistema
 
     /**
      * Atualiza comissão do ADM

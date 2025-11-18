@@ -103,6 +103,34 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/validate")
+    @Operation(summary = "Valida o token JWT e retorna informações básicas do usuário")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<?> validateToken(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body(Map.of("valid", false, "message", "Token inválido ou expirado"));
+        }
+        
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username)
+                .orElse(null);
+                
+        if (user == null) {
+            return ResponseEntity.status(401).body(Map.of("valid", false, "message", "Usuário não encontrado"));
+        }
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("valid", true);
+        response.put("userId", user.getId());
+        response.put("username", user.getUsername());
+        response.put("name", user.getName());
+        response.put("role", user.getRole());
+        response.put("organizationId", user.getOrganization() != null ? user.getOrganization().getId() : null);
+        response.put("organizationName", user.getOrganization() != null ? user.getOrganization().getName() : null);
+        
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/me")
     @Operation(summary = "Dados do usuário autenticado")
     @SecurityRequirement(name = "bearerAuth")
@@ -110,8 +138,8 @@ public class AuthController {
         Map<String, Object> response = new HashMap<>();
         response.put("username", authentication.getName());
         response.put("authorities", authentication.getAuthorities());
-        response.put("principal", authentication.getPrincipal());
-
+        response.put("authenticated", authentication.isAuthenticated());
+        
         return ResponseEntity.ok(response);
     }
 

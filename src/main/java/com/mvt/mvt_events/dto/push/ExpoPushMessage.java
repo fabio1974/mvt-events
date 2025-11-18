@@ -1,5 +1,7 @@
 package com.mvt.mvt_events.dto.push;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,6 +16,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ExpoPushMessage {
     private List<String> to;
     private String title;
@@ -24,4 +27,7 @@ public class ExpoPushMessage {
     private String channelId;
     private Integer badge;
     private Integer ttl; // Time to live em segundos
+    
+    @JsonProperty("_displayInForeground") // Força nome exato no JSON
+    private Boolean displayInForeground; // Força exibição mesmo com app aberto (iOS)
 }

@@ -74,6 +74,15 @@ public class DeliveryController {
             Authentication authentication,
             jakarta.servlet.http.HttpServletRequest request) {
 
+        // Garantir ordenação por updatedAt DESC se não especificado
+        if (pageable.getSort().isUnsorted()) {
+            pageable = org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(), 
+                pageable.getPageSize(), 
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "updatedAt")
+            );
+        }
+
         // Extrair dados do token JWT
         String token = extractTokenFromRequest(request);
         String role = jwtUtil.getRoleFromToken(token);
@@ -96,18 +105,26 @@ public class DeliveryController {
 
         Page<Delivery> deliveries;
 
-        if ("COURIER".equals(role)) {
+        if ("ADMIN".equals(role)) {
+            // ADMIN pode ver todas as entregas sem filtro de organização
+            deliveries = deliveryService.findAll(null, clientUuid, courierUuid,
+                    deliveryStatus, start, end, pageable);
+        } else if ("COURIER".equals(role)) {
             // Para COURIERs: buscar deliveries das organizações onde ele trabalha
             UUID courierUserId = UUID.fromString(jwtUtil.getUserIdFromToken(token));
             deliveries = findDeliveriesForCourier(courierUserId, clientUuid, courierUuid,
                     deliveryStatus, start, end, pageable);
-        } else {
-            // Para outros roles: usar organizationId do token
+        } else if ("ORGANIZER".equals(role)) {
+            // Para ORGANIZER: usar organizationId do token (obrigatório)
             Long organizationId = jwtUtil.getOrganizationIdFromToken(token);
             if (organizationId == null) {
-                throw new RuntimeException("Token não contém organizationId");
+                throw new RuntimeException("ORGANIZER deve ter organizationId no token");
             }
             deliveries = deliveryService.findAll(organizationId, clientUuid, courierUuid,
+                    deliveryStatus, start, end, pageable);
+        } else {
+            // Para outros roles (CLIENT, etc): sem filtro de organização
+            deliveries = deliveryService.findAll(null, clientUuid, courierUuid,
                     deliveryStatus, start, end, pageable);
         }
 
@@ -122,30 +139,43 @@ public class DeliveryController {
             jakarta.servlet.http.HttpServletRequest request) {
 
         String token = extractTokenFromRequest(request);
-        Long organizationId = jwtUtil.getOrganizationIdFromToken(token);
-        if (organizationId == null) {
-            throw new RuntimeException("Token não contém organizationId");
+        String role = jwtUtil.getRoleFromToken(token);
+        
+        Long organizationId = null;
+        // Apenas ORGANIZER deve ter organizationId
+        if ("ORGANIZER".equals(role)) {
+            organizationId = jwtUtil.getOrganizationIdFromToken(token);
+            if (organizationId == null) {
+                throw new RuntimeException("ORGANIZER deve ter organizationId no token");
+            }
         }
+        // ADMIN, COURIER, CLIENT não precisam de organizationId
 
         Delivery delivery = deliveryService.findById(id, organizationId);
 
         return ResponseEntity.ok(mapToResponse(delivery));
     }
 
-    @PostMapping("/{id}/assign")
-    @Operation(summary = "Atribuir delivery a courier", description = "Status: PENDING → ACCEPTED")
-    public ResponseEntity<DeliveryResponse> assign(
+    @PatchMapping("/{id}/accept")
+    @Operation(summary = "Aceitar delivery", description = "Courier aceita a delivery. Status: PENDING → ACCEPTED")
+    public ResponseEntity<DeliveryResponse> accept(
             @PathVariable Long id,
             @RequestBody @Valid DeliveryAssignRequest request,
             Authentication authentication,
             jakarta.servlet.http.HttpServletRequest httpRequest) {
 
-        // Extrair organizationId do token JWT
         String token = extractTokenFromRequest(httpRequest);
-        Long organizationId = jwtUtil.getOrganizationIdFromToken(token);
-        if (organizationId == null) {
-            throw new RuntimeException("Token não contém organizationId");
+        String role = jwtUtil.getRoleFromToken(token);
+        
+        Long organizationId = null;
+        // Apenas ORGANIZER deve ter organizationId
+        if ("ORGANIZER".equals(role)) {
+            organizationId = jwtUtil.getOrganizationIdFromToken(token);
+            if (organizationId == null) {
+                throw new RuntimeException("ORGANIZER deve ter organizationId no token");
+            }
         }
+        // ADMIN pode atribuir para qualquer organização
 
         UUID courierId = UUID.fromString(request.getCourierId());
 
@@ -154,7 +184,7 @@ public class DeliveryController {
         return ResponseEntity.ok(mapToResponse(delivery));
     }
 
-    @PostMapping("/{id}/pickup")
+    @PatchMapping("/{id}/pickup")
     @Operation(summary = "Confirmar coleta", description = "Courier confirma que coletou o item. Status: ACCEPTED → PICKED_UP")
     public ResponseEntity<DeliveryResponse> confirmPickup(
             @PathVariable Long id,
@@ -166,7 +196,7 @@ public class DeliveryController {
         return ResponseEntity.ok(mapToResponse(delivery));
     }
 
-    @PostMapping("/{id}/transit")
+    @PatchMapping("/{id}/transit")
     @Operation(summary = "Iniciar transporte", description = "Courier inicia o transporte. Status: PICKED_UP → IN_TRANSIT")
     public ResponseEntity<DeliveryResponse> startTransit(
             @PathVariable Long id,
@@ -178,7 +208,7 @@ public class DeliveryController {
         return ResponseEntity.ok(mapToResponse(delivery));
     }
 
-    @PostMapping("/{id}/complete")
+    @PatchMapping("/{id}/complete")
     @Operation(summary = "Completar delivery", description = "Courier confirma entrega. Status: IN_TRANSIT → COMPLETED")
     public ResponseEntity<DeliveryResponse> complete(
             @PathVariable Long id,
@@ -190,22 +220,64 @@ public class DeliveryController {
         return ResponseEntity.ok(mapToResponse(delivery));
     }
 
-    @PostMapping("/{id}/cancel")
-    @Operation(summary = "Cancelar delivery", description = "ADM cancela a delivery")
+    @PatchMapping("/{id}/cancel")
+    @Operation(summary = "Cancelar delivery", description = "ADM/ADMIN cancela a delivery")
     public ResponseEntity<DeliveryResponse> cancel(
             @PathVariable Long id,
             @RequestParam String reason,
             Authentication authentication,
             jakarta.servlet.http.HttpServletRequest httpRequest) {
 
-        // Extrair organizationId do token JWT
         String token = extractTokenFromRequest(httpRequest);
-        Long organizationId = jwtUtil.getOrganizationIdFromToken(token);
-        if (organizationId == null) {
-            throw new RuntimeException("Token não contém organizationId");
+        String role = jwtUtil.getRoleFromToken(token);
+        
+        Long organizationId = null;
+        // Apenas ORGANIZER deve ter organizationId
+        if ("ORGANIZER".equals(role)) {
+            organizationId = jwtUtil.getOrganizationIdFromToken(token);
+            if (organizationId == null) {
+                throw new RuntimeException("ORGANIZER deve ter organizationId no token");
+            }
         }
+        // ADMIN pode cancelar qualquer delivery
 
         Delivery delivery = deliveryService.cancel(id, organizationId, reason);
+
+        return ResponseEntity.ok(mapToResponse(delivery));
+    }
+
+    @PatchMapping("/{id}/status")
+    @Operation(summary = "Atualizar status da delivery", 
+               description = "Atualiza o status da delivery com validações. Quando cancelada, remove o courier e volta para PENDING.")
+    public ResponseEntity<DeliveryResponse> updateStatus(
+            @PathVariable Long id,
+            @RequestBody @Valid DeliveryStatusUpdateRequest request,
+            Authentication authentication,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+
+        String token = extractTokenFromRequest(httpRequest);
+        String role = jwtUtil.getRoleFromToken(token);
+        
+        Long organizationId = null;
+        // Apenas ORGANIZER deve ter organizationId
+        if ("ORGANIZER".equals(role)) {
+            organizationId = jwtUtil.getOrganizationIdFromToken(token);
+            if (organizationId == null) {
+                throw new RuntimeException("ORGANIZER deve ter organizationId no token");
+            }
+        }
+        // ADMIN pode atualizar status de qualquer delivery
+
+        // Converter string para enum
+        Delivery.DeliveryStatus newStatus;
+        try {
+            newStatus = Delivery.DeliveryStatus.valueOf(request.getStatus().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Status inválido: " + request.getStatus() + 
+                    ". Valores válidos: " + java.util.Arrays.toString(Delivery.DeliveryStatus.values()));
+        }
+
+        Delivery delivery = deliveryService.updateStatus(id, newStatus, request.getReason(), organizationId);
 
         return ResponseEntity.ok(mapToResponse(delivery));
     }
@@ -215,12 +287,18 @@ public class DeliveryController {
     public ResponseEntity<?> listPending(Authentication authentication,
             jakarta.servlet.http.HttpServletRequest httpRequest) {
 
-        // Extrair organizationId do token JWT
         String token = extractTokenFromRequest(httpRequest);
-        Long organizationId = jwtUtil.getOrganizationIdFromToken(token);
-        if (organizationId == null) {
-            throw new RuntimeException("Token não contém organizationId");
+        String role = jwtUtil.getRoleFromToken(token);
+        
+        Long organizationId = null;
+        // Apenas ORGANIZER deve ter organizationId
+        if ("ORGANIZER".equals(role)) {
+            organizationId = jwtUtil.getOrganizationIdFromToken(token);
+            if (organizationId == null) {
+                throw new RuntimeException("ORGANIZER deve ter organizationId no token");
+            }
         }
+        // ADMIN pode ver deliveries pendentes de todas as organizações
 
         var deliveries = deliveryService.findPendingAssignment(organizationId);
         return ResponseEntity.ok(deliveries.stream().map(this::mapToResponse).toList());
@@ -291,16 +369,18 @@ public class DeliveryController {
                 // Recipient
                 .recipientName(delivery.getRecipientName())
                 .recipientPhone(delivery.getRecipientPhone())
+                // Item
+                .itemDescription(delivery.getItemDescription())
                 // Amount & Status
                 .totalAmount(delivery.getTotalAmount())
                 .status(delivery.getStatus().name())
+                .scheduledPickupAt(delivery.getScheduledPickupAt())
+                .acceptedAt(delivery.getAcceptedAt())
                 .pickedUpAt(delivery.getPickedUpAt())
+                .inTransitAt(delivery.getInTransitAt())
                 .completedAt(delivery.getCompletedAt())
-                // Partnership (objeto aninhado)
-                .partnership(delivery.getPartnership() != null ? DeliveryResponse.PartnershipDTO.builder()
-                        .id(delivery.getPartnership().getId())
-                        .name(delivery.getPartnership().getName())
-                        .build() : null)
+                .cancelledAt(delivery.getCancelledAt())
+                .cancellationReason(delivery.getCancellationReason())
                 .build();
     }
 
@@ -316,17 +396,32 @@ public class DeliveryController {
 
     /**
      * Helper para extrair organizationId do JWT token
+     * Retorna null se o usuário for ADMIN ou COURIER (que não têm organizationId direto)
+     * Apenas ORGANIZER deve ter organizationId
      */
     private UUID getOrganizationIdFromRequest(jakarta.servlet.http.HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
-            Long organizationId = jwtUtil.getOrganizationIdFromToken(token);
-            if (organizationId == null) {
-                throw new RuntimeException("Token não contém organizationId");
+            String role = jwtUtil.getRoleFromToken(token);
+            
+            // ADMIN e COURIER não têm organizationId, retornar null
+            if ("ADMIN".equals(role) || "COURIER".equals(role)) {
+                return null;
             }
-            // Buscar a organização pelo ID para obter o UUID
-            return findOrganizationUuidById(organizationId);
+            
+            // ORGANIZER deve ter organizationId
+            if ("ORGANIZER".equals(role)) {
+                Long organizationId = jwtUtil.getOrganizationIdFromToken(token);
+                if (organizationId == null) {
+                    throw new RuntimeException("ORGANIZER deve ter organizationId no token");
+                }
+                // Buscar a organização pelo ID para obter o UUID
+                return findOrganizationUuidById(organizationId);
+            }
+            
+            // Outros roles: retornar null
+            return null;
         }
         throw new RuntimeException("Token de autorização não encontrado");
     }

@@ -48,20 +48,47 @@ public class DeliveryService {
     // private CourierADMLinkRepository courierADMLinkRepository;
 
     /**
-     * Criar nova delivery (qualquer usuário autenticado)
+     * Criar nova delivery
      * VALIDA: Cliente existe, usuário existe, parceria (se fornecida)
+     * 
+     * ROLES PERMITIDAS:
+     * - CLIENT: pode criar entregas para si mesmo
+     * - ADMIN: pode criar entregas para qualquer cliente
+     * 
+     * ROLES NÃO PERMITIDAS:
+     * - ORGANIZER: não pode criar entregas (apenas gerenciar)
+     * - COURIER: não pode criar entregas (apenas executar)
      */
     public Delivery create(Delivery delivery, UUID creatorId, UUID clientId) {
-        // Validar usuário que está criando (pode ser qualquer role)
+        // Validar usuário que está criando
         User creator = userRepository.findById(creatorId)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                .orElseThrow(() -> new RuntimeException("Usuário criador não encontrado"));
 
         // Validar cliente
         User client = userRepository.findById(clientId)
                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
 
+        // Validação de role: cliente deve ser CLIENT
         if (client.getRole() != User.Role.CLIENT) {
-            throw new RuntimeException("Usuário não é um cliente");
+            throw new RuntimeException("O destinatário da entrega deve ser um CLIENT (role atual: " + client.getRole() + ")");
+        }
+
+        // Validação de permissões do criador
+        User.Role creatorRole = creator.getRole();
+        
+        if (creatorRole == User.Role.CLIENT) {
+            // CLIENT só pode criar entregas para si mesmo
+            if (!creator.getId().equals(client.getId())) {
+                throw new RuntimeException("CLIENT só pode criar entregas para si mesmo");
+            }
+        } else if (creatorRole == User.Role.ADMIN) {
+            // ADMIN pode criar entregas para qualquer cliente (sem restrições)
+        } else if (creatorRole == User.Role.ORGANIZER) {
+            // ORGANIZER não pode criar entregas, apenas gerenciar
+            throw new RuntimeException("ORGANIZER não pode criar entregas, apenas gerenciar as existentes");
+        } else if (creatorRole == User.Role.COURIER) {
+            // COURIER não pode criar entregas
+            throw new RuntimeException("COURIER não pode criar entregas");
         }
 
         // A organização da delivery é determinada pela organização do cliente
@@ -89,11 +116,20 @@ public class DeliveryService {
      * Busca delivery por ID com validação de tenant
      */
     public Delivery findById(Long id, Long organizationId) {
-        Specification<Delivery> spec = DeliverySpecification.hasId(id)
-                .and(DeliverySpecification.hasClientOrganizationId(organizationId));
-
-        return deliveryRepository.findOne(spec)
-                .orElseThrow(() -> new RuntimeException("Delivery não encontrada ou sem acesso"));
+        // Buscar com joins para evitar lazy loading
+        Delivery delivery = deliveryRepository.findByIdWithJoins(id)
+                .orElseThrow(() -> new RuntimeException("Delivery não encontrada"));
+        
+        // Validar acesso por organização se necessário
+        if (organizationId != null) {
+            if (delivery.getClient() == null || 
+                delivery.getClient().getOrganization() == null || 
+                !delivery.getClient().getOrganization().getId().equals(organizationId)) {
+                throw new RuntimeException("Delivery não encontrada ou sem acesso");
+            }
+        }
+        
+        return delivery;
     }
 
     /**
@@ -181,25 +217,34 @@ public class DeliveryService {
             throw new RuntimeException("Courier não está disponível");
         }
 
+        // Buscar o User do courier para evitar lazy loading
+        User courierUser = userRepository.findById(courierId)
+                .orElseThrow(() -> new RuntimeException("Usuário courier não encontrado"));
+
         // TODO: Validação de vínculo courier-Organization via EmploymentContract
         // Verificar se o courier tem contrato ativo com a organização do cliente
 
         // Atribuir
-        delivery.setCourier(courier.getUser());
+        delivery.setCourier(courierUser);
         delivery.setStatus(Delivery.DeliveryStatus.ACCEPTED);
+        delivery.setAcceptedAt(LocalDateTime.now());
 
         // Atualizar métricas do courier
         courier.setTotalDeliveries(courier.getTotalDeliveries() + 1);
         courierProfileRepository.save(courier);
 
-        return deliveryRepository.save(delivery);
+        Delivery saved = deliveryRepository.save(delivery);
+        
+        // Recarregar a delivery com todos os relacionamentos para evitar lazy loading
+        return deliveryRepository.findByIdWithJoins(saved.getId())
+                .orElse(saved);
     }
 
     /**
      * Courier confirma coleta
      */
     public Delivery confirmPickup(Long deliveryId, UUID courierId) {
-        Delivery delivery = deliveryRepository.findById(deliveryId)
+        Delivery delivery = deliveryRepository.findByIdWithJoins(deliveryId)
                 .orElseThrow(() -> new RuntimeException("Delivery não encontrada"));
 
         if (!delivery.getCourier().getId().equals(courierId)) {
@@ -211,15 +256,20 @@ public class DeliveryService {
         }
 
         delivery.setStatus(Delivery.DeliveryStatus.PICKED_UP);
+        delivery.setPickedUpAt(LocalDateTime.now());
 
-        return deliveryRepository.save(delivery);
+        Delivery saved = deliveryRepository.save(delivery);
+        
+        // Recarregar com joins
+        return deliveryRepository.findByIdWithJoins(saved.getId())
+                .orElse(saved);
     }
 
     /**
      * Courier inicia transporte
      */
     public Delivery startTransit(Long deliveryId, UUID courierId) {
-        Delivery delivery = deliveryRepository.findById(deliveryId)
+        Delivery delivery = deliveryRepository.findByIdWithJoins(deliveryId)
                 .orElseThrow(() -> new RuntimeException("Delivery não encontrada"));
 
         if (!delivery.getCourier().getId().equals(courierId)) {
@@ -231,8 +281,13 @@ public class DeliveryService {
         }
 
         delivery.setStatus(Delivery.DeliveryStatus.IN_TRANSIT);
+        delivery.setInTransitAt(LocalDateTime.now());
 
-        return deliveryRepository.save(delivery);
+        Delivery saved = deliveryRepository.save(delivery);
+        
+        // Recarregar com joins
+        return deliveryRepository.findByIdWithJoins(saved.getId())
+                .orElse(saved);
     }
 
     /**
@@ -240,7 +295,7 @@ public class DeliveryService {
      * Atualiza métricas do courier
      */
     public Delivery complete(Long deliveryId, UUID courierId) {
-        Delivery delivery = deliveryRepository.findById(deliveryId)
+        Delivery delivery = deliveryRepository.findByIdWithJoins(deliveryId)
                 .orElseThrow(() -> new RuntimeException("Delivery não encontrada"));
 
         if (!delivery.getCourier().getId().equals(courierId)) {
@@ -252,6 +307,7 @@ public class DeliveryService {
         }
 
         delivery.setStatus(Delivery.DeliveryStatus.COMPLETED);
+        delivery.setCompletedAt(LocalDateTime.now());
 
         // Atualizar métricas do courier
         CourierProfile courier = courierProfileRepository.findByUserId(courierId)
@@ -259,7 +315,11 @@ public class DeliveryService {
         courier.setCompletedDeliveries(courier.getCompletedDeliveries() + 1);
         courierProfileRepository.save(courier);
 
-        return deliveryRepository.save(delivery);
+        Delivery saved = deliveryRepository.save(delivery);
+        
+        // Recarregar com joins
+        return deliveryRepository.findByIdWithJoins(saved.getId())
+                .orElse(saved);
     }
 
     /**
@@ -277,6 +337,8 @@ public class DeliveryService {
         }
 
         delivery.setStatus(Delivery.DeliveryStatus.CANCELLED);
+        delivery.setCancelledAt(LocalDateTime.now());
+        delivery.setCancellationReason(reason);
 
         // Se tinha courier atribuído, atualizar métricas
         if (delivery.getCourier() != null) {
@@ -289,6 +351,165 @@ public class DeliveryService {
         }
 
         return deliveryRepository.save(delivery);
+    }
+
+    /**
+     * Atualiza o status de uma delivery com validações e atualização de timestamps
+     * Quando cancelada, remove o courier e volta para PENDING
+     */
+    public Delivery updateStatus(Long deliveryId, Delivery.DeliveryStatus newStatus, String reason, Long organizationId) {
+        Delivery delivery = findById(deliveryId, organizationId);
+        Delivery.DeliveryStatus currentStatus = delivery.getStatus();
+
+        // Validar se a transição é válida
+        validateStatusTransition(currentStatus, newStatus);
+
+        // Atualizar status e timestamps correspondentes
+        delivery.setStatus(newStatus);
+        LocalDateTime now = LocalDateTime.now();
+
+        switch (newStatus) {
+            case PENDING:
+                // Limpar dados quando volta para pending
+                delivery.setCourier(null);
+                delivery.setAcceptedAt(null);
+                delivery.setPickedUpAt(null);
+                delivery.setInTransitAt(null);
+                delivery.setCompletedAt(null);
+                delivery.setCancelledAt(null);
+                delivery.setCancellationReason(null);
+                break;
+
+            case ACCEPTED:
+                delivery.setAcceptedAt(now);
+                // Limpar timestamps posteriores
+                delivery.setPickedUpAt(null);
+                delivery.setInTransitAt(null);
+                delivery.setCompletedAt(null);
+                break;
+
+            case PICKED_UP:
+                if (delivery.getAcceptedAt() == null) {
+                    delivery.setAcceptedAt(now);
+                }
+                delivery.setPickedUpAt(now);
+                // Limpar timestamps posteriores
+                delivery.setInTransitAt(null);
+                delivery.setCompletedAt(null);
+                break;
+
+            case IN_TRANSIT:
+                if (delivery.getAcceptedAt() == null) {
+                    delivery.setAcceptedAt(now);
+                }
+                if (delivery.getPickedUpAt() == null) {
+                    delivery.setPickedUpAt(now);
+                }
+                delivery.setInTransitAt(now);
+                // Limpar timestamp posterior
+                delivery.setCompletedAt(null);
+                break;
+
+            case COMPLETED:
+                if (delivery.getAcceptedAt() == null) {
+                    delivery.setAcceptedAt(now);
+                }
+                if (delivery.getPickedUpAt() == null) {
+                    delivery.setPickedUpAt(now);
+                }
+                if (delivery.getInTransitAt() == null) {
+                    delivery.setInTransitAt(now);
+                }
+                delivery.setCompletedAt(now);
+
+                // Atualizar métricas do courier
+                if (delivery.getCourier() != null) {
+                    CourierProfile courier = courierProfileRepository.findByUserId(delivery.getCourier().getId())
+                            .orElse(null);
+                    if (courier != null) {
+                        courier.setCompletedDeliveries(courier.getCompletedDeliveries() + 1);
+                        courierProfileRepository.save(courier);
+                    }
+                }
+                break;
+
+            case CANCELLED:
+                delivery.setCancelledAt(now);
+                delivery.setCancellationReason(reason);
+                
+                // IMPORTANTE: Remover courier e voltar para PENDING
+                if (delivery.getCourier() != null) {
+                    // Atualizar métricas do courier
+                    CourierProfile courier = courierProfileRepository.findByUserId(delivery.getCourier().getId())
+                            .orElse(null);
+                    if (courier != null) {
+                        courier.setCancelledDeliveries(courier.getCancelledDeliveries() + 1);
+                        courierProfileRepository.save(courier);
+                    }
+                    
+                    // Remover courier da delivery
+                    delivery.setCourier(null);
+                }
+                
+                // Voltar para PENDING
+                delivery.setStatus(Delivery.DeliveryStatus.PENDING);
+                delivery.setAcceptedAt(null);
+                delivery.setPickedUpAt(null);
+                delivery.setInTransitAt(null);
+                delivery.setCompletedAt(null);
+                break;
+        }
+
+        return deliveryRepository.save(delivery);
+    }
+
+    /**
+     * Valida se a transição de status é permitida
+     */
+    private void validateStatusTransition(Delivery.DeliveryStatus current, Delivery.DeliveryStatus target) {
+        // CANCELLED pode ser acionado de qualquer status (exceto COMPLETED)
+        if (target == Delivery.DeliveryStatus.CANCELLED) {
+            if (current == Delivery.DeliveryStatus.COMPLETED) {
+                throw new RuntimeException("Não é possível cancelar delivery completada");
+            }
+            return;
+        }
+
+        // PENDING só pode vir de CANCELLED ou ser o estado inicial
+        if (target == Delivery.DeliveryStatus.PENDING) {
+            if (current != Delivery.DeliveryStatus.CANCELLED && current != Delivery.DeliveryStatus.PENDING) {
+                throw new RuntimeException("Não é possível voltar para PENDING exceto após cancelamento");
+            }
+            return;
+        }
+
+        // Validar fluxo normal: PENDING -> ACCEPTED -> PICKED_UP -> IN_TRANSIT -> COMPLETED
+        switch (current) {
+            case PENDING:
+                if (target != Delivery.DeliveryStatus.ACCEPTED) {
+                    throw new RuntimeException("De PENDING só pode ir para ACCEPTED");
+                }
+                break;
+            case ACCEPTED:
+                if (target != Delivery.DeliveryStatus.PICKED_UP) {
+                    throw new RuntimeException("De ACCEPTED só pode ir para PICKED_UP");
+                }
+                break;
+            case PICKED_UP:
+                if (target != Delivery.DeliveryStatus.IN_TRANSIT) {
+                    throw new RuntimeException("De PICKED_UP só pode ir para IN_TRANSIT");
+                }
+                break;
+            case IN_TRANSIT:
+                if (target != Delivery.DeliveryStatus.COMPLETED) {
+                    throw new RuntimeException("De IN_TRANSIT só pode ir para COMPLETED");
+                }
+                break;
+            case COMPLETED:
+                throw new RuntimeException("Delivery completada não pode mudar de status");
+            case CANCELLED:
+                throw new RuntimeException("Delivery cancelada não pode mudar de status");
+        }
     }
 
     /**

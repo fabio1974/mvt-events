@@ -40,9 +40,5 @@ public interface ADMProfileRepository
     @Query("SELECT a FROM ADMProfile a WHERE a.region = :region AND a.status = 'ACTIVE'")
     List<ADMProfile> findActiveByRegion(@Param("region") String region);
 
-    /**
-     * Busca ADMs de uma parceria específica
-     */
-    @Query("SELECT a FROM ADMProfile a WHERE a.partnership.id = :partnershipId")
-    List<ADMProfile> findByPartnershipId(@Param("partnershipId") Long partnershipId);
+    // REMOVIDO: findByPartnershipId() - Municipal Partnerships foi removido do sistema
 }

@@ -140,6 +140,10 @@ public class Delivery extends BaseEntity {
     @Visible(table = false, form = false, filter = false)
     private LocalDateTime pickedUpAt;
 
+    @Column(name = "in_transit_at")
+    @Visible(table = false, form = false, filter = false)
+    private LocalDateTime inTransitAt;
+
     @Column(name = "completed_at")
     @Visible(table = true, form = false, filter = true)
     private LocalDateTime completedAt;
@@ -154,17 +158,7 @@ public class Delivery extends BaseEntity {
     private String cancellationReason;
 
     // ============================================================================
-    // OPTIONAL: MUNICIPAL PARTNERSHIP
-    // ============================================================================
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "partnership_id")
-    @com.fasterxml.jackson.annotation.JsonIgnore
-    @Visible(table = false, form = true, filter = true)
-    private MunicipalPartnership partnership;
-
-    // ============================================================================
-    // RELATIONSHIPS
+    // PAYMENT & EVALUATION
     // ============================================================================
 
     @OneToOne(mappedBy = "delivery", fetch = FetchType.LAZY)
@@ -179,6 +173,7 @@ public class Delivery extends BaseEntity {
 
     // ============================================================================
     // COMPUTED FIELDS
+    // ============================================================================
     // ============================================================================
 
     public Long getActualDeliveryTimeMinutes() {

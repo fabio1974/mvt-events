@@ -37,6 +37,12 @@ public interface UserPushTokenRepository extends JpaRepository<UserPushToken, UU
         Optional<UserPushToken> findByToken(@Param("token") String token);
 
         /**
+         * Busca token específico de um usuário pelo valor do token
+         */
+        @Query("SELECT u FROM UserPushToken u WHERE u.user.id = :userId AND u.token = :token")
+        Optional<UserPushToken> findByUserIdAndToken(@Param("userId") UUID userId, @Param("token") String token);
+
+        /**
          * Verifica se existe token ativo para usuário e token específico
          */
         @Query("SELECT COUNT(u) > 0 FROM UserPushToken u WHERE u.user.id = :userId AND u.token = :token AND u.isActive = true")

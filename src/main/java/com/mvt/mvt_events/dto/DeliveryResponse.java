@@ -46,15 +46,21 @@ public class DeliveryResponse {
     private String recipientName;
     private String recipientPhone;
 
+    // Item
+    private String itemDescription;
+
     // Valores
     private BigDecimal totalAmount;
 
     // Status
     private String status;
     private LocalDateTime scheduledPickupAt;
+    private LocalDateTime acceptedAt;
     private LocalDateTime pickedUpAt;
+    private LocalDateTime inTransitAt;
     private LocalDateTime completedAt;
     private LocalDateTime cancelledAt;
+    private String cancellationReason;
 
     // Parceria (objeto aninhado)
     private PartnershipDTO partnership;

@@ -82,14 +82,6 @@ public class ADMProfile extends BaseEntity {
     private Integer totalDeliveriesManaged = 0;
 
     // ============================================================================
-    // PARTNERSHIP
-    // ============================================================================
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "partnership_id")
-    @Visible(table = false, form = true, filter = true)
-    private MunicipalPartnership partnership;
-
     // ============================================================================
     // STATUS
     // ============================================================================
@@ -116,12 +108,7 @@ public class ADMProfile extends BaseEntity {
                 RoundingMode.HALF_UP);
     }
 
-    /**
-     * Retorna o nome da parceria municipal
-     */
-    public String getPartnershipName() {
-        return partnership != null ? partnership.getName() : "Sem parceria";
-    }
+    // REMOVIDO: getPartnershipName() - Municipal Partnerships foi removido do sistema
 
     // ============================================================================
     // ENUMS

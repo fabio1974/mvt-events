@@ -1,0 +1,34 @@
+nohup: ignoring input
+
+> Task :compileJava FAILED
+/home/fbarros/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/controller/ADMProfileController.java:119: error: cannot find symbol
+        ADMProfile updated = admProfileService.linkToPartnership(userId, partnershipId);
+                                              ^
+  symbol:   method linkToPartnership(UUID,Long)
+  location: variable admProfileService of type ADMProfileService
+Note: /home/fbarros/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/UnifiedPayout.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+1 error
+
+[Incubating] Problems report is available at: file:///home/fbarros/Documents/projects/mvt-events/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Compilation failed; see the compiler output below.
+  Note: /home/fbarros/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/UnifiedPayout.java uses or overrides a deprecated API.
+  Note: Recompile with -Xlint:deprecation for details.
+  /home/fbarros/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/controller/ADMProfileController.java:119: error: cannot find symbol
+          ADMProfile updated = admProfileService.linkToPartnership(userId, partnershipId);
+                                                ^
+    symbol:   method linkToPartnership(UUID,Long)
+    location: variable admProfileService of type ADMProfileService
+  1 error
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights.
+
+BUILD FAILED in 2s
+1 actionable task: 1 executed
