@@ -38,6 +38,12 @@ public class DeliveryService {
     @Autowired
     private com.mvt.mvt_events.repository.OrganizationRepository organizationRepository;
 
+    @Autowired
+    private EmploymentContractRepository employmentContractRepository;
+
+    @Autowired
+    private ClientContractRepository clientContractRepository;
+
     // TODO: ADMProfileRepository não mais usado após remoção de CourierADMLink
     // @Autowired
     // private ADMProfileRepository admProfileRepository;
@@ -139,6 +145,27 @@ public class DeliveryService {
             Delivery.DeliveryStatus status,
             LocalDateTime startDate, LocalDateTime endDate,
             Pageable pageable) {
+        
+        // Caso especial: busca por clientId específico (para role CLIENT)
+        if (clientId != null && courierId == null && organizationId == null &&
+                startDate == null && endDate == null) {
+            List<Delivery> deliveries;
+            
+            if (status != null) {
+                // Com filtro de status
+                deliveries = deliveryRepository.findByClientIdAndStatusWithJoins(clientId, status);
+            } else {
+                // Sem filtro de status
+                deliveries = deliveryRepository.findByClientIdWithJoins(clientId);
+            }
+            
+            // Converter para Page manualmente
+            int start = (int) pageable.getOffset();
+            int end = Math.min(start + pageable.getPageSize(), deliveries.size());
+            List<Delivery> pageContent = deliveries.subList(start, end);
+            return new PageImpl<>(pageContent, pageable, deliveries.size());
+        }
+        
         // Para simplificar e evitar o problema de lazy loading,
         // vamos usar apenas o filtro por organizationId primeiro
         if (clientId == null && courierId == null && status == null &&
@@ -221,11 +248,15 @@ public class DeliveryService {
         User courierUser = userRepository.findById(courierId)
                 .orElseThrow(() -> new RuntimeException("Usuário courier não encontrado"));
 
-        // TODO: Validação de vínculo courier-Organization via EmploymentContract
-        // Verificar se o courier tem contrato ativo com a organização do cliente
+        // Buscar a organização comum entre courier (employment) e client (client contract)
+        Organization commonOrganization = findCommonOrganization(courierUser, delivery.getClient());
+        if (commonOrganization == null) {
+            throw new RuntimeException("Courier e Client não compartilham uma organização comum através de contratos ativos");
+        }
 
         // Atribuir
         delivery.setCourier(courierUser);
+        delivery.setOrganization(commonOrganization);
         delivery.setStatus(Delivery.DeliveryStatus.ACCEPTED);
         delivery.setAcceptedAt(LocalDateTime.now());
 
@@ -340,7 +371,7 @@ public class DeliveryService {
         delivery.setCancelledAt(LocalDateTime.now());
         delivery.setCancellationReason(reason);
 
-        // Se tinha courier atribuído, atualizar métricas
+        // Se tinha courier atribuído, atualizar métricas e remover courier e organization
         if (delivery.getCourier() != null) {
             CourierProfile courier = courierProfileRepository.findByUserId(delivery.getCourier().getId())
                     .orElse(null);
@@ -348,6 +379,10 @@ public class DeliveryService {
                 courier.setCancelledDeliveries(courier.getCancelledDeliveries() + 1);
                 courierProfileRepository.save(courier);
             }
+            
+            // Remover courier e organization
+            delivery.setCourier(null);
+            delivery.setOrganization(null);
         }
 
         return deliveryRepository.save(delivery);
@@ -549,5 +584,56 @@ public class DeliveryService {
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
         return R * c;
+    }
+
+    /**
+     * Encontra a organização comum entre courier e client
+     * O courier deve ter EmploymentContract ativo com a organização
+     * O client deve ter ClientContract ativo com a mesma organização
+     * 
+     * Regras de priorização:
+     * 1. Se houver múltiplas organizações em comum, prioriza a que tem isPrimary = true no ClientContract
+     * 2. Se nenhuma tiver isPrimary = true, retorna a primeira encontrada
+     * 
+     * @param courier O usuário courier
+     * @param client O usuário client
+     * @return A organização comum ou null se não houver
+     */
+    private Organization findCommonOrganization(User courier, User client) {
+        // Buscar organizações onde o courier trabalha (EmploymentContract ativo)
+        List<EmploymentContract> courierContracts = employmentContractRepository
+                .findActiveByCourierId(courier.getId());
+        
+        // Buscar organizações onde o client tem contrato (ClientContract ativo)
+        List<ClientContract> clientContracts = clientContractRepository
+                .findActiveByClientId(client.getId());
+        
+        // Lista de organizações em comum
+        List<Organization> commonOrganizations = new java.util.ArrayList<>();
+        Organization primaryOrganization = null;
+        
+        // Encontrar organizações em comum
+        for (EmploymentContract ec : courierContracts) {
+            for (ClientContract cc : clientContracts) {
+                if (ec.getOrganization().getId().equals(cc.getOrganization().getId())) {
+                    Organization org = ec.getOrganization();
+                    commonOrganizations.add(org);
+                    
+                    // Se o contrato do cliente for primário, salvar como prioritário
+                    if (cc.isPrimary()) {
+                        primaryOrganization = org;
+                    }
+                }
+            }
+        }
+        
+        // Retornar de acordo com a prioridade
+        if (primaryOrganization != null) {
+            return primaryOrganization; // Prioridade 1: isPrimary = true
+        } else if (!commonOrganizations.isEmpty()) {
+            return commonOrganizations.get(0); // Prioridade 2: primeira encontrada
+        }
+        
+        return null; // Não há organização em comum
     }
 }

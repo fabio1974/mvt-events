@@ -107,6 +107,12 @@ public interface ClientContractRepository extends JpaRepository<ClientContract, 
         List<ClientContract> findByClientId(@Param("clientId") UUID clientId);
 
         /**
+         * Busca contratos ativos de um cliente específico
+         */
+        @Query("SELECT c FROM ClientContract c WHERE c.client.id = :clientId AND c.status = 'ACTIVE'")
+        List<ClientContract> findActiveByClientId(@Param("clientId") UUID clientId);
+
+        /**
          * Busca contrato primário de um cliente com uma organização
          */
         @Query("SELECT c FROM ClientContract c WHERE c.client.id = :clientId AND c.organization.id = :organizationId AND c.isPrimary = true AND c.status = 'ACTIVE'")

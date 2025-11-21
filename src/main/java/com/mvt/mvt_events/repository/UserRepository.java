@@ -27,6 +27,11 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
        @Query("SELECT u FROM User u WHERE u.username = :username")
        Optional<User> findByUsernameForAuth(@Param("username") String username);
 
+       // Método para autenticação por CPF (carrega todos os relacionamentos necessários para JWT)
+       @EntityGraph(attributePaths = { "organization", "city" })
+       @Query("SELECT u FROM User u WHERE u.cpf = :cpf")
+       Optional<User> findByCpfForAuth(@Param("cpf") String cpf);
+
        // Método simples para reset password (sem carregar relacionamentos)
        @Query("SELECT u FROM User u WHERE u.username = :username")
        Optional<User> findByUsernameSimple(@Param("username") String username);

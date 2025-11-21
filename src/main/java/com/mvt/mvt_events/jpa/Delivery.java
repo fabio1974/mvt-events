@@ -41,8 +41,14 @@ public class Delivery extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "courier_id")
     @com.fasterxml.jackson.annotation.JsonIgnore
-    @Visible(table = true, form = true, filter = true)
+    @Visible(table = true, form = false, filter = true)
     private User courier;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @Visible(table = true, form = false, filter = true)
+    private Organization organization;
 
     // ============================================================================
     // ORIGIN (FROM)
@@ -119,18 +125,25 @@ public class Delivery extends BaseEntity {
     @Visible(table = true, form = true, filter = false)
     private BigDecimal totalAmount;
 
+    @DecimalMin(value = "0.01", message = "Valor mínimo do frete é R$ 0,01")
+    @Column(name = "shipping_fee", precision = 10, scale = 2)
+    @Visible(table = true, form = true, filter = false)
+    private BigDecimal shippingFee;
+
+    @Column(name = "scheduled_pickup_at")
+    @Visible(table = true, form = true, filter = true)
+    private LocalDateTime scheduledPickupAt;
+
     // ============================================================================
     // STATUS & TIMESTAMPS
     // ============================================================================
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    @Visible(table = true, form = true, filter = true)
+    @Visible(table = true, form = true, filter = true, readonly = true)
     private DeliveryStatus status = DeliveryStatus.PENDING;
 
-    @Column(name = "scheduled_pickup_at")
-    @Visible(table = true, form = true, filter = true)
-    private LocalDateTime scheduledPickupAt;
+
 
     @Column(name = "accepted_at")
     @Visible(table = false, form = false, filter = false)
@@ -163,7 +176,7 @@ public class Delivery extends BaseEntity {
 
     @OneToOne(mappedBy = "delivery", fetch = FetchType.LAZY)
     @com.fasterxml.jackson.annotation.JsonIgnore
-    @Visible(table = false, form = false, filter = false)
+    @Visible(table = true, form = false, filter = false)
     private Payment payment;
 
     @OneToOne(mappedBy = "delivery", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

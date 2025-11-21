@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 
 import com.mvt.mvt_events.repository.UserRepository;
 
+import java.util.Optional;
+
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 
@@ -18,7 +20,14 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByUsernameForAuth(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+        // Tenta buscar por email primeiro
+        Optional<com.mvt.mvt_events.jpa.User> user = userRepository.findByUsernameForAuth(username);
+        
+        // Se não encontrou por email, tenta buscar por CPF
+        if (user.isEmpty()) {
+            user = userRepository.findByCpfForAuth(username);
+        }
+        
+        return user.orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
     }
 }

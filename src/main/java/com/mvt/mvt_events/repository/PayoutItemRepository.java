@@ -12,33 +12,21 @@ import java.util.Optional;
 
 /**
  * Repository para PayoutItem
- * Tabela intermediária entre Payment e UnifiedPayout
+ * Cada item representa um repasse individual para um beneficiário
  */
 @Repository
 public interface PayoutItemRepository
                 extends JpaRepository<PayoutItem, Long>, JpaSpecificationExecutor<PayoutItem> {
 
         /**
-         * Busca items de um payout específico
-         */
-        List<PayoutItem> findByPayoutIdOrderByCreatedAtAsc(Long payoutId);
-
-        // TODO: Payment removido temporariamente - será recriado para deliveries
-        /**
          * Busca items de um payment específico
          */
-        // List<PayoutItem> findByPaymentId(Long paymentId);
+        List<PayoutItem> findByPaymentIdOrderByCreatedAtAsc(Long paymentId);
 
         /**
-         * Verifica se um payment já está em algum payout
+         * Verifica se um payment já tem items de repasse
          */
-        // boolean existsByPaymentId(Long paymentId);
-
-        /**
-         * Busca item específico por payout e payment
-         */
-        // Optional<PayoutItem> findByPayoutIdAndPaymentId(Long payoutId, Long
-        // paymentId);
+        boolean existsByPaymentId(Long paymentId);
 
         /**
          * Busca items por tipo de valor
@@ -47,38 +35,56 @@ public interface PayoutItemRepository
         List<PayoutItem> findByValueType(@Param("valueType") String valueType);
 
         /**
-         * Soma valores de items de um payout
-         */
-        @Query("SELECT SUM(pi.itemValue) FROM PayoutItem pi WHERE pi.payout.id = :payoutId")
-        Double sumItemValuesByPayoutId(@Param("payoutId") Long payoutId);
-
-        /**
-         * Conta items de um payout
-         */
-        @Query("SELECT COUNT(pi) FROM PayoutItem pi WHERE pi.payout.id = :payoutId")
-        Long countByPayoutId(@Param("payoutId") Long payoutId);
-
-        /**
-         * Busca items de um payment específico
-         */
-        List<PayoutItem> findByPaymentId(Long paymentId);
-
-        /**
-         * Verifica se um payment já está em algum payout
-         */
-        boolean existsByPaymentId(Long paymentId);
-
-        /**
-         * Busca item específico por payout e payment
-         */
-        Optional<PayoutItem> findByPayoutIdAndPaymentId(Long payoutId, Long paymentId);
-
-        /**
-         * Busca payments não incluídos em nenhum payout
+         * Busca payments não incluídos em nenhum item de repasse
          * (para processamento de novos repasses)
          */
         @Query("SELECT p.id FROM Payment p " +
                         "WHERE NOT EXISTS (SELECT pi FROM PayoutItem pi WHERE pi.payment.id = p.id) " +
                         "AND p.status = 'COMPLETED'")
         List<Long> findPaymentIdsNotInAnyPayout();
+
+        /**
+         * Busca items de repasse por beneficiário
+         */
+        List<PayoutItem> findByBeneficiaryIdOrderByCreatedAtDesc(java.util.UUID beneficiaryId);
+
+        /**
+         * Busca items de repasse por beneficiário e status
+         */
+        List<PayoutItem> findByBeneficiaryIdAndStatusOrderByCreatedAtDesc(
+                        java.util.UUID beneficiaryId,
+                        PayoutItem.PayoutStatus status);
+
+        /**
+         * Busca items de repasse por status
+         */
+        List<PayoutItem> findByStatusOrderByCreatedAtAsc(PayoutItem.PayoutStatus status);
+
+        /**
+         * Busca items pendentes de pagamento para um beneficiário
+         */
+        @Query("SELECT pi FROM PayoutItem pi WHERE pi.beneficiary.id = :beneficiaryId " +
+                        "AND pi.status = 'PENDING' ORDER BY pi.createdAt ASC")
+        List<PayoutItem> findPendingByBeneficiaryId(@Param("beneficiaryId") java.util.UUID beneficiaryId);
+
+        /**
+         * Soma total de repasses pagos para um beneficiário
+         */
+        @Query("SELECT SUM(pi.itemValue) FROM PayoutItem pi WHERE pi.beneficiary.id = :beneficiaryId " +
+                        "AND pi.status = 'PAID'")
+        Double sumPaidAmountByBeneficiaryId(@Param("beneficiaryId") java.util.UUID beneficiaryId);
+
+        /**
+         * Soma total de repasses pendentes para um beneficiário
+         */
+        @Query("SELECT SUM(pi.itemValue) FROM PayoutItem pi WHERE pi.beneficiary.id = :beneficiaryId " +
+                        "AND pi.status = 'PENDING'")
+        Double sumPendingAmountByBeneficiaryId(@Param("beneficiaryId") java.util.UUID beneficiaryId);
+
+        /**
+         * Busca items de repasse por tipo de valor e status
+         */
+        List<PayoutItem> findByValueTypeAndStatus(
+                        PayoutItem.ValueType valueType,
+                        PayoutItem.PayoutStatus status);
 }

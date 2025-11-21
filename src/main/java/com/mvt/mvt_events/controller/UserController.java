@@ -170,7 +170,6 @@ public class UserController {
         private String country;
         private String dateOfBirth; // ISO format: YYYY-MM-DD ou YYYY-MM-DDTHH:mm:ss.sssZ
         private String gender; // MALE, FEMALE, OTHER
-        private String emergencyContact;
         private Long organizationId; // ID da organização (opcional, aceita direto)
         private OrganizationIdWrapper organization; // Aceita também {"id": 6}
         private Boolean enabled = true; // default true
@@ -220,7 +219,8 @@ public class UserController {
         private String birthDate; // Mapeia para "birthDate" do front-end
         private String gender; // M/F/OTHER
         private String cpf; // Mapeia para "cpf" do front-end
-        private String emergencyContact;
+        private Double latitude; // Coordenadas do endereço fixo
+        private Double longitude; // Coordenadas do endereço fixo
     }
 
     // DTO para atualização de localização
@@ -256,14 +256,17 @@ public class UserController {
         private String dateOfBirth;
         private String gender;
         private String cpf;
-        private String emergencyContact;
         private String role;
         private OrganizationDTO organization;
 
-        // Campos de localização
+        // Campos de localização do endereço fixo
         private Double latitude;
         private Double longitude;
-        private String updatedAt; // Timestamp da última atualização
+        
+        // Campos de localização GPS (em tempo real)
+        private Double gpsLatitude;
+        private Double gpsLongitude;
+        private String updatedAt; // Timestamp da última atualização GPS
 
         // Contratos (apenas para COURIER e CLIENT)
         private java.util.List<EmploymentContractForUserResponse> employmentContracts;
@@ -280,12 +283,15 @@ public class UserController {
             this.dateOfBirth = user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : null;
             this.gender = user.getGender() != null ? user.getGender().toString() : null;
             this.cpf = user.getCpfFormatted();
-            this.emergencyContact = user.getEmergencyContact();
             this.role = user.getRole() != null ? user.getRole().toString() : null;
 
-            // Campos de localização
+            // Campos de localização do endereço fixo
             this.latitude = user.getLatitude();
             this.longitude = user.getLongitude();
+            
+            // Campos de localização GPS (em tempo real)
+            this.gpsLatitude = user.getGpsLatitude();
+            this.gpsLongitude = user.getGpsLongitude();
             this.updatedAt = user.getUpdatedAt() != null ? user.getUpdatedAt().toString() : null;
 
             // Carregar dados da cidade como objeto usando DTOMapper

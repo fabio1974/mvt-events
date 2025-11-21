@@ -29,7 +29,6 @@ public class MetadataService {
         ENTITIES.put("courierProfile",
                 new EntityConfig(CourierProfile.class, "Perfis de Motoboy", "/api/courier-profiles"));
         ENTITIES.put("evaluation", new EntityConfig(Evaluation.class, "Avaliações", "/api/evaluations"));
-        ENTITIES.put("unifiedPayout", new EntityConfig(UnifiedPayout.class, "Repasses", "/api/unified-payouts"));
     }
 
     public Map<String, EntityMetadata> getAllEntitiesMetadata() {

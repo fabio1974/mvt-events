@@ -87,10 +87,6 @@ public class User implements UserDetails {
     private String cpf; // CPF do usuário (obrigatório e único)
 
     @Visible(table = false, form = true, filter = false)
-    @Column(name = "emergency_contact")
-    private String emergencyContact;
-
-    @Visible(table = false, form = true, filter = false)
     @Enumerated(EnumType.STRING)
     @Column(length = 10)
     private Gender gender;
@@ -107,12 +103,20 @@ public class User implements UserDetails {
     // ZAPI10 GEOLOCATION FIELDS
     // ============================================================================
 
-    @Visible(table = false, form = false, filter = false)
-    @Column
+    @Visible(table = false, form = true, filter = false, readonly = true)
+    @Column(name = "gps_latitude")
+    private Double gpsLatitude;
+
+    @Visible(table = false, form = true, filter = false, readonly = true)
+    @Column(name = "gps_longitude")
+    private Double gpsLongitude;
+
+    @Visible(table = false, form = true, filter = false, readonly = true)
+    @Column(name = "latitude")
     private Double latitude;
 
-    @Visible(table = false, form = false, filter = false)
-    @Column
+    @Visible(table = false, form = true, filter = false, readonly = true)
+    @Column(name = "longitude")
     private Double longitude;
 
     // Organization relationship for Gerente ADM role

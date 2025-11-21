@@ -114,6 +114,11 @@ public class DeliveryController {
             UUID courierUserId = UUID.fromString(jwtUtil.getUserIdFromToken(token));
             deliveries = findDeliveriesForCourier(courierUserId, clientUuid, courierUuid,
                     deliveryStatus, start, end, pageable);
+        } else if ("CLIENT".equals(role)) {
+            // Para CLIENTs: mostrar apenas suas próprias entregas
+            UUID clientUserId = UUID.fromString(jwtUtil.getUserIdFromToken(token));
+            deliveries = deliveryService.findAll(null, clientUserId, courierUuid,
+                    deliveryStatus, start, end, pageable);
         } else if ("ORGANIZER".equals(role)) {
             // Para ORGANIZER: usar organizationId do token (obrigatório)
             Long organizationId = jwtUtil.getOrganizationIdFromToken(token);
@@ -123,9 +128,8 @@ public class DeliveryController {
             deliveries = deliveryService.findAll(organizationId, clientUuid, courierUuid,
                     deliveryStatus, start, end, pageable);
         } else {
-            // Para outros roles (CLIENT, etc): sem filtro de organização
-            deliveries = deliveryService.findAll(null, clientUuid, courierUuid,
-                    deliveryStatus, start, end, pageable);
+            // Para outros roles: sem acesso
+            throw new RuntimeException("Role não autorizado para listar deliveries");
         }
 
         return deliveries.map(this::mapToResponse);
@@ -352,13 +356,19 @@ public class DeliveryController {
                         .name(delivery.getCourier().getName())
                         .phone(delivery.getCourier().getPhone())
                         .build() : null)
-                // Organização vem do cliente agora
-                .organization(delivery.getClient() != null && delivery.getClient().getOrganization() != null
+                // Organização: prioriza a organização da delivery (setada no aceite)
+                // Se não houver, busca a organização do cliente
+                .organization(delivery.getOrganization() != null
                         ? DeliveryResponse.OrganizationDTO.builder()
-                                .id(delivery.getClient().getOrganization().getId())
-                                .name(delivery.getClient().getOrganization().getName())
+                                .id(delivery.getOrganization().getId())
+                                .name(delivery.getOrganization().getName())
                                 .build()
-                        : null)
+                        : (delivery.getClient() != null && delivery.getClient().getOrganization() != null
+                                ? DeliveryResponse.OrganizationDTO.builder()
+                                        .id(delivery.getClient().getOrganization().getId())
+                                        .name(delivery.getClient().getOrganization().getName())
+                                        .build()
+                                : null))
                 // Addresses
                 .fromAddress(delivery.getFromAddress())
                 .fromLatitude(delivery.getFromLatitude())

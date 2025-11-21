@@ -154,9 +154,6 @@ public class UserService {
         if (request.getCountry() != null) {
             user.setCountry(request.getCountry().trim());
         }
-        if (request.getEmergencyContact() != null) {
-            user.setEmergencyContact(request.getEmergencyContact().trim());
-        }
 
         // City - aceita tanto cityId quanto city.id
         Long cityIdResolved = request.getCityIdResolved();
@@ -259,10 +256,6 @@ public class UserService {
             user.setCountry(request.getCountry().trim());
         }
 
-        if (request.getEmergencyContact() != null) {
-            user.setEmergencyContact(request.getEmergencyContact().trim());
-        }
-
         // Atualizar data de nascimento
         if (request.getBirthDate() != null && !request.getBirthDate().trim().isEmpty()) {
             try {
@@ -310,6 +303,14 @@ public class UserService {
             }
         }
 
+        // Atualizar coordenadas do endereço (latitude/longitude)
+        if (request.getLatitude() != null) {
+            user.setLatitude(request.getLatitude());
+        }
+        if (request.getLongitude() != null) {
+            user.setLongitude(request.getLongitude());
+        }
+
         User savedUser = userRepository.save(user);
 
         // Force load da organization e city para evitar lazy loading
@@ -341,9 +342,9 @@ public class UserService {
             throw new RuntimeException("Você só pode atualizar sua própria localização");
         }
 
-        // Atualizar localização
-        user.setLatitude(latitude);
-        user.setLongitude(longitude);
+        // Atualizar localização GPS (em tempo real)
+        user.setGpsLatitude(latitude);
+        user.setGpsLongitude(longitude);
 
         // Atualizar timestamp - se fornecido pelo GPS, usar esse; senão usar timestamp
         // atual

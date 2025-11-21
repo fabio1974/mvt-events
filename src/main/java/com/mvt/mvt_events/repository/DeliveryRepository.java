@@ -128,6 +128,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.client c " +
                         "LEFT JOIN FETCH c.organization " +
                         "LEFT JOIN FETCH d.courier " +
+                        "LEFT JOIN FETCH d.organization " +
                         "WHERE c.organization.id = :organizationId " +
                         "ORDER BY d.updatedAt DESC")
         List<Delivery> findAllWithJoinsByOrganizationId(@Param("organizationId") Long organizationId);
@@ -174,6 +175,32 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.client c " +
                         "LEFT JOIN FETCH c.organization " +
                         "LEFT JOIN FETCH d.courier " +
+                        "LEFT JOIN FETCH d.organization " +
                         "WHERE d.id = :id")
         java.util.Optional<Delivery> findByIdWithJoins(@Param("id") Long id);
+
+        /**
+         * Busca deliveries por clientId com todos os relacionamentos carregados (fetch join)
+         */
+        @Query("SELECT DISTINCT d FROM Delivery d " +
+                        "LEFT JOIN FETCH d.client c " +
+                        "LEFT JOIN FETCH c.organization " +
+                        "LEFT JOIN FETCH d.courier " +
+                        "LEFT JOIN FETCH d.organization " +
+                        "WHERE c.id = :clientId " +
+                        "ORDER BY d.updatedAt DESC")
+        List<Delivery> findByClientIdWithJoins(@Param("clientId") UUID clientId);
+
+        /**
+         * Busca deliveries por clientId e status com todos os relacionamentos carregados (fetch join)
+         */
+        @Query("SELECT DISTINCT d FROM Delivery d " +
+                        "LEFT JOIN FETCH d.client c " +
+                        "LEFT JOIN FETCH c.organization " +
+                        "LEFT JOIN FETCH d.courier " +
+                        "LEFT JOIN FETCH d.organization " +
+                        "WHERE c.id = :clientId AND d.status = :status " +
+                        "ORDER BY d.updatedAt DESC")
+        List<Delivery> findByClientIdAndStatusWithJoins(@Param("clientId") UUID clientId, 
+                        @Param("status") Delivery.DeliveryStatus status);
 }

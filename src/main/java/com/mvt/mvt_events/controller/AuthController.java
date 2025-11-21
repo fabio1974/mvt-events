@@ -51,7 +51,7 @@ public class AuthController {
     private JwtUtil jwtUtil;
 
     @PostMapping("/login")
-    @Operation(summary = "Login de usuário", description = "Autenticação via email e senha, retorna token JWT")
+    @Operation(summary = "Login de usuário", description = "Autenticação via email ou CPF e senha, retorna token JWT")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         try {
             Authentication authentication = authenticationManager.authenticate(

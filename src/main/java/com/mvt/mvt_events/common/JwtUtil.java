@@ -108,6 +108,14 @@ public class JwtUtil {
             if (user.getCountry() != null) {
                 claims.put("country", user.getCountry());
             }
+            
+            // Add geolocation coordinates (fixed address)
+            if (user.getLatitude() != null) {
+                claims.put("latitude", user.getLatitude());
+            }
+            if (user.getLongitude() != null) {
+                claims.put("longitude", user.getLongitude());
+            }
 
             // Add organization_id for ORGANIZER users
             if (user.getOrganization() != null) {
@@ -222,6 +230,20 @@ public class JwtUtil {
         return claims.get("country", String.class);
     }
 
+    // Extract latitude from token
+    public Double getLatitudeFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        Object lat = claims.get("latitude");
+        return lat != null ? Double.valueOf(lat.toString()) : null;
+    }
+
+    // Extract longitude from token
+    public Double getLongitudeFromToken(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        Object lng = claims.get("longitude");
+        return lng != null ? Double.valueOf(lng.toString()) : null;
+    }
+
     // Get all user data from token as a Map
     public Map<String, Object> getUserDataFromToken(String token) {
         Claims claims = getAllClaimsFromToken(token);
@@ -240,6 +262,8 @@ public class JwtUtil {
         userData.put("phone", claims.get("phone"));
         userData.put("address", claims.get("address"));
         userData.put("country", claims.get("country"));
+        userData.put("latitude", claims.get("latitude"));
+        userData.put("longitude", claims.get("longitude"));
         userData.put("organizationId", claims.get("organizationId"));
 
         return userData;

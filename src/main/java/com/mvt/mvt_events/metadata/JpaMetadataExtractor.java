@@ -92,7 +92,11 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("password", "Senha");
         FIELD_TRANSLATIONS.put("role", "Perfil");
         FIELD_TRANSLATIONS.put("cpf", "CPF");
-        FIELD_TRANSLATIONS.put("emergencyContact", "Contato de Emergência");
+        FIELD_TRANSLATIONS.put("address", "Endereço");
+        FIELD_TRANSLATIONS.put("latitude", "Latitude");
+        FIELD_TRANSLATIONS.put("longitude", "Longitude");
+        FIELD_TRANSLATIONS.put("gpsLatitude", "Latitude GPS");
+        FIELD_TRANSLATIONS.put("gpsLongitude", "Longitude GPS");
 
         // ==================== ORGANIZATION ====================
         FIELD_TRANSLATIONS.put("organization", "Grupo");
@@ -116,8 +120,9 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("itemDescription", "Descrição do Item");
         FIELD_TRANSLATIONS.put("recipientName", "Nome do Destinatário");
         FIELD_TRANSLATIONS.put("recipientPhone", "Telefone do Destinatário");
+        FIELD_TRANSLATIONS.put("shippingFee", "Valor do Frete");
         FIELD_TRANSLATIONS.put("totalAmount", "Valor Total");
-        FIELD_TRANSLATIONS.put("scheduledPickupAt", "Data/Hora Agendada");
+        FIELD_TRANSLATIONS.put("scheduledPickupAt", "Data/Hora Retirada");
         FIELD_TRANSLATIONS.put("acceptedAt", "Aceita em");
         FIELD_TRANSLATIONS.put("pickedUpAt", "Coletada em");
         FIELD_TRANSLATIONS.put("completedAt", "Concluída em");

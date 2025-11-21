@@ -8,13 +8,12 @@ import lombok.*;
 import java.math.BigDecimal;
 
 /**
- * Tabela intermediária que conecta UnifiedPayout com Payment.
- * Cada item representa uma parte de um Payment que foi incluída em um repasse.
- * Permite rastreabilidade completa: Payment → PayoutItem → UnifiedPayout →
- * Beneficiário.
+ * Representa um item de repasse individual para um beneficiário.
+ * Cada PayoutItem rastreia um repasse específico (valor, beneficiário, status, pagamento).
+ * Criado automaticamente quando um Payment é processado e dividido entre beneficiários.
  */
 @Entity
-@Table(name = "payout_items", uniqueConstraints = @UniqueConstraint(columnNames = { "payout_id", "payment_id" }))
+@Table(name = "payout_items")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -25,12 +24,6 @@ public class PayoutItem extends BaseEntity {
     // ============================================================================
     // RELATIONSHIPS
     // ============================================================================
-
-    @NotNull(message = "Repasse é obrigatório")
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "payout_id", nullable = false)
-    @Visible(table = false, form = false, filter = true)
-    private UnifiedPayout payout;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payment_id")
@@ -53,11 +46,103 @@ public class PayoutItem extends BaseEntity {
     private ValueType valueType;
 
     // ============================================================================
+    // BENEFICIARY
+    // ============================================================================
+
+    @NotNull(message = "Beneficiário é obrigatório")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "beneficiary_id", nullable = false)
+    @Visible(table = true, form = true, filter = true)
+    private User beneficiary; // Quem vai receber este repasse
+
+    // ============================================================================
+    // PAYOUT STATUS & TRACKING
+    // ============================================================================
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    @Visible(table = true, form = true, filter = true)
+    private PayoutStatus status = PayoutStatus.PENDING;
+
+    @Column(name = "paid_at")
+    @Visible(table = true, form = false, filter = false)
+    private java.time.LocalDateTime paidAt;
+
+    @Column(name = "payment_reference", length = 100)
+    @Visible(table = true, form = false, filter = false)
+    private String paymentReference; // ID da transação split (PIX, transferência, etc)
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method", length = 20)
+    @Visible(table = true, form = false, filter = true)
+    private PaymentMethod paymentMethod;
+
+    @Column(name = "notes", columnDefinition = "TEXT")
+    @Visible(table = false, form = true, filter = false)
+    private String notes; // Observações sobre o repasse
+
+    // ============================================================================
     // ENUMS
     // ============================================================================
 
     public enum ValueType {
         COURIER_AMOUNT, // Valor destinado ao motoboy
-        ADM_COMMISSION // Comissão destinada ao ADM
+        ADM_COMMISSION, // Comissão destinada ao ADM/Gerente
+        SYSTEM_FEE, // Taxa do sistema Zap10
+        PLATFORM_FEE, // Taxa da plataforma de pagamento
+        OTHER // Outros tipos de repasse
+    }
+
+    public enum PayoutStatus {
+        PENDING, // Aguardando processamento
+        PROCESSING, // Em processamento
+        PAID, // Pago com sucesso
+        FAILED, // Falhou
+        CANCELLED // Cancelado
+    }
+
+    public enum PaymentMethod {
+        PIX, // PIX
+        BANK_TRANSFER, // Transferência bancária
+        CASH, // Dinheiro
+        WALLET, // Carteira digital
+        OTHER // Outro método
+    }
+
+    // ============================================================================
+    // HELPER METHODS
+    // ============================================================================
+
+    /**
+     * Verifica se o repasse foi pago
+     */
+    public boolean isPaid() {
+        return status == PayoutStatus.PAID;
+    }
+
+    /**
+     * Marca o repasse como pago
+     */
+    public void markAsPaid(String reference, PaymentMethod method) {
+        this.status = PayoutStatus.PAID;
+        this.paidAt = java.time.LocalDateTime.now();
+        this.paymentReference = reference;
+        this.paymentMethod = method;
+    }
+
+    /**
+     * Marca o repasse como falho
+     */
+    public void markAsFailed(String reason) {
+        this.status = PayoutStatus.FAILED;
+        this.notes = reason;
+    }
+
+    /**
+     * Cancela o repasse
+     */
+    public void cancel(String reason) {
+        this.status = PayoutStatus.CANCELLED;
+        this.notes = reason;
     }
 }

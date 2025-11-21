@@ -60,6 +60,7 @@ public class Payment extends BaseEntity {
     @Visible(table = true, form = false, filter = true)
     private String transactionId;
 
+    @DisplayLabel
     @NotNull(message = "Valor é obrigatório")
     @Column(nullable = false, precision = 10, scale = 2)
     @Visible(table = true, form = true, filter = false)
