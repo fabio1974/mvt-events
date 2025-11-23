@@ -38,17 +38,17 @@ public class Delivery extends BaseEntity {
     @Visible(table = true, form = true, filter = true)
     private User client;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "courier_id")
-    @com.fasterxml.jackson.annotation.JsonIgnore
-    @Visible(table = true, form = false, filter = true)
-    private User courier;
 
+
+    /**
+     * Gerente: dono da organização comum entre courier e client.
+     * Setado automaticamente quando courier aceita a entrega.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id")
+    @JoinColumn(name = "organizer_id")
     @com.fasterxml.jackson.annotation.JsonIgnore
     @Visible(table = true, form = false, filter = true)
-    private Organization organization;
+    private User organizer;
 
     // ============================================================================
     // ORIGIN (FROM)
@@ -90,10 +90,6 @@ public class Delivery extends BaseEntity {
     // DELIVERY DETAILS
     // ============================================================================
 
-    @DecimalMin(value = "0.0", message = "Distância não pode ser negativa")
-    @Column(name = "distance_km", precision = 6, scale = 2)
-    @Visible(table = true, form = false, filter = false)
-    private BigDecimal distanceKm;
 
     @Min(value = 0, message = "Tempo estimado não pode ser negativo")
     @Column(name = "estimated_time_minutes")
@@ -107,13 +103,17 @@ public class Delivery extends BaseEntity {
 
     @Size(max = 150, message = "Nome deve ter no máximo 150 caracteres")
     @Column(name = "recipient_name", length = 150)
-    @Visible(table = true, form = true, filter = false)
+    @Visible(table = false, form = true, filter = false)
     private String recipientName;
 
     @Size(max = 20, message = "Telefone deve ter no máximo 20 caracteres")
     @Column(name = "recipient_phone", length = 20)
     @Visible(table = false, form = true, filter = false)
     private String recipientPhone;
+
+    @Column(name = "scheduled_pickup_at")
+    @Visible(table = false, form = false, filter = false)
+    private LocalDateTime scheduledPickupAt;
 
     // ============================================================================
     // PRICING
@@ -124,15 +124,16 @@ public class Delivery extends BaseEntity {
     @Column(name = "total_amount", precision = 10, scale = 2, nullable = false)
     @Visible(table = true, form = true, filter = false)
     private BigDecimal totalAmount;
-
-    @DecimalMin(value = "0.01", message = "Valor mínimo do frete é R$ 0,01")
+    
     @Column(name = "shipping_fee", precision = 10, scale = 2)
-    @Visible(table = true, form = true, filter = false)
+    @Visible(table = true, form = true, filter = false, readonly = true)
     private BigDecimal shippingFee;
 
-    @Column(name = "scheduled_pickup_at")
-    @Visible(table = true, form = true, filter = true)
-    private LocalDateTime scheduledPickupAt;
+    @DecimalMin(value = "0.0", message = "Distância não pode ser negativa")
+    @Column(name = "distance_km", precision = 6, scale = 2)
+    @Visible(table = true, form = true, filter = false, readonly = true)
+    private BigDecimal distanceKm;
+
 
     // ============================================================================
     // STATUS & TIMESTAMPS
@@ -143,6 +144,11 @@ public class Delivery extends BaseEntity {
     @Visible(table = true, form = true, filter = true, readonly = true)
     private DeliveryStatus status = DeliveryStatus.PENDING;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "courier_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @Visible(table = true, form = true, filter = true, readonly = true)
+    private User courier;
 
 
     @Column(name = "accepted_at")
@@ -154,7 +160,7 @@ public class Delivery extends BaseEntity {
     private LocalDateTime pickedUpAt;
 
     @Column(name = "in_transit_at")
-    @Visible(table = false, form = false, filter = false)
+    @Visible(table = true, form = false, filter = false)
     private LocalDateTime inTransitAt;
 
     @Column(name = "completed_at")

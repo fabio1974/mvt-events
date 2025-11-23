@@ -11,6 +11,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -43,6 +45,12 @@ public class DeliveryService {
 
     @Autowired
     private ClientContractRepository clientContractRepository;
+
+    @Autowired
+    private SiteConfigurationService siteConfigurationService;
+
+    @Autowired
+    private SpecialZoneService specialZoneService;
 
     // TODO: ADMProfileRepository não mais usado após remoção de CourierADMLink
     // @Autowired
@@ -100,14 +108,49 @@ public class DeliveryService {
         // A organização da delivery é determinada pela organização do cliente
         // Não precisamos mais do campo adm - usar client.organization
         delivery.setClient(client);
-        delivery.setStatus(Delivery.DeliveryStatus.PENDING); // Calcular distância estimada (se coordenadas fornecidas)
-        if (delivery.getFromLatitude() != null && delivery.getFromLongitude() != null &&
-                delivery.getToLatitude() != null && delivery.getToLongitude() != null) {
-            @SuppressWarnings("unused")
-            double distance = calculateDistance(
-                    delivery.getFromLatitude(), delivery.getFromLongitude(),
-                    delivery.getToLatitude(), delivery.getToLongitude());
-            // Apenas calcular, não salvar (campo não existe na entidade)
+        delivery.setStatus(Delivery.DeliveryStatus.PENDING);
+
+        // Calcular o frete automaticamente baseado na distância e configuração ativa
+        if (delivery.getDistanceKm() != null && delivery.getDistanceKm().compareTo(BigDecimal.ZERO) > 0) {
+            SiteConfiguration activeConfig = siteConfigurationService.getActiveConfiguration();
+            BigDecimal calculatedFee = delivery.getDistanceKm().multiply(activeConfig.getPricePerKm());
+            
+            // Aplicar valor mínimo do frete
+            if (calculatedFee.compareTo(activeConfig.getMinimumShippingFee()) < 0) {
+                calculatedFee = activeConfig.getMinimumShippingFee();
+            }
+            
+            // Verificar se o destino está em uma zona especial
+            // Se houver zonas sobrepostas, aplica a taxa da zona MAIS PRÓXIMA
+            if (delivery.getToLatitude() != null && delivery.getToLongitude() != null) {
+                var nearestZone = specialZoneService.findNearestZone(
+                    delivery.getToLatitude(), 
+                    delivery.getToLongitude()
+                );
+                
+                if (nearestZone.isPresent()) {
+                    SpecialZone zone = nearestZone.get();
+                    BigDecimal additionalFeePercentage = BigDecimal.ZERO;
+                    
+                    // Aplica a taxa da zona mais próxima (independente do tipo)
+                    if (zone.getZoneType() == SpecialZone.ZoneType.DANGER) {
+                        additionalFeePercentage = activeConfig.getDangerFeePercentage();
+                    } else if (zone.getZoneType() == SpecialZone.ZoneType.HIGH_INCOME) {
+                        additionalFeePercentage = activeConfig.getHighIncomeFeePercentage();
+                    }
+                    
+                    // Aplicar taxa adicional sobre o frete
+                    if (additionalFeePercentage.compareTo(BigDecimal.ZERO) > 0) {
+                        BigDecimal additionalFee = calculatedFee
+                            .multiply(additionalFeePercentage)
+                            .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                        calculatedFee = calculatedFee.add(additionalFee);
+                    }
+                }
+            }
+            
+            // Arredondar para 2 casas decimais
+            delivery.setShippingFee(calculatedFee.setScale(2, RoundingMode.HALF_UP));
         }
 
         Delivery savedDelivery = deliveryRepository.save(delivery);
@@ -119,6 +162,60 @@ public class DeliveryService {
     }
 
     /**
+     * Atualiza uma delivery existente
+     * Apenas campos editáveis podem ser atualizados
+     * Status PENDING permite mais edições
+     */
+    public Delivery update(Long id, Delivery updatedDelivery, UUID userId) {
+        // Buscar delivery existente
+        Delivery delivery = deliveryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Delivery não encontrada"));
+
+        // Validar usuário
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+        // Validar permissões
+        User.Role userRole = user.getRole();
+        
+        // CLIENT só pode editar suas próprias deliveries PENDING
+        if (userRole == User.Role.CLIENT) {
+            if (!delivery.getClient().getId().equals(userId)) {
+                throw new RuntimeException("CLIENT só pode editar suas próprias entregas");
+            }
+            if (delivery.getStatus() != Delivery.DeliveryStatus.PENDING) {
+                throw new RuntimeException("Apenas entregas PENDING podem ser editadas");
+            }
+        }
+        // ADMIN pode editar qualquer delivery PENDING
+        else if (userRole == User.Role.ADMIN) {
+            if (delivery.getStatus() != Delivery.DeliveryStatus.PENDING) {
+                throw new RuntimeException("Apenas entregas PENDING podem ser editadas");
+            }
+        }
+        // ORGANIZER e COURIER não podem editar deliveries
+        else {
+            throw new RuntimeException(userRole + " não pode editar entregas");
+        }
+
+        // Atualizar campos permitidos (apenas se PENDING)
+        delivery.setFromAddress(updatedDelivery.getFromAddress());
+        delivery.setFromLatitude(updatedDelivery.getFromLatitude());
+        delivery.setFromLongitude(updatedDelivery.getFromLongitude());
+        delivery.setToAddress(updatedDelivery.getToAddress());
+        delivery.setToLatitude(updatedDelivery.getToLatitude());
+        delivery.setToLongitude(updatedDelivery.getToLongitude());
+        delivery.setRecipientName(updatedDelivery.getRecipientName());
+        delivery.setRecipientPhone(updatedDelivery.getRecipientPhone());
+        delivery.setItemDescription(updatedDelivery.getItemDescription());
+        delivery.setTotalAmount(updatedDelivery.getTotalAmount());
+        delivery.setShippingFee(updatedDelivery.getShippingFee());
+        delivery.setScheduledPickupAt(updatedDelivery.getScheduledPickupAt());
+
+        return deliveryRepository.save(delivery);
+    }
+
+    /**
      * Busca delivery por ID com validação de tenant
      */
     public Delivery findById(Long id, Long organizationId) {
@@ -126,14 +223,11 @@ public class DeliveryService {
         Delivery delivery = deliveryRepository.findByIdWithJoins(id)
                 .orElseThrow(() -> new RuntimeException("Delivery não encontrada"));
         
-        // Validar acesso por organização se necessário
-        if (organizationId != null) {
-            if (delivery.getClient() == null || 
-                delivery.getClient().getOrganization() == null || 
-                !delivery.getClient().getOrganization().getId().equals(organizationId)) {
-                throw new RuntimeException("Delivery não encontrada ou sem acesso");
-            }
-        }
+        // Nota: organizationId NÃO é utilizado para filtrar deliveries
+        // organization_id em users é apenas para agrupar motoboys (couriers)
+        // Deliveries são filtradas por client_id, courier_id ou organizer_id diretamente
+        // O parâmetro organizationId está mantido para compatibilidade com assinaturas antigas,
+        // mas não deve ser usado para validação de acesso
         
         return delivery;
     }
@@ -141,13 +235,13 @@ public class DeliveryService {
     /**
      * Lista deliveries com filtros e tenant
      */
-    public Page<Delivery> findAll(Long organizationId, UUID clientId, UUID courierId,
+    public Page<Delivery> findAll(Long organizationId, UUID clientId, UUID courierId, UUID organizerId,
             Delivery.DeliveryStatus status,
             LocalDateTime startDate, LocalDateTime endDate,
             Pageable pageable) {
         
         // Caso especial: busca por clientId específico (para role CLIENT)
-        if (clientId != null && courierId == null && organizationId == null &&
+        if (clientId != null && courierId == null && organizerId == null && organizationId == null &&
                 startDate == null && endDate == null) {
             List<Delivery> deliveries;
             
@@ -166,9 +260,29 @@ public class DeliveryService {
             return new PageImpl<>(pageContent, pageable, deliveries.size());
         }
         
+        // Caso especial: busca por organizerId específico (para role ORGANIZER)
+        if (organizerId != null && clientId == null && courierId == null && organizationId == null &&
+                startDate == null && endDate == null) {
+            List<Delivery> deliveries;
+            
+            if (status != null) {
+                // Com filtro de status
+                deliveries = deliveryRepository.findByOrganizerIdAndStatusWithJoins(organizerId, status);
+            } else {
+                // Sem filtro de status
+                deliveries = deliveryRepository.findByOrganizerIdWithJoins(organizerId);
+            }
+            
+            // Converter para Page manualmente
+            int start = (int) pageable.getOffset();
+            int end = Math.min(start + pageable.getPageSize(), deliveries.size());
+            List<Delivery> pageContent = deliveries.subList(start, end);
+            return new PageImpl<>(pageContent, pageable, deliveries.size());
+        }
+        
         // Para simplificar e evitar o problema de lazy loading,
         // vamos usar apenas o filtro por organizationId primeiro
-        if (clientId == null && courierId == null && status == null &&
+        if (clientId == null && courierId == null && organizerId == null && status == null &&
                 startDate == null && endDate == null) {
             // Caso simples - usar query com fetch joins por organização
             List<Delivery> deliveries = deliveryRepository.findAllWithJoinsByOrganizationId(organizationId);
@@ -183,6 +297,7 @@ public class DeliveryService {
         Specification<Delivery> spec = DeliverySpecification.hasClientOrganizationId(organizationId)
                 .and(DeliverySpecification.hasClientId(clientId))
                 .and(DeliverySpecification.hasCourierId(courierId))
+                .and(DeliverySpecification.hasOrganizerId(organizerId))
                 .and(DeliverySpecification.hasStatus(status))
                 .and(DeliverySpecification.createdBetween(startDate, endDate));
 
@@ -254,9 +369,15 @@ public class DeliveryService {
             throw new RuntimeException("Courier e Client não compartilham uma organização comum através de contratos ativos");
         }
 
+        // Buscar o organizer (owner da organização)
+        User organizer = commonOrganization.getOwner();
+        if (organizer == null) {
+            throw new RuntimeException("Organização não possui um owner definido");
+        }
+
         // Atribuir
         delivery.setCourier(courierUser);
-        delivery.setOrganization(commonOrganization);
+        delivery.setOrganizer(organizer);
         delivery.setStatus(Delivery.DeliveryStatus.ACCEPTED);
         delivery.setAcceptedAt(LocalDateTime.now());
 
@@ -380,9 +501,9 @@ public class DeliveryService {
                 courierProfileRepository.save(courier);
             }
             
-            // Remover courier e organization
+            // Remover courier e organizer
             delivery.setCourier(null);
-            delivery.setOrganization(null);
+            delivery.setOrganizer(null);
         }
 
         return deliveryRepository.save(delivery);

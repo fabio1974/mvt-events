@@ -67,6 +67,7 @@ public class DeliveryController {
     public Page<DeliveryResponse> list(
             @RequestParam(required = false) String clientId,
             @RequestParam(required = false) String courierId,
+            @RequestParam(required = false) String organizer,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
@@ -89,6 +90,7 @@ public class DeliveryController {
 
         UUID clientUuid = clientId != null ? UUID.fromString(clientId) : null;
         UUID courierUuid = courierId != null ? UUID.fromString(courierId) : null;
+        UUID organizerUuid = organizer != null ? UUID.fromString(organizer) : null;
 
         Delivery.DeliveryStatus deliveryStatus = null;
         if (status != null) {
@@ -107,7 +109,7 @@ public class DeliveryController {
 
         if ("ADMIN".equals(role)) {
             // ADMIN pode ver todas as entregas sem filtro de organização
-            deliveries = deliveryService.findAll(null, clientUuid, courierUuid,
+            deliveries = deliveryService.findAll(null, clientUuid, courierUuid, organizerUuid,
                     deliveryStatus, start, end, pageable);
         } else if ("COURIER".equals(role)) {
             // Para COURIERs: buscar deliveries das organizações onde ele trabalha
@@ -117,15 +119,20 @@ public class DeliveryController {
         } else if ("CLIENT".equals(role)) {
             // Para CLIENTs: mostrar apenas suas próprias entregas
             UUID clientUserId = UUID.fromString(jwtUtil.getUserIdFromToken(token));
-            deliveries = deliveryService.findAll(null, clientUserId, courierUuid,
+            deliveries = deliveryService.findAll(null, clientUserId, courierUuid, organizerUuid,
                     deliveryStatus, start, end, pageable);
         } else if ("ORGANIZER".equals(role)) {
-            // Para ORGANIZER: usar organizationId do token (obrigatório)
-            Long organizationId = jwtUtil.getOrganizationIdFromToken(token);
-            if (organizationId == null) {
-                throw new RuntimeException("ORGANIZER deve ter organizationId no token");
+            // Para ORGANIZER: filtrar por organizer_id
+            // Se forneceu o parâmetro 'organizer' explicitamente, usar esse valor
+            // Senão, usar o próprio userId do token como organizer
+            UUID organizerIdToFilter = organizerUuid;
+            if (organizerIdToFilter == null) {
+                // Buscar deliveries onde ELE é o organizer
+                organizerIdToFilter = UUID.fromString(jwtUtil.getUserIdFromToken(token));
             }
-            deliveries = deliveryService.findAll(organizationId, clientUuid, courierUuid,
+            
+            // NUNCA usa organizationId para filtrar deliveries
+            deliveries = deliveryService.findAll(null, clientUuid, courierUuid, organizerIdToFilter,
                     deliveryStatus, start, end, pageable);
         } else {
             // Para outros roles: sem acesso
@@ -145,17 +152,43 @@ public class DeliveryController {
         String token = extractTokenFromRequest(request);
         String role = jwtUtil.getRoleFromToken(token);
         
+        // organizationId não é usado para filtrar deliveries
+        // organization_id em users é apenas para agrupar couriers
+        // Passamos null para manter compatibilidade com assinatura do método
         Long organizationId = null;
-        // Apenas ORGANIZER deve ter organizationId
-        if ("ORGANIZER".equals(role)) {
-            organizationId = jwtUtil.getOrganizationIdFromToken(token);
-            if (organizationId == null) {
-                throw new RuntimeException("ORGANIZER deve ter organizationId no token");
-            }
-        }
-        // ADMIN, COURIER, CLIENT não precisam de organizationId
 
         Delivery delivery = deliveryService.findById(id, organizationId);
+
+        return ResponseEntity.ok(mapToResponse(delivery));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Atualizar delivery", description = "Atualiza informações de uma delivery PENDING")
+    public ResponseEntity<DeliveryResponse> update(
+            @PathVariable Long id,
+            @RequestBody @Valid com.mvt.mvt_events.dto.DeliveryUpdateRequest request,
+            Authentication authentication,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+
+        String token = extractTokenFromRequest(httpRequest);
+        UUID userId = UUID.fromString(jwtUtil.getUserIdFromToken(token));
+
+        // Criar objeto Delivery com as atualizações
+        Delivery updatedDelivery = new Delivery();
+        updatedDelivery.setFromAddress(request.getFromAddress());
+        updatedDelivery.setFromLatitude(request.getFromLatitude());
+        updatedDelivery.setFromLongitude(request.getFromLongitude());
+        updatedDelivery.setToAddress(request.getToAddress());
+        updatedDelivery.setToLatitude(request.getToLatitude());
+        updatedDelivery.setToLongitude(request.getToLongitude());
+        updatedDelivery.setRecipientName(request.getRecipientName());
+        updatedDelivery.setRecipientPhone(request.getRecipientPhone());
+        updatedDelivery.setItemDescription(request.getItemDescription());
+        updatedDelivery.setTotalAmount(request.getTotalAmount());
+        updatedDelivery.setShippingFee(request.getShippingFee());
+        updatedDelivery.setScheduledPickupAt(request.getScheduledPickupAt());
+
+        Delivery delivery = deliveryService.update(id, updatedDelivery, userId);
 
         return ResponseEntity.ok(mapToResponse(delivery));
     }
@@ -171,15 +204,8 @@ public class DeliveryController {
         String token = extractTokenFromRequest(httpRequest);
         String role = jwtUtil.getRoleFromToken(token);
         
+        // organizationId não é usado para filtrar/validar deliveries
         Long organizationId = null;
-        // Apenas ORGANIZER deve ter organizationId
-        if ("ORGANIZER".equals(role)) {
-            organizationId = jwtUtil.getOrganizationIdFromToken(token);
-            if (organizationId == null) {
-                throw new RuntimeException("ORGANIZER deve ter organizationId no token");
-            }
-        }
-        // ADMIN pode atribuir para qualquer organização
 
         UUID courierId = UUID.fromString(request.getCourierId());
 
@@ -235,15 +261,8 @@ public class DeliveryController {
         String token = extractTokenFromRequest(httpRequest);
         String role = jwtUtil.getRoleFromToken(token);
         
+        // organizationId não é usado para filtrar/validar deliveries
         Long organizationId = null;
-        // Apenas ORGANIZER deve ter organizationId
-        if ("ORGANIZER".equals(role)) {
-            organizationId = jwtUtil.getOrganizationIdFromToken(token);
-            if (organizationId == null) {
-                throw new RuntimeException("ORGANIZER deve ter organizationId no token");
-            }
-        }
-        // ADMIN pode cancelar qualquer delivery
 
         Delivery delivery = deliveryService.cancel(id, organizationId, reason);
 
@@ -262,15 +281,8 @@ public class DeliveryController {
         String token = extractTokenFromRequest(httpRequest);
         String role = jwtUtil.getRoleFromToken(token);
         
+        // organizationId não é usado para filtrar/validar deliveries
         Long organizationId = null;
-        // Apenas ORGANIZER deve ter organizationId
-        if ("ORGANIZER".equals(role)) {
-            organizationId = jwtUtil.getOrganizationIdFromToken(token);
-            if (organizationId == null) {
-                throw new RuntimeException("ORGANIZER deve ter organizationId no token");
-            }
-        }
-        // ADMIN pode atualizar status de qualquer delivery
 
         // Converter string para enum
         Delivery.DeliveryStatus newStatus;
@@ -294,15 +306,10 @@ public class DeliveryController {
         String token = extractTokenFromRequest(httpRequest);
         String role = jwtUtil.getRoleFromToken(token);
         
+        // organizationId não é usado para filtrar deliveries pendentes
+        // ADMIN vê todas as deliveries PENDING sem courier
+        // ORGANIZER deveria ver apenas suas próprias? (TODO: clarificar regra de negócio)
         Long organizationId = null;
-        // Apenas ORGANIZER deve ter organizationId
-        if ("ORGANIZER".equals(role)) {
-            organizationId = jwtUtil.getOrganizationIdFromToken(token);
-            if (organizationId == null) {
-                throw new RuntimeException("ORGANIZER deve ter organizationId no token");
-            }
-        }
-        // ADMIN pode ver deliveries pendentes de todas as organizações
 
         var deliveries = deliveryService.findPendingAssignment(organizationId);
         return ResponseEntity.ok(deliveries.stream().map(this::mapToResponse).toList());
@@ -335,6 +342,7 @@ public class DeliveryController {
         delivery.setRecipientPhone(request.getRecipientPhone());
         delivery.setTotalAmount(request.getTotalAmount());
         delivery.setItemDescription(request.getItemDescription());
+        delivery.setDistanceKm(request.getDistanceKm());
 
         // Client e Partnership serão setados no service
         return delivery;
@@ -349,26 +357,25 @@ public class DeliveryController {
                         .id(delivery.getClient().getId().toString())
                         .name(delivery.getClient().getName())
                         .phone(delivery.getClient().getPhone())
+                        .gpsLatitude(delivery.getClient().getGpsLatitude())
+                        .gpsLongitude(delivery.getClient().getGpsLongitude())
                         .build() : null)
                 // Courier (objeto aninhado)
                 .courier(delivery.getCourier() != null ? DeliveryResponse.UserDTO.builder()
                         .id(delivery.getCourier().getId().toString())
                         .name(delivery.getCourier().getName())
                         .phone(delivery.getCourier().getPhone())
+                        .gpsLatitude(delivery.getCourier().getGpsLatitude())
+                        .gpsLongitude(delivery.getCourier().getGpsLongitude())
                         .build() : null)
-                // Organização: prioriza a organização da delivery (setada no aceite)
-                // Se não houver, busca a organização do cliente
-                .organization(delivery.getOrganization() != null
-                        ? DeliveryResponse.OrganizationDTO.builder()
-                                .id(delivery.getOrganization().getId())
-                                .name(delivery.getOrganization().getName())
-                                .build()
-                        : (delivery.getClient() != null && delivery.getClient().getOrganization() != null
-                                ? DeliveryResponse.OrganizationDTO.builder()
-                                        .id(delivery.getClient().getOrganization().getId())
-                                        .name(delivery.getClient().getOrganization().getName())
-                                        .build()
-                                : null))
+                // Gerente: usuário responsável pela entrega (dono da organização comum)
+                .organizer(delivery.getOrganizer() != null ? DeliveryResponse.UserDTO.builder()
+                        .id(delivery.getOrganizer().getId().toString())
+                        .name(delivery.getOrganizer().getName())
+                        .phone(delivery.getOrganizer().getPhone())
+                        .gpsLatitude(delivery.getOrganizer().getGpsLatitude())
+                        .gpsLongitude(delivery.getOrganizer().getGpsLongitude())
+                        .build() : null)
                 // Addresses
                 .fromAddress(delivery.getFromAddress())
                 .fromLatitude(delivery.getFromLatitude())
@@ -383,6 +390,8 @@ public class DeliveryController {
                 .itemDescription(delivery.getItemDescription())
                 // Amount & Status
                 .totalAmount(delivery.getTotalAmount())
+                .shippingFee(delivery.getShippingFee())
+                .distanceKm(delivery.getDistanceKm())
                 .status(delivery.getStatus().name())
                 .scheduledPickupAt(delivery.getScheduledPickupAt())
                 .acceptedAt(delivery.getAcceptedAt())

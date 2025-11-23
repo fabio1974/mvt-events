@@ -27,8 +27,8 @@ public class DeliveryResponse {
     // Courier (objeto aninhado)
     private UserDTO courier;
 
-    // Organização do cliente (substitui ADM)
-    private OrganizationDTO organization;
+    // Organizador (dono da organização responsável pela entrega)
+    private UserDTO organizer;
 
     // Origem
     private String fromAddress;
@@ -51,6 +51,8 @@ public class DeliveryResponse {
 
     // Valores
     private BigDecimal totalAmount;
+    private BigDecimal shippingFee;
+    private BigDecimal distanceKm;
 
     // Status
     private String status;
@@ -82,6 +84,8 @@ public class DeliveryResponse {
         private String id;
         private String name;
         private String phone;
+        private Double gpsLatitude;
+        private Double gpsLongitude;
     }
 
     /**

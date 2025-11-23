@@ -55,12 +55,14 @@ public interface DeliveryRepository
         // REMOVIDO: findByPartnershipId() - Municipal Partnerships foi removido do sistema
 
         /**
-         * Busca deliveries pendentes de atribuição em uma organização
+         * Busca deliveries pendentes de atribuição
+         * Se organizationId for null, retorna todas as deliveries pendentes (para ADMIN)
+         * Se organizationId for informado, filtrar seria incorreto pois organization não tem relação com deliveries
          * Ordenadas por updatedAt DESC para mostrar as mais recentes primeiro
          */
         @Query("SELECT d FROM Delivery d " +
-                        "WHERE d.client.organization.id = :organizationId AND d.status = 'PENDING' AND d.courier IS NULL "
-                        +
+                        "LEFT JOIN FETCH d.client " +
+                        "WHERE (:organizationId IS NULL) AND d.status = 'PENDING' AND d.courier IS NULL " +
                         "ORDER BY d.updatedAt DESC")
         List<Delivery> findPendingAssignmentByOrganizationId(@Param("organizationId") Long organizationId);
 
@@ -128,7 +130,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.client c " +
                         "LEFT JOIN FETCH c.organization " +
                         "LEFT JOIN FETCH d.courier " +
-                        "LEFT JOIN FETCH d.organization " +
+                        "LEFT JOIN FETCH d.organizer " +
                         "WHERE c.organization.id = :organizationId " +
                         "ORDER BY d.updatedAt DESC")
         List<Delivery> findAllWithJoinsByOrganizationId(@Param("organizationId") Long organizationId);
@@ -175,7 +177,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.client c " +
                         "LEFT JOIN FETCH c.organization " +
                         "LEFT JOIN FETCH d.courier " +
-                        "LEFT JOIN FETCH d.organization " +
+                        "LEFT JOIN FETCH d.organizer " +
                         "WHERE d.id = :id")
         java.util.Optional<Delivery> findByIdWithJoins(@Param("id") Long id);
 
@@ -186,7 +188,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.client c " +
                         "LEFT JOIN FETCH c.organization " +
                         "LEFT JOIN FETCH d.courier " +
-                        "LEFT JOIN FETCH d.organization " +
+                        "LEFT JOIN FETCH d.organizer " +
                         "WHERE c.id = :clientId " +
                         "ORDER BY d.updatedAt DESC")
         List<Delivery> findByClientIdWithJoins(@Param("clientId") UUID clientId);
@@ -198,9 +200,33 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.client c " +
                         "LEFT JOIN FETCH c.organization " +
                         "LEFT JOIN FETCH d.courier " +
-                        "LEFT JOIN FETCH d.organization " +
+                        "LEFT JOIN FETCH d.organizer " +
                         "WHERE c.id = :clientId AND d.status = :status " +
                         "ORDER BY d.updatedAt DESC")
         List<Delivery> findByClientIdAndStatusWithJoins(@Param("clientId") UUID clientId, 
                         @Param("status") Delivery.DeliveryStatus status);
+
+        /**
+         * Busca deliveries por organizerId com todos os relacionamentos carregados (fetch join)
+         */
+        @Query("SELECT DISTINCT d FROM Delivery d " +
+                        "LEFT JOIN FETCH d.client c " +
+                        "LEFT JOIN FETCH d.courier " +
+                        "LEFT JOIN FETCH d.organizer o " +
+                        "WHERE o.id = :organizerId " +
+                        "ORDER BY d.updatedAt DESC")
+        List<Delivery> findByOrganizerIdWithJoins(@Param("organizerId") UUID organizerId);
+
+        /**
+         * Busca deliveries por organizerId e status com todos os relacionamentos carregados (fetch join)
+         */
+        @Query("SELECT DISTINCT d FROM Delivery d " +
+                        "LEFT JOIN FETCH d.client c " +
+                        "LEFT JOIN FETCH d.courier " +
+                        "LEFT JOIN FETCH d.organizer o " +
+                        "WHERE o.id = :organizerId AND d.status = :status " +
+                        "ORDER BY d.updatedAt DESC")
+        List<Delivery> findByOrganizerIdAndStatusWithJoins(@Param("organizerId") UUID organizerId,
+                        @Param("status") Delivery.DeliveryStatus status);
 }
+
