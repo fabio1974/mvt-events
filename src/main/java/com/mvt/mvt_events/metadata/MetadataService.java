@@ -19,6 +19,8 @@ public class MetadataService {
         // ==================== Sistema Base ====================
         ENTITIES.put("organization", new EntityConfig(Organization.class, "Grupos", "/api/organizations"));
         ENTITIES.put("user", new EntityConfig(User.class, "Usuários", "/api/users"));
+        ENTITIES.put("siteConfiguration", new EntityConfig(SiteConfiguration.class, "Configurações do Sistema", "/api/site-configuration"));
+        ENTITIES.put("specialZone", new EntityConfig(SpecialZone.class, "Zonas Especiais", "/api/special-zones"));
 
         // TODO: Recriar Payment para deliveries
         // ENTITIES.put("payment", new EntityConfig(Payment.class, "Pagamentos",

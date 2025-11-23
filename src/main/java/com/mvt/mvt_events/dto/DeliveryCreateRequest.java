@@ -58,6 +58,9 @@ public class DeliveryCreateRequest {
     @DecimalMin(value = "0.0", inclusive = false, message = "Valor deve ser maior que zero")
     private BigDecimal totalAmount;
 
+    @DecimalMin(value = "0.0", message = "Distância não pode ser negativa")
+    private BigDecimal distanceKm;
+
     private String itemDescription;
     private EntityReference partnership;
     private String scheduledPickupAt; // ISO DateTime string

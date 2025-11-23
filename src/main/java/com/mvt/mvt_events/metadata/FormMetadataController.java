@@ -24,6 +24,8 @@ public class FormMetadataController {
         // ==================== Sistema Base ====================
         ENTITIES.put("organization", new EntityConfig(Organization.class, "Organizações", "/api/organizations"));
         ENTITIES.put("user", new EntityConfig(User.class, "Usuários", "/api/users"));
+        ENTITIES.put("siteConfiguration", new EntityConfig(SiteConfiguration.class, "Configurações do Sistema", "/api/site-configuration"));
+        ENTITIES.put("specialZone", new EntityConfig(SpecialZone.class, "Zonas Especiais", "/api/special-zones"));
 
         // TODO: Adicionar entidades de Zapi10 aqui quando necessário
         // ENTITIES.put("delivery", new EntityConfig(Delivery.class, "Entregas",

@@ -48,3 +48,19 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Logs ###
+*.log
+nohup.out
+*.pid
+
+### Build outputs ###
+*.jar
+*.war
+
+### Temporary files ###
+*.tmp
+*.swp
+*.bak
+*~
+

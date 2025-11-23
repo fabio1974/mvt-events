@@ -95,6 +95,11 @@ public class DeliverySpecification {
                 : cb.equal(root.get("courier").get("id"), courierId);
     }
 
+    public static Specification<Delivery> hasOrganizerId(UUID organizerId) {
+        return (root, query, cb) -> organizerId == null ? cb.conjunction()
+                : cb.equal(root.get("organizer").get("id"), organizerId);
+    }
+
     public static Specification<Delivery> hasPartnershipId(Long partnershipId) {
         return (root, query, cb) -> partnershipId == null ? cb.conjunction()
                 : cb.equal(root.get("partnership").get("id"), partnershipId);

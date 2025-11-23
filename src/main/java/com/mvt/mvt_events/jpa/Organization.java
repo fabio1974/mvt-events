@@ -54,6 +54,12 @@ public class Organization extends BaseEntity {
     @Visible(filter = false, table = false, form = false)
     private String logoUrl;
 
+    // Owner (ORGANIZER da organização)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    @JsonIgnore
+    private User owner;
+
     // Location (campo do antigo ADMProfile)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "city_id")

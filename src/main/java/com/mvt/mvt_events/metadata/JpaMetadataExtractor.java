@@ -105,9 +105,28 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("logoUrl", "URL do Logo");
         FIELD_TRANSLATIONS.put("commissionPercentage", "Comissão (%)");
 
+        // ==================== SITE CONFIGURATION ====================
+        FIELD_TRANSLATIONS.put("pricePerKm", "Preço por Km (R$)");
+        FIELD_TRANSLATIONS.put("minimumShippingFee", "Valor Mínimo do Frete (R$)");
+        FIELD_TRANSLATIONS.put("organizerPercentage", "Comissão do Gerente (%)");
+        FIELD_TRANSLATIONS.put("platformPercentage", "Comissão da Plataforma (%)");
+        FIELD_TRANSLATIONS.put("dangerFeePercentage", "Taxa de Periculosidade (%)");
+        FIELD_TRANSLATIONS.put("highIncomeFeePercentage", "Taxa de Renda Alta (%)");
+        FIELD_TRANSLATIONS.put("isActive", "Ativo");
+        FIELD_TRANSLATIONS.put("updatedBy", "Atualizado por");
+        FIELD_TRANSLATIONS.put("notes", "Observações");
+
+        // ==================== SPECIAL ZONES ====================
+        FIELD_TRANSLATIONS.put("latitude", "Latitude");
+        FIELD_TRANSLATIONS.put("longitude", "Longitude");
+        FIELD_TRANSLATIONS.put("address", "Endereço");
+        FIELD_TRANSLATIONS.put("zoneType", "Tipo de Zona");
+        FIELD_TRANSLATIONS.put("radiusMeters", "Raio (metros)");
+
         // ==================== ZAPI10 - DELIVERY ====================
         FIELD_TRANSLATIONS.put("client", "Cliente");
         FIELD_TRANSLATIONS.put("courier", "Motoboy");
+        FIELD_TRANSLATIONS.put("organizer", "Gerente");
         FIELD_TRANSLATIONS.put("adm", "Gerente");
         FIELD_TRANSLATIONS.put("fromAddress", "Endereço de Origem");
         FIELD_TRANSLATIONS.put("fromLatitude", "Latitude de Origem");
@@ -279,6 +298,10 @@ public class JpaMetadataExtractor {
         ENUM_TRANSLATIONS.put("CAR", "Carro");
         ENUM_TRANSLATIONS.put("SCOOTER", "Patinete/Scooter");
         ENUM_TRANSLATIONS.put("ON_FOOT", "A Pé");
+
+        // ==================== SPECIAL ZONE TYPE ====================
+        ENUM_TRANSLATIONS.put("DANGER", "Zona Perigosa");
+        ENUM_TRANSLATIONS.put("HIGH_INCOME", "Zona de Alta Renda");
 
         // ==================== ZAPI10 - COURIER STATUS ====================
         ENUM_TRANSLATIONS.put("AVAILABLE", "Disponível");
