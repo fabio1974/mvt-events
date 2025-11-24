@@ -57,7 +57,7 @@ public class UserController {
 
         // Carregar contratos de serviço (se for CLIENT)
         if (user.getRole() == User.Role.CLIENT) {
-            response.setClientContracts(buildServiceContractsForUser(id));
+            response.setClientContracts(buildClientContractsForUser(id));
         }
 
         return response;
@@ -128,10 +128,10 @@ public class UserController {
     }
 
     /**
-     * Constrói lista de ServiceContracts para um usuário CLIENT
+     * Constrói lista de ClientContracts para um usuário CLIENT
      */
-    private java.util.List<ClientContractForUserResponse> buildServiceContractsForUser(UUID userId) {
-        java.util.List<Object[]> contractsData = userService.getServiceContractsForUser(userId);
+    private java.util.List<ClientContractForUserResponse> buildClientContractsForUser(UUID userId) {
+        java.util.List<Object[]> contractsData = userService.getClientContractsForUser(userId);
         return contractsData.stream()
                 .map(data -> {
                     ClientContractForUserResponse response = new ClientContractForUserResponse();
@@ -142,12 +142,11 @@ public class UserController {
                     orgDto.setName((String) data[1]); // organization name
                     response.setOrganization(orgDto);
 
-                    response.setContractNumber((String) data[2]);
-                    response.setIsPrimary((Boolean) data[3]);
-                    response.setStatus(data[4] != null ? data[4].toString() : null);
-                    response.setContractDate(data[5] != null ? data[5].toString() : null);
-                    response.setStartDate(data[6] != null ? data[6].toString() : null);
-                    response.setEndDate(data[7] != null ? data[7].toString() : null);
+                    response.setIsPrimary((Boolean) data[2]);
+                    response.setStatus(data[3] != null ? data[3].toString() : null);
+                    response.setContractDate(data[4] != null ? data[4].toString() : null);
+                    response.setStartDate(data[5] != null ? data[5].toString() : null);
+                    response.setEndDate(data[6] != null ? data[6].toString() : null);
                     return response;
                 })
                 .collect(java.util.stream.Collectors.toList());
@@ -326,7 +325,6 @@ public class UserController {
     @NoArgsConstructor
     public static class ClientContractForUserResponse {
         private OrganizationDTO organization; // Objeto aninhado consistente com metadata
-        private String contractNumber;
         private Boolean isPrimary;
         private String status;
         private String contractDate;

@@ -167,9 +167,9 @@ public class OrganizationService {
             processEmploymentContracts(existing, request.getEmploymentContracts());
         }
 
-        // Process Service Contracts (Contratos de Cliente)
-        if (request.getServiceContracts() != null) {
-            processServiceContracts(existing, request.getServiceContracts());
+        // Process Client Contracts (Contratos de Cliente)
+        if (request.getClientContracts() != null) {
+            processClientContracts(existing, request.getClientContracts());
         }
 
         // Salvar organização
@@ -247,7 +247,7 @@ public class OrganizationService {
     }
 
     @Transactional
-    private void processServiceContracts(Organization organization, List<ContractRequest> contractRequests) {
+    private void processClientContracts(Organization organization, List<ContractRequest> contractRequests) {
         // Clear existing contracts
         clientContractRepository.deleteAllByOrganization(organization);
         organization.getClientContracts().clear();
@@ -262,7 +262,6 @@ public class OrganizationService {
                 ClientContract contract = new ClientContract();
                 contract.setOrganization(organization);
                 contract.setClient(client);
-                contract.setContractNumber(contractRequest.getContractNumber());
                 contract.setPrimary(contractRequest.getIsPrimary() != null ? contractRequest.getIsPrimary() : false);
 
                 // Parse contract status
@@ -320,6 +319,49 @@ public class OrganizationService {
     public Page<Organization> listWithFilters(String search, Boolean active, Pageable pageable) {
         Specification<Organization> spec = OrganizationSpecification.withFilters(search, active);
         return repository.findAll(spec, pageable);
+    }
+
+    /**
+     * Lista organizações aplicando filtro de tenant baseado no role do usuário
+     * - ADMIN: vê todas as organizações
+     * - ORGANIZER: vê apenas sua própria organização
+     * - Outros roles: lista vazia
+     */
+    @Transactional(readOnly = true)
+    public Page<Organization> listWithTenantFilter(String search, Boolean active, Pageable pageable,
+            org.springframework.security.core.Authentication authentication) {
+        
+        // Extrair email do usuário autenticado
+        String userEmail = authentication.getName();
+        
+        // Buscar usuário SEM carregar relacionamentos (evita lazy loading)
+        User user = userRepository.findByUsernameWithoutRelations(userEmail)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + userEmail));
+        
+        // ADMIN: sem filtro de tenant, vê tudo
+        if (user.getRole() == User.Role.ADMIN) {
+            Specification<Organization> spec = OrganizationSpecification.withFilters(search, active);
+            return repository.findAll(spec, pageable);
+        }
+        
+        // ORGANIZER: filtra apenas sua organização
+        if (user.getRole() == User.Role.ORGANIZER) {
+            // Buscar organization_id sem carregar o objeto Organization (evita lazy loading)
+            Optional<Long> organizationId = userRepository.findOrganizationIdByUsername(userEmail);
+            
+            if (organizationId.isEmpty()) {
+                // ORGANIZER sem organização: retorna página vazia
+                return Page.empty(pageable);
+            }
+            
+            // Adicionar filtro por organization_id
+            Specification<Organization> spec = OrganizationSpecification.withFilters(search, active)
+                    .and(OrganizationSpecification.byOwnerId(organizationId.get()));
+            return repository.findAll(spec, pageable);
+        }
+        
+        // Outros roles (COURIER, CLIENT): retornam lista vazia
+        return Page.empty(pageable);
     }
 
     @Transactional(readOnly = true)
@@ -399,7 +441,7 @@ public class OrganizationService {
      * status, contract_date, start_date, end_date]
      */
     @Transactional(readOnly = true)
-    public java.util.List<Object[]> getServiceContractsData(Long organizationId) {
+    public java.util.List<Object[]> getClientContractsData(Long organizationId) {
         return clientContractRepository.findContractDataByOrganizationId(organizationId);
     }
 }

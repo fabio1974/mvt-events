@@ -425,12 +425,12 @@ public class UserService {
     }
 
     /**
-     * Busca dados dos Service Contracts de um CLIENT SEM carregar objetos completos
-     * Retorna: [organization_id, organization_name, contract_number, is_primary,
+     * Busca dados dos Client Contracts de um CLIENT SEM carregar objetos completos
+     * Retorna: [organization_id, organization_name, is_primary,
      * status, contract_date, start_date, end_date]
      */
     @Transactional(readOnly = true)
-    public java.util.List<Object[]> getServiceContractsForUser(UUID userId) {
+    public java.util.List<Object[]> getClientContractsForUser(UUID userId) {
         return clientContractRepository.findContractDataByClientId(userId);
     }
 }

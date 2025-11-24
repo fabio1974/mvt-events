@@ -47,6 +47,10 @@ public class OrganizationController {
             - `size` - Tamanho da página (default: 20)
             - `sort` - Ordenação (ex: name,asc)
 
+            **Tenant Filtering:**
+            - ORGANIZER vê apenas sua própria organização
+            - ADMIN vê todas as organizações
+
             **Exemplos:**
             ```
             /api/organizations?search=sport
@@ -58,15 +62,11 @@ public class OrganizationController {
     public Page<OrganizationResponse> list(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Boolean active,
-            Pageable pageable) {
+            Pageable pageable,
+            org.springframework.security.core.Authentication authentication) {
 
-        // Se houver algum filtro, usa o método com filtros
-        Page<Organization> organizations;
-        if (search != null || active != null) {
-            organizations = service.listWithFilters(search, active, pageable);
-        } else {
-            organizations = service.list(pageable);
-        }
+        // Aplicar filtro de tenant baseado no role do usuário
+        Page<Organization> organizations = service.listWithTenantFilter(search, active, pageable, authentication);
 
         return organizations.map(OrganizationResponse::new);
     }
@@ -79,7 +79,7 @@ public class OrganizationController {
 
         // Carregar contratos de forma segura usando queries customizadas
         response.setEmploymentContracts(buildEmploymentContractsResponse(id));
-        response.setClientContracts(buildServiceContractsResponse(id));
+        response.setClientContracts(buildClientContractsResponse(id));
 
         return response;
     }
@@ -92,7 +92,7 @@ public class OrganizationController {
 
         // Carregar contratos de forma segura usando queries customizadas
         response.setEmploymentContracts(buildEmploymentContractsResponse(organization.getId()));
-        response.setClientContracts(buildServiceContractsResponse(organization.getId()));
+        response.setClientContracts(buildClientContractsResponse(organization.getId()));
 
         return response;
     }
@@ -141,18 +141,17 @@ public class OrganizationController {
      * Constrói lista de ClientContractResponse a partir de dados brutos (sem lazy
      * loading)
      */
-    private java.util.List<ClientContractResponse> buildServiceContractsResponse(Long organizationId) {
-        java.util.List<Object[]> contractsData = service.getServiceContractsData(organizationId);
+    private java.util.List<ClientContractResponse> buildClientContractsResponse(Long organizationId) {
+        java.util.List<Object[]> contractsData = service.getClientContractsData(organizationId);
         return contractsData.stream()
                 .map(data -> {
                     ClientContractResponse response = new ClientContractResponse();
                     response.setClient(data[0] != null ? data[0].toString() : null); // UUID
-                    response.setContractNumber((String) data[1]); // String
-                    response.setIsPrimary((Boolean) data[2]); // boolean
-                    response.setStatus(data[3] != null ? data[3].toString() : null); // ContractStatus enum
-                    response.setContractDate(data[4] != null ? data[4].toString() : null); // LocalDate
-                    response.setStartDate(data[5] != null ? data[5].toString() : null); // LocalDate
-                    response.setEndDate(data[6] != null ? data[6].toString() : null); // LocalDate
+                    response.setIsPrimary((Boolean) data[1]); // boolean
+                    response.setStatus(data[2] != null ? data[2].toString() : null); // ContractStatus enum
+                    response.setContractDate(data[3] != null ? data[3].toString() : null); // LocalDate
+                    response.setStartDate(data[4] != null ? data[4].toString() : null); // LocalDate
+                    response.setEndDate(data[5] != null ? data[5].toString() : null); // LocalDate
                     return response;
                 })
                 .collect(java.util.stream.Collectors.toList());
@@ -211,7 +210,7 @@ public class OrganizationController {
 
         // Relacionamentos de contratos
         private java.util.List<EmploymentContractRequest> employmentContracts;
-        private java.util.List<ContractRequest> serviceContracts;
+        private java.util.List<ContractRequest> clientContracts;
 
         // Método helper para obter o cityId de qualquer formato
         public Long getCityIdResolved() {
@@ -235,13 +234,12 @@ public class OrganizationController {
     }
 
     /**
-     * DTO para Contract (serviceContracts)
+     * DTO para Contract (clientContracts)
      */
     @Data
     @NoArgsConstructor
     public static class ContractRequest {
         private String client; // UUID como string
-        private String contractNumber;
         private Boolean isPrimary;
         private String status; // ACTIVE, SUSPENDED, CANCELLED
         private String contractDate; // ISO Date string
@@ -338,7 +336,6 @@ public class OrganizationController {
                                     response.setClient(((com.mvt.mvt_events.jpa.User) clientId).getId().toString());
                                 }
                             }
-                            response.setContractNumber(sc.getContractNumber());
                             response.setIsPrimary(sc.isPrimary());
                             response.setStatus(sc.getStatus() != null ? sc.getStatus().toString() : null);
                             response.setContractDate(
@@ -383,7 +380,6 @@ public class OrganizationController {
     @NoArgsConstructor
     public static class ClientContractResponse {
         private String client; // UUID do cliente
-        private String contractNumber;
         private Boolean isPrimary;
         private String status;
         private String contractDate;
@@ -395,7 +391,6 @@ public class OrganizationController {
             if (contract.getClient() != null) {
                 this.client = contract.getClient().getId().toString();
             }
-            this.contractNumber = contract.getContractNumber();
             this.isPrimary = contract.isPrimary();
             this.status = contract.getStatus() != null ? contract.getStatus().toString() : null;
             this.contractDate = contract.getContractDate() != null ? contract.getContractDate().toString() : null;

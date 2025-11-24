@@ -166,7 +166,6 @@ public class JpaMetadataExtractor {
         // ==================== ZAPI10 - CONTRACTS ====================
         FIELD_TRANSLATIONS.put("employmentContracts", "Contratos de Motoboy");
         FIELD_TRANSLATIONS.put("contracts", "Contratos de Serviço");
-        FIELD_TRANSLATIONS.put("serviceContracts", "Contratos de Serviço");
         FIELD_TRANSLATIONS.put("clientContracts", "Contratos de Serviço");
 
         // Campos específicos de EmploymentContract
@@ -174,7 +173,6 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("isActive", "Ativo");
 
         // Campos específicos de Contract
-        FIELD_TRANSLATIONS.put("contractNumber", "Número do Contrato");
         FIELD_TRANSLATIONS.put("isPrimary", "Contrato Principal");
         FIELD_TRANSLATIONS.put("contractDate", "Data do Contrato");
         FIELD_TRANSLATIONS.put("client", "Cliente");
@@ -190,7 +188,6 @@ public class JpaMetadataExtractor {
         // ==================== ZAPI10 - MUNICIPAL PARTNERSHIP ====================
         FIELD_TRANSLATIONS.put("partnershipName", "Nome da Parceria");
         FIELD_TRANSLATIONS.put("municipality", "Município");
-        FIELD_TRANSLATIONS.put("contractNumber", "Número do Contrato");
         FIELD_TRANSLATIONS.put("startDate", "Data de Início");
         FIELD_TRANSLATIONS.put("endDate", "Data de Término");
         FIELD_TRANSLATIONS.put("discountPercentage", "Desconto (%)");

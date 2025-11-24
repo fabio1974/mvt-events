@@ -58,4 +58,16 @@ public class OrganizationSpecification {
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
     }
+
+    /**
+     * Filtro por ID da organização (tenant filter)
+     */
+    public static Specification<Organization> byOwnerId(Long organizationId) {
+        return (root, query, criteriaBuilder) -> {
+            if (organizationId == null) {
+                return criteriaBuilder.disjunction(); // Retorna falso se organizationId for null
+            }
+            return criteriaBuilder.equal(root.get("id"), organizationId);
+        };
+    }
 }

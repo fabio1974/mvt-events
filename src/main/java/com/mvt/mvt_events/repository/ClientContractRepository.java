@@ -79,16 +79,6 @@ public interface ClientContractRepository extends JpaRepository<ClientContract, 
         long countActiveByOrganization(@Param("organization") Organization organization);
 
         /**
-         * Find contracts by contract number
-         */
-        Optional<ClientContract> findByContractNumber(String contractNumber);
-
-        /**
-         * Check if contract number exists
-         */
-        boolean existsByContractNumber(String contractNumber);
-
-        /**
          * Busca todos os contratos de serviço de uma organização
          */
         @Query("SELECT c FROM ClientContract c WHERE c.organization.id = :organizationId")
@@ -135,18 +125,18 @@ public interface ClientContractRepository extends JpaRepository<ClientContract, 
 
         /**
          * Busca dados dos contratos de uma organização SEM carregar os objetos User
-         * Retorna: [client_id, contract_number, is_primary, status, contract_date,
+         * Retorna: [client_id, is_primary, status, contract_date,
          * start_date, end_date]
          */
-        @Query("SELECT c.client.id, c.contractNumber, c.isPrimary, c.status, c.contractDate, c.startDate, c.endDate FROM ClientContract c WHERE c.organization.id = :organizationId")
+        @Query("SELECT c.client.id, c.isPrimary, c.status, c.contractDate, c.startDate, c.endDate FROM ClientContract c WHERE c.organization.id = :organizationId")
         List<Object[]> findContractDataByOrganizationId(@Param("organizationId") Long organizationId);
 
         /**
          * Busca contratos de um CLIENT com dados da organização SEM carregar objetos
          * completos
-         * Retorna: [organization_id, organization_name, contract_number, is_primary,
+         * Retorna: [organization_id, organization_name, is_primary,
          * status, contract_date, start_date, end_date]
          */
-        @Query("SELECT c.organization.id, c.organization.name, c.contractNumber, c.isPrimary, c.status, c.contractDate, c.startDate, c.endDate FROM ClientContract c WHERE c.client.id = :clientId")
+        @Query("SELECT c.organization.id, c.organization.name, c.isPrimary, c.status, c.contractDate, c.startDate, c.endDate FROM ClientContract c WHERE c.client.id = :clientId")
         List<Object[]> findContractDataByClientId(@Param("clientId") java.util.UUID clientId);
 }

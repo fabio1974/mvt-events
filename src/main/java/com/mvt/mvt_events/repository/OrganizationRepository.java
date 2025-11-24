@@ -56,4 +56,11 @@ public interface OrganizationRepository
     @EntityGraph(attributePaths = { "city" })
     @NonNull
     Page<Organization> findAll(@NonNull Pageable pageable);
+
+    /**
+     * Override findAll with Specification to eagerly load city
+     */
+    @EntityGraph(attributePaths = { "city" })
+    @NonNull
+    Page<Organization> findAll(org.springframework.data.jpa.domain.Specification<Organization> spec, @NonNull Pageable pageable);
 }

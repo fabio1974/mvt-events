@@ -50,11 +50,6 @@ public class ClientContract extends BaseEntity {
     // CONTRACT METADATA
     // ============================================================================
 
-    @DisplayLabel
-    @Column(name = "contract_number", length = 50, unique = true)
-    @Visible(table = true, form = true, filter = true)
-    private String contractNumber;
-
     @Column(name = "is_primary", nullable = false)
     @Visible(table = true, form = true, filter = true)
     private boolean isPrimary = false;

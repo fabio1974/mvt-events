@@ -36,6 +36,10 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
        @Query("SELECT u FROM User u WHERE u.username = :username")
        Optional<User> findByUsernameSimple(@Param("username") String username);
 
+       // Método para tenant filter (busca apenas role sem carregar relacionamentos)
+       @Query("SELECT u FROM User u WHERE u.username = :username")
+       Optional<User> findByUsernameWithoutRelations(@Param("username") String username);
+
        // Update direto da senha (evita problemas com collections)
        @Modifying
        @Transactional
@@ -64,4 +68,10 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
         */
        @Query("SELECT u FROM User u WHERE u.organization.id IN :organizationIds AND u.role IN ('ADMIN', 'ORGANIZER')")
        List<User> findAdmsByOrganizationIds(@Param("organizationIds") List<Long> organizationIds);
+
+       /**
+        * Busca apenas o organization_id do usuário sem carregar o objeto Organization
+        */
+       @Query("SELECT u.organization.id FROM User u WHERE u.username = :username")
+       Optional<Long> findOrganizationIdByUsername(@Param("username") String username);
 }
