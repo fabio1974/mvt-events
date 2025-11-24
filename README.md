@@ -1,6 +1,6 @@
-# 🎫 MVT Events - Sistema de Gestão de Eventos
+# 🎫 MVT Events / Zapi10 - Plataforma de Entregas
 
-Sistema completo de gestão de eventos com multi-tenancy, filtros dinâmicos e integração de pagamentos.
+Sistema completo de gestão de entregas com sistema inteligente de notificações em 3 níveis, multi-tenancy e integração de pagamentos.
 
 ---
 
@@ -10,6 +10,17 @@ Sistema completo de gestão de eventos com multi-tenancy, filtros dinâmicos e i
 
 ### 🚀 Quick Links
 
+#### Documentação para Gerentes
+- [📊 **Apresentação Gerencial Zapi10**](./APRESENTACAO_GERENCIAL_ZAPI10.md) ⭐ **NOVO!**
+  - Sistema de Grupos e Vínculos
+  - Algoritmo de Notificações em 3 Níveis
+  - Divisão de Comissões (85% / 15%)
+  - Impacto Financeiro e ROI
+  - Estratégias de Negócio
+  
+- [📖 Apresentação Técnica Completa](./APRESENTACAO_SISTEMA_GRUPOS_E_NOTIFICACOES.md)
+
+#### Documentação Técnica
 - [📖 Documentação Completa](./docs/README.md)
 - [🏗️ Arquitetura de Metadata](./docs/architecture/METADATA_ARCHITECTURE.md)
 - [🔍 Guia de Filtros API](./docs/api/FILTERS_GUIDE.md)
