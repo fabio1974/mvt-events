@@ -84,9 +84,9 @@ public interface EmploymentContractRepository extends JpaRepository<EmploymentCo
     List<EmploymentContract> findByCourierId(@Param("courierId") UUID courierId);
 
     /**
-     * Busca contratos ativos de um courier específico
+     * Busca contratos ativos de um courier específico com organização e owner carregados
      */
-    @Query("SELECT ec FROM EmploymentContract ec WHERE ec.courier.id = :courierId AND ec.isActive = true")
+    @Query("SELECT ec FROM EmploymentContract ec JOIN FETCH ec.organization o LEFT JOIN FETCH o.owner WHERE ec.courier.id = :courierId AND ec.isActive = true")
     List<EmploymentContract> findActiveByCourierId(@Param("courierId") UUID courierId);
 
     /**
