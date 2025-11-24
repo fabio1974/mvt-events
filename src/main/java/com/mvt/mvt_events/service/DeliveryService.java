@@ -284,6 +284,13 @@ public class DeliveryService {
         // vamos usar apenas o filtro por organizationId primeiro
         if (clientId == null && courierId == null && organizerId == null && status == null &&
                 startDate == null && endDate == null) {
+            
+            // Caso especial: ADMIN sem filtros - retornar TODAS as deliveries
+            if (organizationId == null) {
+                // Para ADMIN: usar findAll() com paginação
+                return deliveryRepository.findAll(pageable);
+            }
+            
             // Caso simples - usar query com fetch joins por organização
             List<Delivery> deliveries = deliveryRepository.findAllWithJoinsByOrganizationId(organizationId);
             // Converter para Page manualmente
