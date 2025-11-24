@@ -164,9 +164,10 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("lastLocationUpdate", "Última Atualização de Localização");
 
         // ==================== ZAPI10 - CONTRACTS ====================
-        FIELD_TRANSLATIONS.put("employmentContracts", "Contratos Motoboy");
-        FIELD_TRANSLATIONS.put("contracts", "Contratos de Cliente");
-        FIELD_TRANSLATIONS.put("serviceContracts", "Contratos de Cliente");
+        FIELD_TRANSLATIONS.put("employmentContracts", "Contratos de Motoboy");
+        FIELD_TRANSLATIONS.put("contracts", "Contratos de Serviço");
+        FIELD_TRANSLATIONS.put("serviceContracts", "Contratos de Serviço");
+        FIELD_TRANSLATIONS.put("clientContracts", "Contratos de Serviço");
 
         // Campos específicos de EmploymentContract
         FIELD_TRANSLATIONS.put("linkedAt", "Vinculado em");
