@@ -14,7 +14,7 @@ import java.util.UUID;
 /**
  * Repository para Delivery
  * ENTIDADE CORE do Zapi10 - substitui Registration
- * Filtragem por tenant agora via client.organization.id
+ * Filtragem por tenant através de ClientContract (organization removida de User)
  */
 @Repository
 public interface DeliveryRepository
@@ -34,21 +34,46 @@ public interface DeliveryRepository
 
         /**
          * Busca deliveries por organização (novo tenant, ordenado por updatedAt DESC)
+         * Usa ClientContract para determinar organização do cliente
          */
-        @Query("SELECT d FROM Delivery d WHERE d.client.organization.id = :organizationId ORDER BY d.updatedAt DESC")
+        @Query("SELECT d FROM Delivery d WHERE d.client.id IN (" +
+               "  SELECT cc.client.id FROM ClientContract cc " +
+               "  WHERE cc.organization.id = :organizationId AND cc.status = 'ACTIVE'" +
+               ") ORDER BY d.updatedAt DESC")
         List<Delivery> findByOrganizationId(@Param("organizationId") Long organizationId);
 
         /**
-         * Busca deliveries por status em uma organização específica (ordenado por updatedAt DESC)
+         * Busca TODAS as deliveries com fetch joins (para ADMIN)
+         * Ordenado por updatedAt DESC
+         * Note: organization removed from User, access via Organization.owner if needed
          */
-        @Query("SELECT d FROM Delivery d WHERE d.client.organization.id = :organizationId AND d.status = :status ORDER BY d.updatedAt DESC")
+        @Query(value = "SELECT DISTINCT d FROM Delivery d " +
+                        "LEFT JOIN FETCH d.client c " +
+                        "LEFT JOIN FETCH d.courier " +
+                        "LEFT JOIN FETCH d.organizer " +
+                        "ORDER BY d.updatedAt DESC",
+               countQuery = "SELECT COUNT(DISTINCT d) FROM Delivery d")
+        org.springframework.data.domain.Page<Delivery> findAllWithJoins(org.springframework.data.domain.Pageable pageable);
+
+        /**
+         * Busca deliveries por status em uma organização específica (ordenado por updatedAt DESC)
+         * Usa ClientContract para determinar organização do cliente
+         */
+        @Query("SELECT d FROM Delivery d WHERE d.client.id IN (" +
+               "  SELECT cc.client.id FROM ClientContract cc " +
+               "  WHERE cc.organization.id = :organizationId AND cc.status = 'ACTIVE'" +
+               ") AND d.status = :status ORDER BY d.updatedAt DESC")
         List<Delivery> findByOrganizationIdAndStatus(@Param("organizationId") Long organizationId,
                         @Param("status") String status);
 
         /**
          * Conta deliveries por status em uma organização
+         * Usa ClientContract para determinar organização do cliente
          */
-        @Query("SELECT COUNT(d) FROM Delivery d WHERE d.client.organization.id = :organizationId AND d.status = :status")
+        @Query("SELECT COUNT(d) FROM Delivery d WHERE d.client.id IN (" +
+               "  SELECT cc.client.id FROM ClientContract cc " +
+               "  WHERE cc.organization.id = :organizationId AND cc.status = 'ACTIVE'" +
+               ") AND d.status = :status")
         Long countByOrganizationIdAndStatus(@Param("organizationId") Long organizationId,
                         @Param("status") String status);
 
@@ -78,9 +103,13 @@ public interface DeliveryRepository
 
         /**
          * Busca deliveries em um período para uma organização (ordenado por updatedAt DESC)
+         * Usa ClientContract para determinar organização do cliente
          */
         @Query("SELECT d FROM Delivery d " +
-                        "WHERE d.client.organization.id = :organizationId " +
+                        "WHERE d.client.id IN (" +
+                        "  SELECT cc.client.id FROM ClientContract cc " +
+                        "  WHERE cc.organization.id = :organizationId AND cc.status = 'ACTIVE'" +
+                        ") " +
                         "AND d.createdAt BETWEEN :startDate AND :endDate " +
                         "ORDER BY d.updatedAt DESC")
         List<Delivery> findByOrganizationIdAndDateRange(
@@ -101,8 +130,12 @@ public interface DeliveryRepository
         /**
          * Busca entregas disponíveis para um motoboy (PENDING na organização)
          * Ordenadas por updatedAt DESC para mostrar as mais recentes primeiro
+         * Usa ClientContract para determinar organização do cliente
          */
-        @Query("SELECT d FROM Delivery d WHERE d.status = 'PENDING' AND d.client.organization.id = :organizationId AND d.courier IS NULL ORDER BY d.updatedAt DESC")
+        @Query("SELECT d FROM Delivery d WHERE d.status = 'PENDING' AND d.client.id IN (" +
+               "  SELECT cc.client.id FROM ClientContract cc " +
+               "  WHERE cc.organization.id = :organizationId AND cc.status = 'ACTIVE'" +
+               ") AND d.courier IS NULL ORDER BY d.updatedAt DESC")
         List<Delivery> findAvailableForCourier(@Param("organizationId") Long organizationId);
 
         /**
@@ -125,13 +158,17 @@ public interface DeliveryRepository
 
         /**
          * Busca deliveries com fetch joins por organização do cliente (ordenado por updatedAt DESC)
+         * Note: organization removed from User, access via Organization.owner if needed
          */
         @Query("SELECT DISTINCT d FROM Delivery d " +
                         "LEFT JOIN FETCH d.client c " +
-                        "LEFT JOIN FETCH c.organization " +
                         "LEFT JOIN FETCH d.courier " +
                         "LEFT JOIN FETCH d.organizer " +
-                        "WHERE c.organization.id = :organizationId " +
+                        "WHERE c.id IN (" +
+                        "  SELECT cc.client.id FROM ClientContract cc " +
+                        "  WHERE cc.organization.id = :organizationId " +
+                        "  AND cc.status = 'ACTIVE'" +
+                        ") " +
                         "ORDER BY d.updatedAt DESC")
         List<Delivery> findAllWithJoinsByOrganizationId(@Param("organizationId") Long organizationId);
 
@@ -139,10 +176,10 @@ public interface DeliveryRepository
          * Busca deliveries com fetch joins usando contratos ativos (nova arquitetura)
          * Para COURIERs que acessam organizações via employment_contracts
          * Ordenado por updatedAt DESC
+         * Note: organization removed from User, access via Organization.owner if needed
          */
         @Query("SELECT DISTINCT d FROM Delivery d " +
                         "LEFT JOIN FETCH d.client c " +
-                        "LEFT JOIN FETCH c.organization " +
                         "LEFT JOIN FETCH d.courier " +
                         "WHERE d.client.id IN (" +
                         "  SELECT cc.client.id FROM ClientContract cc " +
@@ -155,10 +192,10 @@ public interface DeliveryRepository
         /**
          * Busca deliveries com fetch joins usando contratos ativos + status filter
          * Ordenado por updatedAt DESC
+         * Note: organization removed from User, access via Organization.owner if needed
          */
         @Query("SELECT DISTINCT d FROM Delivery d " +
                         "LEFT JOIN FETCH d.client c " +
-                        "LEFT JOIN FETCH c.organization " +
                         "LEFT JOIN FETCH d.courier " +
                         "WHERE d.client.id IN (" +
                         "  SELECT cc.client.id FROM ClientContract cc " +
@@ -172,10 +209,10 @@ public interface DeliveryRepository
 
         /**
          * Busca delivery por ID com todos os relacionamentos carregados (fetch join)
+         * Note: organization removed from User, access via Organization.owner if needed
          */
         @Query("SELECT d FROM Delivery d " +
                         "LEFT JOIN FETCH d.client c " +
-                        "LEFT JOIN FETCH c.organization " +
                         "LEFT JOIN FETCH d.courier " +
                         "LEFT JOIN FETCH d.organizer " +
                         "WHERE d.id = :id")
@@ -183,10 +220,10 @@ public interface DeliveryRepository
 
         /**
          * Busca deliveries por clientId com todos os relacionamentos carregados (fetch join)
+         * Note: organization removed from User, access via Organization.owner if needed
          */
         @Query("SELECT DISTINCT d FROM Delivery d " +
                         "LEFT JOIN FETCH d.client c " +
-                        "LEFT JOIN FETCH c.organization " +
                         "LEFT JOIN FETCH d.courier " +
                         "LEFT JOIN FETCH d.organizer " +
                         "WHERE c.id = :clientId " +
@@ -195,10 +232,10 @@ public interface DeliveryRepository
 
         /**
          * Busca deliveries por clientId e status com todos os relacionamentos carregados (fetch join)
+         * Note: organization removed from User, access via Organization.owner if needed
          */
         @Query("SELECT DISTINCT d FROM Delivery d " +
                         "LEFT JOIN FETCH d.client c " +
-                        "LEFT JOIN FETCH c.organization " +
                         "LEFT JOIN FETCH d.courier " +
                         "LEFT JOIN FETCH d.organizer " +
                         "WHERE c.id = :clientId AND d.status = :status " +

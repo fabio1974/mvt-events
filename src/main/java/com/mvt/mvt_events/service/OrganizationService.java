@@ -70,18 +70,18 @@ public class OrganizationService {
         // Save organization first
         Organization savedOrganization = repository.save(organization);
 
-        // Update user with organization if userId is provided
+        // Set owner if userId is provided
         if (request.getUserId() != null) {
             User user = userRepository.findById(request.getUserId())
                     .orElseThrow(() -> new RuntimeException("Usuário não encontrado com ID: " + request.getUserId()));
 
             // Verify user is an organizer
             if (user.getRole() != User.Role.ORGANIZER) {
-                throw new RuntimeException("Apenas usuários com role ORGANIZER podem ser vinculados a uma organização");
+                throw new RuntimeException("Apenas usuários com role ORGANIZER podem ser donos de uma organização");
             }
 
-            user.setOrganization(savedOrganization);
-            userRepository.save(user);
+            savedOrganization.setOwner(user);
+            savedOrganization = repository.save(savedOrganization);
         }
 
         return savedOrganization;
@@ -338,30 +338,44 @@ public class OrganizationService {
         User user = userRepository.findByUsernameWithoutRelations(userEmail)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + userEmail));
         
+        Page<Organization> result;
+        
         // ADMIN: sem filtro de tenant, vê tudo
         if (user.getRole() == User.Role.ADMIN) {
             Specification<Organization> spec = OrganizationSpecification.withFilters(search, active);
-            return repository.findAll(spec, pageable);
+            result = repository.findAll(spec, pageable);
         }
-        
         // ORGANIZER: filtra apenas sua organização
-        if (user.getRole() == User.Role.ORGANIZER) {
-            // Buscar organization_id sem carregar o objeto Organization (evita lazy loading)
-            Optional<Long> organizationId = userRepository.findOrganizationIdByUsername(userEmail);
+        else if (user.getRole() == User.Role.ORGANIZER) {
+            // Buscar organização onde o usuário é owner
+            Optional<Organization> orgOpt = repository.findByOwner(user);
             
-            if (organizationId.isEmpty()) {
+            if (orgOpt.isEmpty()) {
                 // ORGANIZER sem organização: retorna página vazia
                 return Page.empty(pageable);
             }
             
             // Adicionar filtro por organization_id
             Specification<Organization> spec = OrganizationSpecification.withFilters(search, active)
-                    .and(OrganizationSpecification.byOwnerId(organizationId.get()));
-            return repository.findAll(spec, pageable);
+                    .and(OrganizationSpecification.byOwnerId(orgOpt.get().getId()));
+            result = repository.findAll(spec, pageable);
+        }
+        // Outros roles (COURIER, CLIENT): retornam lista vazia
+        else {
+            return Page.empty(pageable);
         }
         
-        // Outros roles (COURIER, CLIENT): retornam lista vazia
-        return Page.empty(pageable);
+        // Inicializar owner e city para evitar lazy loading no controller
+        result.getContent().forEach(org -> {
+            if (org.getOwner() != null) {
+                Hibernate.initialize(org.getOwner());
+            }
+            if (org.getCity() != null) {
+                Hibernate.initialize(org.getCity());
+            }
+        });
+        
+        return result;
     }
 
     @Transactional(readOnly = true)
@@ -371,9 +385,13 @@ public class OrganizationService {
         Organization organization = findById(id)
                 .orElseThrow(() -> new RuntimeException("Organization not found with id: " + id));
 
-        // Forçar inicialização apenas da cidade
+        // Forçar inicialização da cidade e do owner
         if (organization.getCity() != null) {
             Hibernate.initialize(organization.getCity());
+        }
+        
+        if (organization.getOwner() != null) {
+            Hibernate.initialize(organization.getOwner());
         }
 
         // NÃO inicializar os contratos aqui - eles serão carregados via queries
@@ -384,19 +402,21 @@ public class OrganizationService {
     }
 
     /**
-     * Get organization by user ID
+     * Get organization by user ID (where user is the owner)
      */
     @Transactional(readOnly = true)
     public Organization getByUserId(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado com ID: " + userId));
 
-        if (user.getOrganization() == null) {
-            throw new RuntimeException("Usuário não está vinculado a nenhuma organização");
+        // Find organization where user is the owner
+        Optional<Organization> organization = repository.findByOwner(user);
+        
+        if (organization.isEmpty()) {
+            throw new RuntimeException("Usuário não é dono de nenhuma organização");
         }
 
-        Long organizationId = user.getOrganization().getId();
-        return get(organizationId); // Usa o método get() que já trata a inicialização
+        return organization.get();
     }
 
     /**

@@ -257,6 +257,29 @@ public class OrganizationController {
     }
 
     /**
+     * DTO para resposta de owner (dono da organização)
+     */
+    @Data
+    @NoArgsConstructor
+    public static class OwnerResponse {
+        private String id;
+        private String name;
+        private String username;
+        private String email;
+        private String role;
+        
+        public OwnerResponse(com.mvt.mvt_events.jpa.User user) {
+            if (user != null) {
+                this.id = user.getId().toString();
+                this.name = user.getName();
+                this.username = user.getUsername();
+                this.email = user.getUsername(); // username é o email
+                this.role = user.getRole() != null ? user.getRole().toString() : null;
+            }
+        }
+    }
+
+    /**
      * DTO para resposta de organização (evita problemas de lazy loading)
      */
     @Data
@@ -275,6 +298,9 @@ public class OrganizationController {
         private CityDTO city;
         private BigDecimal commissionPercentage;
         private String status;
+        
+        // Owner (novo relacionamento - antes era User.organization, agora é Organization.owner)
+        private OwnerResponse owner;
 
         // Relacionamentos de contratos
         private java.util.List<EmploymentContractResponse> employmentContracts;
@@ -296,6 +322,11 @@ public class OrganizationController {
 
             // Carregar dados da cidade como objeto usando DTOMapper
             this.city = DTOMapper.toDTO(organization.getCity());
+            
+            // Carregar owner se disponível
+            if (organization.getOwner() != null) {
+                this.owner = new OwnerResponse(organization.getOwner());
+            }
 
             // Carregar contratos apenas se estiverem inicializados
             // IMPORTANTE: NÃO acessar User dentro do contrato para evitar lazy loading e

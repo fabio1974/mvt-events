@@ -1,6 +1,7 @@
 package com.mvt.mvt_events.repository;
 
 import com.mvt.mvt_events.jpa.Organization;
+import com.mvt.mvt_events.jpa.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,6 +21,8 @@ public interface OrganizationRepository
     Optional<Organization> findBySlug(String slug);
 
     Optional<Organization> findByContactEmail(String contactEmail);
+    
+    Optional<Organization> findByOwner(User owner);
 
     boolean existsBySlug(String slug);
 

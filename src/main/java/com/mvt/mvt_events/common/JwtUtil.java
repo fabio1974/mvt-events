@@ -1,8 +1,11 @@
 package com.mvt.mvt_events.common;
 
 import com.mvt.mvt_events.jpa.User;
+import com.mvt.mvt_events.jpa.Organization;
+import com.mvt.mvt_events.repository.OrganizationRepository;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
@@ -12,10 +15,14 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 @Component
 public class JwtUtil {
+
+    @Autowired
+    private OrganizationRepository organizationRepository;
 
     @Value("${jwt.secret:mvt-events-secret-key-for-jwt-authentication-very-long-secret-key-256-bits}")
     private String jwtSecret;
@@ -117,9 +124,10 @@ public class JwtUtil {
                 claims.put("longitude", user.getLongitude());
             }
 
-            // Add organization_id for ORGANIZER users
-            if (user.getOrganization() != null) {
-                claims.put("organizationId", user.getOrganization().getId());
+            // Add organization_id for ORGANIZER users - find organization where user is owner
+            Optional<Organization> orgOpt = organizationRepository.findByOwner(user);
+            if (orgOpt.isPresent()) {
+                claims.put("organizationId", orgOpt.get().getId());
             }
         }
 

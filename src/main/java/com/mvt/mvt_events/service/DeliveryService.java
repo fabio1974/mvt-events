@@ -285,10 +285,10 @@ public class DeliveryService {
         if (clientId == null && courierId == null && organizerId == null && status == null &&
                 startDate == null && endDate == null) {
             
-            // Caso especial: ADMIN sem filtros - retornar TODAS as deliveries
+            // Caso especial: ADMIN sem filtros - retornar TODAS as deliveries com JOIN FETCH
             if (organizationId == null) {
-                // Para ADMIN: usar findAll() com paginação
-                return deliveryRepository.findAll(pageable);
+                // Para ADMIN: usar query com fetch joins para evitar lazy loading
+                return deliveryRepository.findAllWithJoins(pageable);
             }
             
             // Caso simples - usar query com fetch joins por organização

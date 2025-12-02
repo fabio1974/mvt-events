@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping({"/api/auth", "/auth"})
@@ -119,14 +120,23 @@ public class AuthController {
             return ResponseEntity.status(401).body(Map.of("valid", false, "message", "Usuário não encontrado"));
         }
         
+        // Find organization where user is owner
+        Long organizationId = null;
+        String organizationName = null;
+        Optional<com.mvt.mvt_events.jpa.Organization> orgOpt = organizationRepository.findByOwner(user);
+        if (orgOpt.isPresent()) {
+            organizationId = orgOpt.get().getId();
+            organizationName = orgOpt.get().getName();
+        }
+        
         Map<String, Object> response = new HashMap<>();
         response.put("valid", true);
         response.put("userId", user.getId());
         response.put("username", user.getUsername());
         response.put("name", user.getName());
         response.put("role", user.getRole());
-        response.put("organizationId", user.getOrganization() != null ? user.getOrganization().getId() : null);
-        response.put("organizationName", user.getOrganization() != null ? user.getOrganization().getName() : null);
+        response.put("organizationId", organizationId);
+        response.put("organizationName", organizationName);
         
         return ResponseEntity.ok(response);
     }
@@ -151,13 +161,22 @@ public class AuthController {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Find organization where user is owner
+        Long organizationId = null;
+        String organizationName = null;
+        Optional<Organization> orgOpt = organizationRepository.findByOwner(user);
+        if (orgOpt.isPresent()) {
+            organizationId = orgOpt.get().getId();
+            organizationName = orgOpt.get().getName();
+        }
+
         Map<String, Object> response = new HashMap<>();
         response.put("id", user.getId());
         response.put("username", user.getUsername());
         response.put("name", user.getName());
         response.put("role", user.getRole());
-        response.put("organizationId", user.getOrganization() != null ? user.getOrganization().getId() : null);
-        response.put("organizationName", user.getOrganization() != null ? user.getOrganization().getName() : null);
+        response.put("organizationId", organizationId);
+        response.put("organizationName", organizationName);
 
         return ResponseEntity.ok(response);
     }
@@ -170,22 +189,32 @@ public class AuthController {
             User user = userRepository.findById(userUuid)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // Update organization
+            // Update organization owner
+            Long organizationId = null;
+            String organizationName = null;
+            
             if (request.getOrganizationId() != null) {
                 Organization organization = organizationRepository.findById(request.getOrganizationId())
                         .orElseThrow(() -> new RuntimeException("Organization not found"));
-                user.setOrganization(organization);
+                organization.setOwner(user);
+                organizationRepository.save(organization);
+                organizationId = organization.getId();
+                organizationName = organization.getName();
             } else {
-                user.setOrganization(null); // Remove organization
+                // Remove ownership - find organization where user is owner and set owner to null
+                Optional<Organization> orgOpt = organizationRepository.findByOwner(user);
+                if (orgOpt.isPresent()) {
+                    Organization org = orgOpt.get();
+                    org.setOwner(null);
+                    organizationRepository.save(org);
+                }
             }
-
-            userRepository.save(user);
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "User organization updated successfully");
             response.put("userId", user.getId());
-            response.put("organizationId", user.getOrganization() != null ? user.getOrganization().getId() : null);
-            response.put("organizationName", user.getOrganization() != null ? user.getOrganization().getName() : null);
+            response.put("organizationId", organizationId);
+            response.put("organizationName", organizationName);
 
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
@@ -202,23 +231,33 @@ public class AuthController {
             User user = userRepository.findByUsername(email)
                     .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
 
-            // Update organization
+            // Update organization owner
+            Long organizationId = null;
+            String organizationName = null;
+            
             if (request.getOrganizationId() != null) {
                 Organization organization = organizationRepository.findById(request.getOrganizationId())
                         .orElseThrow(() -> new RuntimeException("Organization not found"));
-                user.setOrganization(organization);
+                organization.setOwner(user);
+                organizationRepository.save(organization);
+                organizationId = organization.getId();
+                organizationName = organization.getName();
             } else {
-                user.setOrganization(null); // Remove organization
+                // Remove ownership
+                Optional<Organization> orgOpt = organizationRepository.findByOwner(user);
+                if (orgOpt.isPresent()) {
+                    Organization org = orgOpt.get();
+                    org.setOwner(null);
+                    organizationRepository.save(org);
+                }
             }
-
-            userRepository.save(user);
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "User organization updated successfully");
             response.put("userId", user.getId());
             response.put("username", user.getUsername());
-            response.put("organizationId", user.getOrganization() != null ? user.getOrganization().getId() : null);
-            response.put("organizationName", user.getOrganization() != null ? user.getOrganization().getName() : null);
+            response.put("organizationId", organizationId);
+            response.put("organizationName", organizationName);
 
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
@@ -234,23 +273,33 @@ public class AuthController {
             User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // Update organization
+            // Update organization owner
+            Long organizationId = null;
+            String organizationName = null;
+            
             if (request.getOrganizationId() != null) {
                 Organization organization = organizationRepository.findById(request.getOrganizationId())
                         .orElseThrow(() -> new RuntimeException("Organization not found"));
-                user.setOrganization(organization);
+                organization.setOwner(user);
+                organizationRepository.save(organization);
+                organizationId = organization.getId();
+                organizationName = organization.getName();
             } else {
-                user.setOrganization(null); // Remove organization
+                // Remove ownership
+                Optional<Organization> orgOpt = organizationRepository.findByOwner(user);
+                if (orgOpt.isPresent()) {
+                    Organization org = orgOpt.get();
+                    org.setOwner(null);
+                    organizationRepository.save(org);
+                }
             }
-
-            userRepository.save(user);
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Your organization updated successfully");
             response.put("userId", user.getId());
             response.put("username", user.getUsername());
-            response.put("organizationId", user.getOrganization() != null ? user.getOrganization().getId() : null);
-            response.put("organizationName", user.getOrganization() != null ? user.getOrganization().getName() : null);
+            response.put("organizationId", organizationId);
+            response.put("organizationName", organizationName);
 
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {

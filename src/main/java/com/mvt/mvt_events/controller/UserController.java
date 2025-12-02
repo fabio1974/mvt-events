@@ -296,8 +296,9 @@ public class UserController {
             // Carregar dados da cidade como objeto usando DTOMapper
             this.city = DTOMapper.toDTO(user.getCity());
 
-            // Carregar dados da organização como objeto usando DTOMapper
-            this.organization = DTOMapper.toDTO(user.getOrganization());
+            // Organization is now accessed through the reverse relationship (Organization.owner)
+            // Will be populated separately if needed
+            this.organization = null;
 
             // Inicializar listas vazias (serão preenchidas no controller se necessário)
             this.employmentContracts = new java.util.ArrayList<>();

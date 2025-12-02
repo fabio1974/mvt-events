@@ -18,17 +18,18 @@ import java.util.UUID;
 public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificationExecutor<User> {
 
        // Métodos de busca única e validação - mantidos
-       @EntityGraph(attributePaths = { "organization", "city" })
+       // Note: organization removed from User entity, now access via Organization.owner
+       @EntityGraph(attributePaths = { "city" })
        Optional<User> findByUsername(String username);
 
        // Método para autenticação (carrega todos os relacionamentos necessários para
        // JWT)
-       @EntityGraph(attributePaths = { "organization", "city" })
+       @EntityGraph(attributePaths = { "city" })
        @Query("SELECT u FROM User u WHERE u.username = :username")
        Optional<User> findByUsernameForAuth(@Param("username") String username);
 
        // Método para autenticação por CPF (carrega todos os relacionamentos necessários para JWT)
-       @EntityGraph(attributePaths = { "organization", "city" })
+       @EntityGraph(attributePaths = { "city" })
        @Query("SELECT u FROM User u WHERE u.cpf = :cpf")
        Optional<User> findByCpfForAuth(@Param("cpf") String cpf);
 
@@ -64,14 +65,8 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
        List<User> searchAthletes(@Param("searchTerm") String searchTerm);
 
        /**
-        * Busca usuários ADM/ORGANIZER de organizações específicas
+        * Busca usuários ADM/ORGANIZER que são donos de organizações específicas
         */
-       @Query("SELECT u FROM User u WHERE u.organization.id IN :organizationIds AND u.role IN ('ADMIN', 'ORGANIZER')")
+       @Query("SELECT u FROM User u WHERE u.id IN (SELECT o.owner.id FROM Organization o WHERE o.id IN :organizationIds) AND u.role IN ('ADMIN', 'ORGANIZER')")
        List<User> findAdmsByOrganizationIds(@Param("organizationIds") List<Long> organizationIds);
-
-       /**
-        * Busca apenas o organization_id do usuário sem carregar o objeto Organization
-        */
-       @Query("SELECT u.organization.id FROM User u WHERE u.username = :username")
-       Optional<Long> findOrganizationIdByUsername(@Param("username") String username);
 }

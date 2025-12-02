@@ -18,20 +18,52 @@ public class DeliverySpecification {
 
     /**
      * TENANT FILTER - CRÍTICO
-     * Filtra por organização do cliente (substitui hasAdmId)
+     * Filtra por organização do cliente através de ClientContract
+     * Note: User não tem mais organization, busca via contratos
      */
     public static Specification<Delivery> hasClientOrganizationId(Long organizationId) {
-        return (root, query, cb) -> organizationId == null ? cb.conjunction()
-                : cb.equal(root.get("client").get("organization").get("id"), organizationId);
+        return (root, query, cb) -> {
+            if (organizationId == null) {
+                return cb.conjunction();
+            }
+            
+            // Subquery para buscar client_ids que têm contratos ativos com a organização
+            var subquery = query.subquery(UUID.class);
+            var contractRoot = subquery.from(com.mvt.mvt_events.jpa.ClientContract.class);
+            
+            subquery.select(contractRoot.get("client").get("id"))
+                    .where(cb.and(
+                            cb.equal(contractRoot.get("organization").get("id"), organizationId),
+                            cb.equal(contractRoot.get("status"),
+                                    com.mvt.mvt_events.jpa.ClientContract.ContractStatus.ACTIVE)));
+            
+            return root.get("client").get("id").in(subquery);
+        };
     }
 
     /**
      * TENANT FILTER para múltiplas organizações - para COURIERs
      * Busca deliveries onde o cliente tem contratos com as organizações
+     * Note: User não tem mais organization, busca via contratos
      */
     public static Specification<Delivery> hasClientOrganizationIdIn(List<Long> organizationIds) {
-        return (root, query, cb) -> organizationIds == null || organizationIds.isEmpty() ? cb.conjunction()
-                : root.get("client").get("organization").get("id").in(organizationIds);
+        return (root, query, cb) -> {
+            if (organizationIds == null || organizationIds.isEmpty()) {
+                return cb.conjunction();
+            }
+            
+            // Subquery para buscar client_ids que têm contratos ativos com as organizações
+            var subquery = query.subquery(UUID.class);
+            var contractRoot = subquery.from(com.mvt.mvt_events.jpa.ClientContract.class);
+            
+            subquery.select(contractRoot.get("client").get("id"))
+                    .where(cb.and(
+                            contractRoot.get("organization").get("id").in(organizationIds),
+                            cb.equal(contractRoot.get("status"),
+                                    com.mvt.mvt_events.jpa.ClientContract.ContractStatus.ACTIVE)));
+            
+            return root.get("client").get("id").in(subquery);
+        };
     }
 
     /**

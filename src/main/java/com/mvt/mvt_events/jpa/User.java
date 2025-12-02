@@ -119,12 +119,6 @@ public class User implements UserDetails {
     @Column(name = "longitude")
     private Double longitude;
 
-    // Organization relationship for Gerente ADM role
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id")
-    @JsonIgnore // Evitar referência circular: User -> Organization -> Contracts -> User
-    private Organization organization;
-
     @Column(nullable = false)
     private boolean enabled = true;
 

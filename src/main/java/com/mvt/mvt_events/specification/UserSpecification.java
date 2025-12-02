@@ -1,7 +1,9 @@
 package com.mvt.mvt_events.specification;
 
 import com.mvt.mvt_events.jpa.User;
+import com.mvt.mvt_events.jpa.Organization;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.ArrayList;
@@ -23,7 +25,12 @@ public class UserSpecification {
             }
 
             if (organizationId != null) {
-                predicates.add(criteriaBuilder.equal(root.get("organization").get("id"), organizationId));
+                // User não tem mais organization, busca através de Organization.owner
+                Subquery<Long> subquery = query.subquery(Long.class);
+                var orgRoot = subquery.from(Organization.class);
+                subquery.select(orgRoot.get("owner").get("id"))
+                        .where(criteriaBuilder.equal(orgRoot.get("id"), organizationId));
+                predicates.add(root.get("id").in(subquery));
             }
 
             if (enabled != null) {

@@ -3,10 +3,8 @@ package com.mvt.mvt_events.service;
 import com.mvt.mvt_events.controller.UserController.UserCreateRequest;
 import com.mvt.mvt_events.controller.UserController.UserUpdateRequest;
 import com.mvt.mvt_events.jpa.City;
-import com.mvt.mvt_events.jpa.Organization;
 import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.repository.CityRepository;
-import com.mvt.mvt_events.repository.OrganizationRepository;
 import com.mvt.mvt_events.repository.UserRepository;
 import com.mvt.mvt_events.specification.UserSpecification;
 import com.mvt.mvt_events.util.CPFUtil;
@@ -37,9 +35,6 @@ public class UserService {
     private CityRepository cityRepository;
 
     @Autowired
-    private OrganizationRepository organizationRepository;
-
-    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -65,11 +60,8 @@ public class UserService {
         Specification<User> spec = UserSpecification.withFilters(role, organizationId, enabled, search);
         Page<User> users = userRepository.findAll(spec, pageable);
 
-        // Force load das organizations e cities para evitar lazy loading
+        // Force load das cities para evitar lazy loading
         users.getContent().forEach(user -> {
-            if (user.getOrganization() != null) {
-                user.getOrganization().getName(); // Trigger lazy loading
-            }
             if (user.getCity() != null) {
                 user.getCity().getName(); // Trigger lazy loading
             }
@@ -82,10 +74,7 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
 
-        // Force load da organization e city para evitar lazy loading
-        if (user.getOrganization() != null) {
-            user.getOrganization().getName(); // Trigger lazy loading
-        }
+        // Force load da city para evitar lazy loading
         if (user.getCity() != null) {
             user.getCity().getName(); // Trigger lazy loading
         }
@@ -190,14 +179,6 @@ public class UserService {
             }
         }
 
-        // Organization - aceita tanto organizationId quanto organization.id
-        Long organizationIdResolved = request.getOrganizationIdResolved();
-        if (organizationIdResolved != null) {
-            Organization organization = organizationRepository.findById(organizationIdResolved)
-                    .orElseThrow(() -> new RuntimeException("Organização não encontrada"));
-            user.setOrganization(organization);
-        }
-
         // Enabled
         if (request.getEnabled() != null) {
             user.setEnabled(request.getEnabled());
@@ -206,9 +187,6 @@ public class UserService {
         User savedUser = userRepository.save(user);
 
         // Force load para evitar lazy loading
-        if (savedUser.getOrganization() != null) {
-            savedUser.getOrganization().getName();
-        }
         if (savedUser.getCity() != null) {
             savedUser.getCity().getName();
         }
@@ -313,10 +291,7 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
 
-        // Force load da organization e city para evitar lazy loading
-        if (savedUser.getOrganization() != null) {
-            savedUser.getOrganization().getName(); // Trigger lazy loading
-        }
+        // Force load da city para evitar lazy loading
         if (savedUser.getCity() != null) {
             savedUser.getCity().getName(); // Trigger lazy loading
         }
@@ -379,10 +354,7 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
 
-        // Force load da organization e city para evitar lazy loading
-        if (savedUser.getOrganization() != null) {
-            savedUser.getOrganization().getName(); // Trigger lazy loading
-        }
+        // Force load da city para evitar lazy loading
         if (savedUser.getCity() != null) {
             savedUser.getCity().getName(); // Trigger lazy loading
         }
