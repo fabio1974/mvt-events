@@ -9,6 +9,8 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Duration;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Entidade CORE do Zapi10 - representa uma entrega/delivery.
@@ -180,10 +182,10 @@ public class Delivery extends BaseEntity {
     // PAYMENT & EVALUATION
     // ============================================================================
 
-    @OneToOne(mappedBy = "delivery", fetch = FetchType.LAZY)
+    @ManyToMany(mappedBy = "deliveries", fetch = FetchType.LAZY)
     @com.fasterxml.jackson.annotation.JsonIgnore
     @Visible(table = true, form = false, filter = false)
-    private Payment payment;
+    private Set<Payment> payments = new HashSet<>();
 
     @OneToOne(mappedBy = "delivery", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @com.fasterxml.jackson.annotation.JsonIgnore

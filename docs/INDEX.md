@@ -1,6 +1,6 @@
 # 🗂️ Índice Completo da Documentação
 
-**Última atualização:** 14 de outubro de 2025
+**Última atualização:** 04 de dezembro de 2025
 
 ---
 
@@ -8,12 +8,15 @@
 
 ### 📍 Raiz (`docs/`)
 
-| Arquivo                                        | Status        | Descrição                                |
-| ---------------------------------------------- | ------------- | ---------------------------------------- |
-| [README.md](./README.md)                       | ✅ Atualizado | Documentação principal - **COMECE AQUI** |
-| [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) | ⚠️ Legado     | Substituído por `api/FILTERS_GUIDE.md`   |
-| [SECURITY.md](./SECURITY.md)                   | ✅ Atual      | Configuração de segurança e autenticação |
-| [TESTING.md](./TESTING.md)                     | ✅ Atual      | Guia de testes                           |
+| Arquivo                                                                                           | Status        | Descrição                                         |
+| ------------------------------------------------------------------------------------------------- | ------------- | ------------------------------------------------- |
+| [README.md](./README.md)                                                                          | ✅ Atualizado | Documentação principal - **COMECE AQUI**          |
+| [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)                                                    | ⚠️ Legado     | Substituído por `api/FILTERS_GUIDE.md`            |
+| [SECURITY.md](./SECURITY.md)                                                                      | ✅ Atual      | Configuração de segurança e autenticação          |
+| [TESTING.md](./TESTING.md)                                                                        | ✅ Atual      | Guia de testes                                    |
+| [PAYMENT_ACTIVE_STATUS.md](./PAYMENT_ACTIVE_STATUS.md)                                           | ✅ **NOVO**   | **📖 Documentação de pagamentos ativos para FE**  |
+| [PAYMENT_ACTIVE_CONSTRAINT_TECHNICAL.md](./PAYMENT_ACTIVE_CONSTRAINT_TECHNICAL.md)               | ✅ **NOVO**   | **🔧 Constraint técnica de pagamento único**      |
+| [DELIVERY_PAYMENT_ACTIVE_CONSTRAINT_SUMMARY.md](./DELIVERY_PAYMENT_ACTIVE_CONSTRAINT_SUMMARY.md) | ✅ **NOVO**   | **📦 Resumo executivo da entrega**                |
 
 ### 🏗️ Arquitetura (`architecture/`)
 

@@ -53,6 +53,11 @@ out/
 *.log
 nohup.out
 *.pid
+logs/
+
+### Scripts and SQL ###
+sh/
+sql/
 
 ### Build outputs ###
 *.jar

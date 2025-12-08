@@ -123,6 +123,60 @@ public class User implements UserDetails {
     private boolean enabled = true;
 
     // ============================================================================
+    // IUGU INTEGRATION FIELDS
+    // ============================================================================
+
+    /**
+     * ID da subconta Iugu criada para este usuário (courier ou organizer).
+     * Usado para transferências automáticas via split de pagamento.
+     */
+    @Column(name = "iugu_account_id", length = 100)
+    @Visible(table = false, form = false, filter = false)
+    private String iuguAccountId;
+
+    /**
+     * Indica se o usuário completou o cadastro de dados bancários.
+     * true = dados bancários salvos e validados pelo Iugu
+     * false = ainda não cadastrou ou dados pendentes de validação
+     */
+    @Column(name = "bank_data_complete", nullable = false)
+    @Visible(table = true, form = false, filter = true)
+    private Boolean bankDataComplete = false;
+
+    /**
+     * Indica se o auto_withdraw está ativo no Iugu.
+     * true = transferências automáticas (D+1) estão ativas
+     * false = precisa ativar ou dados bancários inválidos
+     */
+    @Column(name = "auto_withdraw_enabled", nullable = false)
+    @Visible(table = true, form = false, filter = true)
+    private Boolean autoWithdrawEnabled = false;
+
+    /**
+     * Relacionamento 1:1 com BankAccount (OPCIONAL).
+     * 
+     * DESIGN ATUAL (v1.0):
+     * - OBRIGATÓRIO para COURIER/ORGANIZER (recebem pagamentos via Iugu)
+     * - OPCIONAL para CLIENT (pagam com cartão, não recebem)
+     * - OPCIONAL para USER/ADMIN
+     * 
+     * FUTURO (v2.0):
+     * - Criar entidade PaymentMethod (abstract/interface)
+     * - BankAccount extends PaymentMethod (receber via Iugu PIX)
+     * - CreditCard extends PaymentMethod (pagar via Stripe/Cielo)
+     * - User terá List<PaymentMethod> (múltiplas formas de pagamento)
+     * 
+     * REGRAS:
+     * - Se bankAccount == null → usuário não pode receber pagamentos
+     * - Se bankAccount != null && status == ACTIVE → pode receber via Iugu
+     * - Validar com: user.canReceivePayments()
+     */
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnore
+    @Visible(table = false, form = true, filter = false)
+    private BankAccount bankAccount;
+
+    // ============================================================================
     // N:M RELATIONSHIPS
     // ============================================================================
 
@@ -340,5 +394,54 @@ public class User implements UserDetails {
     public boolean hasActiveContracts() {
         return !clientContracts.isEmpty() &&
                 clientContracts.stream().anyMatch(ClientContract::isActive);
+    }
+
+    // ============================================================================
+    // IUGU/PAYMENT HELPER METHODS
+    // ============================================================================
+
+    /**
+     * Verifica se o usuário pode receber pagamentos via Iugu.
+     * Requer: dados bancários completos + auto_withdraw ativo + conta Iugu criada
+     */
+    public boolean canReceivePayments() {
+        return iuguAccountId != null &&
+                Boolean.TRUE.equals(bankDataComplete) &&
+                Boolean.TRUE.equals(autoWithdrawEnabled);
+    }
+
+    /**
+     * Verifica se o usuário tem dados bancários cadastrados
+     */
+    public boolean hasBankAccount() {
+        return bankAccount != null &&
+                Boolean.TRUE.equals(bankDataComplete);
+    }
+
+    /**
+     * Marca que os dados bancários foram completados com sucesso
+     */
+    public void markBankAccountAsCompleted(String iuguAccountId) {
+        this.iuguAccountId = iuguAccountId;
+        this.bankDataComplete = true;
+        this.autoWithdrawEnabled = true;
+    }
+
+    /**
+     * Marca que os dados bancários precisam ser atualizados
+     */
+    public void markBankAccountAsPending() {
+        this.bankDataComplete = false;
+        this.autoWithdrawEnabled = false;
+    }
+
+    /**
+     * Desativa o auto_withdraw (ex: dados bancários inválidos)
+     */
+    public void deactivateAutoWithdraw(String reason) {
+        this.autoWithdrawEnabled = false;
+        if (bankAccount != null) {
+            bankAccount.markAsBlocked(reason);
+        }
     }
 }

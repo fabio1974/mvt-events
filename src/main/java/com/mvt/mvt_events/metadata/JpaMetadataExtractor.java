@@ -1,6 +1,8 @@
 package com.mvt.mvt_events.metadata;
 
 import com.mvt.mvt_events.metadata.FilterMetadata.FilterOption;
+import com.mvt.mvt_events.util.BrazilianBanks;
+import com.mvt.mvt_events.validation.ValidBankCode;
 import jakarta.persistence.*;
 import org.springframework.stereotype.Component;
 
@@ -81,6 +83,23 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("transactionId", "ID da Transação");
         FIELD_TRANSLATIONS.put("refundAmount", "Valor do Reembolso");
         FIELD_TRANSLATIONS.put("refundReason", "Motivo do Reembolso");
+
+        // ==================== IUGU / BANK ACCOUNT ====================
+        FIELD_TRANSLATIONS.put("iuguAccountId", "ID Conta Iugu");
+        FIELD_TRANSLATIONS.put("iuguInvoiceId", "ID Fatura Iugu");
+        FIELD_TRANSLATIONS.put("pixQrCode", "Código PIX");
+        FIELD_TRANSLATIONS.put("pixQrCodeUrl", "QR Code PIX (URL)");
+        FIELD_TRANSLATIONS.put("expiresAt", "Expira em");
+        FIELD_TRANSLATIONS.put("splitRules", "Regras de Split");
+        FIELD_TRANSLATIONS.put("bankDataComplete", "Dados Bancários Completos");
+        FIELD_TRANSLATIONS.put("autoWithdrawEnabled", "Transferência Automática");
+        FIELD_TRANSLATIONS.put("bankAccount", "Conta Bancária");
+        FIELD_TRANSLATIONS.put("bankCode", "Código do Banco");
+        FIELD_TRANSLATIONS.put("bankName", "Nome do Banco");
+        FIELD_TRANSLATIONS.put("agency", "Agência");
+        FIELD_TRANSLATIONS.put("accountNumber", "Número da Conta");
+        FIELD_TRANSLATIONS.put("accountType", "Tipo de Conta");
+        FIELD_TRANSLATIONS.put("validatedAt", "Validado em");
 
         // ==================== STATUS/FLAGS ====================
         FIELD_TRANSLATIONS.put("status", "Status");
@@ -241,6 +260,7 @@ public class JpaMetadataExtractor {
         ENUM_TRANSLATIONS.put("PROCESSING", "Processando");
         ENUM_TRANSLATIONS.put("FAILED", "Falhou");
         ENUM_TRANSLATIONS.put("REFUNDED", "Reembolsado");
+        ENUM_TRANSLATIONS.put("EXPIRED", "Expirado");
 
         // ==================== GENDER ====================
         ENUM_TRANSLATIONS.put("MALE", "Masculino");
@@ -267,6 +287,16 @@ public class JpaMetadataExtractor {
         ENUM_TRANSLATIONS.put("BANK_TRANSFER", "Transferência Bancária");
         ENUM_TRANSLATIONS.put("PAYPAL_ACCOUNT", "Conta PayPal");
         ENUM_TRANSLATIONS.put("CASH", "Dinheiro");
+
+        // ==================== ACCOUNT TYPE ====================
+        ENUM_TRANSLATIONS.put("CHECKING", "Conta Corrente");
+        ENUM_TRANSLATIONS.put("SAVINGS", "Conta Poupança");
+
+        // ==================== BANK ACCOUNT STATUS ====================
+        ENUM_TRANSLATIONS.put("PENDING_VALIDATION", "Pendente de Validação");
+        ENUM_TRANSLATIONS.put("ACTIVE", "Ativa");
+        ENUM_TRANSLATIONS.put("BLOCKED", "Bloqueada");
+        // CANCELLED já existe na seção STATUS acima
 
         // ==================== ROLE ====================
         ENUM_TRANSLATIONS.put("USER", "Usuário");
@@ -425,6 +455,12 @@ public class JpaMetadataExtractor {
         if (field.isAnnotationPresent(Enumerated.class) && field.getType().isEnum()) {
             metadata.setType("select"); // Enum sempre é select
             metadata.setOptions(extractEnumOptions(field.getType()));
+        }
+
+        // ✅ Se campo tem @ValidBankCode, transforma em select com lista de bancos
+        if (field.isAnnotationPresent(ValidBankCode.class)) {
+            metadata.setType("select"); // Campo de banco vira select
+            metadata.setOptions(extractBankOptions());
         }
 
         // ✅ Verifica anotação @Visible (será processada pelo MetadataService para cada
@@ -723,6 +759,27 @@ public class JpaMetadataExtractor {
 
             // ✅ CORRIGIDO: FilterOption(label, value) - label PRIMEIRO!
             options.add(new FilterOption(label, value));
+        }
+
+        return options;
+    }
+
+    /**
+     * Extrai opções de bancos brasileiros para campos com @ValidBankCode.
+     * Retorna lista de FilterOption com código e nome de ~50 bancos.
+     */
+    private List<FilterOption> extractBankOptions() {
+        List<FilterOption> options = new ArrayList<>();
+
+        // Itera sobre o mapa de bancos (LinkedHashMap mantém ordem de inserção)
+        for (Map.Entry<String, String> entry : BrazilianBanks.getAllBanks().entrySet()) {
+            String code = entry.getKey();
+            String name = entry.getValue();
+            
+            // Label: "001 - Banco do Brasil"
+            // Value: "001"
+            String label = code + " - " + name;
+            options.add(new FilterOption(label, code));
         }
 
         return options;

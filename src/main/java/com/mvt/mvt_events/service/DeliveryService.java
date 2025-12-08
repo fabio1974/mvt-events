@@ -238,11 +238,13 @@ public class DeliveryService {
     public Page<Delivery> findAll(Long organizationId, UUID clientId, UUID courierId, UUID organizerId,
             Delivery.DeliveryStatus status,
             LocalDateTime startDate, LocalDateTime endDate,
+            Boolean hasPayment, LocalDateTime completedAfter, LocalDateTime completedBefore,
             Pageable pageable) {
         
         // Caso especial: busca por clientId específico (para role CLIENT)
         if (clientId != null && courierId == null && organizerId == null && organizationId == null &&
-                startDate == null && endDate == null) {
+                startDate == null && endDate == null && 
+                hasPayment == null && completedAfter == null && completedBefore == null) {
             List<Delivery> deliveries;
             
             if (status != null) {
@@ -262,7 +264,8 @@ public class DeliveryService {
         
         // Caso especial: busca por organizerId específico (para role ORGANIZER)
         if (organizerId != null && clientId == null && courierId == null && organizationId == null &&
-                startDate == null && endDate == null) {
+                startDate == null && endDate == null &&
+                hasPayment == null && completedAfter == null && completedBefore == null) {
             List<Delivery> deliveries;
             
             if (status != null) {
@@ -283,7 +286,8 @@ public class DeliveryService {
         // Para simplificar e evitar o problema de lazy loading,
         // vamos usar apenas o filtro por organizationId primeiro
         if (clientId == null && courierId == null && organizerId == null && status == null &&
-                startDate == null && endDate == null) {
+                startDate == null && endDate == null &&
+                hasPayment == null && completedAfter == null && completedBefore == null) {
             
             // Caso especial: ADMIN sem filtros - retornar TODAS as deliveries com JOIN FETCH
             if (organizationId == null) {
@@ -306,7 +310,9 @@ public class DeliveryService {
                 .and(DeliverySpecification.hasCourierId(courierId))
                 .and(DeliverySpecification.hasOrganizerId(organizerId))
                 .and(DeliverySpecification.hasStatus(status))
-                .and(DeliverySpecification.createdBetween(startDate, endDate));
+                .and(DeliverySpecification.createdBetween(startDate, endDate))
+                .and(DeliverySpecification.hasPayment(hasPayment))
+                .and(DeliverySpecification.completedBetween(completedAfter, completedBefore));
 
         return deliveryRepository.findAll(spec, pageable);
     }

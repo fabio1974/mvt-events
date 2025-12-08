@@ -21,10 +21,10 @@ public class MetadataService {
         ENTITIES.put("user", new EntityConfig(User.class, "Usuários", "/api/users"));
         ENTITIES.put("siteConfiguration", new EntityConfig(SiteConfiguration.class, "Configurações do Sistema", "/api/site-configuration"));
         ENTITIES.put("specialZone", new EntityConfig(SpecialZone.class, "Zonas Especiais", "/api/special-zones"));
+        ENTITIES.put("bankAccount", new EntityConfig(BankAccount.class, "Contas Bancárias", "/api/bank-accounts"));
 
-        // TODO: Recriar Payment para deliveries
-        // ENTITIES.put("payment", new EntityConfig(Payment.class, "Pagamentos",
-        // "/api/payments"));
+        // ==================== Pagamentos (Iugu Integration) ====================
+        ENTITIES.put("payment", new EntityConfig(Payment.class, "Pagamentos", "/api/payments"));
 
         // ==================== Zapi10 (Sistema de Entregas) ====================
         ENTITIES.put("delivery", new EntityConfig(Delivery.class, "Entregas", "/api/deliveries"));

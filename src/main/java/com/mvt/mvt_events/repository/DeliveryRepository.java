@@ -152,8 +152,9 @@ public interface DeliveryRepository
 
         /**
          * Busca entregas com pagamento pendente (ordenado por updatedAt DESC)
+         * Note: Agora usa payments (N:M) ao invés de payment (1:1)
          */
-        @Query("SELECT d FROM Delivery d LEFT JOIN d.payment p WHERE d.status = 'COMPLETED' AND (p IS NULL OR p.status = 'PENDING') ORDER BY d.updatedAt DESC")
+        @Query("SELECT d FROM Delivery d LEFT JOIN d.payments p WHERE d.status = 'COMPLETED' AND (p IS NULL OR p.status = 'PENDING') ORDER BY d.updatedAt DESC")
         List<Delivery> findWithPendingPayment();
 
         /**
@@ -265,5 +266,24 @@ public interface DeliveryRepository
                         "ORDER BY d.updatedAt DESC")
         List<Delivery> findByOrganizerIdAndStatusWithJoins(@Param("organizerId") UUID organizerId,
                         @Param("status") Delivery.DeliveryStatus status);
+
+        /**
+         * Busca payments (id e status) de múltiplas deliveries
+         * Retorna como DTO projection para evitar carregar relacionamento completo
+         * CAST do enum para String para evitar ClassCastException
+         */
+        @Query("SELECT new map(d.id as deliveryId, p.id as paymentId, CAST(p.status AS string) as paymentStatus) " +
+               "FROM Payment p " +
+               "JOIN p.deliveries d " +
+               "WHERE d.id IN :deliveryIds")
+        List<java.util.Map<String, Object>> findPaymentsByDeliveryIds(@Param("deliveryIds") List<Long> deliveryIds);
+
+        /**
+         * Busca deliveries por IDs com fetch joins para evitar lazy loading
+         * Usado para criação de invoices consolidadas
+         * Usa query nativa para evitar ConcurrentModificationException com coleções
+         */
+        @Query(value = "SELECT d.* FROM deliveries d WHERE d.id IN :deliveryIds", nativeQuery = true)
+        List<Delivery> findAllByIdNative(@Param("deliveryIds") List<Long> deliveryIds);
 }
 

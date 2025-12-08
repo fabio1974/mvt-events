@@ -210,6 +210,119 @@ public class PushNotificationService {
     }
 
     /**
+     * Notifica usuário que seus dados bancários foram verificados e ele pode receber pagamentos PIX
+     */
+    public void notifyBankDataVerified(UUID userId, String bankName, String maskedAccount) {
+        try {
+            log.info("📢 Notificando usuário {} sobre verificação bancária aprovada", userId);
+
+            Map<String, Object> data = Map.of(
+                    "type", "BANK_VERIFICATION_APPROVED",
+                    "bankName", bankName,
+                    "maskedAccount", maskedAccount,
+                    "screen", "BankDataScreen" // Tela para navegar no app
+            );
+
+            String title = "✅ Dados Bancários Verificados!";
+            String body = String.format(
+                    "Seus dados do %s foram aprovados! Você já pode receber pagamentos via PIX.",
+                    bankName
+            );
+
+            sendNotificationToUser(userId, title, body, data);
+
+            log.info("✅ Notificação de verificação aprovada enviada para usuário {}", userId);
+
+        } catch (Exception e) {
+            log.error("❌ Erro ao notificar verificação aprovada para usuário {}: {}", userId, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Notifica usuário que seus dados bancários foram rejeitados e precisa atualizar
+     */
+    public void notifyBankDataRejected(UUID userId, String reason) {
+        try {
+            log.info("📢 Notificando usuário {} sobre verificação bancária rejeitada", userId);
+
+            Map<String, Object> data = Map.of(
+                    "type", "BANK_VERIFICATION_REJECTED",
+                    "reason", reason != null ? reason : "Dados incorretos ou conta inválida",
+                    "screen", "BankDataScreen" // Tela para atualizar dados
+            );
+
+            String title = "⚠️ Dados Bancários Rejeitados";
+            String body = "Seus dados bancários foram rejeitados. Por favor, revise e atualize as informações.";
+
+            sendNotificationToUser(userId, title, body, data);
+
+            log.info("⚠️ Notificação de verificação rejeitada enviada para usuário {}", userId);
+
+        } catch (Exception e) {
+            log.error("❌ Erro ao notificar verificação rejeitada para usuário {}: {}", userId, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Notifica usuário sobre um pagamento PIX recebido
+     */
+    public void notifyPaymentReceived(UUID userId, BigDecimal amount, String deliveryId) {
+        try {
+            log.info("📢 Notificando usuário {} sobre pagamento recebido: R$ {}", userId, amount);
+
+            Map<String, Object> data = Map.of(
+                    "type", "PAYMENT_RECEIVED",
+                    "amount", amount.toString(),
+                    "deliveryId", deliveryId,
+                    "screen", "PaymentsScreen"
+            );
+
+            String title = "💰 Pagamento Recebido!";
+            String body = String.format(
+                    "Você recebeu R$ %.2f de pagamento. A transferência será feita em D+1.",
+                    amount
+            );
+
+            sendNotificationToUser(userId, title, body, data);
+
+            log.info("✅ Notificação de pagamento recebido enviada para usuário {}", userId);
+
+        } catch (Exception e) {
+            log.error("❌ Erro ao notificar pagamento para usuário {}: {}", userId, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Notifica usuário sobre transferência bancária concluída (D+1)
+     */
+    public void notifyWithdrawalCompleted(UUID userId, BigDecimal amount, String bankName) {
+        try {
+            log.info("📢 Notificando usuário {} sobre transferência concluída: R$ {}", userId, amount);
+
+            Map<String, Object> data = Map.of(
+                    "type", "WITHDRAWAL_COMPLETED",
+                    "amount", amount.toString(),
+                    "bankName", bankName,
+                    "screen", "PaymentsScreen"
+            );
+
+            String title = "🏦 Transferência Concluída!";
+            String body = String.format(
+                    "R$ %.2f foram transferidos para sua conta %s.",
+                    amount,
+                    bankName
+            );
+
+            sendNotificationToUser(userId, title, body, data);
+
+            log.info("✅ Notificação de transferência concluída enviada para usuário {}", userId);
+
+        } catch (Exception e) {
+            log.error("❌ Erro ao notificar transferência para usuário {}: {}", userId, e.getMessage(), e);
+        }
+    }
+
+    /**
      * Envia notificações via Expo Push API
      */
     private boolean sendExpoPushNotification(List<ExpoPushMessage> messages) {

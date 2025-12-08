@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * DTO de resposta para Delivery
@@ -73,6 +74,9 @@ public class DeliveryResponse {
 
     private String notes;
 
+    // Pagamentos associados (lista simplificada com apenas IDs)
+    private List<PaymentSummary> payments;
+
     /**
      * DTO simplificado para User (evitar lazy loading)
      */
@@ -110,5 +114,17 @@ public class DeliveryResponse {
     public static class OrganizationDTO {
         private Long id;
         private String name;
+    }
+
+    /**
+     * DTO simplificado para Payment (apenas ID e status)
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PaymentSummary {
+        private Long id;
+        private String status;
     }
 }

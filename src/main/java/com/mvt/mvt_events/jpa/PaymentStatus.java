@@ -9,5 +9,6 @@ public enum PaymentStatus {
     COMPLETED, // Pagamento concluído
     FAILED, // Pagamento falhou
     REFUNDED, // Pagamento reembolsado
-    CANCELLED // Pagamento cancelado
+    CANCELLED, // Pagamento cancelado
+    EXPIRED // Pagamento expirado (prazo de validade vencido)
 }

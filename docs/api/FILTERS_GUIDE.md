@@ -42,41 +42,7 @@ Todos os endpoints de listagem suportam filtros dinâmicos via query parameters.
 
 ---
 
-## 📝 Registrations (`/api/registrations`)
-
-### Filtros Disponíveis
-
-| Filtro             | Tipo   | Descrição           | Exemplo                        |
-| ------------------ | ------ | ------------------- | ------------------------------ |
-| `eventId`          | entity | Evento da inscrição | `?eventId=1`                   |
-| `userId`           | entity | Usuário inscrito    | `?userId=5`                    |
-| `status`           | select | Status da inscrição | `?status=ACTIVE`               |
-| `registrationDate` | date   | Data de inscrição   | `?registrationDate=2025-01-01` |
-
-### Entity Filters
-
-**eventId**
-
-- Endpoint: `/api/events`
-- Label Field: `name`
-- Searchable: ✅
-
-**userId**
-
-- Endpoint: `/api/users`
-- Label Field: `name`
-- Searchable: ✅
-
-### Status Options
-
-- `PENDING` - Pendente
-- `ACTIVE` - Ativa _(antigo: CONFIRMED)_
-- `CANCELLED` - Cancelada
-- `WAITLIST` - Lista de espera
-
----
-
-## 👥 Users (`/api/users`)
+##  Users (`/api/users`)
 
 ### Filtros Disponíveis
 
@@ -108,19 +74,10 @@ Todos os endpoints de listagem suportam filtros dinâmicos via query parameters.
 
 ### Filtros Disponíveis
 
-| Filtro           | Tipo   | Descrição             | Exemplo                   |
-| ---------------- | ------ | --------------------- | ------------------------- |
-| `registrationId` | entity | Inscrição relacionada | `?registrationId=10`      |
-| `status`         | select | Status do pagamento   | `?status=COMPLETED`       |
-| `paymentDate`    | date   | Data do pagamento     | `?paymentDate=2025-01-01` |
-
-### Entity Filters
-
-**registrationId**
-
-- Endpoint: `/api/registrations`
-- Label Field: `id` _(considerar adicionar display name)_
-- Searchable: ✅
+| Filtro        | Tipo   | Descrição           | Exemplo                   |
+| ------------- | ------ | ------------------- | ------------------------- |
+| `status`      | select | Status do pagamento | `?status=COMPLETED`       |
+| `paymentDate` | date   | Data do pagamento   | `?paymentDate=2025-01-01` |
 
 ### Status Options
 

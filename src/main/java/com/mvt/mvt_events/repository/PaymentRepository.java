@@ -27,21 +27,16 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
         Optional<Payment> findByProviderPaymentId(String providerPaymentId);
 
         /**
-         * Busca todos os pagamentos de uma entrega
+         * Busca todos os pagamentos que incluem uma entrega (N:M via payment_deliveries)
          */
-        List<Payment> findByDeliveryId(Long deliveryId);
+        @Query("SELECT p FROM Payment p JOIN p.deliveries d WHERE d.id = :deliveryId ORDER BY p.createdAt DESC")
+        List<Payment> findByDeliveryId(@Param("deliveryId") UUID deliveryId);
 
         /**
          * Busca todos os pagamentos de um pagador
          */
         @Query("SELECT p FROM Payment p WHERE p.payer.id = :payerId ORDER BY p.createdAt DESC")
         List<Payment> findByPayerId(@Param("payerId") UUID payerId);
-
-        /**
-         * Busca todos os pagamentos de uma organização
-         */
-        @Query("SELECT p FROM Payment p WHERE p.organization.id = :organizationId ORDER BY p.createdAt DESC")
-        List<Payment> findByOrganizationId(@Param("organizationId") Long organizationId);
 
         /**
          * Busca pagamentos por status
@@ -70,22 +65,32 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
         List<Payment> findByProvider(String provider);
 
         /**
-         * Verifica se existe pagamento para uma entrega
+         * Verifica se existe pagamento para uma entrega (N:M via payment_deliveries)
          */
-        boolean existsByDeliveryId(Long deliveryId);
+        @Query("SELECT COUNT(p) > 0 FROM Payment p JOIN p.deliveries d WHERE d.id = :deliveryId")
+        boolean existsByDeliveryId(@Param("deliveryId") UUID deliveryId);
 
         /**
-         * Busca pagamentos que não estão em nenhum payout
+         * Busca pagamento por Iugu Invoice ID
          */
-        @Query("SELECT p FROM Payment p WHERE p.id NOT IN " +
-                        "(SELECT pi.payment.id FROM PayoutItem pi WHERE pi.payment IS NOT NULL)")
-        List<Payment> findPaymentsNotInAnyPayout();
+        Optional<Payment> findByIuguInvoiceId(String iuguInvoiceId);
 
         /**
-         * Conta pagamentos por status de uma organização
+         * Busca pagamentos que incluem uma entrega com status específico (N:M via payment_deliveries)
          */
-        @Query("SELECT COUNT(p) FROM Payment p WHERE p.organization.id = :organizationId AND p.status = :status")
-        Long countByOrganizationIdAndStatus(
-                        @Param("organizationId") Long organizationId,
-                        @Param("status") PaymentStatus status);
+        @Query("SELECT p FROM Payment p JOIN p.deliveries d WHERE d = :delivery AND p.status = :status")
+        List<Payment> findByDeliveryAndStatus(@Param("delivery") com.mvt.mvt_events.jpa.Delivery delivery, @Param("status") PaymentStatus status);
+
+        /**
+         * Busca pagamentos PENDING ou COMPLETED que incluem qualquer uma das deliveries especificadas.
+         * Usado para evitar criar pagamentos duplicados para as mesmas entregas.
+         * 
+         * @param deliveryIds Lista de IDs das deliveries a verificar
+         * @return Lista de pagamentos ativos que incluem essas deliveries
+         */
+        @Query("SELECT DISTINCT p FROM Payment p JOIN p.deliveries d " +
+                "WHERE d.id IN :deliveryIds " +
+                "AND p.status IN ('PENDING', 'COMPLETED') " +
+                "ORDER BY p.createdAt DESC")
+        List<Payment> findPendingOrCompletedPaymentsForDeliveries(@Param("deliveryIds") List<Long> deliveryIds);
 }

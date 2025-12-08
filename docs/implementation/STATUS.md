@@ -32,7 +32,6 @@
 ### 📊 Metadata
 
 - [x] Events metadata completo
-- [x] Registrations metadata completo
 - [x] Users metadata completo
 - [x] Payments metadata completo
 - [x] EventCategories metadata completo
@@ -127,7 +126,6 @@ _Nenhum_
 
 ### Médios
 
-- [ ] Payment.registrationId exibe ID ao invés de nome
 - [ ] Metadata cache pode causar stale data
 
 ### Baixos

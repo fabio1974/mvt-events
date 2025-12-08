@@ -3,6 +3,7 @@ package com.mvt.mvt_events.controller;
 import com.mvt.mvt_events.common.JwtUtil;
 import com.mvt.mvt_events.dto.*;
 import com.mvt.mvt_events.jpa.Delivery;
+import com.mvt.mvt_events.repository.DeliveryRepository;
 import com.mvt.mvt_events.service.DeliveryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -14,12 +15,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Controller REST para Delivery - ENTIDADE CORE DO ZAPI10
@@ -34,6 +35,9 @@ public class DeliveryController {
 
     @Autowired
     private DeliveryService deliveryService;
+
+    @Autowired
+    private DeliveryRepository deliveryRepository;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -64,6 +68,7 @@ public class DeliveryController {
 
     @GetMapping
     @Operation(summary = "Listar deliveries com filtros", description = "Filtra automaticamente por ADM (tenant)")
+    @Transactional(readOnly = true) // Mantém sessão Hibernate aberta para lazy loading
     public Page<DeliveryResponse> list(
             @RequestParam(required = false) String clientId,
             @RequestParam(required = false) String courierId,
@@ -71,6 +76,9 @@ public class DeliveryController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) Boolean hasPayment,
+            @RequestParam(required = false) String completedAfter,
+            @RequestParam(required = false) String completedBefore,
             Pageable pageable,
             Authentication authentication,
             jakarta.servlet.http.HttpServletRequest request) {
@@ -104,13 +112,17 @@ public class DeliveryController {
 
         LocalDateTime start = startDate != null ? LocalDateTime.parse(startDate) : null;
         LocalDateTime end = endDate != null ? LocalDateTime.parse(endDate) : null;
+        
+        // Converter completedAfter/completedBefore de ISO 8601 para LocalDateTime
+        LocalDateTime completedAfterDate = completedAfter != null ? LocalDateTime.parse(completedAfter, DateTimeFormatter.ISO_DATE_TIME) : null;
+        LocalDateTime completedBeforeDate = completedBefore != null ? LocalDateTime.parse(completedBefore, DateTimeFormatter.ISO_DATE_TIME) : null;
 
         Page<Delivery> deliveries;
 
         if ("ADMIN".equals(role)) {
             // ADMIN pode ver todas as entregas sem filtro de organização
             deliveries = deliveryService.findAll(null, clientUuid, courierUuid, organizerUuid,
-                    deliveryStatus, start, end, pageable);
+                    deliveryStatus, start, end, hasPayment, completedAfterDate, completedBeforeDate, pageable);
         } else if ("COURIER".equals(role)) {
             // Para COURIERs: buscar deliveries das organizações onde ele trabalha
             UUID courierUserId = UUID.fromString(jwtUtil.getUserIdFromToken(token));
@@ -119,8 +131,9 @@ public class DeliveryController {
         } else if ("CLIENT".equals(role)) {
             // Para CLIENTs: mostrar apenas suas próprias entregas
             UUID clientUserId = UUID.fromString(jwtUtil.getUserIdFromToken(token));
+            System.out.println("DEBUG CLIENT: clientUserId=" + clientUserId + ", courierUuid=" + courierUuid + ", organizerUuid=" + organizerUuid + ", status=" + deliveryStatus + ", start=" + start + ", end=" + end + ", hasPayment=" + hasPayment + ", completedAfter=" + completedAfterDate + ", completedBefore=" + completedBeforeDate);
             deliveries = deliveryService.findAll(null, clientUserId, courierUuid, organizerUuid,
-                    deliveryStatus, start, end, pageable);
+                    deliveryStatus, start, end, hasPayment, completedAfterDate, completedBeforeDate, pageable);
         } else if ("ORGANIZER".equals(role)) {
             // Para ORGANIZER: filtrar por organizer_id
             // Se forneceu o parâmetro 'organizer' explicitamente, usar esse valor
@@ -133,13 +146,43 @@ public class DeliveryController {
             
             // NUNCA usa organizationId para filtrar deliveries
             deliveries = deliveryService.findAll(null, clientUuid, courierUuid, organizerIdToFilter,
-                    deliveryStatus, start, end, pageable);
+                    deliveryStatus, start, end, hasPayment, completedAfterDate, completedBeforeDate, pageable);
         } else {
             // Para outros roles: sem acesso
             throw new RuntimeException("Role não autorizado para listar deliveries");
         }
 
-        return deliveries.map(this::mapToResponse);
+        // Carregar payments separadamente para evitar StackOverflowError de relacionamento circular
+        List<Long> deliveryIds = deliveries.getContent().stream()
+                .map(Delivery::getId)
+                .toList();
+        
+        // IMPORTANTE: Inicializar relacionamentos lazy-loaded para evitar ConcurrentModificationException
+        // Força a inicialização dentro da transação @Transactional
+        for (Delivery delivery : deliveries.getContent()) {
+            org.hibernate.Hibernate.initialize(delivery.getClient());
+            org.hibernate.Hibernate.initialize(delivery.getCourier());
+            org.hibernate.Hibernate.initialize(delivery.getOrganizer());
+        }
+        
+        Map<Long, List<DeliveryResponse.PaymentSummary>> paymentsMap = new HashMap<>();
+        if (!deliveryIds.isEmpty()) {
+            List<Map<String, Object>> paymentData = deliveryRepository.findPaymentsByDeliveryIds(deliveryIds);
+            
+            for (Map<String, Object> row : paymentData) {
+                Long deliveryId = ((Number) row.get("deliveryId")).longValue();
+                Long paymentId = ((Number) row.get("paymentId")).longValue();
+                String paymentStatus = (String) row.get("paymentStatus");
+                
+                paymentsMap.computeIfAbsent(deliveryId, k -> new ArrayList<>())
+                        .add(DeliveryResponse.PaymentSummary.builder()
+                                .id(paymentId)
+                                .status(paymentStatus)
+                                .build());
+            }
+        }
+
+        return deliveries.map(d -> mapToResponse(d, paymentsMap));
     }
 
     @GetMapping("/{id}")
@@ -400,7 +443,20 @@ public class DeliveryController {
                 .completedAt(delivery.getCompletedAt())
                 .cancelledAt(delivery.getCancelledAt())
                 .cancellationReason(delivery.getCancellationReason())
+                // Payments: carrega através de query JOIN para evitar StackOverflow
+                .payments(null) // Será populado pela versão sobrecarregada
                 .build();
+    }
+
+    /**
+     * Versão de mapToResponse com Map de payments pré-carregado
+     * Evita StackOverflowError de relacionamento circular Payment <-> Delivery
+     */
+    private DeliveryResponse mapToResponse(Delivery delivery, Map<Long, List<DeliveryResponse.PaymentSummary>> paymentsMap) {
+        DeliveryResponse response = mapToResponse(delivery);
+        // Adiciona os payments do map
+        response.setPayments(paymentsMap.getOrDefault(delivery.getId(), Collections.emptyList()));
+        return response;
     }
 
     /**

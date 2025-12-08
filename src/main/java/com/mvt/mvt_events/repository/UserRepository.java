@@ -69,4 +69,11 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
         */
        @Query("SELECT u FROM User u WHERE u.id IN (SELECT o.owner.id FROM Organization o WHERE o.id IN :organizationIds) AND u.role IN ('ADMIN', 'ORGANIZER')")
        List<User> findAdmsByOrganizationIds(@Param("organizationIds") List<Long> organizationIds);
+
+       /**
+        * Busca usuário pelo iuguAccountId
+        * Usado para processar webhooks do Iugu
+        */
+       @Query("SELECT u FROM User u WHERE u.iuguAccountId = :iuguAccountId")
+       Optional<User> findByIuguAccountId(@Param("iuguAccountId") String iuguAccountId);
 }

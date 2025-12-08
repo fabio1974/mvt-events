@@ -88,66 +88,19 @@ curl "http://localhost:8080/api/events?page=0&size=10&sort=eventDate,desc" \
 
 ---
 
-### 📝 Registrations (`/api/registrations`)
-
-#### Listar Inscrições (GET `/api/registrations`)
-
-**Filtros Disponíveis:**
-
-| Parâmetro           | Tipo    | Valores                                   | Descrição           |
-| ------------------- | ------- | ----------------------------------------- | ------------------- |
-| `status`            | Enum    | PENDING, CONFIRMED, CANCELLED, WAITLISTED | Status da inscrição |
-| `event` / `eventId` | Long    | ID                                        | Evento da inscrição |
-| `user` / `userId`   | UUID    | UUID                                      | Usuário inscrito    |
-| `page`              | Integer | 0+                                        | Número da página    |
-| `size`              | Integer | 1-100                                     | Tamanho da página   |
-| `sort`              | String  | campo,direção                             | Ordenação           |
-
-**Exemplos de Uso:**
-
-```bash
-# Filtrar por status
-curl "http://localhost:8080/api/registrations?status=CONFIRMED" \
-  -H "Authorization: Bearer TOKEN"
-
-# Filtrar por evento
-curl "http://localhost:8080/api/registrations?event=10" \
-  -H "Authorization: Bearer TOKEN"
-
-# Filtrar por usuário
-curl "http://localhost:8080/api/registrations?user=742f58ea-5bc1-4bb5-84dc-5ea463d15044" \
-  -H "Authorization: Bearer TOKEN"
-
-# Combinar filtros
-curl "http://localhost:8080/api/registrations?event=10&status=CONFIRMED&sort=registrationDate,desc" \
-  -H "Authorization: Bearer TOKEN"
-```
-
-**Outros Endpoints de Registrations:**
-
-- `GET /api/registrations/{id}` - Buscar por ID
-- `GET /api/registrations/my-registrations` - Minhas inscrições
-- `POST /api/registrations` - Criar inscrição
-- `PUT /api/registrations/{id}` - Atualizar inscrição
-- `DELETE /api/registrations/{id}` - Deletar inscrição
-- `GET /api/registrations/metadata` - Metadata automático
-
----
-
-### 💳 Payments (`/api/payments`)
+###  Payments (`/api/payments`)
 
 #### Listar Pagamentos (GET `/api/payments`)
 
 **Filtros Disponíveis:**
 
-| Parâmetro                         | Tipo    | Valores                              | Descrição             |
-| --------------------------------- | ------- | ------------------------------------ | --------------------- |
-| `status`                          | Enum    | PENDING, COMPLETED, FAILED, REFUNDED | Status do pagamento   |
-| `registration` / `registrationId` | Long    | ID                                   | Inscrição relacionada |
-| `provider`                        | String  | stripe, mercadopago                  | Gateway de pagamento  |
-| `page`                            | Integer | 0+                                   | Número da página      |
-| `size`                            | Integer | 1-100                                | Tamanho da página     |
-| `sort`                            | String  | campo,direção                        | Ordenação             |
+| Parâmetro | Tipo    | Valores                              | Descrição            |
+| --------- | ------- | ------------------------------------ | -------------------- |
+| `status`  | Enum    | PENDING, COMPLETED, FAILED, REFUNDED | Status do pagamento  |
+| `provider`| String  | stripe, mercadopago                  | Gateway de pagamento |
+| `page`    | Integer | 0+                                   | Número da página     |
+| `size`    | Integer | 1-100                                | Tamanho da página    |
+| `sort`    | String  | campo,direção                        | Ordenação            |
 
 **Exemplos de Uso:**
 
@@ -156,8 +109,7 @@ curl "http://localhost:8080/api/registrations?event=10&status=CONFIRMED&sort=reg
 curl "http://localhost:8080/api/payments?status=COMPLETED" \
   -H "Authorization: Bearer TOKEN"
 
-# Filtrar por inscrição
-curl "http://localhost:8080/api/payments?registration=15" \
+# Filtrar por provider
   -H "Authorization: Bearer TOKEN"
 
 # Filtrar por gateway
@@ -333,13 +285,6 @@ curl http://localhost:8080/api/events/metadata \
 - `PUBLISHED` - Publicado
 - `CANCELLED` - Cancelado
 - `COMPLETED` - Concluído
-
-### RegistrationStatus
-
-- `PENDING` - Pendente
-- `CONFIRMED` - Confirmada
-- `CANCELLED` - Cancelada
-- `WAITLISTED` - Lista de espera
 
 ### PaymentStatus
 

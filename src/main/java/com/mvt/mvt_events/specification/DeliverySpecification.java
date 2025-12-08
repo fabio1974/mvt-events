@@ -233,6 +233,28 @@ public class DeliverySpecification {
         return (root, query, cb) -> cb.isEmpty(root.get("evaluations"));
     }
 
+    /**
+     * Filtro por presença de payment
+     * Se hasPayment == true: entrega TEM ao menos 1 payment
+     * Se hasPayment == false: entrega NÃO TEM nenhum payment
+     * Se hasPayment == null: não filtra
+     */
+    public static Specification<Delivery> hasPayment(Boolean hasPayment) {
+        return (root, query, cb) -> {
+            if (hasPayment == null) {
+                return cb.conjunction();
+            }
+            
+            if (hasPayment) {
+                // TEM payment: payments NOT EMPTY
+                return cb.isNotEmpty(root.get("payments"));
+            } else {
+                // NÃO TEM payment: payments IS EMPTY
+                return cb.isEmpty(root.get("payments"));
+            }
+        };
+    }
+
     // Busca por texto
     public static Specification<Delivery> searchByText(String text) {
         return (root, query, cb) -> {

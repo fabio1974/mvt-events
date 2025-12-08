@@ -8,15 +8,20 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- * Entidade que representa um pagamento de uma entrega.
+ * Entidade que representa um pagamento de múltiplas entregas.
  * 
  * Relacionamentos:
- * - N:1 com Delivery (um pagamento pertence a uma entrega)
+ * - N:M com Delivery (um pagamento pode cobrir várias entregas, e uma entrega pode ter múltiplos payments históricos)
  * - N:1 com User (payer - quem está pagando)
- * - 1:N com PayoutItem (um pagamento pode estar em múltiplos payouts)
+ * 
+ * IMPORTANTE: Embora seja N:M, na prática uma delivery deve ter apenas 1 payment PAID.
+ * Múltiplos payments para mesma delivery representam histórico de tentativas (EXPIRED, CANCELLED, etc).
  */
 @Entity
 @Table(name = "payments")
@@ -31,12 +36,16 @@ public class Payment extends BaseEntity {
     // RELATIONSHIPS
     // ============================================================================
 
-    @NotNull(message = "Entrega é obrigatória")
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "delivery_id", nullable = false)
+    @NotNull(message = "Ao menos uma entrega é obrigatória")
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "payment_deliveries",
+        joinColumns = @JoinColumn(name = "payment_id"),
+        inverseJoinColumns = @JoinColumn(name = "delivery_id")
+    )
     @JsonIgnore
     @Visible(table = true, form = true, filter = true)
-    private Delivery delivery;
+    private Set<Delivery> deliveries = new HashSet<>();
 
     @NotNull(message = "Pagador é obrigatório")
     @ManyToOne(fetch = FetchType.LAZY)
@@ -66,6 +75,12 @@ public class Payment extends BaseEntity {
     @Visible(table = true, form = true, filter = false)
     private BigDecimal amount;
 
+    @NotNull(message = "Moeda é obrigatória")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "currency", length = 3, nullable = false)
+    @Visible(table = true, form = true, filter = true)
+    private Currency currency = Currency.BRL; // Moeda padrão: Real Brasileiro
+
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", length = 20)
     @Visible(table = true, form = true, filter = true)
@@ -81,9 +96,10 @@ public class Payment extends BaseEntity {
     @Visible(table = true, form = false, filter = true)
     private LocalDateTime paymentDate;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "provider", length = 50)
     @Visible(table = true, form = true, filter = true)
-    private String provider; // stripe, mercadopago, paypal, etc
+    private PaymentProvider provider; // Gateway de pagamento (Iugu, Stripe, etc)
 
     @Column(name = "provider_payment_id", length = 100)
     @Visible(table = false, form = false, filter = false)
@@ -97,13 +113,78 @@ public class Payment extends BaseEntity {
     @Visible(table = false, form = true, filter = false)
     private String notes;
 
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(name = "metadata", columnDefinition = "JSONB")
     @Visible(table = false, form = false, filter = false)
     private String metadata;
 
     // ============================================================================
+    // IUGU PIX FIELDS
+    // ============================================================================
+
+    @Column(name = "iugu_invoice_id", length = 100, unique = true)
+    @Visible(table = false, form = false, filter = true)
+    private String iuguInvoiceId;
+
+    @Column(name = "pix_qr_code", columnDefinition = "TEXT")
+    @Visible(table = false, form = false, filter = false)
+    private String pixQrCode;
+
+    @Column(name = "pix_qr_code_url", columnDefinition = "TEXT")
+    @Visible(table = false, form = false, filter = false)
+    private String pixQrCodeUrl;
+
+    @Column(name = "expires_at")
+    @Visible(table = true, form = false, filter = true)
+    private LocalDateTime expiresAt;
+
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "split_rules", columnDefinition = "JSONB")
+    @Visible(table = false, form = false, filter = false)
+    private String splitRules;
+
+    // ============================================================================
     // HELPER METHODS
     // ============================================================================
+
+    /**
+     * Adiciona uma delivery ao pagamento
+     */
+    public void addDelivery(Delivery delivery) {
+        if (this.deliveries == null) {
+            this.deliveries = new HashSet<>();
+        }
+        this.deliveries.add(delivery);
+    }
+
+    /**
+     * Remove uma delivery do pagamento
+     */
+    public void removeDelivery(Delivery delivery) {
+        if (this.deliveries != null) {
+            this.deliveries.remove(delivery);
+        }
+    }
+
+    /**
+     * Retorna o número de deliveries neste pagamento
+     */
+    public int getDeliveriesCount() {
+        return deliveries != null ? deliveries.size() : 0;
+    }
+
+    /**
+     * Calcula o valor total das deliveries (deve ser igual ao amount)
+     */
+    public BigDecimal calculateTotalFromDeliveries() {
+        if (deliveries == null || deliveries.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        return deliveries.stream()
+            .map(Delivery::getTotalAmount)
+            .filter(a -> a != null)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
 
     public boolean isPending() {
         return status == PaymentStatus.PENDING;
@@ -146,5 +227,54 @@ public class Payment extends BaseEntity {
             throw new IllegalStateException("Pagamento concluído não pode ser cancelado. Use refund.");
         }
         this.status = PaymentStatus.CANCELLED;
+    }
+
+    // ============================================================================
+    // IUGU PIX HELPER METHODS
+    // ============================================================================
+
+    /**
+     * Verifica se o pagamento PIX expirou
+     */
+    public boolean isExpired() {
+        return expiresAt != null && LocalDateTime.now().isAfter(expiresAt);
+    }
+
+    /**
+     * Verifica se é um pagamento via Iugu
+     */
+    public boolean isIuguPayment() {
+        return iuguInvoiceId != null && !iuguInvoiceId.isBlank();
+    }
+
+    /**
+     * Verifica se tem PIX QR Code disponível
+     */
+    public boolean hasPixQrCode() {
+        return pixQrCode != null && !pixQrCode.isBlank();
+    }
+
+    /**
+     * Calcula o valor que o motoboy deve receber (87% do total)
+     */
+    public BigDecimal getMotoboyShare() {
+        if (amount == null) return BigDecimal.ZERO;
+        return amount.multiply(new BigDecimal("0.87")).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Calcula o valor que o gestor deve receber (5% do total)
+     */
+    public BigDecimal getManagerShare() {
+        if (amount == null) return BigDecimal.ZERO;
+        return amount.multiply(new BigDecimal("0.05")).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Calcula o valor que a plataforma recebe (8% do total)
+     */
+    public BigDecimal getPlatformShare() {
+        if (amount == null) return BigDecimal.ZERO;
+        return amount.multiply(new BigDecimal("0.08")).setScale(2, RoundingMode.HALF_UP);
     }
 }

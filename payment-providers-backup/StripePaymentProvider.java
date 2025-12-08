@@ -71,9 +71,7 @@ public class StripePaymentProvider implements PaymentProvider {
             }
 
             // Add metadata
-            // Add metadata
-            paramsBuilder.putMetadata("registration_id", request.getRegistrationId())
-                    .putMetadata("customer_name", request.getCustomerName())
+            paramsBuilder.putMetadata("customer_name", request.getCustomerName())
                     .putMetadata("payment_method_type", request.getPaymentMethod().name());
 
             // Create payment intent

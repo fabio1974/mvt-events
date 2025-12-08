@@ -130,9 +130,6 @@ FilterMetadata.builder()
 | User          | name          | /api/users            |
 | Organization  | name          | /api/organizations    |
 | EventCategory | name          | /api/event-categories |
-| Registration  | id\*          | /api/registrations    |
-
-\*Registrations ainda usa ID - considerar adicionar display name composto
 
 ---
 

@@ -1,0 +1,184 @@
+package com.mvt.mvt_events.controller;
+
+import com.mvt.mvt_events.dto.PaymentRequest;
+import com.mvt.mvt_events.dto.PaymentResponse;
+import com.mvt.mvt_events.service.PaymentService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+/**
+ * Controller REST para gerenciamento de pagamentos PIX via Iugu
+ * 
+ * <p>Endpoints disponíveis:</p>
+ * <ul>
+ *   <li>POST /api/payment/create-with-split - Criar fatura PIX com split automático</li>
+ * </ul>
+ * 
+ * <p><strong>Autenticação:</strong> Requer token JWT válido</p>
+ * <p><strong>Autorização:</strong> COURIER, ORGANIZER ou CLIENT</p>
+ * 
+ * <p><strong>Fluxo de pagamento:</strong></p>
+ * <ol>
+ *   <li>Cliente solicita pagamento de uma entrega</li>
+ *   <li>Sistema cria fatura no Iugu com split 87/5/8</li>
+ *   <li>Retorna QR Code PIX e código copia-e-cola</li>
+ *   <li>Cliente paga via PIX</li>
+ *   <li>Iugu envia webhook confirmando pagamento</li>
+ *   <li>Sistema atualiza status do pagamento</li>
+ * </ol>
+ * 
+ * <p><strong>Exemplo de request:</strong></p>
+ * <pre>
+ * POST /api/payment/create-with-split
+ * {
+ *   "deliveryId": 123,
+ *   "amount": 50.00,
+ *   "clientEmail": "cliente@example.com",
+ *   "motoboyAccountId": "motoboy_iugu_123",
+ *   "managerAccountId": "gestor_iugu_456",
+ *   "description": "Pagamento de entrega #123",
+ *   "expirationHours": 24
+ * }
+ * </pre>
+ * 
+ * <p><strong>Exemplo de response:</strong></p>
+ * <pre>
+ * {
+ *   "paymentId": 789,
+ *   "iuguInvoiceId": "F7C8A9B1234",
+ *   "pixQrCode": "00020126360014BR.GOV.BCB.PIX...",
+ *   "pixQrCodeUrl": "https://faturas.iugu.com/qr/123.png",
+ *   "secureUrl": "https://faturas.iugu.com/123",
+ *   "amount": 50.00,
+ *   "status": "PENDING",
+ *   "expiresAt": "2025-12-03T23:59:59",
+ *   "expired": false,
+ *   "statusMessage": "⏳ Aguardando pagamento. Escaneie o QR Code ou use o código PIX."
+ * }
+ * </pre>
+ * 
+ * @see PaymentService
+ * @see PaymentRequest
+ * @see PaymentResponse
+ */
+@Slf4j
+@RestController
+@RequestMapping("/api/payment")
+@RequiredArgsConstructor
+@Tag(name = "Pagamentos", description = "Gestão de pagamentos PIX com split automático")
+public class PaymentController {
+
+    private final PaymentService paymentService;
+
+    /**
+     * Cria uma fatura PIX com split automático entre motoboy, gestor e plataforma
+     * 
+     * <p><strong>Split de valores:</strong></p>
+     * <ul>
+     *   <li>87% para o motoboy (courier)</li>
+     *   <li>5% para o gestor da organização</li>
+     *   <li>8% para a plataforma</li>
+     * </ul>
+     * 
+     * <p><strong>Validações:</strong></p>
+     * <ul>
+     *   <li>Entrega deve existir</li>
+     *   <li>Valor mínimo: R$ 1,00</li>
+     *   <li>Motoboy deve ter conta Iugu validada</li>
+     *   <li>Email do cliente deve ser válido</li>
+     * </ul>
+     * 
+     * <p><strong>Status HTTP:</strong></p>
+     * <ul>
+     *   <li>201 Created - Fatura criada com sucesso</li>
+     *   <li>200 OK - Já existe fatura pendente (retorna a existente)</li>
+     *   <li>400 Bad Request - Dados inválidos</li>
+     *   <li>404 Not Found - Entrega não encontrada</li>
+     *   <li>409 Conflict - Entrega já foi paga</li>
+     *   <li>500 Internal Server Error - Erro ao comunicar com Iugu</li>
+     * </ul>
+     * 
+     * @param request Dados do pagamento (deliveryId, amount, contas Iugu, etc)
+     * @return PaymentResponse com QR Code PIX e dados da fatura
+     */
+    @PostMapping("/create-with-split")
+    @PreAuthorize("hasAnyRole('COURIER', 'ORGANIZER', 'CLIENT')")
+    @Operation(
+            summary = "Criar fatura PIX com split para múltiplas deliveries",
+            description = "Cria uma fatura PIX no Iugu com divisão automática de valores entre motoboy (87%), gestor (5%) e plataforma (8%). Suporta 1-10 deliveries em um único pagamento. Retorna QR Code PIX para pagamento."
+    )
+    public ResponseEntity<?> createPaymentWithSplit(@Valid @RequestBody PaymentRequest request) {
+        log.info("📥 Recebida requisição de pagamento - {} deliveries, Amount: R$ {}", 
+                request.getDeliveryIds().size(), request.getAmount());
+
+        try {
+            // Criar fatura no Iugu
+            PaymentResponse response = paymentService.createInvoiceWithSplit(request);
+
+            // Se retornou uma fatura existente pendente, retorna 200 OK
+            if (response.getPaymentId() != null && response.getStatus().name().equals("PENDING")) {
+                log.info("📤 Fatura pendente existente retornada: {}", response.getIuguInvoiceId());
+                return ResponseEntity.ok(response);
+            }
+
+            // Caso contrário, retorna 201 Created
+            log.info("📤 Nova fatura criada com sucesso!");
+            log.info("   ├─ Payment ID: {}", response.getPaymentId());
+            log.info("   ├─ Iugu Invoice ID: {}", response.getIuguInvoiceId());
+            log.info("   ├─ Amount: R$ {}", response.getAmount());
+            log.info("   ├─ Expires: {}", response.getExpiresAt());
+            log.info("   └─ PIX QR Code: {}", response.getPixQrCode() != null ? "✅ Disponível" : "❌ Indisponível");
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
+        } catch (IllegalArgumentException e) {
+            // Dados inválidos (400)
+            log.warn("⚠️ Dados inválidos: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "INVALID_DATA",
+                    "message", e.getMessage()
+            ));
+
+        } catch (IllegalStateException e) {
+            // Conflito de estado (409) - ex: entrega já paga
+            log.warn("⚠️ Conflito de estado: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "error", "CONFLICT",
+                    "message", e.getMessage()
+            ));
+
+        } catch (Exception e) {
+            // Erro interno (500)
+            log.error("❌ Erro ao criar fatura PIX", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "error", "INTERNAL_ERROR",
+                    "message", "Erro ao criar fatura PIX: " + e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Health check do controller
+     */
+    @GetMapping("/health")
+    @Operation(
+            summary = "Health check",
+            description = "Verifica se o controller de pagamentos está funcionando"
+    )
+    public ResponseEntity<Map<String, String>> health() {
+        return ResponseEntity.ok(Map.of(
+                "status", "UP",
+                "service", "PaymentController",
+                "message", "✅ Controller de pagamentos operacional"
+        ));
+    }
+}
