@@ -331,26 +331,39 @@ public class PagarMeService {
                         .build())
                 .build());
 
+        // Converter splits para OrderRequest.SplitRequest
+        List<OrderRequest.SplitRequest> orderSplits = splits.stream()
+                .map(s -> OrderRequest.SplitRequest.builder()
+                        .amount(s.getAmount().intValue())
+                        .type(s.getType())
+                        .recipientId(s.getRecipientId())
+                        .options(OrderRequest.SplitOptionsRequest.builder()
+                                .chargeProcessingFee(s.getOptions().getChargeProcessingFee())
+                                .chargeRemainderFee(s.getOptions().getChargeRemainderFee())
+                                .liable(s.getOptions().getLiable())
+                                .build())
+                        .build())
+                .toList();
+
         // Criar request
         OrderRequest request = OrderRequest.builder()
-                .items(List.of(OrderRequest.OrderItem.builder()
-                        .amount(amountInCents)
+                .items(List.of(OrderRequest.ItemRequest.builder()
+                        .amount((long) amountInCents)
                         .description(description)
-                        .quantity(1)
+                        .quantity(1L)
                         .build()))
-                .customer(OrderRequest.Customer.builder()
+                .customer(OrderRequest.CustomerRequest.builder()
                         .name(customerName)
                         .email(customerEmail)
                         .document(customerDocument)
                         .type("individual")
-                        .documentType("CPF")
                         .build())
-                .payments(List.of(OrderRequest.Payment.builder()
+                .payments(List.of(OrderRequest.PaymentRequest.builder()
                         .paymentMethod("pix")
-                        .pix(OrderRequest.Pix.builder()
-                                .expiresIn(86400) // 24 horas
+                        .pix(OrderRequest.PixRequest.builder()
+                                .expiresIn("86400")
                                 .build())
-                        .split(splits)
+                        .split(orderSplits)
                         .build()))
                 .build();
 
@@ -440,6 +453,49 @@ public class PagarMeService {
 
             default:
                 log.info("ℹ️ Evento não tratado: {}", event.getType());
+        }
+    }
+
+    /**
+     * Cria uma order (pedido) no Pagar.me com PIX e split automático
+     * 
+     * @param orderRequest Dados da order (items, customer, payments)
+     * @return Order ID do Pagar.me
+     */
+    public String createOrder(OrderRequest orderRequest) {
+        log.info("📦 Criando order no Pagar.me");
+
+        try {
+            HttpHeaders headers = createHeaders();
+            HttpEntity<OrderRequest> entity = new HttpEntity<>(orderRequest, headers);
+
+            String url = config.getApi().getUrl() + "/orders";
+            
+            // Log da request
+            try {
+                log.info("📤 JSON Request Body:\n{}", objectMapper.writeValueAsString(orderRequest));
+            } catch (Exception e) {
+                log.debug("Erro ao serializar request para log", e);
+            }
+
+            ResponseEntity<com.mvt.mvt_events.payment.dto.OrderResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    com.mvt.mvt_events.payment.dto.OrderResponse.class
+            );
+
+            com.mvt.mvt_events.payment.dto.OrderResponse body = response.getBody();
+            if (body != null && body.getId() != null) {
+                log.info("✅ Order criada com sucesso: {}", body.getId());
+                return body.getId();
+            }
+
+            throw new RuntimeException("Order criada mas sem ID na resposta");
+
+        } catch (Exception e) {
+            log.error("❌ Erro ao criar order no Pagar.me", e);
+            throw new RuntimeException("Falha ao criar order: " + e.getMessage(), e);
         }
     }
 

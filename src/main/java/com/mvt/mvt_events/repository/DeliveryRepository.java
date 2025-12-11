@@ -285,5 +285,31 @@ public interface DeliveryRepository
          */
         @Query(value = "SELECT d.* FROM deliveries d WHERE d.id IN :deliveryIds", nativeQuery = true)
         List<Delivery> findAllByIdNative(@Param("deliveryIds") List<Long> deliveryIds);
+
+        /**
+         * Busca todos os clientes (UUIDs únicos) que têm deliveries COMPLETED
+         * Usado pelo cronjob de consolidação de pagamentos
+         * 
+         * @return Lista de client IDs com deliveries completadas
+         */
+        @Query("SELECT DISTINCT d.client.id FROM Delivery d WHERE d.status = 'COMPLETED' ORDER BY d.client.id")
+        List<UUID> findClientsWithCompletedDeliveries();
+
+        /**
+         * Busca deliveries COMPLETED que têm payments com status específico (ou NULL)
+         * Usado para consolidação: encontrar deliveries que ainda não foram pagas
+         * 
+         * @param clientId UUID do cliente
+         * @param statuses Lista de PaymentStatus a filtrar (ex: NULL, FAILED, EXPIRED)
+         * @return Lista de deliveries que necessitam pagamento
+         */
+        @Query("SELECT DISTINCT d FROM Delivery d " +
+               "LEFT JOIN FETCH d.payments p " +
+               "WHERE d.client.id = :clientId " +
+               "AND d.status = 'COMPLETED' " +
+               "AND (p IS NULL OR CAST(p.status AS string) IN :statuses) " +
+               "ORDER BY d.updatedAt DESC")
+        List<Delivery> findByClientIdAndPaymentStatusesWithJoins(@Param("clientId") UUID clientId,
+                                                                  @Param("statuses") List<String> statuses);
 }
 

@@ -1,5 +1,6 @@
 package com.mvt.mvt_events.payment.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,6 +11,12 @@ import java.util.List;
 /**
  * Request para criação de order (pedido) no Pagar.me
  * 
+ * Suporta:
+ * - Múltiplos items (deliveries)
+ * - Customer com dados completos (nome, email, documento, endereço)
+ * - Pagamento via PIX com split automático
+ * - Split: 87% courier, 5% manager, 8% plataforma
+ * 
  * @see <a href="https://docs.pagar.me/reference/criar-pedido">Documentação Criar Order</a>
  */
 @Data
@@ -18,48 +25,140 @@ import java.util.List;
 @AllArgsConstructor
 public class OrderRequest {
     
-    private List<OrderItem> items;
-    private Customer customer;
-    private List<Payment> payments;
+    private Boolean closed; // true para encerrar a order imediatamente
+    private List<ItemRequest> items;
+    private CustomerRequest customer;
+    private List<PaymentRequest> payments;
+    
+    // ============================================================================
+    // NESTED CLASSES
+    // ============================================================================
     
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class OrderItem {
-        private Integer amount; // Valor em centavos
-        private String description;
-        private Integer quantity;
+    public static class ItemRequest {
+        private Long amount; // Valor em centavos (ex: 2990 = R$ 29,90)
+        private String description; // Descrição do item
+        private Long quantity; // Quantidade
+        private String code; // Código único
     }
     
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class Customer {
-        private String name;
-        private String email;
-        private String document; // CPF sem pontuação
+    public static class CustomerRequest {
+        private String name; // Nome completo
         private String type; // "individual" ou "company"
-        private String documentType; // "CPF" ou "CNPJ"
+        private String email; // Email
+        private String document; // CPF/CNPJ sem pontuação
+        private AddressRequest address; // Endereço
+        private PhonesRequest phones; // Telefones
     }
     
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class Payment {
+    public static class AddressRequest {
+        @JsonProperty("line_1")
+        private String line1; // Rua/Avenida
+        
+        @JsonProperty("line_2")
+        private String line2; // Número/Complemento
+        
+        @JsonProperty("zip_code")
+        private String zipCode; // CEP (ex: 05425070)
+        
+        private String city; // Cidade
+        private String state; // Estado (UF)
+        private String country; // País (BR)
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PhonesRequest {
+        @JsonProperty("home_phone")
+        private PhoneRequest homePhone;
+        
+        @JsonProperty("mobile_phone")
+        private PhoneRequest mobilePhone;
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PhoneRequest {
+        @JsonProperty("country_code")
+        private String countryCode; // "55"
+        
+        @JsonProperty("area_code")
+        private String areaCode; // "11"
+        
+        private String number; // "999999999"
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PaymentRequest {
+        @JsonProperty("payment_method")
         private String paymentMethod; // "pix"
-        private Pix pix;
-        private List<PagarMeSplitRequest> split; // Splits configurados
+        
+        private PixRequest pix; // Configurações PIX
+        private List<SplitRequest> split; // Split de valores
     }
     
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class Pix {
-        private Integer expiresIn; // Tempo de expiração em segundos (ex: 86400 = 24h)
-        private String additionalInformation; // Array com informações adicionais
+    public static class PixRequest {
+        @JsonProperty("expires_in")
+        private String expiresIn; // Tempo de expiração em segundos (ex: "7200" = 2h)
+        
+        @JsonProperty("additional_information")
+        private List<AdditionalInfoRequest> additionalInformation; // Informações extras
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AdditionalInfoRequest {
+        private String name; // Nome da info
+        private String value; // Valor da info
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SplitRequest {
+        private Integer amount; // Percentual (ex: 8700 = 87.00%) ou valor em centavos
+        @JsonProperty("recipient_id")
+        private String recipientId; // ID do recipient no Pagar.me
+        private String type; // "percentage" ou "fixed"
+        private SplitOptionsRequest options; // Opções de split
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SplitOptionsRequest {
+        @JsonProperty("charge_processing_fee")
+        private Boolean chargeProcessingFee; // Cobrar taxa de processamento?
+        
+        @JsonProperty("charge_remainder_fee")
+        private Boolean chargeRemainderFee; // Cobrar taxa de remainder?
+        
+        private Boolean liable; // É liable (responsável por chargebacks)?
     }
 }
