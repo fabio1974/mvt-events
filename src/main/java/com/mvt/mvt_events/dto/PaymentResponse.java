@@ -11,17 +11,16 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * DTO para retornar dados de pagamentos PIX via Iugu
+ * DTO para retornar dados de pagamentos PIX via Pagar.me
  * 
- * Este DTO combina dados do Payment local com dados da fatura Iugu,
+ * Este DTO combina dados do Payment local com dados do pedido Pagar.me,
  * fornecendo todas as informações necessárias para o cliente pagar.
  * 
  * Campos principais:
  * - paymentId: ID local do pagamento
- * - iuguInvoiceId: ID da fatura no Iugu
+ * - pagarmeOrderId: ID do pedido no Pagar.me
  * - pixQrCode: Código PIX copia-e-cola
  * - pixQrCodeUrl: URL da imagem do QR Code
- * - secureUrl: URL da página de pagamento Iugu
  * - amount: Valor total
  * - status: Status do pagamento (PENDING, COMPLETED, etc)
  * - expiresAt: Data/hora de expiração
@@ -30,10 +29,9 @@ import java.time.LocalDateTime;
  * <pre>
  * {
  *   "paymentId": 123,
- *   "iuguInvoiceId": "F7C8A9B1234",
+ *   "pagarmeOrderId": "or_abc123xyz",
  *   "pixQrCode": "00020126360014BR.GOV.BCB.PIX...",
- *   "pixQrCodeUrl": "https://faturas.iugu.com/qr/123.png",
- *   "secureUrl": "https://faturas.iugu.com/123",
+ *   "pixQrCodeUrl": "https://api.pagar.me/qr/123.png",
  *   "amount": 50.00,
  *   "status": "PENDING",
  *   "expiresAt": "2025-12-03T23:59:59",
@@ -56,9 +54,9 @@ public class PaymentResponse {
     private Long paymentId;
 
     /**
-     * ID da fatura no Iugu
+     * ID do pedido no Pagar.me
      */
-    private String iuguInvoiceId;
+    private String pagarmeOrderId;
 
     /**
      * Código PIX copia-e-cola
@@ -73,13 +71,7 @@ public class PaymentResponse {
     private String pixQrCodeUrl;
 
     /**
-     * URL da página de pagamento Iugu
-     * Cliente pode acessar para ver detalhes e pagar
-     */
-    private String secureUrl;
-
-    /**
-     * Valor total do pagamento
+     * Valor total em centavos
      */
     private BigDecimal amount;
 
@@ -124,23 +116,21 @@ public class PaymentResponse {
     private String statusMessage;
 
     /**
-     * Cria um PaymentResponse a partir de um Payment e dados da fatura Iugu
+     * Cria um PaymentResponse a partir de um Payment
      * 
      * @param payment Payment local
-     * @param secureUrl URL da página de pagamento
      * @return PaymentResponse completo
      */
-    public static PaymentResponse from(Payment payment, String secureUrl) {
+    public static PaymentResponse from(Payment payment) {
         if (payment == null) {
             throw new IllegalArgumentException("Payment não pode ser null");
         }
 
         PaymentResponseBuilder builder = PaymentResponse.builder()
                 .paymentId(payment.getId())
-                .iuguInvoiceId(payment.getIuguInvoiceId())
+                .pagarmeOrderId(payment.getPagarmeOrderId())
                 .pixQrCode(payment.getPixQrCode())
                 .pixQrCodeUrl(payment.getPixQrCodeUrl())
-                .secureUrl(secureUrl)
                 .amount(payment.getAmount())
                 .status(payment.getStatus())
                 .expiresAt(payment.getExpiresAt())

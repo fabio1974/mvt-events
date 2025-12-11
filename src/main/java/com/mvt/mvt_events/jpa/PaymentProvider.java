@@ -5,9 +5,9 @@ package com.mvt.mvt_events.jpa;
  */
 public enum PaymentProvider {
     /**
-     * Iugu - Gateway de pagamento brasileiro
+     * Pagar.me - Gateway de pagamento brasileiro (Stone Co.)
      */
-    IUGU("Iugu", "https://iugu.com"),
+    PAGARME("Pagar.me", "https://pagar.me"),
     
     /**
      * Stripe - Gateway de pagamento internacional

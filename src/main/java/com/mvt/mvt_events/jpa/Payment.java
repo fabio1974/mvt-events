@@ -99,7 +99,7 @@ public class Payment extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "provider", length = 50)
     @Visible(table = true, form = true, filter = true)
-    private PaymentProvider provider; // Gateway de pagamento (Iugu, Stripe, etc)
+    private PaymentProvider provider; // Gateway de pagamento (Pagar.me, Stripe, etc)
 
     @Column(name = "provider_payment_id", length = 100)
     @Visible(table = false, form = false, filter = false)
@@ -118,26 +118,38 @@ public class Payment extends BaseEntity {
     @Visible(table = false, form = false, filter = false)
     private String metadata;
 
-    // ============================================================================
-    // IUGU PIX FIELDS
-    // ============================================================================
-
-    @Column(name = "iugu_invoice_id", length = 100, unique = true)
-    @Visible(table = false, form = false, filter = true)
-    private String iuguInvoiceId;
-
-    @Column(name = "pix_qr_code", columnDefinition = "TEXT")
-    @Visible(table = false, form = false, filter = false)
-    private String pixQrCode;
-
-    @Column(name = "pix_qr_code_url", columnDefinition = "TEXT")
-    @Visible(table = false, form = false, filter = false)
-    private String pixQrCodeUrl;
-
     @Column(name = "expires_at")
     @Visible(table = true, form = false, filter = true)
     private LocalDateTime expiresAt;
 
+    // ============================================================================
+    // PAGAR.ME PIX FIELDS
+    // ============================================================================
+
+    /**
+     * ID da order no Pagar.me
+     */
+    @Column(name = "pagarme_order_id", length = 100, unique = true)
+    @Visible(table = false, form = false, filter = true)
+    private String pagarmeOrderId;
+
+    /**
+     * PIX QR Code (copia e cola)
+     */
+    @Column(name = "pix_qr_code", columnDefinition = "TEXT")
+    @Visible(table = false, form = false, filter = false)
+    private String pixQrCode;
+
+    /**
+     * URL da imagem do PIX QR Code
+     */
+    @Column(name = "pix_qr_code_url", columnDefinition = "TEXT")
+    @Visible(table = false, form = false, filter = false)
+    private String pixQrCodeUrl;
+
+    /**
+     * Regras de split em formato JSON
+     */
     @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(name = "split_rules", columnDefinition = "JSONB")
     @Visible(table = false, form = false, filter = false)
@@ -230,7 +242,7 @@ public class Payment extends BaseEntity {
     }
 
     // ============================================================================
-    // IUGU PIX HELPER METHODS
+    // PAGAR.ME PIX HELPER METHODS
     // ============================================================================
 
     /**
@@ -241,10 +253,10 @@ public class Payment extends BaseEntity {
     }
 
     /**
-     * Verifica se é um pagamento via Iugu
+     * Verifica se é um pagamento via Pagar.me
      */
-    public boolean isIuguPayment() {
-        return iuguInvoiceId != null && !iuguInvoiceId.isBlank();
+    public boolean isPagarmePayment() {
+        return pagarmeOrderId != null && !pagarmeOrderId.isBlank();
     }
 
     /**

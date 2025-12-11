@@ -1,5 +1,6 @@
 package com.mvt.mvt_events.common;
 
+import com.mvt.mvt_events.jpa.Address;
 import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.jpa.Organization;
 import com.mvt.mvt_events.repository.OrganizationRepository;
@@ -95,10 +96,10 @@ public class JwtUtil {
             if (user.getGender() != null) {
                 claims.put("gender", user.getGender().name());
             }
-            if (user.getCity() != null) {
+            if (user.getAddress() != null && user.getAddress().getCity() != null) {
                 // Only store city name to avoid Hibernate proxy serialization issues
-                claims.put("city", user.getCity().getName());
-                claims.put("cityId", user.getCity().getId());
+                claims.put("city", user.getAddress().getCity().getName());
+                claims.put("cityId", user.getAddress().getCity().getId());
             }
             if (user.getState() != null) {
                 claims.put("state", user.getState());
@@ -109,19 +110,19 @@ public class JwtUtil {
             if (user.getPhone() != null) {
                 claims.put("phone", user.getPhone());
             }
-            if (user.getAddress() != null) {
-                claims.put("address", user.getAddress());
-            }
-            if (user.getCountry() != null) {
-                claims.put("country", user.getCountry());
-            }
             
-            // Add geolocation coordinates (fixed address)
-            if (user.getLatitude() != null) {
-                claims.put("latitude", user.getLatitude());
-            }
-            if (user.getLongitude() != null) {
-                claims.put("longitude", user.getLongitude());
+            // Add address info from Address entity
+            if (user.getAddress() != null) {
+                Address address = user.getAddress();
+                claims.put("address", address.getFullAddress());
+                
+                // Add geolocation coordinates
+                if (address.getLatitude() != null) {
+                    claims.put("latitude", address.getLatitude());
+                }
+                if (address.getLongitude() != null) {
+                    claims.put("longitude", address.getLongitude());
+                }
             }
 
             // Add organization_id for ORGANIZER users - find organization where user is owner

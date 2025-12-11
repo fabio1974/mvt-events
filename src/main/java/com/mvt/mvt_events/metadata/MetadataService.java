@@ -22,8 +22,9 @@ public class MetadataService {
         ENTITIES.put("siteConfiguration", new EntityConfig(SiteConfiguration.class, "Configurações do Sistema", "/api/site-configuration"));
         ENTITIES.put("specialZone", new EntityConfig(SpecialZone.class, "Zonas Especiais", "/api/special-zones"));
         ENTITIES.put("bankAccount", new EntityConfig(BankAccount.class, "Contas Bancárias", "/api/bank-accounts"));
+        ENTITIES.put("address", new EntityConfig(Address.class, "Endereços", "/api/addresses"));
 
-        // ==================== Pagamentos (Iugu Integration) ====================
+        // ==================== Pagamentos (Pagar.me Integration) ====================
         ENTITIES.put("payment", new EntityConfig(Payment.class, "Pagamentos", "/api/payments"));
 
         // ==================== Zapi10 (Sistema de Entregas) ====================

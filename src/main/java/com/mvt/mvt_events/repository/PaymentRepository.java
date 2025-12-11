@@ -71,9 +71,9 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
         boolean existsByDeliveryId(@Param("deliveryId") UUID deliveryId);
 
         /**
-         * Busca pagamento por Iugu Invoice ID
+         * Busca pagamento por Pagar.me Order ID
          */
-        Optional<Payment> findByIuguInvoiceId(String iuguInvoiceId);
+        Optional<Payment> findByPagarmeOrderId(String pagarmeOrderId);
 
         /**
          * Busca pagamentos que incluem uma entrega com status específico (N:M via payment_deliveries)

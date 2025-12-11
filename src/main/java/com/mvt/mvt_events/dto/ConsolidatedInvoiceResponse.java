@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * Response consolidada de invoice com detalhes de splits
  * 
- * <p>Retorna dados da invoice criada no Iugu mais informações agregadas
+ * <p>Retorna dados do pedido criado no Pagar.me mais informações agregadas
  * sobre como o valor foi distribuído entre motoboys, gerentes e plataforma.</p>
  */
 @Data
@@ -23,9 +23,9 @@ public class ConsolidatedInvoiceResponse {
     private Long paymentId;
 
     /**
-     * ID da invoice no Iugu
+     * ID do pedido no Pagar.me
      */
-    private String iuguInvoiceId;
+    private String pagarmeOrderId;
 
     /**
      * QR Code PIX (string para copiar/colar)

@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * DTO para criação de pagamentos PIX via Iugu
+ * DTO para criação de pagamentos PIX via Pagar.me
  * 
  * Este DTO encapsula todos os dados necessários para criar uma fatura PIX
  * com split automático entre motoboy (87%), gestor (5%) e plataforma (8%).
@@ -20,8 +20,6 @@ import java.util.List;
  * - deliveryIds: obrigatório, mínimo 1, máximo 10 deliveries
  * - amount: obrigatório, mínimo R$ 1,00
  * - clientEmail: obrigatório e válido (para enviar a fatura)
- * - motoboyAccountId: obrigatório (iuguAccountId do motoboy)
- * - managerAccountId: opcional (iuguAccountId do gestor)
  * 
  * Exemplo de uso (múltiplas deliveries):
  * <pre>
@@ -29,11 +27,9 @@ import java.util.List;
  * request.setDeliveryIds(List.of(1L, 2L, 3L)); // 3 entregas
  * request.setAmount(new BigDecimal("150.00")); // Soma das 3 entregas
  * request.setClientEmail("cliente@example.com");
- * request.setMotoboyAccountId("motoboy_iugu_123");
- * request.setManagerAccountId("gestor_iugu_456");
  * </pre>
  * 
- * @see com.mvt.mvt_events.service.PaymentService#createInvoiceWithSplit
+ * @see com.mvt.mvt_events.service.PaymentService#createPaymentWithSplit
  */
 @Data
 public class PaymentRequest {
@@ -59,23 +55,23 @@ public class PaymentRequest {
 
     /**
      * Email do cliente que vai pagar
-     * Usado pelo Iugu para enviar a fatura
+     * Usado para enviar a fatura
      */
     @NotBlank(message = "Email do cliente é obrigatório")
     @Email(message = "Email inválido")
     private String clientEmail;
 
     /**
-     * ID da subconta Iugu do motoboy
-     * Deve ser o campo `iuguAccountId` do BankAccount do motoboy
+     * ID do recipient Pagar.me do motoboy
+     * Deve ser o campo `pagarmeRecipientId` do User
      * Receberá 87% do valor
      */
-    @NotBlank(message = "ID da conta Iugu do motoboy é obrigatório")
+    @NotBlank(message = "ID do recipient do motoboy é obrigatório")
     private String motoboyAccountId;
 
     /**
-     * ID da subconta Iugu do gestor da organização
-     * Deve ser o campo `iuguAccountId` do BankAccount do gestor
+     * ID do recipient Pagar.me do gestor da organização
+     * Deve ser o campo `pagarmeRecipientId` do User
      * Receberá 5% do valor
      * Opcional - se não informado, os 5% vão para a plataforma
      */
@@ -114,7 +110,7 @@ public class PaymentRequest {
         }
 
         if (motoboyAccountId == null || motoboyAccountId.isBlank()) {
-            throw new IllegalArgumentException("ID da conta Iugu do motoboy é obrigatório");
+            throw new IllegalArgumentException("ID do recipient do motoboy é obrigatório");
         }
     }
 

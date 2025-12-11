@@ -8,16 +8,16 @@ import java.math.BigDecimal;
 /**
  * Representa quanto cada pessoa deve receber em uma invoice
  * 
- * <p>Usado internamente para calcular splits do Iugu</p>
+ * <p>Usado internamente para calcular splits do Pagar.me</p>
  */
 @Data
 @AllArgsConstructor
 public class RecipientSplit {
     
     /**
-     * ID da subconta Iugu (motoboy ou gerente)
+     * ID do recipient Pagar.me (motoboy ou gerente)
      */
-    private String iuguAccountId;
+    private String pagarmeRecipientId;
     
     /**
      * Tipo de recipiente

@@ -26,12 +26,17 @@ public class FormMetadataController {
         ENTITIES.put("user", new EntityConfig(User.class, "Usuários", "/api/users"));
         ENTITIES.put("siteConfiguration", new EntityConfig(SiteConfiguration.class, "Configurações do Sistema", "/api/site-configuration"));
         ENTITIES.put("specialZone", new EntityConfig(SpecialZone.class, "Zonas Especiais", "/api/special-zones"));
+        ENTITIES.put("bankAccount", new EntityConfig(BankAccount.class, "Contas Bancárias", "/api/bank-accounts"));
 
-        // TODO: Adicionar entidades de Zapi10 aqui quando necessário
-        // ENTITIES.put("delivery", new EntityConfig(Delivery.class, "Entregas",
-        // "/api/deliveries"));
-        // ENTITIES.put("payment", new EntityConfig(Payment.class, "Pagamentos",
-        // "/api/payments"));
+        // ==================== Pagamentos ====================
+        ENTITIES.put("payment", new EntityConfig(Payment.class, "Pagamentos", "/api/payments"));
+
+        // ==================== Zapi10 (Sistema de Entregas) ====================
+        ENTITIES.put("delivery", new EntityConfig(Delivery.class, "Entregas", "/api/deliveries"));
+        ENTITIES.put("courierProfile", new EntityConfig(CourierProfile.class, "Perfis de Motoboy", "/api/courier-profiles"));
+        ENTITIES.put("evaluation", new EntityConfig(Evaluation.class, "Avaliações", "/api/evaluations"));
+        ENTITIES.put("clientContract", new EntityConfig(ClientContract.class, "Contrato de Serviço", "/api/client-contracts"));
+        ENTITIES.put("employmentContract", new EntityConfig(EmploymentContract.class, "Contrato de Motoboy", "/api/employment-contracts"));
     }
 
     /**

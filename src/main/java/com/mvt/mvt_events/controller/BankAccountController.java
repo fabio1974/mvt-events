@@ -4,7 +4,6 @@ import com.mvt.mvt_events.jpa.BankAccount;
 import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.payment.dto.BankAccountRequest;
 import com.mvt.mvt_events.payment.dto.BankAccountResponse;
-import com.mvt.mvt_events.payment.dto.VerificationStatusResponse;
 import com.mvt.mvt_events.payment.service.BankAccountService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,20 +16,20 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Controller para gerenciar dados bancários de couriers e organizers
  * 
  * <p>Endpoints:
  * <ul>
- *   <li>POST /api/motoboy/bank-data - Cadastrar dados bancários</li>
- *   <li>GET /api/motoboy/bank-data - Consultar dados bancários</li>
- *   <li>PUT /api/motoboy/bank-data - Atualizar dados bancários</li>
- *   <li>GET /api/motoboy/bank-data/verification-status - Verificar status de verificação</li>
+ *   <li>POST /api/bank-accounts - Cadastrar dados bancários e criar recipient Pagar.me</li>
+ *   <li>GET /api/bank-accounts - Consultar dados bancários do usuário autenticado</li>
+ *   <li>GET /api/bank-accounts/{userId} - Buscar dados bancários por userId</li>
+ *   <li>PUT /api/bank-accounts/{userId} - Atualizar dados bancários</li>
  * </ul>
  */
 @RestController
-@RequestMapping("/api/motoboy/bank-data")
 @RequiredArgsConstructor
 @Slf4j
 public class BankAccountController {
@@ -38,32 +37,32 @@ public class BankAccountController {
     private final BankAccountService bankAccountService;
 
     /**
-     * Cadastra dados bancários e cria subconta no Iugu
+     * Cadastra dados bancários e cria recipient no Pagar.me
      * 
-     * <p><strong>POST /api/motoboy/bank-data</strong>
+     * <p><strong>POST /api/bank-accounts</strong>
      * 
      * <p>Apenas COURIER e ORGANIZER podem cadastrar dados bancários.
      * 
      * <p>Processo:
      * <ol>
-     *   <li>Valida dados bancários (formato, código do banco, etc.)</li>
-     *   <li>Cria BankAccount local com status PENDING_VALIDATION</li>
-     *   <li>Cria subconta no Iugu (marketplace)</li>
-     *   <li>Salva iuguAccountId no User</li>
-     *   <li>Retorna dados cadastrados</li>
+     *   <li>Busca dados do User (nome, CPF, email já cadastrados)</li>
+     *   <li>Cria BankAccount local com dados bancários</li>
+     *   <li>Verifica duplicidade no Pagar.me (CPF + dados bancários)</li>
+     *   <li>Cria recipient no Pagar.me com dados mínimos necessários</li>
+     *   <li>Salva pagarmeRecipientId no User</li>
      * </ol>
      * 
      * @param user Usuário autenticado
-     * @param request Dados bancários
-     * @return BankAccount criado com status PENDING_VALIDATION
+     * @param request Dados bancários (apenas campos essenciais)
+     * @return BankAccount criado
      */
-    @PostMapping
+    @PostMapping("/api/bank-accounts")
     @PreAuthorize("hasAnyRole('COURIER', 'ORGANIZER')")
     public ResponseEntity<?> createBankAccount(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody BankAccountRequest request
     ) {
-        log.info("📥 POST /api/motoboy/bank-data - User: {} ({})", user.getUsername(), user.getRole());
+        log.info("📥 POST /api/bank-accounts - User: {} ({})", user.getUsername(), user.getRole());
         
         try {
             BankAccount bankAccount = bankAccountService.createBankAccount(user.getId(), request);
@@ -73,14 +72,26 @@ public class BankAccountController {
                     .body(BankAccountResponse.from(bankAccount));
                     
         } catch (IllegalStateException e) {
-            // Já existe conta bancária
-            log.warn("   └─ ⚠️ Conta bancária já existe: {}", e.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.CONFLICT)
-                    .body(Map.of(
-                        "error", "ALREADY_EXISTS",
-                        "message", e.getMessage()
-                    ));
+            // Verifica se é duplicidade no Pagar.me ou se usuário já tem conta
+            if (e.getMessage().contains("Recipient duplicado") || e.getMessage().contains("recipient cadastrado")) {
+                log.warn("   └─ ⚠️ Recipient duplicado no Pagar.me: {}", e.getMessage());
+                return ResponseEntity
+                        .status(HttpStatus.CONFLICT)
+                        .body(Map.of(
+                            "error", "DUPLICATE_RECIPIENT",
+                            "message", "Já existe um recipient cadastrado no Pagar.me com este CPF e conta bancária",
+                            "details", e.getMessage()
+                        ));
+            } else {
+                // Já existe conta bancária local
+                log.warn("   └─ ⚠️ Conta bancária já existe: {}", e.getMessage());
+                return ResponseEntity
+                        .status(HttpStatus.CONFLICT)
+                        .body(Map.of(
+                            "error", "ALREADY_EXISTS",
+                            "message", e.getMessage()
+                        ));
+            }
                     
         } catch (IllegalArgumentException e) {
             // Dados inválidos
@@ -107,15 +118,15 @@ public class BankAccountController {
     /**
      * Consulta dados bancários do usuário autenticado
      * 
-     * <p><strong>GET /api/motoboy/bank-data</strong>
+     * <p><strong>GET /api/bank-accounts</strong>
      * 
      * @param user Usuário autenticado
      * @return Dados bancários cadastrados ou 404 se não cadastrado
      */
-    @GetMapping
+    @GetMapping("/api/bank-accounts")
     @PreAuthorize("hasAnyRole('COURIER', 'ORGANIZER')")
     public ResponseEntity<?> getBankAccount(@AuthenticationPrincipal User user) {
-        log.info("📤 GET /api/motoboy/bank-data - User: {}", user.getUsername());
+        log.info("📤 GET /api/bank-accounts - User: {}", user.getUsername());
         
         Optional<BankAccount> bankAccountOpt = bankAccountService.getBankAccount(user.getId());
         
@@ -133,47 +144,64 @@ public class BankAccountController {
     }
 
     /**
-     * Atualiza dados bancários
+     * Busca dados bancários por User ID
      * 
-     * <p><strong>PUT /api/motoboy/bank-data</strong>
+     * Endpoint: GET /api/bank-accounts/{userId}
      * 
-     * <p>Processo:
-     * <ol>
-     *   <li>Valida novos dados</li>
-     *   <li>Atualiza BankAccount local</li>
-     *   <li>Se estava BLOCKED, volta para PENDING_VALIDATION</li>
-     *   <li>Atualiza dados no Iugu (se iuguAccountId existe)</li>
-     * </ol>
-     * 
-     * @param user Usuário autenticado
-     * @param request Novos dados bancários
-     * @return BankAccount atualizado
+     * @param userId UUID do usuário
+     * @return Dados bancários ou 404
      */
-    @PutMapping
-    @PreAuthorize("hasAnyRole('COURIER', 'ORGANIZER')")
-    public ResponseEntity<?> updateBankAccount(
-            @AuthenticationPrincipal User user,
-            @Valid @RequestBody BankAccountRequest request
-    ) {
-        log.info("🔄 PUT /api/motoboy/bank-data - User: {}", user.getUsername());
+    @GetMapping("/api/bank-accounts/{userId}")
+    public ResponseEntity<?> getBankAccountByUserId(@PathVariable UUID userId) {
+        log.info("📤 GET /api/bank-accounts/{} - Buscando por User ID", userId);
         
-        try {
-            BankAccount bankAccount = bankAccountService.updateBankAccount(user.getId(), request);
-            
-            return ResponseEntity.ok(BankAccountResponse.from(bankAccount));
-            
-        } catch (IllegalStateException e) {
-            // Não existe conta bancária para atualizar
-            log.warn("   └─ ⚠️ Conta bancária não existe: {}", e.getMessage());
+        Optional<BankAccount> bankAccountOpt = bankAccountService.getBankAccount(userId);
+        
+        if (bankAccountOpt.isEmpty()) {
+            log.info("   └─ ℹ️ Usuário não possui dados bancários cadastrados");
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
                     .body(Map.of(
                         "error", "NOT_FOUND",
-                        "message", e.getMessage()
+                        "message", "Dados bancários não cadastrados"
                     ));
-                    
+        }
+        
+        return ResponseEntity.ok(BankAccountResponse.from(bankAccountOpt.get()));
+    }
+
+    /**
+     * Atualiza dados bancários e recipient no Pagar.me
+     * 
+     * <p><strong>PUT /api/bank-accounts/{userId}</strong>
+     * 
+     * <p>Processo:
+     * <ol>
+     *   <li>Verifica se dados bancários mudaram</li>
+     *   <li>Se mudaram, verifica duplicidade no Pagar.me (CPF + dados bancários)</li>
+     *   <li>Atualiza dados locais</li>
+     *   <li>Cria novo recipient no Pagar.me (se dados bancários mudaram)</li>
+     * </ol>
+     * 
+     * @param userId ID do usuário
+     * @param request Novos dados bancários (apenas campos essenciais)
+     * @return BankAccount atualizado
+     */
+    @PutMapping("/api/bank-accounts/{userId}")
+    @PreAuthorize("hasAnyRole('COURIER', 'ORGANIZER', 'ADMIN')")
+    public ResponseEntity<?> updateBankAccount(
+            @PathVariable UUID userId,
+            @Valid @RequestBody BankAccountRequest request
+    ) {
+        log.info("🔄 PUT /api/bank-accounts/{} - Atualizando dados bancários", userId);
+        
+        try {
+            BankAccount bankAccount = bankAccountService.updateBankAccount(userId, request);
+            
+            return ResponseEntity.ok(BankAccountResponse.from(bankAccount));
+            
         } catch (IllegalArgumentException e) {
-            // Dados inválidos
+            // Dados não encontrados ou inválidos
             log.warn("   └─ ❌ Dados inválidos: {}", e.getMessage());
             return ResponseEntity
                     .badRequest()
@@ -181,6 +209,20 @@ public class BankAccountController {
                         "error", "INVALID_DATA",
                         "message", e.getMessage()
                     ));
+                    
+        } catch (IllegalStateException e) {
+            // Recipient duplicado
+            if (e.getMessage().contains("Recipient duplicado") || e.getMessage().contains("recipient cadastrado")) {
+                log.warn("   └─ ⚠️ Recipient duplicado no Pagar.me: {}", e.getMessage());
+                return ResponseEntity
+                        .status(HttpStatus.CONFLICT)
+                        .body(Map.of(
+                            "error", "DUPLICATE_RECIPIENT",
+                            "message", "Já existe um recipient cadastrado no Pagar.me com este CPF e conta bancária",
+                            "details", e.getMessage()
+                        ));
+            }
+            throw e;
                     
         } catch (Exception e) {
             // Erro inesperado
@@ -191,46 +233,6 @@ public class BankAccountController {
                         "error", "INTERNAL_ERROR",
                         "message", "Erro ao atualizar dados bancários: " + e.getMessage()
                     ));
-        }
-    }
-
-    /**
-     * Verifica status de verificação em tempo real (consulta API Iugu)
-     * 
-     * <p><strong>GET /api/motoboy/bank-data/verification-status</strong>
-     * 
-     * <p>Este endpoint consulta diretamente a API Iugu para obter o status
-     * atualizado da verificação dos dados bancários. Útil para o usuário
-     * verificar manualmente sem esperar o job agendado.
-     * 
-     * <p>Processo:
-     * <ol>
-     *   <li>Busca BankAccount e User</li>
-     *   <li>Consulta status no Iugu via API</li>
-     *   <li>Sincroniza status local se mudou</li>
-     *   <li>Retorna status atualizado com mensagem amigável</li>
-     * </ol>
-     * 
-     * @param user Usuário autenticado
-     * @return Status de verificação com mensagem
-     */
-    @GetMapping("/verification-status")
-    @PreAuthorize("hasAnyRole('COURIER', 'ORGANIZER')")
-    public ResponseEntity<VerificationStatusResponse> checkVerificationStatus(
-            @AuthenticationPrincipal User user
-    ) {
-        log.info("🔍 GET /api/motoboy/bank-data/verification-status - User: {}", user.getUsername());
-        
-        try {
-            VerificationStatusResponse response = bankAccountService.checkVerificationStatus(user.getId());
-            return ResponseEntity.ok(response);
-            
-        } catch (IllegalArgumentException e) {
-            // Usuário não encontrado (não deveria acontecer com @AuthenticationPrincipal)
-            log.error("   └─ ❌ Usuário não encontrado: {}", e.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(VerificationStatusResponse.notRegistered());
         }
     }
 }

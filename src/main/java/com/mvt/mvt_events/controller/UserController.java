@@ -276,25 +276,27 @@ public class UserController {
             this.username = user.getUsername();
             this.name = user.getName();
             this.phone = user.getPhone();
-            this.address = user.getAddress();
+            
+            // Address from Address entity
+            if (user.getAddress() != null) {
+                this.address = user.getAddress().getFullAddress();
+                this.latitude = user.getAddress().getLatitude();
+                this.longitude = user.getAddress().getLongitude();
+            }
+            
             this.state = user.getState();
-            this.country = user.getCountry();
             this.dateOfBirth = user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : null;
             this.gender = user.getGender() != null ? user.getGender().toString() : null;
             this.cpf = user.getCpfFormatted();
             this.role = user.getRole() != null ? user.getRole().toString() : null;
 
-            // Campos de localização do endereço fixo
-            this.latitude = user.getLatitude();
-            this.longitude = user.getLongitude();
-            
-            // Campos de localização GPS (em tempo real)
+            // Campos de localização GPS (em tempo real) - mantidos no User
             this.gpsLatitude = user.getGpsLatitude();
             this.gpsLongitude = user.getGpsLongitude();
             this.updatedAt = user.getUpdatedAt() != null ? user.getUpdatedAt().toString() : null;
 
-            // Carregar dados da cidade como objeto usando DTOMapper
-            this.city = DTOMapper.toDTO(user.getCity());
+            // Carregar dados da cidade via Address usando DTOMapper
+            this.city = user.getAddress() != null ? DTOMapper.toDTO(user.getAddress().getCity()) : null;
 
             // Organization is now accessed through the reverse relationship (Organization.owner)
             // Will be populated separately if needed

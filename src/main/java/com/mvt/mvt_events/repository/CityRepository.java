@@ -19,6 +19,11 @@ public interface CityRepository extends JpaRepository<City, Long> {
     List<City> findByNameContainingIgnoreCase(String name);
 
     /**
+     * Find city by exact name and state (for address lookup)
+     */
+    Optional<City> findByNameAndState(String name, String state);
+
+    /**
      * Find city by IBGE code
      */
     Optional<City> findByIbgeCode(String ibgeCode);

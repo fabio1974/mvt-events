@@ -84,22 +84,48 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("refundAmount", "Valor do Reembolso");
         FIELD_TRANSLATIONS.put("refundReason", "Motivo do Reembolso");
 
-        // ==================== IUGU / BANK ACCOUNT ====================
-        FIELD_TRANSLATIONS.put("iuguAccountId", "ID Conta Iugu");
-        FIELD_TRANSLATIONS.put("iuguInvoiceId", "ID Fatura Iugu");
+        // ==================== PAGAR.ME / BANK ACCOUNT ====================
+        FIELD_TRANSLATIONS.put("pagarmeRecipientId", "ID Recipient Pagar.me");
+        FIELD_TRANSLATIONS.put("pagarmeOrderId", "ID Order Pagar.me");
+        FIELD_TRANSLATIONS.put("pagarmeStatus", "Status Pagar.me");
         FIELD_TRANSLATIONS.put("pixQrCode", "Código PIX");
         FIELD_TRANSLATIONS.put("pixQrCodeUrl", "QR Code PIX (URL)");
         FIELD_TRANSLATIONS.put("expiresAt", "Expira em");
         FIELD_TRANSLATIONS.put("splitRules", "Regras de Split");
-        FIELD_TRANSLATIONS.put("bankDataComplete", "Dados Bancários Completos");
-        FIELD_TRANSLATIONS.put("autoWithdrawEnabled", "Transferência Automática");
         FIELD_TRANSLATIONS.put("bankAccount", "Conta Bancária");
         FIELD_TRANSLATIONS.put("bankCode", "Código do Banco");
         FIELD_TRANSLATIONS.put("bankName", "Nome do Banco");
         FIELD_TRANSLATIONS.put("agency", "Agência");
+        FIELD_TRANSLATIONS.put("agencyDigit", "Dígito da Agência");
         FIELD_TRANSLATIONS.put("accountNumber", "Número da Conta");
+        FIELD_TRANSLATIONS.put("accountDigit", "Dígito da Conta");
         FIELD_TRANSLATIONS.put("accountType", "Tipo de Conta");
+        FIELD_TRANSLATIONS.put("accountHolderName", "Nome do Titular");
+        FIELD_TRANSLATIONS.put("accountHolderDocument", "CPF do Titular");
+        FIELD_TRANSLATIONS.put("motherName", "Nome da Mãe");
+        FIELD_TRANSLATIONS.put("birthdate", "Data de Nascimento");
+        FIELD_TRANSLATIONS.put("monthlyIncome", "Renda Mensal");
+        FIELD_TRANSLATIONS.put("professionalOccupation", "Ocupação Profissional");
+        FIELD_TRANSLATIONS.put("phoneDdd", "DDD");
+        FIELD_TRANSLATIONS.put("phoneNumber", "Número do Telefone");
+        FIELD_TRANSLATIONS.put("addressStreet", "Rua");
+        FIELD_TRANSLATIONS.put("addressNumber", "Número");
+        FIELD_TRANSLATIONS.put("addressComplement", "Complemento");
+        FIELD_TRANSLATIONS.put("addressNeighborhood", "Bairro");
+        FIELD_TRANSLATIONS.put("addressCity", "Cidade");
+        FIELD_TRANSLATIONS.put("addressState", "Estado");
+        FIELD_TRANSLATIONS.put("addressZipCode", "CEP");
+        FIELD_TRANSLATIONS.put("addressReferencePoint", "Ponto de Referência");
         FIELD_TRANSLATIONS.put("validatedAt", "Validado em");
+
+        // ==================== ADDRESS (nova entidade) ====================
+        FIELD_TRANSLATIONS.put("street", "Rua");
+        FIELD_TRANSLATIONS.put("number", "Número");
+        FIELD_TRANSLATIONS.put("complement", "Complemento");
+        FIELD_TRANSLATIONS.put("neighborhood", "Bairro");
+        FIELD_TRANSLATIONS.put("referencePoint", "Ponto de Referência");
+        FIELD_TRANSLATIONS.put("latitude", "Latitude");
+        FIELD_TRANSLATIONS.put("longitude", "Longitude");
 
         // ==================== STATUS/FLAGS ====================
         FIELD_TRANSLATIONS.put("status", "Status");

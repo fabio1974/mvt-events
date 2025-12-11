@@ -1,291 +1,210 @@
 package com.mvt.mvt_events.payment.service;
 
-import com.mvt.mvt_events.dto.RecipientSplit;
-import com.mvt.mvt_events.dto.RecipientSplit.RecipientType;
 import com.mvt.mvt_events.jpa.Delivery;
-import com.mvt.mvt_events.jpa.User;
-import com.mvt.mvt_events.config.IuguConfig;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import com.mvt.mvt_events.payment.dto.PagarMeSplitRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Serviço para calcular splits de pagamento entre múltiplos motoboys/gerentes
+ * Calculadora de split de pagamento para Pagar.me
  * 
- * <p><strong>Lógica:</strong></p>
- * <ol>
- *   <li>Para cada delivery, calcula 87% motoboy + 5% gerente</li>
- *   <li>Agrupa por pessoa (soma se mesma pessoa aparece em várias deliveries)</li>
- *   <li>Plataforma recebe o resto (8% + ajustes de arredondamento)</li>
- * </ol>
+ * Modelo de negócio Zapi10:
+ * - 87% para o motoboy (entregador)
+ * - 5% para o gerente (manager)
+ * - 8% para a plataforma Zapi10 (automático - remainder)
  * 
- * <p><strong>Exemplo:</strong></p>
- * <pre>
- * Delivery 1: R$ 50 (Motoboy A, Gerente X)
- *   → Motoboy A: R$ 43,50 (87%)
- *   → Gerente X: R$ 2,50 (5%)
- * 
- * Delivery 2: R$ 30 (Motoboy B, Gerente X)
- *   → Motoboy B: R$ 26,10 (87%)
- *   → Gerente X: R$ 1,50 (5%)
- * 
- * Delivery 3: R$ 20 (Motoboy A, Gerente Y)
- *   → Motoboy A: R$ 17,40 (87%)
- *   → Gerente Y: R$ 1,00 (5%)
- * 
- * Total: R$ 100
- * Splits consolidados:
- *   → Motoboy A: R$ 60,90 (43,50 + 17,40)
- *   → Motoboy B: R$ 26,10
- *   → Gerente X: R$ 4,00 (2,50 + 1,50)
- *   → Gerente Y: R$ 1,00
- *   → Plataforma: R$ 8,00 (resto)
- * </pre>
+ * Regras de liable e taxas:
+ * - ZAPI10 (plataforma) é LIABLE: assume risco de chargebacks
+ * - ZAPI10 paga TODAS as taxas de processamento
+ * - Motoboy e Manager recebem valores líquidos (sem desconto de taxas)
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class SplitCalculator {
 
-    private final IuguConfig iuguConfig;
+    @Value("${pagarme.split.courier-percentage:8700}")
+    private Integer courierPercentage; // 8700 = 87.00%
+
+    @Value("${pagarme.split.manager-percentage:500}")
+    private Integer managerPercentage; // 500 = 5.00%
+
+    @Value("${pagarme.split.courier-liable:false}")
+    private Boolean courierLiable; // false - plataforma é liable
+
+    @Value("${pagarme.split.courier-charge-processing-fee:false}")
+    private Boolean courierChargeFee; // false - plataforma paga
+
+    @Value("${pagarme.split.manager-charge-processing-fee:false}")
+    private Boolean managerChargeFee; // false - plataforma paga
 
     /**
-     * Calcula splits consolidados para múltiplas deliveries
+     * Calcula o split de pagamento para Pagar.me
      * 
-     * @param deliveries Lista de deliveries a pagar
-     * @return Lista de splits para enviar ao Iugu
-     * @throws IllegalArgumentException se alguma delivery não tiver motoboy ou gerente
+     * Formato Pagar.me:
+     * {
+     *   "amount": 8700,  // 87% em inteiro (8700 = 87.00%)
+     *   "recipient_id": "re_ckl9k45a60001og6hdqb9mqc7",
+     *   "type": "percentage",
+     *   "options": {
+     *     "liable": false,  // SEMPRE false - plataforma é liable
+     *     "charge_processing_fee": false,  // SEMPRE false - plataforma paga
+     *     "charge_remainder_fee": false
+     *   }
+     * }
+     * 
+     * IMPORTANTE:
+     * - A plataforma (8%) NÃO vai no array de splits
+     * - O Pagar.me calcula automaticamente como "remainder"
+     * - Apenas motoboy (87%) e manager (5%) vão no array
+     * 
+     * @param delivery Entrega com informações de motoboy e manager
+     * @return Lista de splits para o Pagar.me (2 itens: courier + manager)
      */
-    public List<RecipientSplit> calculateSplits(List<Delivery> deliveries) {
-        log.info("═══════════════════════════════════════════════════════════════");
-        log.info("📊 CALCULANDO SPLITS CONSOLIDADOS");
-        log.info("═══════════════════════════════════════════════════════════════");
-        log.info("📦 Deliveries: {}", deliveries.size());
-        log.info("💰 Percentuais: Motoboy {}%, Gerente {}%, Plataforma (resto)", 
-                iuguConfig.getSplit().getMotoboyPercentage(),
-                iuguConfig.getSplit().getManagerPercentage());
-        log.info("───────────────────────────────────────────────────────────────");
+    public List<PagarMeSplitRequest> calculatePagarmeSplit(Delivery delivery) {
+        List<PagarMeSplitRequest> splits = new ArrayList<>();
 
-        // 1. Validar todas as deliveries
-        validateDeliveries(deliveries);
-
-        // 2. Calcular valor total em centavos (usando shippingFee)
-        int totalCents = deliveries.stream()
-                .map(Delivery::getShippingFee)
-                .map(this::toRoundedCents)
-                .mapToInt(Integer::intValue)
-                .sum();
-
-        log.info("💰 Valor total dos fretes: R$ {}", BigDecimal.valueOf(totalCents).divide(BigDecimal.valueOf(100)));
-        log.info("───────────────────────────────────────────────────────────────");
-
-        // 3. Calcular quanto cada pessoa deve receber
-        Map<String, RecipientSplit> splitsByAccount = new HashMap<>();
-
-        log.info("🔢 CÁLCULO POR DELIVERY:");
-        for (Delivery delivery : deliveries) {
-            BigDecimal shippingFee = delivery.getShippingFee();
-            int deliveryCents = toRoundedCents(shippingFee);
-
-            log.info("📦 Delivery #{} - Frete: R$ {} (Pedido: R$ {} - não entra no split)", 
-                    delivery.getId(), shippingFee, delivery.getTotalAmount());
-
-            // 87% para o motoboy
-            User courier = delivery.getCourier();
-            String courierAccountId = courier.getIuguAccountId();
-            int courierAmount = calculatePercentage(deliveryCents, iuguConfig.getSplit().getMotoboyPercentage());
-
-            log.info("   👨‍🚀 Motoboy: {} ({})", courier.getName(), courierAccountId);
-            log.info("      R$ {} × {}% = R$ {} ({}¢)", 
-                    shippingFee,
-                    iuguConfig.getSplit().getMotoboyPercentage(),
-                    BigDecimal.valueOf(courierAmount).divide(BigDecimal.valueOf(100)),
-                    courierAmount);
-            
-            addOrUpdateSplit(splitsByAccount, courierAccountId, RecipientType.COURIER, courierAmount);
-
-            // 5% para o gerente
-            User manager = delivery.getOrganizer();
-            String managerAccountId = manager.getIuguAccountId();
-            int managerAmount = calculatePercentage(deliveryCents, iuguConfig.getSplit().getManagerPercentage());
-            
-            log.info("   👔 Gerente: {} ({})", manager.getName(), managerAccountId);
-            log.info("      R$ {} × {}% = R$ {} ({}¢)", 
-                    shippingFee,
-                    iuguConfig.getSplit().getManagerPercentage(),
-                    BigDecimal.valueOf(managerAmount).divide(BigDecimal.valueOf(100)),
-                    managerAmount);
-            
-            addOrUpdateSplit(splitsByAccount, managerAccountId, RecipientType.MANAGER, managerAmount);
-            
-            log.info("   ───────────────────────────────────────────────────────────");
+        // Validação básica
+        if (delivery == null) {
+            throw new IllegalArgumentException("Delivery cannot be null");
         }
 
-        // 4. Calcular quanto vai para a plataforma (resto)
-        int distributedCents = splitsByAccount.values().stream()
-                .mapToInt(RecipientSplit::getAmountCents)
-                .sum();
-
-        int platformCents = totalCents - distributedCents;
-
-        if (platformCents < 0) {
-            log.error("❌ Erro no cálculo: plataforma ficaria com valor negativo!");
-            throw new IllegalStateException("Erro no cálculo de splits");
+        // Validação: soma dos splits não pode ultrapassar 100%
+        int totalPercentage = courierPercentage + managerPercentage;
+        if (totalPercentage > 10000) {
+            throw new IllegalStateException(
+                String.format("Split percentages exceed 100%%. Courier: %d%%, Manager: %d%%, Total: %d%%",
+                    courierPercentage / 100, managerPercentage / 100, totalPercentage / 100)
+            );
         }
 
-        // 5. Adicionar split da plataforma (se houver)
-        if (platformCents > 0) {
-            splitsByAccount.put("PLATFORM", new RecipientSplit(
-                    null, // Conta master (null = plataforma)
-                    RecipientType.PLATFORM,
-                    platformCents
-            ));
+        // 1. Split do MOTOBOY (87%)
+        if (delivery.getCourier() != null) {
+            String courierRecipientId = delivery.getCourier().getPagarmeRecipientId();
+            
+            if (courierRecipientId == null || courierRecipientId.isEmpty()) {
+                throw new IllegalStateException(
+                    "Courier does not have a recipient ID. Bank account must be registered first."
+                );
+            }
+
+            PagarMeSplitRequest courierSplit = PagarMeSplitRequest.builder()
+                .amount(courierPercentage) // 8700 = 87%
+                .recipientId(courierRecipientId)
+                .type("percentage")
+                .options(PagarMeSplitRequest.SplitOptions.builder()
+                    .liable(courierLiable) // false - plataforma é liable
+                    .chargeProcessingFee(courierChargeFee) // false - plataforma paga
+                    .chargeRemainderFee(false)
+                    .build())
+                .build();
+
+            splits.add(courierSplit);
+        } else {
+            throw new IllegalStateException("Courier is missing");
         }
 
-        // 6. Log do resultado
-        List<RecipientSplit> result = new ArrayList<>(splitsByAccount.values());
-        logSplitsSummary(result, totalCents);
+        // 2. Split do MANAGER (5%)
+        if (delivery.getOrganizer() != null) {
+            String managerRecipientId = delivery.getOrganizer().getPagarmeRecipientId();
+            
+            if (managerRecipientId == null || managerRecipientId.isEmpty()) {
+                throw new IllegalStateException(
+                    "Manager does not have a recipient ID. Bank account must be registered first."
+                );
+            }
 
-        return result;
+            PagarMeSplitRequest managerSplit = PagarMeSplitRequest.builder()
+                .amount(managerPercentage) // 500 = 5%
+                .recipientId(managerRecipientId)
+                .type("percentage")
+                .options(PagarMeSplitRequest.SplitOptions.builder()
+                    .liable(false) // false - plataforma é liable
+                    .chargeProcessingFee(managerChargeFee) // false - plataforma paga
+                    .chargeRemainderFee(false)
+                    .build())
+                .build();
+
+            splits.add(managerSplit);
+        } else {
+            throw new IllegalStateException("Manager (organizer) is missing");
+        }
+
+        // 3. PLATAFORMA (8%) - NÃO vai no array
+        // O Pagar.me calcula automaticamente como remainder
+        // 100% - 87% - 5% = 8% (automático para a conta principal)
+
+        return splits;
     }
 
     /**
-     * Valida se todas as deliveries têm motoboy e gerente com contas Iugu
+     * Valida se uma entrega está pronta para split de pagamento
+     * 
+     * @param delivery Entrega a validar
+     * @return true se a entrega tem todos os recipient IDs necessários
      */
-    private void validateDeliveries(List<Delivery> deliveries) {
-        for (Delivery delivery : deliveries) {
-            // Validar shippingFee
-            if (delivery.getShippingFee() == null || delivery.getShippingFee().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new IllegalArgumentException(
-                        String.format("Delivery #%d não tem valor de frete (shippingFee) configurado", delivery.getId()));
-            }
-            
-            // Validar courier
-            if (delivery.getCourier() == null) {
-                throw new IllegalArgumentException(
-                        "Delivery #" + delivery.getId() + " não tem motoboy atribuído");
-            }
-            if (delivery.getCourier().getIuguAccountId() == null) {
-                throw new IllegalArgumentException(
-                        "Motoboy " + delivery.getCourier().getName() + " não tem conta Iugu configurada");
-            }
-            
-            // Validar organizer
-            if (delivery.getOrganizer() == null) {
-                throw new IllegalArgumentException(
-                        "Delivery #" + delivery.getId() + " não tem gerente atribuído");
-            }
-            if (delivery.getOrganizer().getIuguAccountId() == null) {
-                throw new IllegalArgumentException(
-                        "Gerente " + delivery.getOrganizer().getName() + " não tem conta Iugu configurada");
-            }
+    public boolean isReadyForSplit(Delivery delivery) {
+        if (delivery == null) {
+            return false;
         }
-    }
 
-    /**
-     * Adiciona ou incrementa o valor de um split
-     */
-    private void addOrUpdateSplit(
-            Map<String, RecipientSplit> splits,
-            String accountId,
-            RecipientType type,
-            int amountCents
-    ) {
-        splits.merge(
-                accountId,
-                new RecipientSplit(accountId, type, amountCents),
-                (existing, newSplit) -> new RecipientSplit(
-                        accountId,
-                        type,
-                        existing.getAmountCents() + amountCents
-                )
-        );
-    }
-
-    /**
-     * Calcula percentual de um valor em centavos
-     */
-    private int calculatePercentage(int totalCents, BigDecimal percentage) {
-        return BigDecimal.valueOf(totalCents)
-                .multiply(percentage.divide(BigDecimal.valueOf(100))) // Converte % para decimal
-                .setScale(0, RoundingMode.DOWN) // Arredonda para baixo
-                .intValue();
-    }
-
-    /**
-     * Converte BigDecimal para centavos (inteiro)
-     */
-    private int toRoundedCents(BigDecimal amount) {
-        return amount.multiply(BigDecimal.valueOf(100))
-                .setScale(0, RoundingMode.HALF_UP)
-                .intValue();
-    }
-
-    /**
-     * Log resumido dos splits calculados
-     */
-    private void logSplitsSummary(List<RecipientSplit> splits, int totalCents) {
-        log.info("═══════════════════════════════════════════════════════════════");
-        log.info("✅ SPLITS CONSOLIDADOS (após agrupamento):");
-        log.info("═══════════════════════════════════════════════════════════════");
-        
-        // Agrupar e exibir por pessoa
-        Map<RecipientType, List<RecipientSplit>> byType = splits.stream()
-                .collect(Collectors.groupingBy(RecipientSplit::getType));
-        
-        // Motoboys
-        List<RecipientSplit> couriers = byType.getOrDefault(RecipientType.COURIER, Collections.emptyList());
-        if (!couriers.isEmpty()) {
-            log.info("👨‍🚀 MOTOBOYS ({} pessoa(s)):", couriers.size());
-            for (RecipientSplit split : couriers) {
-                log.info("   {} ({}): R$ {}", 
-                        split.getIuguAccountId(),
-                        split.getAmountCents() + "¢",
-                        formatCents(split.getAmountCents()));
-            }
-            log.info("   TOTAL MOTOBOYS: R$ {}", 
-                    formatCents(couriers.stream().mapToInt(RecipientSplit::getAmountCents).sum()));
-            log.info("───────────────────────────────────────────────────────────────");
+        // Valida courier
+        if (delivery.getCourier() == null || 
+            delivery.getCourier().getPagarmeRecipientId() == null) {
+            return false;
         }
-        
-        // Gerentes
-        List<RecipientSplit> managers = byType.getOrDefault(RecipientType.MANAGER, Collections.emptyList());
-        if (!managers.isEmpty()) {
-            log.info("👔 GERENTES ({} pessoa(s)):", managers.size());
-            for (RecipientSplit split : managers) {
-                log.info("   {} ({}): R$ {}", 
-                        split.getIuguAccountId(),
-                        split.getAmountCents() + "¢",
-                        formatCents(split.getAmountCents()));
-            }
-            log.info("   TOTAL GERENTES: R$ {}", 
-                    formatCents(managers.stream().mapToInt(RecipientSplit::getAmountCents).sum()));
-            log.info("───────────────────────────────────────────────────────────────");
+
+        // Valida manager (organizer)
+        if (delivery.getOrganizer() == null || 
+            delivery.getOrganizer().getPagarmeRecipientId() == null) {
+            return false;
         }
-        
-        // Plataforma
-        List<RecipientSplit> platform = byType.getOrDefault(RecipientType.PLATFORM, Collections.emptyList());
-        if (!platform.isEmpty()) {
-            log.info("🏢 PLATAFORMA: R$ {}", formatCents(platform.get(0).getAmountCents()));
-            log.info("───────────────────────────────────────────────────────────────");
-        }
-        
-        log.info("💰 TOTAL GERAL: R$ {}", formatCents(totalCents));
-        log.info("═══════════════════════════════════════════════════════════════");
+
+        return true;
     }
 
     /**
-     * Formata centavos para reais
+     * Calcula o valor que cada parte receberá (para exibição/log)
+     * 
+     * @param totalAmount Valor total em centavos (ex: 10000 = R$ 100,00)
+     * @param delivery Entrega com informações de split
+     * @return Mapa com valores calculados
      */
-    private String formatCents(int cents) {
-        return BigDecimal.valueOf(cents)
-                .divide(BigDecimal.valueOf(100))
-                .setScale(2, RoundingMode.HALF_UP)
-                .toString();
+    public SplitBreakdown calculateSplitBreakdown(Long totalAmount, Delivery delivery) {
+        if (totalAmount == null || totalAmount <= 0) {
+            throw new IllegalArgumentException("Total amount must be positive");
+        }
+
+        // Calcula valores em centavos
+        long courierAmount = (totalAmount * courierPercentage) / 10000;
+        long managerAmount = (totalAmount * managerPercentage) / 10000;
+        long platformAmount = totalAmount - courierAmount - managerAmount; // Resto = 8%
+
+        return SplitBreakdown.builder()
+            .totalAmount(totalAmount)
+            .courierAmount(courierAmount)
+            .managerAmount(managerAmount)
+            .platformAmount(platformAmount)
+            .courierPercentage(new BigDecimal(courierPercentage).divide(new BigDecimal(100)))
+            .managerPercentage(new BigDecimal(managerPercentage).divide(new BigDecimal(100)))
+            .platformPercentage(new BigDecimal(10000 - courierPercentage - managerPercentage).divide(new BigDecimal(100)))
+            .build();
+    }
+
+    /**
+     * Classe para detalhamento do split (para logs/debug)
+     */
+    @lombok.Builder
+    @lombok.Data
+    public static class SplitBreakdown {
+        private Long totalAmount;
+        private Long courierAmount;
+        private Long managerAmount;
+        private Long platformAmount;
+        private BigDecimal courierPercentage;
+        private BigDecimal managerPercentage;
+        private BigDecimal platformPercentage;
     }
 }

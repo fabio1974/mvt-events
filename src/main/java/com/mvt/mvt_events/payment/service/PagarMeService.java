@@ -1,0 +1,478 @@
+package com.mvt.mvt_events.payment.service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mvt.mvt_events.jpa.Address;
+import com.mvt.mvt_events.jpa.BankAccount;
+import com.mvt.mvt_events.jpa.User;
+import com.mvt.mvt_events.payment.config.PagarMeConfig;
+import com.mvt.mvt_events.payment.dto.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+
+/**
+ * Serviço de integração com gateway de pagamento Pagar.me
+ * 
+ * Funcionalidades:
+ * - Criar recipients (subcontas) para couriers e managers
+ * - Criar orders com PIX e split automático (87% courier, 5% manager, 8% plataforma)
+ * - Validar webhooks com HMAC SHA256
+ * 
+ * @see <a href="https://docs.pagar.me/reference/API-overview">Documentação Pagar.me</a>
+ */
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class PagarMeService {
+
+    private final PagarMeConfig config;
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
+
+    /**
+     * Lista todos os recipients cadastrados no Pagar.me
+     * 
+     * @return Lista de recipients
+     */
+    public List<RecipientResponse> listRecipients() {
+        log.info("🔍 Listando recipients no Pagar.me");
+
+        try {
+            HttpHeaders headers = createHeaders();
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            String url = config.getApi().getUrl() + "/recipients";
+            ResponseEntity<RecipientListResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    RecipientListResponse.class
+            );
+
+            RecipientListResponse recipientList = response.getBody();
+            if (recipientList != null && recipientList.getData() != null) {
+                log.info("   └─ ✅ {} recipients encontrados", recipientList.getData().size());
+                return recipientList.getData();
+            }
+
+            return List.of();
+
+        } catch (Exception e) {
+            log.error("❌ Erro ao listar recipients no Pagar.me", e);
+            throw new RuntimeException("Falha ao listar recipients: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Verifica se já existe um recipient com o mesmo CPF E dados bancários
+     * 
+     * IMPORTANTE: Verifica duplicidade por CPF + banco + agência + conta.
+     * Isso permite que o mesmo CPF tenha múltiplos recipients se usar contas diferentes.
+     * 
+     * @param document CPF/CNPJ sem pontuação
+     * @param bankCode Código do banco (ex: "001")
+     * @param agency Agência sem dígito verificador
+     * @param accountNumber Conta com dígito (ex: "12345-6")
+     * @return RecipientResponse se encontrado, null caso contrário
+     */
+    public RecipientResponse findDuplicateRecipient(String document, String bankCode, String agency, String accountNumber) {
+        log.info("🔍 Verificando duplicidade de recipient por CPF: {} e dados bancários: Banco={}, Ag={}, Conta={}", 
+            document, bankCode, agency, accountNumber);
+
+        List<RecipientResponse> recipients = listRecipients();
+
+        for (RecipientResponse recipient : recipients) {
+            // Comparar CPF E dados bancários
+            if (document.equals(recipient.getDocument()) && 
+                recipient.getDefaultBankAccount() != null) {
+                
+                String recBankCode = recipient.getDefaultBankAccount().getBank();
+                String recAgency = recipient.getDefaultBankAccount().getBranchNumber();
+                String recAccount = recipient.getDefaultBankAccount().getAccountNumber();
+                
+                // Remove hífen e espaços da conta para comparar apenas números
+                String normalizedAccount = accountNumber != null ? accountNumber.replaceAll("[-\\s]", "") : "";
+                String normalizedRecAccount = recAccount != null ? recAccount.replaceAll("[-\\s]", "") : "";
+                
+                if (bankCode.equals(recBankCode) && 
+                    agency.equals(recAgency) && 
+                    normalizedAccount.equals(normalizedRecAccount)) {
+                    
+                    log.warn("   └─ ⚠️ DUPLICADO! Recipient existente: {} (CPF: {}, Banco: {}, Ag: {}, Conta: {})", 
+                        recipient.getId(), recipient.getDocument(), recBankCode, recAgency, recAccount);
+                    return recipient;
+                }
+            }
+        }
+
+        log.info("   └─ ✅ Nenhum recipient duplicado encontrado");
+        return null;
+    }
+
+    /**
+     * Cria um recipient (subconta) no Pagar.me
+     * 
+     * Envia dados mínimos obrigatórios + dados opcionais do User (se disponíveis)
+     * para permitir que o recipient faça saques.
+     * 
+     * @param user Usuário com dados pessoais (nome, CPF, email, telefone, endereço, data nascimento)
+     * @param bankAccount Dados bancários
+     * @return ID do recipient criado
+     */
+    public String createRecipient(User user, BankAccount bankAccount) {
+        String name = user.getName();
+        String email = user.getUsername();
+        String document = user.getCpfClean();
+        
+        log.info("🏦 Criando recipient no Pagar.me: {} ({})", name, document);
+
+        // Builder do request com dados obrigatórios
+        RecipientRequest.RecipientRequestBuilder requestBuilder = RecipientRequest.builder()
+                .name(name)
+                .email(email)
+                .document(document)
+                .type(document.length() == 11 ? "individual" : "company")
+                .description("Recipient para " + name)
+                .defaultBankAccount(RecipientRequest.DefaultBankAccount.builder()
+                        .holderName(name)
+                        .holderType(document.length() == 11 ? "individual" : "company")
+                        .holderDocument(document)
+                        .bank(bankAccount.getBankCode())
+                        .branchNumber(bankAccount.getAgency())
+                        .branchCheckDigit(bankAccount.getAgencyDigit() != null ? bankAccount.getAgencyDigit() : "")
+                        .accountNumber(bankAccount.getAccountNumber())
+                        .accountCheckDigit(bankAccount.getAccountDigit())
+                        .type(bankAccount.getAccountType() == BankAccount.AccountType.CHECKING ? "checking" : "savings")
+                        .build());
+
+        // Adicionar registerInformation com dados opcionais do User (se disponíveis)
+        // Isso permite que o recipient faça saques no Pagar.me
+        // IMPORTANTE: Se incluir registerInformation, TODOS os campos obrigatórios devem estar presentes
+        // Para simplificar, verificamos se temos dados COMPLETOS
+        RecipientRequest.RegisterInformation.RegisterInformationBuilder regInfoBuilder = 
+            RecipientRequest.RegisterInformation.builder()
+                .email(email)
+                .document(document)
+                .type(document.length() == 11 ? "individual" : "company")
+                .name(name);
+        
+        boolean hasCompleteRegistrationData = false;
+        
+        // Para incluir registerInformation, precisamos de:
+        // - birthdate (opcional mas vamos incluir se tiver)
+        // - mothername, monthly_income, professional_occupation (obrigatórios para individual)
+        // - address completo (obrigatório)
+        // Como não temos todos esses dados, vamos enviar registrationInformation SÓ SE TIVER DADOS SUFICIENTES
+        
+        // Data de nascimento (formato DD/MM/YYYY)
+        if (user.getDateOfBirth() != null) {
+            String birthdate = String.format("%02d/%02d/%04d", 
+                user.getDateOfBirth().getDayOfMonth(),
+                user.getDateOfBirth().getMonthValue(),
+                user.getDateOfBirth().getYear());
+            regInfoBuilder.birthdate(birthdate);
+            log.debug("   ├─ Birthdate: {}", birthdate);
+        }
+        
+        // Telefone (DDD + número)
+        if (user.getPhoneDdd() != null && user.getPhoneNumber() != null) {
+            regInfoBuilder.phoneNumbers(List.of(
+                RecipientRequest.PhoneNumber.builder()
+                    .ddd(user.getPhoneDdd())
+                    .number(user.getPhoneNumber())
+                    .type("mobile")
+                    .build()
+            ));
+            log.debug("   ├─ Phone: ({}) {}", user.getPhoneDdd(), user.getPhoneNumber());
+        }
+        
+        // Verificar se temos TODOS os dados para incluir registerInformation
+        boolean hasMotherName = bankAccount.getMotherName() != null;
+        boolean hasMonthlyIncome = bankAccount.getMonthlyIncome() != null;
+        boolean hasProfessionalOccupation = bankAccount.getProfessionalOccupation() != null;
+        
+        // Endereço (TODOS os campos obrigatórios)
+        Address address = user.getAddress();
+        boolean hasCompleteAddress = address != null && address.getStreet() != null && 
+                                     address.getNumber() != null && address.getCity() != null && 
+                                     address.getCity().getStateCode() != null && address.getZipCode() != null;
+        
+        // SÓ incluir registerInformation se temos TODOS os dados obrigatórios
+        if (hasMotherName && hasMonthlyIncome && hasProfessionalOccupation && hasCompleteAddress) {
+            regInfoBuilder.motherName(bankAccount.getMotherName());
+            regInfoBuilder.monthlyIncome(bankAccount.getMonthlyIncome());
+            regInfoBuilder.professionalOccupation(bankAccount.getProfessionalOccupation());
+            
+            // Construir address com valores padrão para campos obrigatórios
+            RecipientRequest.Address.AddressBuilder addrBuilder = RecipientRequest.Address.builder()
+                .street(address.getStreet())
+                .streetNumber(address.getNumber())
+                .neighborhood(address.getNeighborhood())
+                .complementary(address.getComplement() != null ? address.getComplement() : "")
+                .referencePoint(address.getReferencePoint() != null ? address.getReferencePoint() : "")
+                .zipCode(address.getZipCode())
+                .city(address.getCity().getName())
+                .state(address.getCity().getStateCode());
+            
+            regInfoBuilder.address(addrBuilder.build());
+            requestBuilder.registerInformation(regInfoBuilder.build());
+            hasCompleteRegistrationData = true;
+            log.info("   ├─ ✅ RegisterInformation incluído com dados COMPLETOS");
+        } else {
+            log.info("   ├─ ℹ️ RegisterInformation NÃO incluído - dados insuficientes (motherName={}, monthlyIncome={}, professionalOccupation={}, completeAddress={})",
+                hasMotherName, hasMonthlyIncome, hasProfessionalOccupation, hasCompleteAddress);
+        }
+
+        RecipientRequest request = requestBuilder.build();
+
+        try {
+            // Log the JSON request body for debugging
+            try {
+                String jsonBody = objectMapper.writeValueAsString(request);
+                log.info("📤 JSON Request Body:\n{}", jsonBody);
+            } catch (Exception e) {
+                log.warn("⚠️ Failed to serialize request to JSON: {}", e.getMessage());
+            }
+
+            HttpHeaders headers = createHeaders();
+            HttpEntity<RecipientRequest> entity = new HttpEntity<>(request, headers);
+
+            String url = config.getApi().getUrl() + "/recipients";
+            ResponseEntity<RecipientResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    RecipientResponse.class
+            );
+
+            RecipientResponse recipient = response.getBody();
+            if (recipient != null) {
+                log.info("✅ Recipient criado: {}", recipient.getId());
+                return recipient.getId();
+            }
+
+            throw new RuntimeException("Resposta vazia do Pagar.me");
+
+        } catch (Exception e) {
+            log.error("❌ Erro ao criar recipient no Pagar.me", e);
+            throw new RuntimeException("Falha ao criar recipient: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Cria uma order com PIX e split automático
+     * 
+     * @param amount Valor total em BRL
+     * @param description Descrição do pagamento
+     * @param customerName Nome do cliente
+     * @param customerEmail Email do cliente
+     * @param customerDocument CPF do cliente
+     * @param courierRecipientId ID do recipient do courier
+     * @param managerRecipientId ID do recipient do manager
+     * @return Response com QR Code PIX e detalhes
+     */
+    public OrderResponse createOrderWithSplit(
+            BigDecimal amount,
+            String description,
+            String customerName,
+            String customerEmail,
+            String customerDocument,
+            String courierRecipientId,
+            String managerRecipientId
+    ) {
+        log.info("💳 Criando order com PIX e split: R$ {}", amount);
+
+        // Converter para centavos
+        int amountInCents = amount.multiply(new BigDecimal(100)).intValue();
+
+        // Calcular splits (87% courier, 5% manager, 8% plataforma automático)
+        int courierAmount = (amountInCents * config.getSplit().getCourierPercentage()) / 10000;
+        int managerAmount = (amountInCents * config.getSplit().getManagerPercentage()) / 10000;
+
+        log.info("   ├─ Total: {} centavos", amountInCents);
+        log.info("   ├─ Courier (87%): {} centavos", courierAmount);
+        log.info("   ├─ Manager (5%): {} centavos", managerAmount);
+        log.info("   └─ Plataforma (8%): {} centavos (automático)", amountInCents - courierAmount - managerAmount);
+
+        // Configurar splits
+        List<PagarMeSplitRequest> splits = new ArrayList<>();
+
+        // Split do courier (87%)
+        splits.add(PagarMeSplitRequest.builder()
+                .amount(courierAmount)
+                .type("flat")
+                .recipientId(courierRecipientId)
+                .options(PagarMeSplitRequest.SplitOptions.builder()
+                        .liable(config.getSplit().getCourierLiable())
+                        .chargeProcessingFee(config.getSplit().getCourierChargeProcessingFee())
+                        .chargeRemainderFee(false)
+                        .build())
+                .build());
+
+        // Split do manager (5%)
+        splits.add(PagarMeSplitRequest.builder()
+                .amount(managerAmount)
+                .type("flat")
+                .recipientId(managerRecipientId)
+                .options(PagarMeSplitRequest.SplitOptions.builder()
+                        .liable(false)
+                        .chargeProcessingFee(config.getSplit().getManagerChargeProcessingFee())
+                        .chargeRemainderFee(false)
+                        .build())
+                .build());
+
+        // Criar request
+        OrderRequest request = OrderRequest.builder()
+                .items(List.of(OrderRequest.OrderItem.builder()
+                        .amount(amountInCents)
+                        .description(description)
+                        .quantity(1)
+                        .build()))
+                .customer(OrderRequest.Customer.builder()
+                        .name(customerName)
+                        .email(customerEmail)
+                        .document(customerDocument)
+                        .type("individual")
+                        .documentType("CPF")
+                        .build())
+                .payments(List.of(OrderRequest.Payment.builder()
+                        .paymentMethod("pix")
+                        .pix(OrderRequest.Pix.builder()
+                                .expiresIn(86400) // 24 horas
+                                .build())
+                        .split(splits)
+                        .build()))
+                .build();
+
+        try {
+            HttpHeaders headers = createHeaders();
+            HttpEntity<OrderRequest> entity = new HttpEntity<>(request, headers);
+
+            String url = config.getApi().getUrl() + "/orders";
+            ResponseEntity<OrderResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    OrderResponse.class
+            );
+
+            OrderResponse order = response.getBody();
+            if (order != null) {
+                log.info("✅ Order criada: {} (status: {})", order.getId(), order.getStatus());
+                return order;
+            }
+
+            throw new RuntimeException("Resposta vazia do Pagar.me");
+
+        } catch (Exception e) {
+            log.error("❌ Erro ao criar order no Pagar.me", e);
+            throw new RuntimeException("Falha ao criar order: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Valida assinatura de webhook usando HMAC SHA256
+     * 
+     * @param payload Payload recebido do webhook
+     * @param signature Signature do header X-Hub-Signature
+     * @return true se válido
+     */
+    public boolean validateWebhookSignature(String payload, String signature) {
+        try {
+            String secret = config.getWebhook().getSecret();
+            
+            Mac sha256Hmac = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+            sha256Hmac.init(secretKey);
+
+            byte[] hash = sha256Hmac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
+            String calculatedSignature = "sha256=" + bytesToHex(hash);
+
+            boolean isValid = calculatedSignature.equals(signature);
+            
+            if (isValid) {
+                log.info("✅ Webhook signature válida");
+            } else {
+                log.warn("⚠️ Webhook signature inválida");
+            }
+
+            return isValid;
+
+        } catch (Exception e) {
+            log.error("❌ Erro ao validar webhook signature", e);
+            return false;
+        }
+    }
+
+    /**
+     * Processa evento de webhook
+     * 
+     * @param event Evento recebido
+     */
+    public void processWebhookEvent(PagarMeWebhookEvent event) {
+        log.info("📨 Processando webhook: {} (type: {})", event.getId(), event.getType());
+
+        switch (event.getType()) {
+            case "order.paid":
+                log.info("✅ Pagamento confirmado: {}", event.getData().getId());
+                // TODO: Atualizar status do Payment para COMPLETED
+                break;
+
+            case "order.payment_failed":
+                log.error("❌ Pagamento falhou: {}", event.getData().getId());
+                // TODO: Atualizar status do Payment para FAILED
+                break;
+
+            case "order.canceled":
+                log.warn("⚠️ Pagamento cancelado: {}", event.getData().getId());
+                // TODO: Atualizar status do Payment para CANCELLED
+                break;
+
+            default:
+                log.info("ℹ️ Evento não tratado: {}", event.getType());
+        }
+    }
+
+    /**
+     * Cria headers para autenticação com Pagar.me
+     * 
+     * Usa Basic Auth com a Secret Key:
+     * User: sk_test_xxx ou sk_xxx (a chave)
+     * Password: (vazio)
+     * 
+     * Formato: Authorization: Basic base64(secretKey:)
+     */
+    private HttpHeaders createHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        
+        // Basic Auth: secretKey como user, password vazio
+        // Exemplo: sk_test_xxx:
+        String auth = config.getApi().getKey() + ":";
+        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
+        headers.set("Authorization", "Basic " + encodedAuth);
+        
+        return headers;
+    }
+
+    /**
+     * Converte bytes para hex string
+     */
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder result = new StringBuilder();
+        for (byte b : bytes) {
+            result.append(String.format("%02x", b));
+        }
+        return result.toString();
+    }
+}

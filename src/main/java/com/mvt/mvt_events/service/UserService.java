@@ -2,8 +2,10 @@ package com.mvt.mvt_events.service;
 
 import com.mvt.mvt_events.controller.UserController.UserCreateRequest;
 import com.mvt.mvt_events.controller.UserController.UserUpdateRequest;
+import com.mvt.mvt_events.jpa.Address;
 import com.mvt.mvt_events.jpa.City;
 import com.mvt.mvt_events.jpa.User;
+import com.mvt.mvt_events.repository.AddressRepository;
 import com.mvt.mvt_events.repository.CityRepository;
 import com.mvt.mvt_events.repository.UserRepository;
 import com.mvt.mvt_events.specification.UserSpecification;
@@ -35,6 +37,9 @@ public class UserService {
     private CityRepository cityRepository;
 
     @Autowired
+    private AddressRepository addressRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -60,10 +65,10 @@ public class UserService {
         Specification<User> spec = UserSpecification.withFilters(role, organizationId, enabled, search);
         Page<User> users = userRepository.findAll(spec, pageable);
 
-        // Force load das cities para evitar lazy loading
+        // Force load das cities via address para evitar lazy loading
         users.getContent().forEach(user -> {
-            if (user.getCity() != null) {
-                user.getCity().getName(); // Trigger lazy loading
+            if (user.getAddress() != null && user.getAddress().getCity() != null) {
+                user.getAddress().getCity().getName(); // Trigger lazy loading
             }
         });
 
@@ -74,9 +79,9 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
 
-        // Force load da city para evitar lazy loading
-        if (user.getCity() != null) {
-            user.getCity().getName(); // Trigger lazy loading
+        // Force load da city via address para evitar lazy loading
+        if (user.getAddress() != null && user.getAddress().getCity() != null) {
+            user.getAddress().getCity().getName(); // Trigger lazy loading
         }
 
         return user;
@@ -134,22 +139,19 @@ public class UserService {
         if (request.getPhone() != null) {
             user.setPhone(request.getPhone().trim());
         }
-        if (request.getAddress() != null) {
-            user.setAddress(request.getAddress().trim());
-        }
+        // Note: address is now managed via Address entity, not directly on User
         if (request.getState() != null) {
             user.setState(request.getState().trim());
         }
-        if (request.getCountry() != null) {
-            user.setCountry(request.getCountry().trim());
-        }
 
         // City - aceita tanto cityId quanto city.id
+        // Agora a cidade está em Address, não diretamente no User
         Long cityIdResolved = request.getCityIdResolved();
         if (cityIdResolved != null) {
             City city = cityRepository.findById(cityIdResolved)
                     .orElseThrow(() -> new RuntimeException("Cidade não encontrada"));
-            user.setCity(city);
+            // A cidade será definida no Address quando ele for criado
+            // Por enquanto, não fazemos nada aqui
         }
 
         // Data de nascimento
@@ -187,8 +189,8 @@ public class UserService {
         User savedUser = userRepository.save(user);
 
         // Force load para evitar lazy loading
-        if (savedUser.getCity() != null) {
-            savedUser.getCity().getName();
+        if (savedUser.getAddress() != null && savedUser.getAddress().getCity() != null) {
+            savedUser.getAddress().getCity().getName();
         }
 
         return savedUser;
@@ -216,22 +218,16 @@ public class UserService {
             user.setPhone(request.getPhone().trim());
         }
 
-        if (request.getAddress() != null) {
-            user.setAddress(request.getAddress().trim());
-        }
+        // Note: address is now managed via Address entity, not directly on User
 
+        // City is now part of Address, not User directly
         if (request.getCityId() != null) {
-            City city = cityRepository.findById(request.getCityId())
-                    .orElseThrow(() -> new RuntimeException("Cidade não encontrada"));
-            user.setCity(city);
+            // A cidade será atualizada no Address se necessário
+            // Por enquanto, não fazemos nada aqui
         }
 
         if (request.getState() != null) {
             user.setState(request.getState().trim());
-        }
-
-        if (request.getCountry() != null) {
-            user.setCountry(request.getCountry().trim());
         }
 
         // Atualizar data de nascimento
@@ -282,18 +278,30 @@ public class UserService {
         }
 
         // Atualizar coordenadas do endereço (latitude/longitude)
-        if (request.getLatitude() != null) {
-            user.setLatitude(request.getLatitude());
-        }
-        if (request.getLongitude() != null) {
-            user.setLongitude(request.getLongitude());
+        // Agora armazenadas na entidade Address
+        if (request.getLatitude() != null || request.getLongitude() != null) {
+            Address address = addressRepository.findByUserId(user.getId())
+                    .orElseGet(() -> {
+                        Address newAddr = new Address();
+                        newAddr.setUser(user);
+                        return newAddr;
+                    });
+            
+            if (request.getLatitude() != null) {
+                address.setLatitude(request.getLatitude());
+            }
+            if (request.getLongitude() != null) {
+                address.setLongitude(request.getLongitude());
+            }
+            
+            addressRepository.save(address);
         }
 
         User savedUser = userRepository.save(user);
 
-        // Force load da city para evitar lazy loading
-        if (savedUser.getCity() != null) {
-            savedUser.getCity().getName(); // Trigger lazy loading
+        // Force load da city via address para evitar lazy loading
+        if (savedUser.getAddress() != null && savedUser.getAddress().getCity() != null) {
+            savedUser.getAddress().getCity().getName(); // Trigger lazy loading
         }
 
         return savedUser;
@@ -354,9 +362,9 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
 
-        // Force load da city para evitar lazy loading
-        if (savedUser.getCity() != null) {
-            savedUser.getCity().getName(); // Trigger lazy loading
+        // Force load da city via address para evitar lazy loading
+        if (savedUser.getAddress() != null && savedUser.getAddress().getCity() != null) {
+            savedUser.getAddress().getCity().getName(); // Trigger lazy loading
         }
 
         return savedUser;

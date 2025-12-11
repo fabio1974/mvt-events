@@ -1,5 +1,7 @@
 -- V3: Atualizar users e organizations com estabelecimentos e endereços reais de Sobral-CE
--- City ID de Sobral: 1058
+-- IMPORTANTE: city_id pode ser NULL temporariamente
+-- O CityDataLoader vai carregar Sobral (id=1058, ibge_code=2313302) do IBGE após as migrations
+-- Então fazemos os UPDATEs sem validar FK (permitindo NULL temporariamente)
 
 -- ==============================================================================
 -- 1. ATUALIZAR CLIENTES COM ESTABELECIMENTOS REAIS DE SOBRAL
@@ -9,7 +11,7 @@
 UPDATE users SET
     name = 'Farmácia Pague Menos Centro',
     address = 'Rua Coronel Mont''Alverne, 654',
-    city_id = 1058,
+    city_id = NULL,  -- Será atualizado depois que CityDataLoader carregar Sobral
     state = 'Ceará',
     latitude = -3.6886,
     longitude = -40.3493,
@@ -21,7 +23,7 @@ WHERE username = 'client1@mvt.com';
 UPDATE users SET
     name = 'Posto Ipiranga John Sanford',
     address = 'Avenida John Sanford, 1523',
-    city_id = 1058,
+    city_id = NULL,
     state = 'Ceará',
     latitude = -3.6912,
     longitude = -40.3515,
@@ -33,7 +35,7 @@ WHERE username = 'client2@mvt.com';
 UPDATE users SET
     name = 'Padaria Dom Pão',
     address = 'Rua Conselheiro José Júlio, 892',
-    city_id = 1058,
+    city_id = NULL,
     state = 'Ceará',
     latitude = -3.6895,
     longitude = -40.3478,
@@ -45,7 +47,7 @@ WHERE username = 'client3@mvt.com';
 UPDATE users SET
     name = 'Supermercado São Vicente',
     address = 'Rua Desembargador Lustosa, 445',
-    city_id = 1058,
+    city_id = NULL,
     state = 'Ceará',
     latitude = -3.6923,
     longitude = -40.3502,
@@ -61,7 +63,7 @@ WHERE username = 'client4@mvt.com';
 UPDATE users SET
     name = 'João Silva Santos',
     address = 'Rua Padre Ibiapina, 234',
-    city_id = 1058,
+    city_id = NULL,
     state = 'Ceará',
     latitude = -3.6858,
     longitude = -40.3445,
@@ -73,7 +75,7 @@ WHERE username = 'courier1@mvt.com';
 UPDATE users SET
     name = 'Carlos Eduardo Lima',
     address = 'Rua Deputado José Parente, 567',
-    city_id = 1058,
+    city_id = NULL,
     state = 'Ceará',
     latitude = -3.6945,
     longitude = -40.3528,
@@ -89,7 +91,7 @@ WHERE username = 'courier2@mvt.com';
 UPDATE users SET
     name = 'Rodrigo Alves Sousa',
     address = 'Rua do Patrocínio, 123',
-    city_id = 1058,
+    city_id = NULL,
     state = 'Ceará',
     latitude = -3.6901,
     longitude = -40.3485,
@@ -101,7 +103,7 @@ WHERE username = 'organizer1@mvt.com';
 UPDATE users SET
     name = 'Samuel Ferreira Costa',
     address = 'Rua Cel. Mont''Alverne, 890',
-    city_id = 1058,
+    city_id = NULL,
     state = 'Ceará',
     latitude = -3.6915,
     longitude = -40.3497,
@@ -117,7 +119,7 @@ WHERE username = 'organizer2@mvt.com';
 UPDATE users SET
     name = 'Fábio Barros',
     address = 'Avenida John Sanford, 800 - Sala 201',
-    city_id = 1058,
+    city_id = NULL,
     state = 'Ceará',
     latitude = -3.6890,
     longitude = -40.3505,
@@ -132,7 +134,7 @@ WHERE username = 'admin@mvt.com';
 -- Organization 1: MovelTrack Sobral
 UPDATE organizations SET
     name = 'MovelTrack Sobral',
-    city_id = 1058,
+    city_id = NULL,
     phone = '(88) 3614-5000',
     contact_email = 'contato@moveltrack-sobral.com.br',
     description = 'Empresa de logística e entregas rápidas em Sobral-CE',
@@ -142,7 +144,7 @@ WHERE id = 1;
 -- Organization 2: Express Delivery Sobral
 UPDATE organizations SET
     name = 'Express Delivery Sobral',
-    city_id = 1058,
+    city_id = NULL,
     phone = '(88) 3615-6000',
     contact_email = 'contato@expressdelivery-sobral.com.br',
     description = 'Serviço de entregas expressas e agendadas em Sobral-CE',

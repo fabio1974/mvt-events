@@ -7,18 +7,15 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
 /**
- * DTO simplificado para cadastrar dados bancários e criar recipient no Pagar.me
+ * DTO simplificado para atualizar dados bancários
  * 
- * Contém apenas os campos mínimos necessários:
- * - Dados bancários (obrigatórios)
- * - Campos KYC opcionais (motherName, monthlyIncome, professionalOccupation)
+ * Contém apenas os campos mínimos necessários para o Pagar.me:
+ * - Dados bancários (banco, agência, conta, tipo)
  * 
- * IMPORTANTE: Os demais dados (nome, CPF, email, telefone, endereço, data de nascimento)
- * são obtidos automaticamente da entidade User e Address relacionadas.
+ * Os dados do titular (nome, email, CPF) vêm do User e não podem ser alterados aqui.
  */
-public record BankAccountRequest(
+public record BankAccountUpdateRequest(
     
-    // ==================== DADOS BANCÁRIOS (OBRIGATÓRIOS) ====================
     @NotBlank(message = "Código do banco é obrigatório")
     @ValidBankCode
     String bankCode,
@@ -40,13 +37,6 @@ public record BankAccountRequest(
     String accountDigit,
     
     @NotNull(message = "Tipo de conta é obrigatório")
-    AccountType accountType,
-    
-    // ==================== CAMPOS KYC OPCIONAIS ====================
-    // Estes campos podem ser fornecidos para complementar os dados do recipient no Pagar.me
-    // Se não fornecidos, o sistema pode funcionar apenas com dados do User
-    String motherName,
-    String monthlyIncome,
-    String professionalOccupation
+    AccountType accountType
 ) {
 }

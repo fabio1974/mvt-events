@@ -64,19 +64,42 @@ public class User implements UserDetails {
     @Visible(readonly = false, table = false, form = true, filter = true)
     private Role role = Role.ORGANIZER;
 
-    @Visible(table = false, form = true, filter = false)
-    @Size(max = 500)
-    @Column(columnDefinition = "TEXT")
-    private String address;
+    // ============================================================================
+    // ADDRESS RELATIONSHIP (1:1)
+    // ============================================================================
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "city_id")
-    @Visible(table = true, form = true, filter = true)
-    private City city;
-
+    /**
+     * Relacionamento 1:1 com Address.
+     * Cada usuário possui um endereço completo.
+     */
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnore
     @Visible(table = false, form = false, filter = false)
-    @Column(length = 100)
-    private String country;
+    private Address address;
+
+    // ============================================================================
+    // GPS TRACKING FIELDS (Real-time location)
+    // ============================================================================
+    
+    /**
+     * Latitude GPS em tempo real (rastreamento de entregador/cliente).
+     * Diferente de Address.latitude (endereço fixo).
+     */
+    @Column(name = "gps_latitude")
+    @Visible(table = false, form = false, filter = false)
+    private Double gpsLatitude;
+
+    /**
+     * Longitude GPS em tempo real (rastreamento de entregador/cliente).
+     * Diferente de Address.longitude (endereço fixo).
+     */
+    @Column(name = "gps_longitude")
+    @Visible(table = false, form = false, filter = false)
+    private Double gpsLongitude;
+
+    // ============================================================================
+    // PERSONAL DATA
+    // ============================================================================
 
     @Column(name = "date_of_birth")
     @Visible(table = false, form = true, filter = false)
@@ -91,89 +114,80 @@ public class User implements UserDetails {
     @Column(length = 10)
     private Gender gender;
 
-    @Visible(table = true, form = true, filter = false)
-    @Column(length = 20)
-    private String phone;
+    // ============================================================================
+    // PHONE FIELDS (for Pagar.me KYC)
+    // ============================================================================
 
+    /**
+     * DDD do telefone (2 dígitos)
+     * Exemplo: "11" para São Paulo
+     */
+    @Column(name = "phone_ddd", length = 2)
+    @Visible(table = false, form = true, filter = false)
+    private String phoneDdd;
+
+    /**
+     * Número do telefone sem DDD (8 ou 9 dígitos)
+     * Exemplo: "987654321"
+     */
+    @Column(name = "phone_number", length = 9)
+    @Visible(table = true, form = true, filter = false)
+    private String phoneNumber;
+
+    /**
+     * Telefone completo formatado (somente para compatibilidade)
+     * Deprecated: Use phoneDdd + phoneNumber instead
+     */
+    @Deprecated
     @Visible(table = false, form = false, filter = false)
     @Column(length = 100)
     private String state;
-
-    // ============================================================================
-    // ZAPI10 GEOLOCATION FIELDS
-    // ============================================================================
-
-    @Visible(table = false, form = true, filter = false, readonly = true)
-    @Column(name = "gps_latitude")
-    private Double gpsLatitude;
-
-    @Visible(table = false, form = true, filter = false, readonly = true)
-    @Column(name = "gps_longitude")
-    private Double gpsLongitude;
-
-    @Visible(table = false, form = true, filter = false, readonly = true)
-    @Column(name = "latitude")
-    private Double latitude;
-
-    @Visible(table = false, form = true, filter = false, readonly = true)
-    @Column(name = "longitude")
-    private Double longitude;
 
     @Column(nullable = false)
     private boolean enabled = true;
 
     // ============================================================================
-    // IUGU INTEGRATION FIELDS
+    // PAGAR.ME INTEGRATION FIELDS
     // ============================================================================
 
     /**
-     * ID da subconta Iugu criada para este usuário (courier ou organizer).
+     * ID do recipient Pagar.me criado para este usuário (courier ou organizer).
      * Usado para transferências automáticas via split de pagamento.
      */
-    @Column(name = "iugu_account_id", length = 100)
+    @Column(name = "pagarme_recipient_id", length = 100)
     @Visible(table = false, form = false, filter = false)
-    private String iuguAccountId;
+    private String pagarmeRecipientId;
 
     /**
-     * Indica se o usuário completou o cadastro de dados bancários.
-     * true = dados bancários salvos e validados pelo Iugu
-     * false = ainda não cadastrou ou dados pendentes de validação
+     * Status da conta no Pagar.me
+     * Valores: "pending", "active", "inactive"
      */
-    @Column(name = "bank_data_complete", nullable = false)
+    @Column(name = "pagarme_status", length = 20)
     @Visible(table = true, form = false, filter = true)
-    private Boolean bankDataComplete = false;
-
-    /**
-     * Indica se o auto_withdraw está ativo no Iugu.
-     * true = transferências automáticas (D+1) estão ativas
-     * false = precisa ativar ou dados bancários inválidos
-     */
-    @Column(name = "auto_withdraw_enabled", nullable = false)
-    @Visible(table = true, form = false, filter = true)
-    private Boolean autoWithdrawEnabled = false;
+    private String pagarmeStatus;
 
     /**
      * Relacionamento 1:1 com BankAccount (OPCIONAL).
      * 
      * DESIGN ATUAL (v1.0):
-     * - OBRIGATÓRIO para COURIER/ORGANIZER (recebem pagamentos via Iugu)
+     * - OBRIGATÓRIO para COURIER/ORGANIZER (recebem pagamentos via Pagar.me)
      * - OPCIONAL para CLIENT (pagam com cartão, não recebem)
      * - OPCIONAL para USER/ADMIN
      * 
      * FUTURO (v2.0):
      * - Criar entidade PaymentMethod (abstract/interface)
-     * - BankAccount extends PaymentMethod (receber via Iugu PIX)
+     * - BankAccount extends PaymentMethod (receber via Pagar.me PIX)
      * - CreditCard extends PaymentMethod (pagar via Stripe/Cielo)
      * - User terá List<PaymentMethod> (múltiplas formas de pagamento)
      * 
      * REGRAS:
      * - Se bankAccount == null → usuário não pode receber pagamentos
-     * - Se bankAccount != null && status == ACTIVE → pode receber via Iugu
+     * - Se bankAccount != null && pagarmeStatus == "active" → pode receber via Pagar.me
      * - Validar com: user.canReceivePayments()
      */
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonIgnore
-    @Visible(table = false, form = true, filter = false)
+    @Visible(table = false, form = false, filter = false)
     private BankAccount bankAccount;
 
     // ============================================================================
@@ -303,6 +317,51 @@ public class User implements UserDetails {
         this.cpf = documentNumber;
     }
 
+    /**
+     * Retorna telefone completo formatado (DDD + número)
+     * Formato: (11) 98765-4321
+     */
+    public String getPhone() {
+        if (phoneDdd == null || phoneNumber == null) {
+            return null;
+        }
+        
+        // Formatar: (11) 98765-4321 ou (11) 8765-4321
+        if (phoneNumber.length() == 9) {
+            return String.format("(%s) %s-%s", 
+                phoneDdd, 
+                phoneNumber.substring(0, 5), 
+                phoneNumber.substring(5));
+        } else if (phoneNumber.length() == 8) {
+            return String.format("(%s) %s-%s", 
+                phoneDdd, 
+                phoneNumber.substring(0, 4), 
+                phoneNumber.substring(4));
+        }
+        
+        return String.format("(%s) %s", phoneDdd, phoneNumber);
+    }
+
+    /**
+     * Define telefone a partir de string formatada
+     * Aceita formatos: (11) 98765-4321, 11987654321, etc.
+     */
+    public void setPhone(String phoneFormatted) {
+        if (phoneFormatted == null || phoneFormatted.trim().isEmpty()) {
+            this.phoneDdd = null;
+            this.phoneNumber = null;
+            return;
+        }
+        
+        // Extrair apenas números
+        String clean = phoneFormatted.replaceAll("[^0-9]", "");
+        
+        if (clean.length() >= 10) {
+            this.phoneDdd = clean.substring(0, 2);
+            this.phoneNumber = clean.substring(2);
+        }
+    }
+
     // ============================================================================
     // CONSTRUCTORS
     // ============================================================================
@@ -397,49 +456,46 @@ public class User implements UserDetails {
     }
 
     // ============================================================================
-    // IUGU/PAYMENT HELPER METHODS
+    // PAGAR.ME/PAYMENT HELPER METHODS
     // ============================================================================
 
     /**
-     * Verifica se o usuário pode receber pagamentos via Iugu.
-     * Requer: dados bancários completos + auto_withdraw ativo + conta Iugu criada
+     * Verifica se o usuário pode receber pagamentos via Pagar.me.
+     * Requer: recipient criado + status active + dados bancários
      */
     public boolean canReceivePayments() {
-        return iuguAccountId != null &&
-                Boolean.TRUE.equals(bankDataComplete) &&
-                Boolean.TRUE.equals(autoWithdrawEnabled);
+        return pagarmeRecipientId != null &&
+                "active".equals(pagarmeStatus) &&
+                bankAccount != null;
     }
 
     /**
      * Verifica se o usuário tem dados bancários cadastrados
      */
     public boolean hasBankAccount() {
-        return bankAccount != null &&
-                Boolean.TRUE.equals(bankDataComplete);
+        return bankAccount != null;
     }
 
     /**
-     * Marca que os dados bancários foram completados com sucesso
+     * Marca que o recipient foi criado com sucesso no Pagar.me
      */
-    public void markBankAccountAsCompleted(String iuguAccountId) {
-        this.iuguAccountId = iuguAccountId;
-        this.bankDataComplete = true;
-        this.autoWithdrawEnabled = true;
+    public void markRecipientAsActive(String recipientId) {
+        this.pagarmeRecipientId = recipientId;
+        this.pagarmeStatus = "active";
     }
 
     /**
-     * Marca que os dados bancários precisam ser atualizados
+     * Marca que o recipient precisa ser recriado
      */
-    public void markBankAccountAsPending() {
-        this.bankDataComplete = false;
-        this.autoWithdrawEnabled = false;
+    public void markRecipientAsPending() {
+        this.pagarmeStatus = "pending";
     }
 
     /**
-     * Desativa o auto_withdraw (ex: dados bancários inválidos)
+     * Desativa o recipient (ex: dados bancários inválidos)
      */
-    public void deactivateAutoWithdraw(String reason) {
-        this.autoWithdrawEnabled = false;
+    public void deactivateRecipient(String reason) {
+        this.pagarmeStatus = "inactive";
         if (bankAccount != null) {
             bankAccount.markAsBlocked(reason);
         }

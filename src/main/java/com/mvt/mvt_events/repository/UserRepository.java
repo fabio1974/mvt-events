@@ -19,17 +19,15 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
 
        // Métodos de busca única e validação - mantidos
        // Note: organization removed from User entity, now access via Organization.owner
-       @EntityGraph(attributePaths = { "city" })
+       // Note: city removed from User entity, now access via Address.city
        Optional<User> findByUsername(String username);
 
        // Método para autenticação (carrega todos os relacionamentos necessários para
        // JWT)
-       @EntityGraph(attributePaths = { "city" })
        @Query("SELECT u FROM User u WHERE u.username = :username")
        Optional<User> findByUsernameForAuth(@Param("username") String username);
 
        // Método para autenticação por CPF (carrega todos os relacionamentos necessários para JWT)
-       @EntityGraph(attributePaths = { "city" })
        @Query("SELECT u FROM User u WHERE u.cpf = :cpf")
        Optional<User> findByCpfForAuth(@Param("cpf") String cpf);
 
@@ -70,10 +68,4 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
        @Query("SELECT u FROM User u WHERE u.id IN (SELECT o.owner.id FROM Organization o WHERE o.id IN :organizationIds) AND u.role IN ('ADMIN', 'ORGANIZER')")
        List<User> findAdmsByOrganizationIds(@Param("organizationIds") List<Long> organizationIds);
 
-       /**
-        * Busca usuário pelo iuguAccountId
-        * Usado para processar webhooks do Iugu
-        */
-       @Query("SELECT u FROM User u WHERE u.iuguAccountId = :iuguAccountId")
-       Optional<User> findByIuguAccountId(@Param("iuguAccountId") String iuguAccountId);
 }

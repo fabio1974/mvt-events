@@ -13,7 +13,7 @@ import java.util.UUID;
 
 /**
  * Repository para BankAccount.
- * Gerencia dados bancários de couriers e organizers para pagamentos via Iugu.
+ * Gerencia dados bancários de couriers e organizers para pagamentos via Pagar.me.
  */
 @Repository
 public interface BankAccountRepository extends JpaRepository<BankAccount, Long> {

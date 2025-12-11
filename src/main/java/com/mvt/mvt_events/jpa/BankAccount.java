@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 
 /**
  * Entidade que representa dados bancários de um usuário (courier ou organizer).
- * Usada para transferências automáticas via Iugu.
+ * Usada para transferências automáticas via Pagar.me.
  * 
  * Relacionamentos:
  * - 1:1 com User (um usuário tem uma conta bancária)
@@ -37,7 +37,7 @@ public class BankAccount extends BaseEntity {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     @JsonIgnore
-    @Visible(table = true, form = true, filter = true)
+    @Visible(table = true, form = false, filter = true)
     private User user;
 
     // ============================================================================
@@ -64,18 +64,59 @@ public class BankAccount extends BaseEntity {
     @Visible(table = true, form = true, filter = false)
     private String agency; // Agência sem dígito verificador
 
+    @Column(name = "agency_digit", length = 2)
+    @Visible(table = false, form = true, filter = false)
+    private String agencyDigit; // Dígito verificador da agência (opcional)
+
     @NotBlank(message = "Conta é obrigatória")
-    @Size(min = 5, max = 20, message = "Conta deve ter entre 5 e 20 caracteres")
-    @Pattern(regexp = "\\d+-\\d", message = "Conta deve estar no formato 12345-6 (com hífen)")
+    @Size(min = 1, max = 20, message = "Conta deve ter entre 1 e 20 caracteres")
+    @Pattern(regexp = "\\d+", message = "Número da conta deve conter apenas números")
     @Column(name = "account_number", nullable = false, length = 20)
     @Visible(table = true, form = true, filter = false)
-    private String accountNumber; // Conta com dígito verificador (formato: 12345-6)
+    private String accountNumber; // Número da conta (apenas dígitos)
+
+    @Column(name = "account_digit", length = 2)
+    @Visible(table = false, form = true, filter = false)
+    private String accountDigit; // Dígito verificador da conta (extraído de accountNumber)
 
     @NotNull(message = "Tipo de conta é obrigatório")
     @Enumerated(EnumType.STRING)
     @Column(name = "account_type", nullable = false, length = 10)
     @Visible(table = true, form = true, filter = true)
     private AccountType accountType; // checking (corrente) ou savings (poupança)
+
+    // ============================================================================
+    // PAGAR.ME KYC FIELDS
+    // ============================================================================
+
+    /**
+     * Nome da mãe (obrigatório para Pagar.me KYC)
+     */
+    @Column(name = "mother_name", length = 200)
+    @Visible(table = false, form = true, filter = false)
+    private String motherName;
+
+    /**
+     * Renda mensal estimada (obrigatório para Pagar.me KYC)
+     */
+    @Column(name = "monthly_income", length = 20)
+    @Visible(table = false, form = true, filter = false)
+    private String monthlyIncome;
+
+    /**
+     * Ocupação profissional (obrigatório para Pagar.me KYC)
+     */
+    @Column(name = "professional_occupation", length = 100)
+    @Visible(table = false, form = true, filter = false)
+    private String professionalOccupation;
+
+    // NOTE: Os seguintes campos KYC são obtidos da entidade User:
+    // - accountHolderName → user.getName()
+    // - accountHolderDocument → user.getCpf()
+    // - email → user.getUsername()
+    // - birthdate → user.getDateOfBirth() (formatado DD/MM/YYYY)
+    // - phoneDdd → user.getPhoneDdd()
+    // - phoneNumber → user.getPhoneNumber()
 
     // ============================================================================
     // STATUS
@@ -107,25 +148,25 @@ public class BankAccount extends BaseEntity {
         CHECKING("checking", "Conta Corrente"),
         SAVINGS("savings", "Conta Poupança");
 
-        private final String iuguValue;
+        private final String pagarmeValue;
         private final String displayName;
 
-        AccountType(String iuguValue, String displayName) {
-            this.iuguValue = iuguValue;
+        AccountType(String pagarmeValue, String displayName) {
+            this.pagarmeValue = pagarmeValue;
             this.displayName = displayName;
         }
 
-        public String getIuguValue() {
-            return iuguValue;
+        public String getPagarmeValue() {
+            return pagarmeValue;
         }
 
         public String getDisplayName() {
             return displayName;
         }
 
-        public static AccountType fromIuguValue(String value) {
+        public static AccountType fromPagarmeValue(String value) {
             for (AccountType tipo : values()) {
-                if (tipo.iuguValue.equals(value)) {
+                if (tipo.pagarmeValue.equals(value)) {
                     return tipo;
                 }
             }
