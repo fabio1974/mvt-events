@@ -124,8 +124,12 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("complement", "Complemento");
         FIELD_TRANSLATIONS.put("neighborhood", "Bairro");
         FIELD_TRANSLATIONS.put("referencePoint", "Ponto de Referência");
+        FIELD_TRANSLATIONS.put("zipCode", "CEP");
         FIELD_TRANSLATIONS.put("latitude", "Latitude");
         FIELD_TRANSLATIONS.put("longitude", "Longitude");
+        FIELD_TRANSLATIONS.put("city", "Cidade");
+        FIELD_TRANSLATIONS.put("user", "Usuário");
+        FIELD_TRANSLATIONS.put("isDefault", "Padrão");
 
         // ==================== STATUS/FLAGS ====================
         FIELD_TRANSLATIONS.put("status", "Status");
@@ -137,6 +141,7 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("password", "Senha");
         FIELD_TRANSLATIONS.put("role", "Perfil");
         FIELD_TRANSLATIONS.put("cpf", "CPF");
+        FIELD_TRANSLATIONS.put("documentNumber", "CPF/CNPJ");
         FIELD_TRANSLATIONS.put("address", "Endereço");
         FIELD_TRANSLATIONS.put("latitude", "Latitude");
         FIELD_TRANSLATIONS.put("longitude", "Longitude");

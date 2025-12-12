@@ -17,6 +17,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -30,7 +31,6 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @EqualsAndHashCode(of = "id")
 public class User implements UserDetails {
 
@@ -65,17 +65,17 @@ public class User implements UserDetails {
     private Role role = Role.ORGANIZER;
 
     // ============================================================================
-    // ADDRESS RELATIONSHIP (1:1)
+    // ADDRESS RELATIONSHIP (1:N)
     // ============================================================================
 
     /**
-     * Relacionamento 1:1 com Address.
-     * Cada usuário possui um endereço completo.
+     * Relacionamento 1:N com Address.
+     * Cada usuário pode possuir múltiplos endereços, um deles marcado como padrão.
      */
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonIgnore
     @Visible(table = false, form = false, filter = false)
-    private Address address;
+    private Set<Address> addresses = new HashSet<>();
 
     // ============================================================================
     // GPS TRACKING FIELDS (Real-time location)
@@ -105,9 +105,9 @@ public class User implements UserDetails {
     @Visible(table = false, form = true, filter = false)
     private LocalDate dateOfBirth;
 
-    @CPF(message = "CPF inválido")
-    @Column(name = "document_number", unique = true, nullable = false, length = 14)
-    private String cpf; // CPF do usuário (obrigatório e único)
+    @com.mvt.mvt_events.validation.Document(message = "CPF ou CNPJ inválido")
+    @Column(name = "document_number", unique = true, nullable = false, length = 18)
+    private String documentNumber; // CPF/CNPJ do usuário (persistido em document_number)
 
     @Visible(table = false, form = true, filter = false)
     @Enumerated(EnumType.STRING)
@@ -276,45 +276,42 @@ public class User implements UserDetails {
     }
 
     /**
-     * Retorna o CPF sem formatação (apenas números)
+     * Retorna o documento sem formatação (apenas números)
      */
-    public String getCpfClean() {
-        return cpf != null ? cpf.replaceAll("[^0-9]", "") : null;
+    public String getDocumentClean() {
+        return documentNumber != null ? documentNumber.replaceAll("[^0-9]", "") : null;
     }
 
     /**
-     * Retorna o CPF formatado (XXX.XXX.XXX-XX)
+     * Retorna o documento formatado (XXX.XXX.XXX-XX para CPF ou XX.XXX.XXX/XXXX-XX para CNPJ)
      */
-    public String getCpfFormatted() {
-        String clean = getCpfClean();
-        if (clean == null || clean.length() != 11) {
-            return cpf;
+    public String getDocumentFormatted() {
+        String clean = getDocumentClean();
+        if (clean == null) {
+            return documentNumber;
         }
-        return String.format("%s.%s.%s-%s",
-                clean.substring(0, 3),
-                clean.substring(3, 6),
-                clean.substring(6, 9),
-                clean.substring(9, 11));
-    }
-
-    /**
-     * Método de compatibilidade - retorna CPF
-     * 
-     * @deprecated Use getCpf() ao invés
-     */
-    @Deprecated
-    public String getDocumentNumber() {
-        return cpf;
-    }
-
-    /**
-     * Método de compatibilidade - define CPF
-     * 
-     * @deprecated Use setCpf() ao invés
-     */
-    @Deprecated
-    public void setDocumentNumber(String documentNumber) {
-        this.cpf = documentNumber;
+        
+        // CPF (11 dígitos): XXX.XXX.XXX-XX
+        if (clean.length() == 11) {
+            return String.format("%s.%s.%s-%s",
+                    clean.substring(0, 3),
+                    clean.substring(3, 6),
+                    clean.substring(6, 9),
+                    clean.substring(9, 11));
+        }
+        
+        // CNPJ (14 dígitos): XX.XXX.XXX/XXXX-XX
+        if (clean.length() == 14) {
+            return String.format("%s.%s.%s/%s-%s",
+                    clean.substring(0, 2),
+                    clean.substring(2, 5),
+                    clean.substring(5, 8),
+                    clean.substring(8, 12),
+                    clean.substring(12, 14));
+        }
+        
+        // Retorna sem formatação se não for CPF nem CNPJ
+        return documentNumber;
     }
 
     /**
@@ -405,6 +402,7 @@ public class User implements UserDetails {
      * Retorna lista de organizações onde o usuário trabalha como COURIER
      */
     public Set<Organization> getEmployerOrganizations() {
+        if (employmentContracts == null) return new HashSet<>();
         return employmentContracts.stream()
                 .filter(EmploymentContract::isActive)
                 .map(EmploymentContract::getOrganization)
@@ -415,6 +413,7 @@ public class User implements UserDetails {
      * Retorna lista de organizações onde o usuário é CLIENT
      */
     public Set<Organization> getClientOrganizationsList() {
+        if (clientContracts == null) return new HashSet<>();
         return clientContracts.stream()
                 .filter(ClientContract::isActive)
                 .map(ClientContract::getOrganization)
@@ -425,6 +424,7 @@ public class User implements UserDetails {
      * Retorna o contrato de serviço titular do cliente
      */
     public ClientContract getPrimaryContract() {
+        if (clientContracts == null) return null;
         return clientContracts.stream()
                 .filter(ClientContract::isPrimary)
                 .findFirst()
@@ -443,7 +443,7 @@ public class User implements UserDetails {
      * Verifica se o usuário tem contratos de trabalho ativos como COURIER
      */
     public boolean hasActiveEmployment() {
-        return !employmentContracts.isEmpty() &&
+        return employmentContracts != null && !employmentContracts.isEmpty() &&
                 employmentContracts.stream().anyMatch(EmploymentContract::isActive);
     }
 
@@ -451,7 +451,7 @@ public class User implements UserDetails {
      * Verifica se o usuário tem contratos de serviço ativos como CLIENT
      */
     public boolean hasActiveContracts() {
-        return !clientContracts.isEmpty() &&
+        return clientContracts != null && !clientContracts.isEmpty() &&
                 clientContracts.stream().anyMatch(ClientContract::isActive);
     }
 
@@ -499,5 +499,52 @@ public class User implements UserDetails {
         if (bankAccount != null) {
             bankAccount.markAsBlocked(reason);
         }
+    }
+
+    // ============================================================================
+    // HELPER METHODS FOR ADDRESS MANAGEMENT
+    // ============================================================================
+
+    /**
+     * Retorna o endereço padrão (marcado como isDefault = true).
+     * Se não houver nenhum, retorna o primeiro do conjunto.
+     */
+    public Address getAddress() {
+        if (addresses == null || addresses.isEmpty()) {
+            return null;
+        }
+        return addresses.stream()
+            .filter(Address::getIsDefault)
+            .findFirst()
+            .orElse(addresses.iterator().next());
+    }
+
+    /**
+     * Define um endereço como padrão, desmarcando os demais.
+     */
+    public void setDefaultAddress(Address address) {
+        if (addresses == null) {
+            addresses = new HashSet<>();
+        }
+        if (!addresses.contains(address)) {
+            addresses.add(address);
+        }
+        addresses.forEach(addr -> addr.setIsDefault(false));
+        address.setIsDefault(true);
+    }
+
+    /**
+     * Adiciona um novo endereço ao conjunto.
+     * Se for o primeiro, marca como padrão.
+     */
+    public void addAddress(Address address) {
+        if (addresses == null) {
+            addresses = new HashSet<>();
+        }
+        address.setUser(this);
+        if (addresses.isEmpty()) {
+            address.setIsDefault(true);
+        }
+        addresses.add(address);
     }
 }

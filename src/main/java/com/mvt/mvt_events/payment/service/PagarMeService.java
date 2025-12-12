@@ -132,7 +132,7 @@ public class PagarMeService {
     public String createRecipient(User user, BankAccount bankAccount) {
         String name = user.getName();
         String email = user.getUsername();
-        String document = user.getCpfClean();
+        String document = user.getDocumentClean();
         
         log.info("🏦 Criando recipient no Pagar.me: {} ({})", name, document);
 

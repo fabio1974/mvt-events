@@ -97,7 +97,7 @@ public class BankAccountService {
         // IMPORTANTE: Verificamos CPF + dados bancários (banco, agência, conta)
         try {
             RecipientResponse duplicateRecipient = pagarMeService.findDuplicateRecipient(
-                user.getCpfClean(), // CPF do usuário
+                user.getDocumentClean(), // CPF do usuário
                 bankAccount.getBankCode(),
                 bankAccount.getAgency(),
                 bankAccount.getAccountNumber()
@@ -205,7 +205,7 @@ public class BankAccountService {
             // 3. Verificar duplicidade com os NOVOS dados
             try {
                 RecipientResponse duplicateRecipient = pagarMeService.findDuplicateRecipient(
-                    user.getCpfClean(),
+                    user.getDocumentClean(),
                     request.bankCode(),
                     request.agency(),
                     request.accountNumber()

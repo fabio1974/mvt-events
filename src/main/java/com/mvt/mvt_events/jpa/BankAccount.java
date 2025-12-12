@@ -112,7 +112,7 @@ public class BankAccount extends BaseEntity {
 
     // NOTE: Os seguintes campos KYC são obtidos da entidade User:
     // - accountHolderName → user.getName()
-    // - accountHolderDocument → user.getCpf()
+    // - accountHolderDocument → user.getDocumentNumber()
     // - email → user.getUsername()
     // - birthdate → user.getDateOfBirth() (formatado DD/MM/YYYY)
     // - phoneDdd → user.getPhoneDdd()

@@ -12,8 +12,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Entity
@@ -80,13 +79,13 @@ public class Organization extends BaseEntity {
     // organização
     @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
-    private Set<EmploymentContract> employmentContracts = new HashSet<>();
+    private List<EmploymentContract> employmentContracts;
 
     // Contratos de serviço (cliente-fornecedor) - Clientes que contratam serviços
     // desta organização
     @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
-    private Set<ClientContract> clientContracts = new HashSet<>();
+    private List<ClientContract> clientContracts;
 
     // ============================================================================
     // RELATIONSHIP HELPER METHODS
@@ -95,21 +94,21 @@ public class Organization extends BaseEntity {
     /**
      * Retorna lista de couriers (funcionários) ativos desta organização
      */
-    public Set<User> getEmployees() {
+    public List<User> getEmployees() {
         return employmentContracts.stream()
                 .filter(EmploymentContract::isActive)
                 .map(EmploymentContract::getCourier)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
     }
 
     /**
      * Retorna lista de clientes com contratos de serviço ativos nesta organização
      */
-    public Set<User> getClients() {
+    public List<User> getClients() {
         return clientContracts.stream()
                 .filter(ClientContract::isActive)
                 .map(ClientContract::getClient)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
     }
 
     /**

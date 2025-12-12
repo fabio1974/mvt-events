@@ -19,6 +19,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -160,8 +161,11 @@ public class UserController {
         private String name; // nome completo (obrigatório)
         private String password; // senha (opcional - padrão: "12345678" para ADM, "senha123" para outros)
         private String role; // USER, COURIER, CLIENT, ADM, ADMIN (obrigatório)
-        private String cpf; // CPF (obrigatório)
-        private String phone;
+        private String cpf; // CPF (deprecated - use documentNumber)
+        private String documentNumber; // CPF ou CNPJ (obrigatório)
+        private String phone; // Deprecated - use phoneDdd + phoneNumber
+        private String phoneDdd; // DDD do telefone (2 dígitos)
+        private String phoneNumber; // Número sem DDD (8 ou 9 dígitos)
         private String address;
         private Long cityId; // ID da cidade relacionada (aceita direto)
         private CityIdWrapper city; // Aceita também {"id": 1058}
@@ -205,19 +209,48 @@ public class UserController {
         private Long id;
     }
 
+    // DTO for address data in update requests
+    @Data
+    @NoArgsConstructor
+    public static class AddressDTO {
+        private Long id; // Se presente, é update; se null, é insert
+        private String street;
+        private String number;
+        private String complement;
+        private String neighborhood;
+        private String city;
+        private String state;
+        private String zipCode;
+        private String referencePoint;
+        private String latitude;
+        private String longitude;
+        private Boolean isDefault;
+    }
+
     // DTO para atualização de usuário
     @Data
     @NoArgsConstructor
     public static class UserUpdateRequest {
         private String name;
+        
+        // New fields - use these
+        private String documentNumber; // CPF or CNPJ
+        private String phoneDdd;        // 2 digits
+        private String phoneNumber;     // 8-9 digits
+        private List<AddressDTO> addresses; // Array of addresses
+        
+        // Deprecated fields - kept for backward compatibility
+        @Deprecated
         private String phone;
+        @Deprecated
+        private String cpf; // Mapeia para "cpf" do front-end
+        
         private String address;
         private Long cityId; // ID da cidade relacionada
         private String state;
         private String country;
         private String birthDate; // Mapeia para "birthDate" do front-end
         private String gender; // M/F/OTHER
-        private String cpf; // Mapeia para "cpf" do front-end
         private Double latitude; // Coordenadas do endereço fixo
         private Double longitude; // Coordenadas do endereço fixo
     }
@@ -240,6 +273,41 @@ public class UserController {
         private String updatedAt; // ISO DateTime string (ex: "2025-10-31T15:30:45.123Z")
     }
 
+    // DTO para Address na resposta do usuário
+    @Data
+    @NoArgsConstructor
+    public static class AddressResponseDTO {
+        private Long id;
+        private String street;
+        private String number;
+        private String complement;
+        private String neighborhood;
+        private String city;
+        private String state;
+        private String zipCode;
+        private String referencePoint;
+        private Double latitude;
+        private Double longitude;
+        private Boolean isDefault;
+        private String fullAddress;
+
+        public AddressResponseDTO(com.mvt.mvt_events.jpa.Address address) {
+            this.id = address.getId();
+            this.street = address.getStreet();
+            this.number = address.getNumber();
+            this.complement = address.getComplement();
+            this.neighborhood = address.getNeighborhood();
+            this.city = address.getCityName();
+            this.state = address.getState();
+            this.zipCode = address.getZipCode();
+            this.referencePoint = address.getReferencePoint();
+            this.latitude = address.getLatitude();
+            this.longitude = address.getLongitude();
+            this.isDefault = address.getIsDefault();
+            this.fullAddress = address.getFullAddress();
+        }
+    }
+
     // DTO para resposta (evita problemas de lazy loading)
     @Data
     @NoArgsConstructor
@@ -247,14 +315,16 @@ public class UserController {
         private UUID id;
         private String username;
         private String name;
-        private String phone;
-        private String address;
+        private String phoneDdd; // DDD do telefone (2 dígitos)
+        private String phoneNumber; // Número do telefone sem DDD (8 ou 9 dígitos)
+        private String address; // Deprecated - use addresses array
+        private List<AddressResponseDTO> addresses; // Lista de endereços
         private CityDTO city;
         private String state;
         private String country;
         private String dateOfBirth;
         private String gender;
-        private String cpf;
+        private String documentNumber; // CPF ou CNPJ formatado
         private String role;
         private OrganizationDTO organization;
 
@@ -275,19 +345,29 @@ public class UserController {
             this.id = user.getId();
             this.username = user.getUsername();
             this.name = user.getName();
-            this.phone = user.getPhone();
+            this.phoneDdd = user.getPhoneDdd();
+            this.phoneNumber = user.getPhoneNumber();
             
-            // Address from Address entity
+            // Address from Address entity (deprecated - use addresses array)
             if (user.getAddress() != null) {
                 this.address = user.getAddress().getFullAddress();
                 this.latitude = user.getAddress().getLatitude();
                 this.longitude = user.getAddress().getLongitude();
             }
             
+            // Populate addresses array
+            if (user.getAddresses() != null && !user.getAddresses().isEmpty()) {
+                this.addresses = user.getAddresses().stream()
+                    .map(AddressResponseDTO::new)
+                    .collect(java.util.stream.Collectors.toList());
+            } else {
+                this.addresses = new java.util.ArrayList<>();
+            }
+            
             this.state = user.getState();
             this.dateOfBirth = user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : null;
             this.gender = user.getGender() != null ? user.getGender().toString() : null;
-            this.cpf = user.getCpfFormatted();
+            this.documentNumber = user.getDocumentFormatted();
             this.role = user.getRole() != null ? user.getRole().toString() : null;
 
             // Campos de localização GPS (em tempo real) - mantidos no User

@@ -12,7 +12,7 @@ import lombok.*;
  * Entidade que representa o endereço de um usuário
  * 
  * Relacionamentos:
- * - 1:1 com User (um usuário tem um endereço)
+ * - N:1 com User (muitos endereços pertencem a um usuário)
  * - N:1 com City (muitos endereços pertencem a uma cidade)
  */
 @Entity
@@ -28,8 +28,8 @@ public class Address extends BaseEntity {
     // RELATIONSHIPS
     // ============================================================================
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnore
     @Visible(table = true, form = false, filter = false)
     private User user;
@@ -85,6 +85,10 @@ public class Address extends BaseEntity {
     @Column(name = "longitude")
     @Visible(table = false, form = true, filter = false)
     private Double longitude;
+
+    @Column(name = "is_default", nullable = false)
+    @Visible(table = true, form = true, filter = true)
+    private Boolean isDefault = false;
 
     // ============================================================================
     // HELPER METHODS

@@ -25,7 +25,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         
         // Se não encontrou por email, tenta buscar por CPF
         if (user.isEmpty()) {
-            user = userRepository.findByCpfForAuth(username);
+            user = userRepository.findByDocumentNumberForAuth(username);
         }
         
         return user.orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));

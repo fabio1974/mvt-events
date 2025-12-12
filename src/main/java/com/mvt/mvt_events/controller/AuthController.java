@@ -90,8 +90,8 @@ public class AuthController {
         user.setRole(User.Role.valueOf(registerRequest.getRole().toUpperCase()));
 
         // Set CPF if provided
-        if (registerRequest.getCpf() != null && !registerRequest.getCpf().trim().isEmpty()) {
-            user.setCpf(registerRequest.getCpf());
+        if (registerRequest.getDocumentNumber() != null && !registerRequest.getDocumentNumber().trim().isEmpty()) {
+            user.setDocumentNumber(registerRequest.getDocumentNumber());
         }
 
         userRepository.save(user);
@@ -425,8 +425,8 @@ public class AuthController {
         @NotBlank(message = "Role é obrigatório")
         private String role;
 
-        @CPF(message = "CPF inválido", required = true)
-        private String cpf;
+        @com.mvt.mvt_events.validation.Document(message = "CPF ou CNPJ inválido", required = true)
+        private String documentNumber;
 
         public String getName() {
             return name;
@@ -460,12 +460,12 @@ public class AuthController {
             this.role = role;
         }
 
-        public String getCpf() {
-            return cpf;
+        public String getDocumentNumber() {
+            return documentNumber;
         }
 
-        public void setCpf(String cpf) {
-            this.cpf = cpf;
+        public void setDocumentNumber(String documentNumber) {
+            this.documentNumber = documentNumber;
         }
     }
 

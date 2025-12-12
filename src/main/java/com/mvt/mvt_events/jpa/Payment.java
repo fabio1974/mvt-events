@@ -10,8 +10,8 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Entidade que representa um pagamento de múltiplas entregas.
@@ -45,7 +45,7 @@ public class Payment extends BaseEntity {
     )
     @JsonIgnore
     @Visible(table = true, form = true, filter = true)
-    private Set<Delivery> deliveries = new HashSet<>();
+    private List<Delivery> deliveries = new ArrayList<>();
 
     @NotNull(message = "Pagador é obrigatório")
     @ManyToOne(fetch = FetchType.LAZY)
@@ -164,7 +164,7 @@ public class Payment extends BaseEntity {
      */
     public void addDelivery(Delivery delivery) {
         if (this.deliveries == null) {
-            this.deliveries = new HashSet<>();
+            this.deliveries = new ArrayList<>();
         }
         this.deliveries.add(delivery);
     }

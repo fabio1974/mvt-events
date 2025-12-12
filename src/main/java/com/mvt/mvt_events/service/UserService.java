@@ -10,6 +10,7 @@ import com.mvt.mvt_events.repository.CityRepository;
 import com.mvt.mvt_events.repository.UserRepository;
 import com.mvt.mvt_events.specification.UserSpecification;
 import com.mvt.mvt_events.util.CPFUtil;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,7 +24,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -75,15 +78,16 @@ public class UserService {
         return users;
     }
 
+    @Transactional(readOnly = true)
     public User findById(UUID id) {
-        User user = userRepository.findById(id)
+        // Carrega user com addresses usando query HQL
+        User user = userRepository.findByIdWithAddresses(id)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-
-        // Force load da city via address para evitar lazy loading
-        if (user.getAddress() != null && user.getAddress().getCity() != null) {
-            user.getAddress().getCity().getName(); // Trigger lazy loading
-        }
-
+        
+        // Inicializa contracts manualmente dentro da transação
+        Hibernate.initialize(user.getEmploymentContracts());
+        Hibernate.initialize(user.getClientContracts());
+        
         return user;
     }
 
@@ -125,19 +129,31 @@ public class UserService {
         }
         user.setPassword(passwordEncoder.encode(password));
 
-        // CPF
-        if (request.getCpf() != null && !request.getCpf().trim().isEmpty()) {
-            String cpf = CPFUtil.clean(request.getCpf().trim());
-            if (CPFUtil.isValid(cpf)) {
-                user.setCpf(cpf);
+        // CPF/CNPJ
+        if (request.getDocumentNumber() != null && !request.getDocumentNumber().trim().isEmpty()) {
+            String document = request.getDocumentNumber().trim().replaceAll("[^0-9]", "");
+            
+            // Valida como CPF (11 dígitos) ou CNPJ (14 dígitos)
+            boolean isValid = false;
+            if (document.length() == 11) {
+                isValid = com.mvt.mvt_events.util.CPFUtil.isValid(document);
+            } else if (document.length() == 14) {
+                isValid = com.mvt.mvt_events.util.CNPJUtil.isValid(document);
+            }
+            
+            if (isValid) {
+                user.setDocumentNumber(document);
             } else {
-                throw new RuntimeException("CPF inválido");
+                throw new RuntimeException("CPF ou CNPJ inválido");
             }
         }
 
         // Campos opcionais
-        if (request.getPhone() != null) {
-            user.setPhone(request.getPhone().trim());
+        if (request.getPhoneDdd() != null) {
+            user.setPhoneDdd(request.getPhoneDdd().trim());
+        }
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber().trim());
         }
         // Note: address is now managed via Address entity, not directly on User
         if (request.getState() != null) {
@@ -214,8 +230,11 @@ public class UserService {
             user.setName(request.getName().trim());
         }
 
-        if (request.getPhone() != null) {
-            user.setPhone(request.getPhone().trim());
+        if (request.getPhoneDdd() != null) {
+            user.setPhoneDdd(request.getPhoneDdd().trim());
+        }
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber().trim());
         }
 
         // Note: address is now managed via Address entity, not directly on User
@@ -265,36 +284,128 @@ public class UserService {
             }
         }
 
-        // Atualizar documento (CPF)
-        if (request.getCpf() != null && !request.getCpf().trim().isEmpty()) {
-            String cpf = request.getCpf().trim();
-            // Clean CPF (remove formatting) and validate
-            cpf = CPFUtil.clean(cpf);
-            if (CPFUtil.isValid(cpf)) {
-                user.setCpf(cpf);
+        // Atualizar documento (CPF/CNPJ)
+        if (request.getDocumentNumber() != null && !request.getDocumentNumber().trim().isEmpty()) {
+            String document = request.getDocumentNumber().trim().replaceAll("[^0-9]", "");
+            
+            // Valida como CPF (11 dígitos) ou CNPJ (14 dígitos)
+            boolean isValid = false;
+            if (document.length() == 11) {
+                isValid = com.mvt.mvt_events.util.CPFUtil.isValid(document);
+            } else if (document.length() == 14) {
+                isValid = com.mvt.mvt_events.util.CNPJUtil.isValid(document);
+            }
+            
+            if (isValid) {
+                user.setDocumentNumber(document);
             } else {
-                throw new RuntimeException("CPF inválido");
+                throw new RuntimeException("CPF ou CNPJ inválido");
             }
         }
 
-        // Atualizar coordenadas do endereço (latitude/longitude)
-        // Agora armazenadas na entidade Address
-        if (request.getLatitude() != null || request.getLongitude() != null) {
-            Address address = addressRepository.findByUserId(user.getId())
-                    .orElseGet(() -> {
-                        Address newAddr = new Address();
-                        newAddr.setUser(user);
-                        return newAddr;
-                    });
-            
-            if (request.getLatitude() != null) {
-                address.setLatitude(request.getLatitude());
+        // Atualizar coordenadas GPS do usuário (posição real)
+        if (request.getLatitude() != null) {
+            user.setGpsLatitude(request.getLatitude());
+        }
+        if (request.getLongitude() != null) {
+            user.setGpsLongitude(request.getLongitude());
+        }
+
+        // Processar array de endereços (sincronização: update, insert, delete)
+        // Usa orphanRemoval=true na coleção user.addresses para deletar automaticamente
+        if (request.getAddresses() != null) {
+            // Obter a coleção atual de endereços do usuário (já carregada pelo findByIdWithAddresses)
+            Set<Address> currentAddresses = user.getAddresses();
+            if (currentAddresses == null) {
+                currentAddresses = new HashSet<>();
+                user.setAddresses(currentAddresses);
             }
-            if (request.getLongitude() != null) {
-                address.setLongitude(request.getLongitude());
-            }
             
-            addressRepository.save(address);
+            // Criar mapa de IDs dos endereços do payload (apenas os que têm ID)
+            java.util.Set<Long> payloadAddressIds = request.getAddresses().stream()
+                .filter(dto -> dto.getId() != null)
+                .map(com.mvt.mvt_events.controller.UserController.AddressDTO::getId)
+                .collect(java.util.stream.Collectors.toSet());
+            
+            // 1. DELETAR: Remover da coleção os endereços que não estão no payload
+            // orphanRemoval=true fará o DELETE automaticamente
+            currentAddresses.removeIf(addr -> !payloadAddressIds.contains(addr.getId()));
+            
+            // Criar mapa de endereços existentes por ID para facilitar lookup
+            java.util.Map<Long, Address> existingAddressMap = currentAddresses.stream()
+                .collect(java.util.stream.Collectors.toMap(Address::getId, addr -> addr));
+            
+            // 2. UPDATE ou INSERT
+            for (com.mvt.mvt_events.controller.UserController.AddressDTO addressDTO : request.getAddresses()) {
+                Address address;
+                boolean isNewAddress = false;
+                
+                if (addressDTO.getId() != null && existingAddressMap.containsKey(addressDTO.getId())) {
+                    // UPDATE: Endereço existe na coleção
+                    address = existingAddressMap.get(addressDTO.getId());
+                } else {
+                    // INSERT: Novo endereço (sem ID ou ID não encontrado)
+                    address = new Address();
+                    address.setUser(user);
+                    isNewAddress = true;
+                }
+                
+                // Buscar cidade pelo nome
+                if (addressDTO.getCity() != null && !addressDTO.getCity().trim().isEmpty()) {
+                    String cityName = addressDTO.getCity().trim();
+                    String stateName = addressDTO.getState() != null ? addressDTO.getState().trim() 
+                                     : (request.getState() != null ? request.getState().trim() : user.getState());
+                    
+                    cityRepository.findByNameAndState(cityName, stateName)
+                        .ifPresent(address::setCity);
+                }
+                
+                // Campos obrigatórios
+                if (addressDTO.getStreet() != null) {
+                    address.setStreet(addressDTO.getStreet());
+                }
+                if (addressDTO.getNumber() != null) {
+                    address.setNumber(addressDTO.getNumber());
+                }
+                if (addressDTO.getNeighborhood() != null) {
+                    address.setNeighborhood(addressDTO.getNeighborhood());
+                }
+                
+                // Campos opcionais
+                if (addressDTO.getComplement() != null) {
+                    address.setComplement(addressDTO.getComplement());
+                }
+                if (addressDTO.getReferencePoint() != null) {
+                    address.setReferencePoint(addressDTO.getReferencePoint());
+                }
+                if (addressDTO.getZipCode() != null) {
+                    address.setZipCode(addressDTO.getZipCode().replaceAll("[^0-9]", ""));
+                }
+                if (addressDTO.getLatitude() != null && !addressDTO.getLatitude().trim().isEmpty()) {
+                    try {
+                        address.setLatitude(Double.parseDouble(addressDTO.getLatitude()));
+                    } catch (NumberFormatException e) {
+                        // Ignorar se não for um número válido
+                    }
+                }
+                if (addressDTO.getLongitude() != null && !addressDTO.getLongitude().trim().isEmpty()) {
+                    try {
+                        address.setLongitude(Double.parseDouble(addressDTO.getLongitude()));
+                    } catch (NumberFormatException e) {
+                        // Ignorar se não for um número válido
+                    }
+                }
+                
+                // Definir como padrão
+                if (addressDTO.getIsDefault() != null) {
+                    address.setIsDefault(addressDTO.getIsDefault());
+                }
+                
+                // Adicionar à coleção APÓS preencher todos os campos (para novos endereços)
+                if (isNewAddress) {
+                    currentAddresses.add(address);
+                }
+            }
         }
 
         User savedUser = userRepository.save(user);

@@ -348,7 +348,7 @@ public class ConsolidatedPaymentService {
         payment.setCurrency(com.mvt.mvt_events.jpa.Currency.BRL);
         payment.setPaymentMethod(PaymentMethod.PIX);
         payment.setStatus(PaymentStatus.PENDING);
-        payment.setDeliveries(new HashSet<>(deliveries));
+        payment.setDeliveries(new ArrayList<>(deliveries));
         payment.setProvider(com.mvt.mvt_events.jpa.PaymentProvider.PAGARME);
         payment.setNotes(String.format("Pagamento consolidado para %d deliveries", deliveries.size()));
 
@@ -408,14 +408,20 @@ public class ConsolidatedPaymentService {
         OrderRequest.PixRequest.PixRequestBuilder pixBuilder = OrderRequest.PixRequest.builder()
                 .expiresIn("7200");  // 2 horas
 
-        // Split: 87% courier, 5% manager, 8% platform
+        // Split: valores absolutos em centavos para cada recipient
         List<OrderRequest.SplitRequest> splits = new ArrayList<>();
         for (SplitItem item : splitMap.values()) {
-            Integer percentageInt = item.percentage != null ? item.percentage.intValue() : 0;
+            Long amountCents = item.amount != null ? item.amount.longValue() : 0L;
+            
+            log.debug("   💰 Split {} ({}): R$ {} ({} centavos)", 
+                item.userRole, item.userName, 
+                item.amount.divide(BigDecimal.valueOf(100)),
+                amountCents);
+            
             OrderRequest.SplitRequest split = OrderRequest.SplitRequest.builder()
-                    .amount(percentageInt)  // Percentual como integer
+                    .amount(amountCents.intValue())  // Valor absoluto em centavos
                     .recipientId(item.pagarmeRecipientId)
-                    .type("percentage")
+                    .type("flat")  // flat = valor absoluto (não percentual)
                     .options(OrderRequest.SplitOptionsRequest.builder()
                             .chargeProcessingFee(item.isLiable)
                             .chargeRemainderFee(item.isLiable)
@@ -449,12 +455,17 @@ public class ConsolidatedPaymentService {
     /**
      * Calcula split de valores por recipient (courier + organizer)
      * 
-     * Agrupa deliveries por (courier + organizer) e soma os fretes
-     * Aplica percentuais da SiteConfiguration
+     * Para cada delivery:
+     * - Organizer recebe organizerPercentage% do frete (ex: 5%)
+     * - Courier recebe (100% - organizerPercentage - platformPercentage)% do frete (ex: 87%)
+     * - Plataforma FICA COM O RESTO automaticamente (platformPercentage%, ex: 8%)
+     *   NÃO é enviado no split - o Pagar.me retém automaticamente
+     * 
+     * Depois soma os valores por pessoa (mesmo courier em múltiplas deliveries)
      * 
      * @param deliveries Deliveries a consolidar
      * @param config Configuração ativa
-     * @return Map<recipientKey, SplitItem>
+     * @return Map<recipientKey, SplitItem> com valores em CENTAVOS (apenas courier + organizer)
      */
     private Map<String, SplitItem> calculateSplitByRecipient(List<Delivery> deliveries, 
                                                              SiteConfiguration config) {
@@ -462,32 +473,101 @@ public class ConsolidatedPaymentService {
         
         Map<String, SplitItem> splitMap = new HashMap<>();
         
-        // Agrupar por (courier + organizer)
-        Map<String, List<Delivery>> groupedByRecipient = new HashMap<>();
-        for (Delivery d : deliveries) {
-            String key = buildRecipientKey(d);
-            groupedByRecipient.computeIfAbsent(key, k -> new ArrayList<>()).add(d);
+        // Percentuais da config (valores entre 0 e 100)
+        BigDecimal organizerPercentage = config.getOrganizerPercentage(); // ex: 5.00 = 5%
+        BigDecimal platformPercentage = config.getPlatformPercentage(); // ex: 8.00 = 8%
+        // Courier recebe o restante
+        BigDecimal courierPercentage = BigDecimal.valueOf(100)
+                .subtract(organizerPercentage)
+                .subtract(platformPercentage); // ex: 100 - 5 - 8 = 87%
+        
+        log.info("   📊 Percentuais: Courier={}%, Organizer={}%, Plataforma={}% (retido automaticamente)",
+                courierPercentage, organizerPercentage, platformPercentage);
+        
+        // Processar cada delivery individualmente
+        for (Delivery delivery : deliveries) {
+            User courier = delivery.getCourier();
+            User organizer = delivery.getOrganizer();
+            BigDecimal deliveryAmount = delivery.getTotalAmount(); // Frete da delivery
+            Long deliveryAmountCents = deliveryAmount.multiply(BigDecimal.valueOf(100)).longValue();
+            
+            log.debug("   📦 Delivery #{} - Frete: R$ {} ({} centavos)", 
+                delivery.getId(), deliveryAmount, deliveryAmountCents);
+            
+            // Split para Courier (restante: 100% - organizer% - platform%)
+            if (courier != null && courier.getPagarmeRecipientId() != null) {
+                String courierKey = "courier-" + courier.getId();
+                SplitItem courierSplit = splitMap.get(courierKey);
+                
+                if (courierSplit == null) {
+                    courierSplit = new SplitItem();
+                    courierSplit.pagarmeRecipientId = courier.getPagarmeRecipientId();
+                    courierSplit.amount = BigDecimal.ZERO;
+                    courierSplit.isLiable = true; // Courier é liable
+                    courierSplit.userName = courier.getName();
+                    courierSplit.userRole = "COURIER";
+                    splitMap.put(courierKey, courierSplit);
+                }
+                
+                // Calcular percentual do courier em centavos (ex: 87% de R$ 100,00 = R$ 87,00 = 8700 centavos)
+                BigDecimal courierAmountCents = BigDecimal.valueOf(deliveryAmountCents)
+                        .multiply(courierPercentage)
+                        .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.DOWN);
+                courierSplit.amount = courierSplit.amount.add(courierAmountCents);
+                
+                log.debug("      💼 Courier {}: +R$ {} ({}% de R$ {})", 
+                    courier.getName(), 
+                    courierAmountCents.divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP),
+                    courierPercentage,
+                    deliveryAmount);
+            } else {
+                log.warn("      ⚠️ Courier sem pagarmeRecipientId na delivery #{}", delivery.getId());
+            }
+            
+            // Split para Organizer (ex: 5% do frete desta delivery)
+            if (organizer != null && organizer.getPagarmeRecipientId() != null) {
+                String organizerKey = "organizer-" + organizer.getId();
+                SplitItem organizerSplit = splitMap.get(organizerKey);
+                
+                if (organizerSplit == null) {
+                    organizerSplit = new SplitItem();
+                    organizerSplit.pagarmeRecipientId = organizer.getPagarmeRecipientId();
+                    organizerSplit.amount = BigDecimal.ZERO;
+                    organizerSplit.isLiable = false;
+                    organizerSplit.userName = organizer.getName();
+                    organizerSplit.userRole = "ORGANIZER";
+                    splitMap.put(organizerKey, organizerSplit);
+                }
+                
+                // Calcular percentual do organizer em centavos (ex: 5% de R$ 100,00 = R$ 5,00 = 500 centavos)
+                BigDecimal organizerAmountCents = BigDecimal.valueOf(deliveryAmountCents)
+                        .multiply(organizerPercentage)
+                        .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.DOWN);
+                organizerSplit.amount = organizerSplit.amount.add(organizerAmountCents);
+                
+                log.debug("      👔 Organizer {}: +R$ {} ({}% de R$ {})", 
+                    organizer.getName(),
+                    organizerAmountCents.divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP),
+                    organizerPercentage,
+                    deliveryAmount);
+            } else {
+                log.warn("      ⚠️ Organizer sem pagarmeRecipientId na delivery #{}", delivery.getId());
+            }
         }
 
-        log.info("   🔀 {} grupos de recipients encontrados", groupedByRecipient.size());
-
-        // Calcular valores para cada grupo
-        for (Map.Entry<String, List<Delivery>> entry : groupedByRecipient.entrySet()) {
-            String recipientKey = entry.getKey();
-            List<Delivery> recipientDeliveries = entry.getValue();
-
-            // Soma fretes
-            BigDecimal subtotal = recipientDeliveries.stream()
-                    .map(Delivery::getTotalAmount)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            log.debug("   └─ Recipient {} com subtotal R$ {}", recipientKey, subtotal);
-
-            // TODO: Split seguindo percentuais de SiteConfiguration
-            // Exemplo: 87% courier, 5% manager, 8% platform
-            // Por enquanto, colocar placeholder
+        // Log de resumo
+        log.info("   ✅ Split calculado: {} recipients", splitMap.size());
+        for (Map.Entry<String, SplitItem> entry : splitMap.entrySet()) {
+            SplitItem item = entry.getValue();
+            BigDecimal totalReais = item.amount.divide(BigDecimal.valueOf(100));
+            log.info("      {} {} ({}): R$ {} ({} centavos)",
+                item.userRole,
+                item.userName,
+                item.pagarmeRecipientId,
+                totalReais,
+                item.amount.longValue());
         }
-
+        
         return splitMap;
     }
 
@@ -516,7 +596,7 @@ public class ConsolidatedPaymentService {
                 .name(client.getName())
                 .type("individual")
                 .email(client.getUsername())
-                .document(client.getCpfClean())
+                .document(client.getDocumentClean())
                 .address(buildAddressRequest(client.getAddress()))
                 .phones(buildPhonesRequest(client))
                 .build();
@@ -558,12 +638,21 @@ public class ConsolidatedPaymentService {
     /**
      * Classe interna para representar item de split
      */
+    /**
+     * Classe interna para representar item de split
+     */
     private static class SplitItem {
         String pagarmeRecipientId;
         BigDecimal percentage;
         BigDecimal amount;
         boolean isLiable;
         String description;
+        String userName;
+        String userRole;
+
+        SplitItem() {
+            // Construtor vazio para uso com setters diretos
+        }
 
         SplitItem(String recipientId, BigDecimal pct, BigDecimal amt, boolean liable, String desc) {
             this.pagarmeRecipientId = recipientId;

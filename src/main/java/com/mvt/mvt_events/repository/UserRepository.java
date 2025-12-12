@@ -24,12 +24,14 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
 
        // Método para autenticação (carrega todos os relacionamentos necessários para
        // JWT)
+       @EntityGraph(attributePaths = {"addresses", "addresses.city", "employmentContracts", "clientContracts"})
        @Query("SELECT u FROM User u WHERE u.username = :username")
        Optional<User> findByUsernameForAuth(@Param("username") String username);
 
        // Método para autenticação por CPF (carrega todos os relacionamentos necessários para JWT)
-       @Query("SELECT u FROM User u WHERE u.cpf = :cpf")
-       Optional<User> findByCpfForAuth(@Param("cpf") String cpf);
+       @EntityGraph(attributePaths = {"addresses", "addresses.city", "employmentContracts", "clientContracts"})
+       @Query("SELECT u FROM User u WHERE u.documentNumber = :documentNumber")
+       Optional<User> findByDocumentNumberForAuth(@Param("documentNumber") String documentNumber);
 
        // Método simples para reset password (sem carregar relacionamentos)
        @Query("SELECT u FROM User u WHERE u.username = :username")
@@ -47,12 +49,29 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
 
        boolean existsByUsername(String username);
 
-       boolean existsByCpf(String cpf);
+       boolean existsByDocumentNumber(String documentNumber);
 
-       @Query("SELECT u FROM User u WHERE u.cpf = :cpf")
-       Optional<User> findByCpf(@Param("cpf") String cpf);
+       @Query("SELECT u FROM User u WHERE u.documentNumber = :documentNumber")
+       Optional<User> findByDocumentNumber(@Param("documentNumber") String documentNumber);
 
-       // Métodos de busca textual - mantidos (não cobertos por Specifications simples)
+       // Método otimizado para buscar usuário sem carregar contratos (evita concurrent modification)
+    @Query("SELECT u FROM User u " +
+           "LEFT JOIN FETCH u.addresses a " +
+           "LEFT JOIN FETCH a.city " +
+           "WHERE u.id = :id")
+    Optional<User> findByIdWithAddresses(@Param("id") UUID id);
+
+    @Query("SELECT u FROM User u " +
+           "LEFT JOIN FETCH u.employmentContracts ec " +
+           "LEFT JOIN FETCH ec.organization " +
+           "WHERE u.id = :id")
+    Optional<User> findByIdWithEmploymentContracts(@Param("id") UUID id);
+
+    @Query("SELECT u FROM User u " +
+           "LEFT JOIN FETCH u.clientContracts cc " +
+           "LEFT JOIN FETCH cc.organization " +
+           "WHERE u.id = :id")
+    Optional<User> findByIdWithClientContracts(@Param("id") UUID id);       // Métodos de busca textual - mantidos (não cobertos por Specifications simples)
        @Query("SELECT u FROM User u WHERE " +
                      "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
                      "LOWER(u.username) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
