@@ -2,18 +2,26 @@ package com.mvt.mvt_events.controller;
 
 import com.mvt.mvt_events.dto.PaymentRequest;
 import com.mvt.mvt_events.dto.PaymentResponse;
+import com.mvt.mvt_events.jpa.Payment;
+import com.mvt.mvt_events.jpa.PaymentStatus;
+import com.mvt.mvt_events.repository.PaymentRepository;
 import com.mvt.mvt_events.service.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Controller REST para gerenciamento de pagamentos PIX via Pagar.me
@@ -69,12 +77,131 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/payment")
+@RequestMapping("/api/payments")
 @RequiredArgsConstructor
 @Tag(name = "Pagamentos", description = "Gestão de pagamentos PIX com split automático")
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final PaymentRepository paymentRepository;
+
+    /**
+     * Listar todos os pagamentos com paginação e filtros
+     */
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER', 'CLIENT')")
+    @Transactional(readOnly = true)
+    @Operation(
+            summary = "Listar pagamentos",
+            description = "Lista todos os pagamentos com suporte a paginação e filtros por status, payer, etc."
+    )
+    public Page<PaymentResponse> list(
+            @RequestParam(required = false) UUID payerId,
+            @RequestParam(required = false) PaymentStatus status,
+            @RequestParam(required = false) String transactionId,
+            Pageable pageable) {
+        
+        Specification<Payment> spec = (root, query, cb) -> cb.conjunction();
+        
+        if (payerId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("payer").get("id"), payerId));
+        }
+        if (status != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+        }
+        if (transactionId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("transactionId"), transactionId));
+        }
+        
+        return paymentRepository.findAll(spec, pageable)
+                .map(PaymentResponse::from);
+    }
+
+    /**
+     * Buscar pagamento por ID
+     */
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER', 'CLIENT')")
+    @Transactional(readOnly = true)
+    @Operation(
+            summary = "Buscar pagamento por ID",
+            description = "Retorna os detalhes de um pagamento específico"
+    )
+    public ResponseEntity<PaymentResponse> getById(@PathVariable Long id) {
+        return paymentRepository.findById(id)
+                .map(PaymentResponse::from)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Buscar pagamentos por delivery ID
+     */
+    @GetMapping("/by-delivery/{deliveryId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER', 'CLIENT')")
+    @Transactional(readOnly = true)
+    @Operation(
+            summary = "Buscar pagamentos por delivery",
+            description = "Lista todos os pagamentos associados a uma entrega específica"
+    )
+    public ResponseEntity<?> getByDeliveryId(@PathVariable UUID deliveryId) {
+        var payments = paymentRepository.findByDeliveryId(deliveryId)
+                .stream()
+                .map(PaymentResponse::from)
+                .toList();
+        return ResponseEntity.ok(payments);
+    }
+
+    /**
+     * Atualizar status de um pagamento (somente ADMIN)
+     */
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    @Operation(
+            summary = "Atualizar status do pagamento",
+            description = "Permite que administradores atualizem manualmente o status de um pagamento"
+    )
+    public ResponseEntity<?> updateStatus(
+            @PathVariable Long id,
+            @RequestParam PaymentStatus status) {
+        
+        return paymentRepository.findById(id)
+                .map(payment -> {
+                    payment.setStatus(status);
+                    if (status == PaymentStatus.COMPLETED) {
+                        payment.setPaymentDate(java.time.LocalDateTime.now());
+                    }
+                    Payment updated = paymentRepository.save(payment);
+                    return ResponseEntity.ok(PaymentResponse.from(updated));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Deletar pagamento (somente ADMIN, e apenas se PENDING ou CANCELLED)
+     */
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    @Operation(
+            summary = "Deletar pagamento",
+            description = "Remove um pagamento (apenas PENDING ou CANCELLED)"
+    )
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        return paymentRepository.findById(id)
+                .map(payment -> {
+                    if (payment.getStatus() == PaymentStatus.COMPLETED || payment.getStatus() == PaymentStatus.PROCESSING) {
+                        return ResponseEntity.badRequest().body(Map.of(
+                                "error", "INVALID_STATUS",
+                                "message", "Não é possível deletar pagamento com status " + payment.getStatus()
+                        ));
+                    }
+                    paymentRepository.delete(payment);
+                    return ResponseEntity.noContent().build();
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
 
     /**
      * Cria um pedido PIX com split automático entre motoboy, gestor e plataforma
@@ -122,14 +249,14 @@ public class PaymentController {
             PaymentResponse response = paymentService.createPaymentWithSplit(request);
 
             // Se retornou um pedido existente pendente, retorna 200 OK
-            if (response.getPaymentId() != null && response.getStatus().name().equals("PENDING")) {
+            if (response.getId() != null && response.getStatus().name().equals("PENDING")) {
                 log.info("📤 Pedido pendente existente retornado: {}", response.getPagarmeOrderId());
                 return ResponseEntity.ok(response);
             }
 
             // Caso contrário, retorna 201 Created
             log.info("📤 Novo pedido criado com sucesso!");
-            log.info("   ├─ Payment ID: {}", response.getPaymentId());
+            log.info("   ├─ Payment ID: {}", response.getId());
             log.info("   ├─ Pagar.me Order ID: {}", response.getPagarmeOrderId());
             log.info("   ├─ Amount: R$ {}", response.getAmount());
             log.info("   ├─ Expires: {}", response.getExpiresAt());

@@ -51,7 +51,7 @@ public class PaymentResponse {
     /**
      * ID do pagamento local
      */
-    private Long paymentId;
+    private Long id;
 
     /**
      * ID do pedido no Pagar.me
@@ -127,7 +127,7 @@ public class PaymentResponse {
         }
 
         PaymentResponseBuilder builder = PaymentResponse.builder()
-                .paymentId(payment.getId())
+                .id(payment.getId())
                 .pagarmeOrderId(payment.getPagarmeOrderId())
                 .pixQrCode(payment.getPixQrCode())
                 .pixQrCodeUrl(payment.getPixQrCodeUrl())
