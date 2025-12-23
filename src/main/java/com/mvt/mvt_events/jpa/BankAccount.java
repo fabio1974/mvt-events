@@ -37,7 +37,7 @@ public class BankAccount extends BaseEntity {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     @JsonIgnore
-    @Visible(table = true, form = false, filter = true)
+    @Visible(table = true, form = true, filter = true)
     private User user;
 
     // ============================================================================
@@ -65,7 +65,7 @@ public class BankAccount extends BaseEntity {
     private String agency; // Agência sem dígito verificador
 
     @Column(name = "agency_digit", length = 2)
-    @Visible(table = false, form = true, filter = false)
+    @Visible(table = true, form = true, filter = false)
     private String agencyDigit; // Dígito verificador da agência (opcional)
 
     @NotBlank(message = "Conta é obrigatória")
@@ -76,14 +76,14 @@ public class BankAccount extends BaseEntity {
     private String accountNumber; // Número da conta (apenas dígitos)
 
     @Column(name = "account_digit", length = 2)
-    @Visible(table = false, form = true, filter = false)
+    @Visible(table = true, form = true, filter = false)
     private String accountDigit; // Dígito verificador da conta (extraído de accountNumber)
 
     @NotNull(message = "Tipo de conta é obrigatório")
     @Enumerated(EnumType.STRING)
     @Column(name = "account_type", nullable = false, length = 10)
     @Visible(table = true, form = true, filter = true)
-    private AccountType accountType; // checking (corrente) ou savings (poupança)
+    private AccountType accountType = AccountType.CHECKING; // checking (corrente) ou savings (poupança)
 
     // ============================================================================
     // PAGAR.ME KYC FIELDS
@@ -93,21 +93,21 @@ public class BankAccount extends BaseEntity {
      * Nome da mãe (obrigatório para Pagar.me KYC)
      */
     @Column(name = "mother_name", length = 200)
-    @Visible(table = false, form = true, filter = false)
+    @Visible(table = false, form = false, filter = false)
     private String motherName;
 
     /**
      * Renda mensal estimada (obrigatório para Pagar.me KYC)
      */
     @Column(name = "monthly_income", length = 20)
-    @Visible(table = false, form = true, filter = false)
+    @Visible(table = false, form = false, filter = false)
     private String monthlyIncome;
 
     /**
      * Ocupação profissional (obrigatório para Pagar.me KYC)
      */
     @Column(name = "professional_occupation", length = 100)
-    @Visible(table = false, form = true, filter = false)
+    @Visible(table = false, form = false, filter = false)
     private String professionalOccupation;
 
     // NOTE: Os seguintes campos KYC são obtidos da entidade User:
@@ -133,11 +133,11 @@ public class BankAccount extends BaseEntity {
     private LocalDateTime validatedAt;
 
     // ============================================================================
-    // METADATA
+    // METADATA?
     // ============================================================================
 
     @Column(name = "notes", columnDefinition = "TEXT")
-    @Visible(table = false, form = true, filter = false)
+    @Visible(table = false, form = false, filter = false)
     private String notes; // Notas sobre a conta (ex: motivo de bloqueio)
 
     // ============================================================================

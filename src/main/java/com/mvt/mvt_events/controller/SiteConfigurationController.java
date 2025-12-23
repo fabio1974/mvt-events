@@ -138,6 +138,7 @@ public class SiteConfigurationController {
         existingConfig.setMinimumShippingFee(updatedConfig.getMinimumShippingFee());
         existingConfig.setOrganizerPercentage(updatedConfig.getOrganizerPercentage());
         existingConfig.setPlatformPercentage(updatedConfig.getPlatformPercentage());
+        existingConfig.setPagarmeRecipientId(updatedConfig.getPagarmeRecipientId());
         existingConfig.setDangerFeePercentage(updatedConfig.getDangerFeePercentage());
         existingConfig.setHighIncomeFeePercentage(updatedConfig.getHighIncomeFeePercentage());
         existingConfig.setIsActive(updatedConfig.getIsActive());

@@ -6,10 +6,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
+import java.util.UUID;
+
 /**
  * DTO simplificado para cadastrar dados bancários e criar recipient no Pagar.me
  * 
  * Contém apenas os campos mínimos necessários:
+ * - user (obrigatório) - Objeto com ID do usuário dono da conta
  * - Dados bancários (obrigatórios)
  * - Campos KYC opcionais (motherName, monthlyIncome, professionalOccupation)
  * 
@@ -17,6 +20,10 @@ import jakarta.validation.constraints.Pattern;
  * são obtidos automaticamente da entidade User e Address relacionadas.
  */
 public record BankAccountRequest(
+    
+    // ==================== USER (OBRIGATÓRIO) ====================
+    @NotNull(message = "Usuário é obrigatório")
+    UserRef user,
     
     // ==================== DADOS BANCÁRIOS (OBRIGATÓRIOS) ====================
     @NotBlank(message = "Código do banco é obrigatório")
@@ -49,4 +56,11 @@ public record BankAccountRequest(
     String monthlyIncome,
     String professionalOccupation
 ) {
+    /**
+     * Referência ao usuário dono da conta bancária
+     */
+    public record UserRef(
+        @NotNull(message = "ID do usuário é obrigatório")
+        UUID id
+    ) {}
 }

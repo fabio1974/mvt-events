@@ -2,6 +2,8 @@ package com.mvt.mvt_events.repository;
 
 import com.mvt.mvt_events.jpa.BankAccount;
 import com.mvt.mvt_events.jpa.BankAccount.BankAccountStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -90,4 +92,14 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
      * Deleta conta bancária por ID do usuário
      */
     void deleteByUserId(UUID userId);
+
+    /**
+     * Busca todas as contas bancárias paginadas
+     */
+    Page<BankAccount> findAll(Pageable pageable);
+
+    /**
+     * Busca contas bancárias por status (paginado)
+     */
+    Page<BankAccount> findByStatus(BankAccountStatus status, Pageable pageable);
 }

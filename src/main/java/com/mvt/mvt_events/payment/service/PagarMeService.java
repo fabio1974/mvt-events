@@ -18,6 +18,9 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.List;
 
 /**
@@ -141,11 +144,11 @@ public class PagarMeService {
                 .name(name)
                 .email(email)
                 .document(document)
-                .type(document.length() == 11 ? "individual" : "company")
+                .type(document.length() == 11 ? "INDIVIDUAL" : "COMPANY")
                 .description("Recipient para " + name)
                 .defaultBankAccount(RecipientRequest.DefaultBankAccount.builder()
                         .holderName(name)
-                        .holderType(document.length() == 11 ? "individual" : "company")
+                        .holderType("individual")
                         .holderDocument(document)
                         .bank(bankAccount.getBankCode())
                         .branchNumber(bankAccount.getAgency())
@@ -163,7 +166,7 @@ public class PagarMeService {
             RecipientRequest.RegisterInformation.builder()
                 .email(email)
                 .document(document)
-                .type(document.length() == 11 ? "individual" : "company")
+                .type(document.length() == 11 ? "INDIVIDUAL" : "COMPANY")
                 .name(name);
         
         boolean hasCompleteRegistrationData = false;
@@ -265,8 +268,54 @@ public class PagarMeService {
 
         } catch (Exception e) {
             log.error("❌ Erro ao criar recipient no Pagar.me", e);
-            throw new RuntimeException("Falha ao criar recipient: " + e.getMessage(), e);
+            
+            // Extrair mensagem específica do Pagar.me e campo com erro
+            String errorMessage = e.getMessage();
+            String enhancedError = buildEnhancedErrorMessage(errorMessage, document, name, email, bankAccount);
+            
+            throw new RuntimeException(enhancedError, e);
         }
+    }
+    
+    /**
+     * Constrói mensagem de erro detalhada incluindo o valor do campo que falhou
+     */
+    private String buildEnhancedErrorMessage(String originalError, String document, String name, String email, BankAccount bankAccount) {
+        // Mapa de campos do Pagar.me para valores enviados
+        Map<String, String> fieldValues = new HashMap<>();
+        fieldValues.put("document_number", document);
+        fieldValues.put("document", document);
+        fieldValues.put("name", name);
+        fieldValues.put("email", email);
+        fieldValues.put("bank", bankAccount.getBankCode());
+        fieldValues.put("branch_number", bankAccount.getAgency());
+        fieldValues.put("branch_check_digit", bankAccount.getAgencyDigit());
+        fieldValues.put("account_number", bankAccount.getAccountNumber());
+        fieldValues.put("account_check_digit", bankAccount.getAccountDigit());
+        
+        // Tentar extrair o campo com erro da mensagem do Pagar.me
+        // Formato: "invalid_parameter | CAMPO | mensagem"
+        String fieldWithError = null;
+        String valueWithError = null;
+        
+        if (originalError != null && originalError.contains("|")) {
+            String[] parts = originalError.split("\\|");
+            if (parts.length >= 2) {
+                fieldWithError = parts[1].trim();
+                valueWithError = fieldValues.get(fieldWithError);
+            }
+        }
+        
+        // Construir mensagem aprimorada
+        StringBuilder enhanced = new StringBuilder("Falha ao criar recipient: ");
+        enhanced.append(originalError);
+        
+        if (fieldWithError != null && valueWithError != null) {
+            enhanced.append(" | Campo com erro: ").append(fieldWithError)
+                    .append("=").append(valueWithError);
+        }
+        
+        return enhanced.toString();
     }
 
     /**

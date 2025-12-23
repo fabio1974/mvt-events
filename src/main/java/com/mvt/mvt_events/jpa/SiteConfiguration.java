@@ -72,6 +72,16 @@ public class SiteConfiguration extends BaseEntity {
     private BigDecimal platformPercentage;
 
     /**
+     * ID do recipient Pagar.me da plataforma/empresa
+     * Usado no split de pagamentos para receber a comissão da plataforma
+     * Ex: "rp_abc123xyz456"
+     */
+    @Column(name = "pagarme_recipient_id", length = 100)
+    @Size(max = 100, message = "ID do recipient Pagar.me pode ter no máximo 100 caracteres")
+    @Visible(table = true, form = true, filter = false)
+    private String pagarmeRecipientId;
+
+    /**
      * Taxa de periculosidade (0-100)
      * Ex: 10.00 = 10% de acréscimo por periculosidade
      */

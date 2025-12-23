@@ -476,13 +476,20 @@ public class ConsolidatedPaymentService {
         // Percentuais da config (valores entre 0 e 100)
         BigDecimal organizerPercentage = config.getOrganizerPercentage(); // ex: 5.00 = 5%
         BigDecimal platformPercentage = config.getPlatformPercentage(); // ex: 8.00 = 8%
+        String platformRecipientId = config.getPagarmeRecipientId(); // ID do recipient da plataforma
+        
         // Courier recebe o restante
         BigDecimal courierPercentage = BigDecimal.valueOf(100)
                 .subtract(organizerPercentage)
                 .subtract(platformPercentage); // ex: 100 - 5 - 8 = 87%
         
-        log.info("   📊 Percentuais: Courier={}%, Organizer={}%, Plataforma={}% (retido automaticamente)",
-                courierPercentage, organizerPercentage, platformPercentage);
+        if (platformRecipientId != null && !platformRecipientId.isBlank()) {
+            log.info("   📊 Percentuais: Courier={}%, Organizer={}%, Plataforma={}% (split explícito: {})",
+                    courierPercentage, organizerPercentage, platformPercentage, platformRecipientId);
+        } else {
+            log.info("   📊 Percentuais: Courier={}%, Organizer={}%, Plataforma={}% (retido automaticamente - SEM recipient configurado)",
+                    courierPercentage, organizerPercentage, platformPercentage);
+        }
         
         // Processar cada delivery individualmente
         for (Delivery delivery : deliveries) {
@@ -525,7 +532,9 @@ public class ConsolidatedPaymentService {
             }
             
             // Split para Organizer (ex: 5% do frete desta delivery)
+            boolean hasOrganizer = false;
             if (organizer != null && organizer.getPagarmeRecipientId() != null) {
+                hasOrganizer = true;
                 String organizerKey = "organizer-" + organizer.getId();
                 SplitItem organizerSplit = splitMap.get(organizerKey);
                 
@@ -551,15 +560,107 @@ public class ConsolidatedPaymentService {
                     organizerPercentage,
                     deliveryAmount);
             } else {
-                log.warn("      ⚠️ Organizer sem pagarmeRecipientId na delivery #{}", delivery.getId());
+                log.warn("      ⚠️ Organizer sem pagarmeRecipientId na delivery #{} - redistribuindo valor", delivery.getId());
+                
+                // Quando NÃO há organizer, o valor dele é repartido entre courier e plataforma (50% cada)
+                BigDecimal organizerAmountCents = BigDecimal.valueOf(deliveryAmountCents)
+                        .multiply(organizerPercentage)
+                        .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.DOWN);
+                
+                BigDecimal halfOrganizerAmount = organizerAmountCents
+                        .divide(BigDecimal.valueOf(2), 0, java.math.RoundingMode.DOWN);
+                
+                // Adicionar metade ao courier
+                if (courier != null && courier.getPagarmeRecipientId() != null) {
+                    String courierKey = "courier-" + courier.getId();
+                    SplitItem courierSplit = splitMap.get(courierKey);
+                    if (courierSplit != null) {
+                        courierSplit.amount = courierSplit.amount.add(halfOrganizerAmount);
+                        log.debug("      ➕ Courier {}: +R$ {} (50% do organizer redistribuído)", 
+                            courier.getName(),
+                            halfOrganizerAmount.divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP));
+                    }
+                }
+                
+                // Adicionar metade à plataforma (se configurada)
+                if (platformRecipientId != null && !platformRecipientId.isBlank()) {
+                    String platformKey = "platform";
+                    SplitItem platformSplit = splitMap.get(platformKey);
+                    if (platformSplit != null) {
+                        platformSplit.amount = platformSplit.amount.add(halfOrganizerAmount);
+                        log.debug("      ➕ Plataforma: +R$ {} (50% do organizer redistribuído)", 
+                            halfOrganizerAmount.divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP));
+                    }
+                }
+            }
+            
+            // Split para Plataforma (ex: 8% do frete desta delivery) - SE CONFIGURADO
+            if (platformRecipientId != null && !platformRecipientId.isBlank()) {
+                String platformKey = "platform";
+                SplitItem platformSplit = splitMap.get(platformKey);
+                
+                if (platformSplit == null) {
+                    platformSplit = new SplitItem();
+                    platformSplit.pagarmeRecipientId = platformRecipientId;
+                    platformSplit.amount = BigDecimal.ZERO;
+                    platformSplit.isLiable = false;
+                    platformSplit.userName = "Plataforma MVT";
+                    platformSplit.userRole = "PLATFORM";
+                    splitMap.put(platformKey, platformSplit);
+                }
+                
+                // Calcular percentual da plataforma em centavos (ex: 8% de R$ 100,00 = R$ 8,00 = 800 centavos)
+                BigDecimal platformAmountCents = BigDecimal.valueOf(deliveryAmountCents)
+                        .multiply(platformPercentage)
+                        .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.DOWN);
+                platformSplit.amount = platformSplit.amount.add(platformAmountCents);
+                
+                log.debug("      🏢 Plataforma: +R$ {} ({}% de R$ {})", 
+                    platformAmountCents.divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP),
+                    platformPercentage,
+                    deliveryAmount);
+            }
+        }
+
+        // Ajustar split para garantir que a soma seja exatamente 100% do valor total
+        // O Pagar.me exige que a soma dos splits seja igual ao valor total da order
+        BigDecimal totalDeliveriesAmount = deliveries.stream()
+                .map(Delivery::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        Long totalCents = totalDeliveriesAmount.multiply(BigDecimal.valueOf(100)).longValue();
+        
+        BigDecimal totalSplitCents = splitMap.values().stream()
+                .map(item -> item.amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        Long difference = totalCents - totalSplitCents.longValue();
+        
+        if (difference != 0) {
+            log.warn("   ⚠️ Diferença detectada entre total e soma dos splits: {} centavos", difference);
+            log.warn("      Total order: {} centavos | Soma splits: {} centavos", totalCents, totalSplitCents.longValue());
+            
+            // Ajustar o courier (liable) para incluir a diferença
+            SplitItem courierToAdjust = splitMap.values().stream()
+                    .filter(item -> item.isLiable && "COURIER".equals(item.userRole))
+                    .findFirst()
+                    .orElse(null);
+            
+            if (courierToAdjust != null) {
+                courierToAdjust.amount = courierToAdjust.amount.add(BigDecimal.valueOf(difference));
+                log.info("      ✅ Ajustado split do courier {} em {} centavos", 
+                    courierToAdjust.userName, difference);
+            } else {
+                log.error("      ❌ Não foi possível ajustar split - nenhum courier liable encontrado");
             }
         }
 
         // Log de resumo
         log.info("   ✅ Split calculado: {} recipients", splitMap.size());
+        BigDecimal totalSplitFinal = BigDecimal.ZERO;
         for (Map.Entry<String, SplitItem> entry : splitMap.entrySet()) {
             SplitItem item = entry.getValue();
-            BigDecimal totalReais = item.amount.divide(BigDecimal.valueOf(100));
+            BigDecimal totalReais = item.amount.divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+            totalSplitFinal = totalSplitFinal.add(item.amount);
             log.info("      {} {} ({}): R$ {} ({} centavos)",
                 item.userRole,
                 item.userName,
@@ -567,6 +668,8 @@ public class ConsolidatedPaymentService {
                 totalReais,
                 item.amount.longValue());
         }
+        log.info("   📊 Total order: R$ {} ({} centavos) | Total split: {} centavos", 
+            totalDeliveriesAmount, totalCents, totalSplitFinal.longValue());
         
         return splitMap;
     }
