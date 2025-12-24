@@ -116,6 +116,21 @@ public class PaymentResponse {
     private String statusMessage;
 
     /**
+     * Request completo enviado ao Pagar.me (JSON)
+     */
+    private String request;
+
+    /**
+     * Response completo retornado pelo Pagar.me (JSON)
+     */
+    private String response;
+
+    /**
+     * Gateway response com códigos de erro (JSON)
+     */
+    private String gatewayResponse;
+
+    /**
      * Cria um PaymentResponse a partir de um Payment
      * 
      * @param payment Payment local
@@ -128,7 +143,7 @@ public class PaymentResponse {
 
         PaymentResponseBuilder builder = PaymentResponse.builder()
                 .id(payment.getId())
-                .pagarmeOrderId(payment.getPagarmeOrderId())
+                .pagarmeOrderId(payment.getProviderPaymentId())
                 .pixQrCode(payment.getPixQrCode())
                 .pixQrCodeUrl(payment.getPixQrCodeUrl())
                 .amount(payment.getAmount())
@@ -136,7 +151,10 @@ public class PaymentResponse {
                 .expiresAt(payment.getExpiresAt())
                 .createdAt(payment.getCreatedAt())
                 .paymentDate(payment.getPaymentDate())
-                .expired(payment.isExpired());
+                .expired(payment.isExpired())
+                .request(payment.getRequest())
+                .response(payment.getResponse())
+                .gatewayResponse(payment.getGatewayResponse());
 
         // Dados da entrega (se disponível) - pegando a primeira (temporário até refatorar para N:M completo)
         if (payment.getDeliveries() != null && !payment.getDeliveries().isEmpty()) {

@@ -2,6 +2,7 @@ package com.mvt.mvt_events.controller;
 
 import com.mvt.mvt_events.dto.PaymentRequest;
 import com.mvt.mvt_events.dto.PaymentResponse;
+import com.mvt.mvt_events.payment.dto.PaymentReportResponse;
 import com.mvt.mvt_events.jpa.Payment;
 import com.mvt.mvt_events.jpa.PaymentStatus;
 import com.mvt.mvt_events.repository.PaymentRepository;
@@ -153,6 +154,22 @@ public class PaymentController {
     }
 
     /**
+     * Gerar relatório detalhado de um pagamento
+     */
+    @GetMapping("/{id}/report")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER', 'CLIENT')")
+    @Transactional(readOnly = true)
+    @Operation(
+            summary = "Gerar relatório detalhado do pagamento",
+            description = "Retorna composição completa do pagamento: deliveries, splits por delivery e splits consolidados"
+    )
+    public ResponseEntity<PaymentReportResponse> getPaymentReport(@PathVariable Long id) {
+        log.info("📊 Requisição de relatório para Payment ID: {}", id);
+        PaymentReportResponse report = paymentService.generatePaymentReport(id);
+        return ResponseEntity.ok(report);
+    }
+
+    /**
      * Atualizar status de um pagamento (somente ADMIN)
      */
     @PutMapping("/{id}/status")
@@ -257,7 +274,7 @@ public class PaymentController {
             // Caso contrário, retorna 201 Created
             log.info("📤 Novo pedido criado com sucesso!");
             log.info("   ├─ Payment ID: {}", response.getId());
-            log.info("   ├─ Pagar.me Order ID: {}", response.getPagarmeOrderId());
+            log.info("   ├─ Provider Payment ID: {}", response.getPagarmeOrderId());
             log.info("   ├─ Amount: R$ {}", response.getAmount());
             log.info("   ├─ Expires: {}", response.getExpiresAt());
             log.info("   └─ PIX QR Code: {}", response.getPixQrCode() != null ? "✅ Disponível" : "❌ Indisponível");

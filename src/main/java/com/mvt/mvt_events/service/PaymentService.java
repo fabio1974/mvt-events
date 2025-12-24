@@ -1,18 +1,24 @@
 package com.mvt.mvt_events.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mvt.mvt_events.dto.PaymentRequest;
 import com.mvt.mvt_events.dto.PaymentResponse;
+import com.mvt.mvt_events.payment.dto.PaymentReportResponse;
 import com.mvt.mvt_events.payment.service.PagarMeService;
 import com.mvt.mvt_events.jpa.*;
 import com.mvt.mvt_events.repository.DeliveryRepository;
 import com.mvt.mvt_events.repository.PaymentRepository;
+import com.mvt.mvt_events.repository.UserRepository;
+import com.mvt.mvt_events.repository.SiteConfigurationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.UUID;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -40,6 +46,10 @@ public class PaymentService {
     private final PagarMeService pagarMeService;
     private final PaymentRepository paymentRepository;
     private final DeliveryRepository deliveryRepository;
+    private final UserRepository userRepository;
+    private final SiteConfigurationRepository siteConfigurationRepository;
+    private final ObjectMapper objectMapper;
+    private final PaymentSplitCalculator splitCalculator;
 
     /**
      * Cria um pedido PIX com split automático para MÚLTIPLAS DELIVERIES.
@@ -71,7 +81,7 @@ public class PaymentService {
         // Precisa ser reescrito para usar:
         // - pagarMeService.createOrder()
         // - SplitCalculator.calculatePagarmeSplit()
-        // - Payment.setPagarmeOrderId()
+        // - Payment.setProviderPaymentId()
         
         throw new UnsupportedOperationException(
             "Payment creation temporarily disabled during Pagar.me migration. " +
@@ -170,7 +180,7 @@ public class PaymentService {
     public void processPaymentConfirmation(String orderId) {
         log.info("🔔 Processando confirmação de pagamento - Order: {}", orderId);
 
-        Payment payment = paymentRepository.findByPagarmeOrderId(orderId)
+        Payment payment = paymentRepository.findByProviderPaymentId(orderId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Payment não encontrado para order: " + orderId));
 
@@ -184,5 +194,165 @@ public class PaymentService {
 
         log.info("✅ Payment {} marcado como COMPLETED ({} deliveries pagas)", 
                 payment.getId(), payment.getDeliveriesCount());
+    }
+
+    /**
+     * Gera relatório detalhado de um pagamento consolidado.
+     * Mostra a composição completa: deliveries, splits por delivery, e splits consolidados.
+     * 
+     * @param paymentId ID do pagamento
+     * @return Relatório detalhado
+     */
+    @Transactional(readOnly = true)
+    public PaymentReportResponse generatePaymentReport(Long paymentId) {
+        log.info("📊 Gerando relatório para Payment ID: {}", paymentId);
+
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new IllegalArgumentException("Payment não encontrado: " + paymentId));
+
+        // Buscar configuração ativa para obter percentuais
+        SiteConfiguration config = siteConfigurationRepository.findActiveConfiguration()
+                .orElseThrow(() -> new IllegalStateException("Nenhuma configuração ativa encontrada"));
+
+        // Lista de deliveries do pagamento
+        List<Delivery> deliveries = payment.getDeliveries();
+        
+        // Mapa para acumular splits consolidados por recipient
+        Map<String, PaymentReportResponse.SplitItem> consolidatedSplitsMap = new HashMap<>();
+
+        // Processar cada delivery
+        List<PaymentReportResponse.DeliveryItem> deliveryItems = new ArrayList<>();
+        
+        for (Delivery delivery : deliveries) {
+            BigDecimal shippingFee = delivery.getShippingFee();
+            BigDecimal shippingFeeCents = splitCalculator.toCents(shippingFee);
+            
+            List<PaymentReportResponse.SplitItem> deliverySplits = new ArrayList<>();
+            
+            // Verificar se há organizer válido
+            boolean hasOrganizer = splitCalculator.hasValidOrganizer(delivery);
+            
+            // Split do COURIER (87% padrão)
+            if (delivery.getCourier() != null) {
+                BigDecimal courierPercentage = splitCalculator.calculateCourierPercentage(config);
+                BigDecimal courierAmount = splitCalculator.calculateCourierAmount(shippingFeeCents, config);
+                
+                PaymentReportResponse.SplitItem courierSplit = PaymentReportResponse.SplitItem.builder()
+                        .recipientId(delivery.getCourier().getPagarmeRecipientId())
+                        .recipientName(delivery.getCourier().getName())
+                        .recipientRole("COURIER")
+                        .amount(splitCalculator.toReais(courierAmount, 2))
+                        .percentage(courierPercentage)
+                        .liable(true)
+                        .build();
+                
+                deliverySplits.add(courierSplit);
+                
+                // Acumular no consolidado
+                String key = delivery.getCourier().getId() + "_COURIER";
+                consolidatedSplitsMap.merge(key, courierSplit, (existing, newSplit) -> 
+                    PaymentReportResponse.SplitItem.builder()
+                            .recipientId(existing.getRecipientId())
+                            .recipientName(existing.getRecipientName())
+                            .recipientRole(existing.getRecipientRole())
+                            .amount(existing.getAmount().add(newSplit.getAmount()))
+                            .percentage(existing.getPercentage()) // Mantém percentual
+                            .liable(existing.getLiable())
+                            .build()
+                );
+            }
+            
+            // Split do ORGANIZER (5% padrão) - apenas se existir
+            if (hasOrganizer) {
+                User organizer = delivery.getOrganizer();
+                BigDecimal organizerPercentage = config.getOrganizerPercentage();
+                BigDecimal organizerAmount = splitCalculator.calculateOrganizerAmount(shippingFeeCents, config);
+                
+                PaymentReportResponse.SplitItem organizerSplit = PaymentReportResponse.SplitItem.builder()
+                        .recipientId(organizer.getPagarmeRecipientId())
+                        .recipientName(organizer.getName())
+                        .recipientRole("ORGANIZER")
+                        .amount(splitCalculator.toReais(organizerAmount, 2))
+                        .percentage(organizerPercentage)
+                        .liable(false)
+                        .build();
+                
+                deliverySplits.add(organizerSplit);
+                
+                // Acumular no consolidado
+                String key = organizer.getId() + "_ORGANIZER";
+                consolidatedSplitsMap.merge(key, organizerSplit, (existing, newSplit) -> 
+                    PaymentReportResponse.SplitItem.builder()
+                            .recipientId(existing.getRecipientId())
+                            .recipientName(existing.getRecipientName())
+                            .recipientRole(existing.getRecipientRole())
+                            .amount(existing.getAmount().add(newSplit.getAmount()))
+                            .percentage(existing.getPercentage())
+                            .liable(existing.getLiable())
+                            .build()
+                );
+            }
+            
+            // Split da PLATAFORMA
+            // ATENÇÃO: Se não há organizer, plataforma recebe 8% + 5% = 13%
+            BigDecimal platformPercentage = splitCalculator.calculatePlatformPercentage(config, hasOrganizer);
+            BigDecimal platformAmount = splitCalculator.calculatePlatformAmount(shippingFeeCents, config, hasOrganizer);
+            
+            PaymentReportResponse.SplitItem platformSplit = PaymentReportResponse.SplitItem.builder()
+                    .recipientId(config.getPagarmeRecipientId())
+                    .recipientName("Plataforma Zapi10")
+                    .recipientRole("PLATFORM")
+                    .amount(splitCalculator.toReais(platformAmount, 2))
+                    .percentage(platformPercentage)
+                    .liable(false)
+                    .build();
+            
+            deliverySplits.add(platformSplit);
+            
+            // Acumular no consolidado
+            String platformKey = "PLATFORM";
+            consolidatedSplitsMap.merge(platformKey, platformSplit, (existing, newSplit) -> 
+                PaymentReportResponse.SplitItem.builder()
+                        .recipientId(existing.getRecipientId())
+                        .recipientName(existing.getRecipientName())
+                        .recipientRole(existing.getRecipientRole())
+                        .amount(existing.getAmount().add(newSplit.getAmount()))
+                        .percentage(existing.getPercentage())
+                        .liable(existing.getLiable())
+                        .build()
+            );
+            
+            // Criar item de delivery
+            PaymentReportResponse.DeliveryItem deliveryItem = PaymentReportResponse.DeliveryItem.builder()
+                    .deliveryId(delivery.getId())
+                    .shippingFee(shippingFee)
+                    .clientName(delivery.getClient() != null ? delivery.getClient().getName() : "N/A")
+                    .pickupAddress(delivery.getFromAddress())
+                    .deliveryAddress(delivery.getToAddress())
+                    .splits(deliverySplits)
+                    .build();
+            
+            deliveryItems.add(deliveryItem);
+        }
+        
+        // Montar relatório
+        PaymentReportResponse report = PaymentReportResponse.builder()
+                .paymentId(payment.getId())
+                .pagarmeOrderId(payment.getProviderPaymentId())
+                .status(payment.getStatus() != null ? payment.getStatus().name() : "UNKNOWN")
+                .totalAmount(payment.getAmount())
+                .currency(payment.getCurrency() != null ? payment.getCurrency().name() : "BRL")
+                .createdAt(payment.getCreatedAt())
+                .pixQrCode(payment.getPixQrCode())
+                .pixQrCodeUrl(payment.getPixQrCodeUrl())
+                .expiresAt(payment.getExpiresAt())
+                .deliveries(deliveryItems)
+                .consolidatedSplits(new ArrayList<>(consolidatedSplitsMap.values()))
+                .build();
+        
+        log.info("✅ Relatório gerado: {} deliveries, {} recipients", 
+                deliveryItems.size(), consolidatedSplitsMap.size());
+        
+        return report;
     }
 }

@@ -520,9 +520,19 @@ public class PagarMeService {
 
             String url = config.getApi().getUrl() + "/orders";
             
-            // Log da request
+            // Log do curl command completo
             try {
-                log.info("📤 JSON Request Body:\n{}", objectMapper.writeValueAsString(orderRequest));
+                String jsonBody = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(orderRequest);
+                String authHeader = headers.getFirst("Authorization");
+                
+                StringBuilder curlCommand = new StringBuilder();
+                curlCommand.append("curl -X POST '").append(url).append("' \\\n");
+                curlCommand.append("  -H 'Content-Type: application/json' \\\n");
+                curlCommand.append("  -H 'Authorization: ").append(authHeader).append("' \\\n");
+                curlCommand.append("  -d '").append(jsonBody.replace("'", "'\\''")).append("'");
+                
+                log.info("📤 CURL Command (copy-paste ready):\n{}", curlCommand.toString());
+                log.info("📤 JSON Request Body:\n{}", jsonBody);
             } catch (Exception e) {
                 log.debug("Erro ao serializar request para log", e);
             }
@@ -535,9 +545,78 @@ public class PagarMeService {
             );
 
             com.mvt.mvt_events.payment.dto.OrderResponse body = response.getBody();
+            
+            // Log da response
+            try {
+                log.info("📥 JSON Response Body:\n{}", objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(body));
+            } catch (Exception e) {
+                log.debug("Erro ao serializar response para log", e);
+            }
+            
             if (body != null && body.getId() != null) {
                 log.info("✅ Order criada com sucesso: {}", body.getId());
                 return body.getId();
+            }
+
+            throw new RuntimeException("Order criada mas sem ID na resposta");
+
+        } catch (Exception e) {
+            log.error("❌ Erro ao criar order no Pagar.me", e);
+            throw new RuntimeException("Falha ao criar order: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Cria order no Pagar.me e retorna a response completa
+     * 
+     * @param orderRequest Dados da order
+     * @return OrderResponse completo do gateway
+     */
+    public com.mvt.mvt_events.payment.dto.OrderResponse createOrderWithFullResponse(OrderRequest orderRequest) {
+        log.info("📦 Criando order no Pagar.me");
+
+        try {
+            HttpHeaders headers = createHeaders();
+            HttpEntity<OrderRequest> entity = new HttpEntity<>(orderRequest, headers);
+
+            String url = config.getApi().getUrl() + "/orders";
+            
+            // Log do curl command completo
+            try {
+                String jsonBody = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(orderRequest);
+                String authHeader = headers.getFirst("Authorization");
+                
+                StringBuilder curlCommand = new StringBuilder();
+                curlCommand.append("curl -X POST '").append(url).append("' \\\n");
+                curlCommand.append("  -H 'Content-Type: application/json' \\\n");
+                curlCommand.append("  -H 'Authorization: ").append(authHeader).append("' \\\n");
+                curlCommand.append("  -d '").append(jsonBody.replace("'", "'\\''")).append("'");
+                
+                log.info("📤 CURL Command (copy-paste ready):\n{}", curlCommand.toString());
+                log.info("📤 JSON Request Body:\n{}", jsonBody);
+            } catch (Exception e) {
+                log.debug("Erro ao serializar request para log", e);
+            }
+
+            ResponseEntity<com.mvt.mvt_events.payment.dto.OrderResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    com.mvt.mvt_events.payment.dto.OrderResponse.class
+            );
+
+            com.mvt.mvt_events.payment.dto.OrderResponse body = response.getBody();
+            
+            // Log da response
+            try {
+                log.info("📥 JSON Response Body:\n{}", objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(body));
+            } catch (Exception e) {
+                log.debug("Erro ao serializar response para log", e);
+            }
+            
+            if (body != null && body.getId() != null) {
+                log.info("✅ Order criada com sucesso: {}", body.getId());
+                return body;
             }
 
             throw new RuntimeException("Order criada mas sem ID na resposta");

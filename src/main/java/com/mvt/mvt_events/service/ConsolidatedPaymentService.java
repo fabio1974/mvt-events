@@ -1,5 +1,6 @@
 package com.mvt.mvt_events.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mvt.mvt_events.jpa.*;
 import com.mvt.mvt_events.payment.service.PagarMeService;
 import com.mvt.mvt_events.payment.dto.OrderRequest;
@@ -53,6 +54,8 @@ public class ConsolidatedPaymentService {
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
     private final ConsolidatedPaymentTaskTracker taskTracker;
+    private final ObjectMapper objectMapper;
+    private final PaymentSplitCalculator splitCalculator;
 
     /**
      * Processa consolidação de pagamentos para TODOS os clientes
@@ -327,12 +330,12 @@ public class ConsolidatedPaymentService {
     private Payment createConsolidatedPayment(User client, List<Delivery> deliveries) {
         log.info("💳 Criando pagamento consolidado para {} deliveries", deliveries.size());
 
-        // 1. Calcular valor total
+        // 1. Calcular valor total (baseado no FRETE - shippingFee)
         BigDecimal totalAmount = deliveries.stream()
-                .map(Delivery::getTotalAmount)
+                .map(Delivery::getShippingFee)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        log.info("   💹 Valor total: R$ {}", totalAmount);
+        log.info("   💹 Valor total (frete): R$ {}", totalAmount);
 
         // 2. Buscar configuração ativa
         SiteConfiguration config = siteConfigService.getActiveConfiguration();
@@ -358,7 +361,7 @@ public class ConsolidatedPaymentService {
         // 5. Criar order no Pagar.me
         try {
             String orderId = createPagarMeOrder(client, deliveries, totalAmount, splitMap, savedPayment);
-            savedPayment.setPagarmeOrderId(orderId);
+            savedPayment.setProviderPaymentId(orderId);
             paymentRepository.save(savedPayment);
             log.info("   ✅ Order Pagar.me criada: {}", orderId);
         } catch (Exception e) {
@@ -392,13 +395,13 @@ public class ConsolidatedPaymentService {
                                      Payment payment) {
         log.info("📤 Criando order no Pagar.me");
 
-        // Items: apenas referência às deliveries
+        // Items: apenas referência às deliveries (usando FRETE - shippingFee)
         List<OrderRequest.ItemRequest> items = new ArrayList<>();
         for (Delivery d : deliveries) {
-            Long amountCents = (long) (d.getTotalAmount().doubleValue() * 100); // Em centavos
+            Long amountCents = (long) (d.getShippingFee().doubleValue() * 100); // Em centavos
             items.add(OrderRequest.ItemRequest.builder()
                     .amount(amountCents)
-                    .description(String.format("Entrega #%d (Cliente: %s)", d.getId(), client.getName()))
+                    .description(String.format("Frete Entrega #%d (Cliente: %s)", d.getId(), client.getName()))
                     .quantity(1L)
                     .code("DEL-" + d.getId())
                     .build());
@@ -446,10 +449,81 @@ public class ConsolidatedPaymentService {
                 .payments(List.of(paymentRequest))
                 .build();
 
-        // Criar order
-        String orderId = pagarMeService.createOrder(orderRequest);
+        // Criar order e capturar response completo
+        com.mvt.mvt_events.payment.dto.OrderResponse orderResponse = pagarMeService.createOrderWithFullResponse(orderRequest);
+        
+        // Salvar request, response completo e gateway_response no payment para auditoria
+        try {
+            // 1. Salvar REQUEST (o que enviamos ao Pagar.me)
+            String requestJson = objectMapper.writeValueAsString(orderRequest);
+            payment.setRequest(requestJson);
+            log.info("✅ Request salvo no payment (tamanho: {} bytes)", requestJson.length());
+            
+            // 2. Salvar RESPONSE completo (o que o Pagar.me retornou)
+            String responseJson = objectMapper.writeValueAsString(orderResponse);
+            payment.setResponse(responseJson);
+            log.info("✅ Response completo salvo no payment (tamanho: {} bytes)", responseJson.length());
+            log.info("📋 Response status: {}, charges: {}", 
+                orderResponse.getStatus(), 
+                orderResponse.getCharges() != null ? orderResponse.getCharges().size() : 0);
+            
+            // 3. Mapear e salvar STATUS do Pagar.me para PaymentStatus
+            PaymentStatus mappedStatus = mapPagarMeStatusToPaymentStatus(orderResponse.getStatus());
+            payment.setStatus(mappedStatus);
+            log.info("✅ Status mapeado: '{}' (Pagar.me) -> {} (PaymentStatus)", 
+                orderResponse.getStatus(), mappedStatus);
+            
+            // 4. Extrair e salvar qr_code, qr_code_url, pix_qr_code e pix_qr_code_url de charges[0].last_transaction
+            if (orderResponse.getCharges() != null && !orderResponse.getCharges().isEmpty()) {
+                var firstCharge = orderResponse.getCharges().get(0);
+                log.info("📋 First charge - status: {}, lastTransaction presente: {}", 
+                    firstCharge.getStatus(), 
+                    firstCharge.getLastTransaction() != null);
+                
+                if (firstCharge.getLastTransaction() != null) {
+                    var transaction = firstCharge.getLastTransaction();
+                    log.info("📋 Transaction - status: {}, gatewayResponse presente: {}, qrCode presente: {}", 
+                        transaction.getStatus(), 
+                        transaction.getGatewayResponse() != null,
+                        transaction.getQrCode() != null);
+                    
+                    // Salvar qr_code e qr_code_url (novos campos)
+                    if (transaction.getQrCode() != null) {
+                        payment.setQrCode(transaction.getQrCode());
+                        // Também salvar em pixQrCode para compatibilidade
+                        payment.setPixQrCode(transaction.getQrCode());
+                        log.info("✅ QR Code salvo no payment (tamanho: {} caracteres)", 
+                            transaction.getQrCode().length());
+                    }
+                    
+                    if (transaction.getQrCodeUrl() != null) {
+                        payment.setQrCodeUrl(transaction.getQrCodeUrl());
+                        // Também salvar em pixQrCodeUrl para compatibilidade
+                        payment.setPixQrCodeUrl(transaction.getQrCodeUrl());
+                        log.info("✅ QR Code URL salvo no payment: {}", transaction.getQrCodeUrl());
+                    }
+                    
+                    // Verificar se existe gateway_response na transação
+                    if (transaction.getGatewayResponse() != null) {
+                        String gatewayResponseJson = objectMapper.writeValueAsString(transaction.getGatewayResponse());
+                        payment.setGatewayResponse(gatewayResponseJson);
+                        log.info("✅ Gateway response salvo no payment (tamanho: {} bytes, code: {})", 
+                            gatewayResponseJson.length(),
+                            transaction.getGatewayResponse().getCode());
+                    } else {
+                        log.warn("⚠️ gateway_response é NULL na transação (provavelmente sucesso)");
+                    }
+                } else {
+                    log.warn("⚠️ lastTransaction é NULL no charge");
+                }
+            } else {
+                log.warn("⚠️ Nenhum charge encontrado na response");
+            }
+        } catch (Exception e) {
+            log.error("⚠️ Erro ao serializar request/response/gateway_response", e);
+        }
 
-        return orderId;
+        return orderResponse.getId();
     }
 
     /**
@@ -474,34 +548,31 @@ public class ConsolidatedPaymentService {
         Map<String, SplitItem> splitMap = new HashMap<>();
         
         // Percentuais da config (valores entre 0 e 100)
-        BigDecimal organizerPercentage = config.getOrganizerPercentage(); // ex: 5.00 = 5%
-        BigDecimal platformPercentage = config.getPlatformPercentage(); // ex: 8.00 = 8%
-        String platformRecipientId = config.getPagarmeRecipientId(); // ID do recipient da plataforma
-        
-        // Courier recebe o restante
-        BigDecimal courierPercentage = BigDecimal.valueOf(100)
-                .subtract(organizerPercentage)
-                .subtract(platformPercentage); // ex: 100 - 5 - 8 = 87%
+        BigDecimal courierPercentage = splitCalculator.calculateCourierPercentage(config);
+        BigDecimal organizerPercentage = config.getOrganizerPercentage();
+        String platformRecipientId = config.getPagarmeRecipientId();
         
         if (platformRecipientId != null && !platformRecipientId.isBlank()) {
-            log.info("   📊 Percentuais: Courier={}%, Organizer={}%, Plataforma={}% (split explícito: {})",
-                    courierPercentage, organizerPercentage, platformPercentage, platformRecipientId);
+            log.info("   📊 Percentuais base: Courier={}%, Organizer={}%, Plataforma={}% (split explícito: {})",
+                    courierPercentage, organizerPercentage, config.getPlatformPercentage(), platformRecipientId);
         } else {
-            log.info("   📊 Percentuais: Courier={}%, Organizer={}%, Plataforma={}% (retido automaticamente - SEM recipient configurado)",
-                    courierPercentage, organizerPercentage, platformPercentage);
+            log.info("   📊 Percentuais base: Courier={}%, Organizer={}%, Plataforma={}% (retido automaticamente)",
+                    courierPercentage, organizerPercentage, config.getPlatformPercentage());
         }
         
         // Processar cada delivery individualmente
         for (Delivery delivery : deliveries) {
             User courier = delivery.getCourier();
-            User organizer = delivery.getOrganizer();
-            BigDecimal deliveryAmount = delivery.getTotalAmount(); // Frete da delivery
-            Long deliveryAmountCents = deliveryAmount.multiply(BigDecimal.valueOf(100)).longValue();
+            BigDecimal deliveryAmount = delivery.getShippingFee();
+            BigDecimal deliveryAmountCents = splitCalculator.toCents(deliveryAmount);
             
             log.debug("   📦 Delivery #{} - Frete: R$ {} ({} centavos)", 
-                delivery.getId(), deliveryAmount, deliveryAmountCents);
+                delivery.getId(), deliveryAmount, deliveryAmountCents.longValue());
             
-            // Split para Courier (restante: 100% - organizer% - platform%)
+            // Verificar se há organizer válido
+            boolean hasOrganizer = splitCalculator.hasValidOrganizer(delivery);
+            
+            // Split para Courier
             if (courier != null && courier.getPagarmeRecipientId() != null) {
                 String courierKey = "courier-" + courier.getId();
                 SplitItem courierSplit = splitMap.get(courierKey);
@@ -510,31 +581,27 @@ public class ConsolidatedPaymentService {
                     courierSplit = new SplitItem();
                     courierSplit.pagarmeRecipientId = courier.getPagarmeRecipientId();
                     courierSplit.amount = BigDecimal.ZERO;
-                    courierSplit.isLiable = true; // Courier é liable
+                    courierSplit.isLiable = true;
                     courierSplit.userName = courier.getName();
                     courierSplit.userRole = "COURIER";
                     splitMap.put(courierKey, courierSplit);
                 }
                 
-                // Calcular percentual do courier em centavos (ex: 87% de R$ 100,00 = R$ 87,00 = 8700 centavos)
-                BigDecimal courierAmountCents = BigDecimal.valueOf(deliveryAmountCents)
-                        .multiply(courierPercentage)
-                        .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.DOWN);
+                BigDecimal courierAmountCents = splitCalculator.calculateCourierAmount(deliveryAmountCents, config);
                 courierSplit.amount = courierSplit.amount.add(courierAmountCents);
                 
                 log.debug("      💼 Courier {}: +R$ {} ({}% de R$ {})", 
                     courier.getName(), 
-                    courierAmountCents.divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP),
+                    splitCalculator.toReais(courierAmountCents, 2),
                     courierPercentage,
                     deliveryAmount);
             } else {
                 log.warn("      ⚠️ Courier sem pagarmeRecipientId na delivery #{}", delivery.getId());
             }
             
-            // Split para Organizer (ex: 5% do frete desta delivery)
-            boolean hasOrganizer = false;
-            if (organizer != null && organizer.getPagarmeRecipientId() != null) {
-                hasOrganizer = true;
+            // Split para Organizer (apenas se existir)
+            if (hasOrganizer) {
+                User organizer = delivery.getOrganizer();
                 String organizerKey = "organizer-" + organizer.getId();
                 SplitItem organizerSplit = splitMap.get(organizerKey);
                 
@@ -548,53 +615,21 @@ public class ConsolidatedPaymentService {
                     splitMap.put(organizerKey, organizerSplit);
                 }
                 
-                // Calcular percentual do organizer em centavos (ex: 5% de R$ 100,00 = R$ 5,00 = 500 centavos)
-                BigDecimal organizerAmountCents = BigDecimal.valueOf(deliveryAmountCents)
-                        .multiply(organizerPercentage)
-                        .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.DOWN);
+                BigDecimal organizerAmountCents = splitCalculator.calculateOrganizerAmount(deliveryAmountCents, config);
                 organizerSplit.amount = organizerSplit.amount.add(organizerAmountCents);
                 
                 log.debug("      👔 Organizer {}: +R$ {} ({}% de R$ {})", 
                     organizer.getName(),
-                    organizerAmountCents.divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP),
+                    splitCalculator.toReais(organizerAmountCents, 2),
                     organizerPercentage,
                     deliveryAmount);
             } else {
-                log.warn("      ⚠️ Organizer sem pagarmeRecipientId na delivery #{} - redistribuindo valor", delivery.getId());
-                
-                // Quando NÃO há organizer, o valor dele é repartido entre courier e plataforma (50% cada)
-                BigDecimal organizerAmountCents = BigDecimal.valueOf(deliveryAmountCents)
-                        .multiply(organizerPercentage)
-                        .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.DOWN);
-                
-                BigDecimal halfOrganizerAmount = organizerAmountCents
-                        .divide(BigDecimal.valueOf(2), 0, java.math.RoundingMode.DOWN);
-                
-                // Adicionar metade ao courier
-                if (courier != null && courier.getPagarmeRecipientId() != null) {
-                    String courierKey = "courier-" + courier.getId();
-                    SplitItem courierSplit = splitMap.get(courierKey);
-                    if (courierSplit != null) {
-                        courierSplit.amount = courierSplit.amount.add(halfOrganizerAmount);
-                        log.debug("      ➕ Courier {}: +R$ {} (50% do organizer redistribuído)", 
-                            courier.getName(),
-                            halfOrganizerAmount.divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP));
-                    }
-                }
-                
-                // Adicionar metade à plataforma (se configurada)
-                if (platformRecipientId != null && !platformRecipientId.isBlank()) {
-                    String platformKey = "platform";
-                    SplitItem platformSplit = splitMap.get(platformKey);
-                    if (platformSplit != null) {
-                        platformSplit.amount = platformSplit.amount.add(halfOrganizerAmount);
-                        log.debug("      ➕ Plataforma: +R$ {} (50% do organizer redistribuído)", 
-                            halfOrganizerAmount.divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP));
-                    }
-                }
+                log.warn("      ⚠️ Sem organizer na delivery #{} - plataforma incorpora +{}%", 
+                    delivery.getId(), organizerPercentage);
             }
             
-            // Split para Plataforma (ex: 8% do frete desta delivery) - SE CONFIGURADO
+            // Split para Plataforma (SE CONFIGURADO)
+            // ATENÇÃO: Quando não há organizer, a plataforma recebe +5% (total 13%)
             if (platformRecipientId != null && !platformRecipientId.isBlank()) {
                 String platformKey = "platform";
                 SplitItem platformSplit = splitMap.get(platformKey);
@@ -609,15 +644,15 @@ public class ConsolidatedPaymentService {
                     splitMap.put(platformKey, platformSplit);
                 }
                 
-                // Calcular percentual da plataforma em centavos (ex: 8% de R$ 100,00 = R$ 8,00 = 800 centavos)
-                BigDecimal platformAmountCents = BigDecimal.valueOf(deliveryAmountCents)
-                        .multiply(platformPercentage)
-                        .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.DOWN);
+                // Calcular valor da plataforma (8% base, ou 13% se não houver organizer)
+                BigDecimal platformAmountCents = splitCalculator.calculatePlatformAmount(
+                    deliveryAmountCents, config, hasOrganizer);
                 platformSplit.amount = platformSplit.amount.add(platformAmountCents);
                 
+                BigDecimal actualPercentage = splitCalculator.calculatePlatformPercentage(config, hasOrganizer);
                 log.debug("      🏢 Plataforma: +R$ {} ({}% de R$ {})", 
-                    platformAmountCents.divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP),
-                    platformPercentage,
+                    splitCalculator.toReais(platformAmountCents, 2),
+                    actualPercentage,
                     deliveryAmount);
             }
         }
@@ -625,7 +660,7 @@ public class ConsolidatedPaymentService {
         // Ajustar split para garantir que a soma seja exatamente 100% do valor total
         // O Pagar.me exige que a soma dos splits seja igual ao valor total da order
         BigDecimal totalDeliveriesAmount = deliveries.stream()
-                .map(Delivery::getTotalAmount)
+                .map(Delivery::getShippingFee)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         Long totalCents = totalDeliveriesAmount.multiply(BigDecimal.valueOf(100)).longValue();
         
@@ -731,16 +766,62 @@ public class ConsolidatedPaymentService {
 
     /**
      * Constrói phones request para Pagar.me
+     * Pegar.me requer pelo menos um telefone (home_phone ou mobile_phone)
      */
     private OrderRequest.PhonesRequest buildPhonesRequest(User client) {
-        // TODO: Implementar conforme estrutura de phones do User
-        // Por enquanto, retornar vazio
-        return null;
+        // Verificar se o cliente tem DDD e número de telefone
+        if (client.getPhoneDdd() == null || client.getPhoneNumber() == null) {
+            log.warn("⚠️ Cliente {} não tem telefone cadastrado. Pagar.me requer pelo menos um telefone.", client.getName());
+            return null;
+        }
+        
+        // Criar mobile_phone (celular) com os dados do cliente
+        OrderRequest.PhoneRequest mobilePhone = OrderRequest.PhoneRequest.builder()
+                .countryCode("55") // Brasil
+                .areaCode(client.getPhoneDdd()) // DDD (ex: "88")
+                .number(client.getPhoneNumber()) // Número sem DDD (ex: "999999999")
+                .build();
+        
+        log.debug("📱 Telefone criado para Pagar.me: +55 ({}) {}", client.getPhoneDdd(), client.getPhoneNumber());
+        
+        return OrderRequest.PhonesRequest.builder()
+                .mobilePhone(mobilePhone)
+                .build();
     }
 
     /**
-     * Classe interna para representar item de split
+     * Mapeia status do Pagar.me para PaymentStatus
+     * 
+     * Status Pagar.me:
+     * - pending: Aguardando pagamento (PIX gerado mas não pago)
+     * - paid: Pagamento confirmado
+     * - failed: Pagamento falhou (dados inválidos, split rejeitado, etc)
+     * - canceled: Pagamento cancelado
+     * - processing: Processando pagamento
+     * 
+     * @param pagarmeStatus Status retornado pelo Pagar.me
+     * @return PaymentStatus correspondente
      */
+    private PaymentStatus mapPagarMeStatusToPaymentStatus(String pagarmeStatus) {
+        if (pagarmeStatus == null) {
+            log.warn("⚠️ Status do Pagar.me é NULL, usando PENDING como fallback");
+            return PaymentStatus.PENDING;
+        }
+        
+        return switch (pagarmeStatus.toLowerCase()) {
+            case "pending" -> PaymentStatus.PENDING;
+            case "paid" -> PaymentStatus.COMPLETED;
+            case "failed" -> PaymentStatus.FAILED;
+            case "canceled", "cancelled" -> PaymentStatus.CANCELLED;
+            case "processing" -> PaymentStatus.PROCESSING;
+            case "refunded" -> PaymentStatus.REFUNDED;
+            default -> {
+                log.warn("⚠️ Status desconhecido do Pagar.me: '{}', usando PENDING como fallback", pagarmeStatus);
+                yield PaymentStatus.PENDING;
+            }
+        };
+    }
+
     /**
      * Classe interna para representar item de split
      */

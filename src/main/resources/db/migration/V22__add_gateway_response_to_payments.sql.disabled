@@ -1,0 +1,5 @@
+-- Add gateway_response column to store the full API response from payment gateway
+ALTER TABLE payments 
+ADD COLUMN gateway_response JSONB;
+
+COMMENT ON COLUMN payments.gateway_response IS 'Full JSON response from payment gateway (Pagar.me, Iugu, etc.) for debugging and audit purposes';

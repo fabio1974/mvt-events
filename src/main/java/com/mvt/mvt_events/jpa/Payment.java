@@ -44,7 +44,7 @@ public class Payment extends BaseEntity {
         inverseJoinColumns = @JoinColumn(name = "delivery_id")
     )
     @JsonIgnore
-    @Visible(table = true, form = true, filter = true)
+    @Visible(table = false, form = false, filter = false)
     private List<Delivery> deliveries = new ArrayList<>();
 
     @NotNull(message = "Pagador é obrigatório")
@@ -98,7 +98,7 @@ public class Payment extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "provider", length = 50)
-    @Visible(table = true, form = true, filter = true)
+    @Visible(table = false, form = false, filter = false)
     private PaymentProvider provider; // Gateway de pagamento (Pagar.me, Stripe, etc)
 
     @Column(name = "provider_payment_id", length = 100)
@@ -127,13 +127,6 @@ public class Payment extends BaseEntity {
     // ============================================================================
 
     /**
-     * ID da order no Pagar.me
-     */
-    @Column(name = "pagarme_order_id", length = 100, unique = true)
-    @Visible(table = false, form = false, filter = true)
-    private String pagarmeOrderId;
-
-    /**
      * PIX QR Code (copia e cola)
      */
     @Column(name = "pix_qr_code", columnDefinition = "TEXT")
@@ -148,12 +141,58 @@ public class Payment extends BaseEntity {
     private String pixQrCodeUrl;
 
     /**
+     * QR Code extraído de charges[0].last_transaction.qr_code do response Pagar.me
+     */
+    @Column(name = "qr_code", columnDefinition = "TEXT")
+    @Visible(table = false, form = false, filter = false)
+    private String qrCode;
+
+    /**
+     * URL do QR Code extraído de charges[0].last_transaction.qr_code_url do response Pagar.me
+     */
+    @Column(name = "qr_code_url", columnDefinition = "TEXT")
+    @Visible(table = false, form = false, filter = false)
+    private String qrCodeUrl;
+
+    /**
      * Regras de split em formato JSON
      */
     @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(name = "split_rules", columnDefinition = "JSONB")
     @Visible(table = false, form = false, filter = false)
     private String splitRules;
+
+    /**
+     * Extrato específico do gateway_response retornado pelo Pagar.me
+     * Contém apenas a parte "gateway_response" do response completo,
+     * que inclui códigos de erro e mensagens de validação.
+     * Exemplo: {"code": "400", "errors": [{"message": "At least one customer phone is required."}]}
+     * Deixar vazio se a chave "gateway_response" não existir no response.
+     */
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "gateway_response", columnDefinition = "JSONB")
+    @Visible(table = false, form = false, filter = false)
+    private String gatewayResponse;
+
+    /**
+     * Request completo enviado para criar o pagamento no gateway (Pagar.me, Iugu, etc.)
+     * Armazena o payload completo da requisição enviada ao gateway de pagamento
+     * para fins de auditoria e debugging.
+     */
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "request", columnDefinition = "JSONB")
+    @Visible(table = false, form = false, filter = false)
+    private String request;
+
+    /**
+     * Response completo retornado pelo gateway de pagamento (Pagar.me, Iugu, etc.)
+     * Armazena o payload completo da resposta recebida do gateway após criar o pagamento.
+     * Inclui todos os dados: order ID, status, charges, PIX data, timestamps, etc.
+     */
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "response", columnDefinition = "JSONB")
+    @Visible(table = false, form = false, filter = false)
+    private String response;
 
     // ============================================================================
     // HELPER METHODS
@@ -256,7 +295,7 @@ public class Payment extends BaseEntity {
      * Verifica se é um pagamento via Pagar.me
      */
     public boolean isPagarmePayment() {
-        return pagarmeOrderId != null && !pagarmeOrderId.isBlank();
+        return providerPaymentId != null && !providerPaymentId.isBlank() && provider == PaymentProvider.PAGARME;
     }
 
     /**
