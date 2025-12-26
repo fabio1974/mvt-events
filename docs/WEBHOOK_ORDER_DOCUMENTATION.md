@@ -4,7 +4,7 @@
 
 O sistema possui um webhook endpoint dedicado para receber notificações automáticas do Pagar.me sobre mudanças de status de orders (pagamentos).
 
-**URL do Webhook:** `POST /webhooks/order`
+**URL do Webhook:** `POST /api/webhooks/order`
 
 ---
 
@@ -12,7 +12,7 @@ O sistema possui um webhook endpoint dedicado para receber notificações autom�
 
 ### URL para Produção
 ```
-https://seu-dominio.com/webhooks/order
+https://seu-dominio.com/api/webhooks/order
 ```
 
 ### Passos para Configurar no Dashboard Pagar.me
@@ -21,7 +21,7 @@ https://seu-dominio.com/webhooks/order
 2. Vá em **Configurações > Webhooks**
 3. Clique em **Adicionar Webhook**
 4. Preencha os campos:
-   - **URL:** `https://seu-dominio.com/webhooks/order`
+   - **URL:** `https://seu-dominio.com/api/webhooks/order`
    - **Versão:** `1` (ou a versão mais recente)
    - **Eventos:** Selecione os eventos de order:
      - `order.paid` - Pagamento confirmado
@@ -129,7 +129,7 @@ boolean isValid = expectedSignature.equals(receivedSignature);
 ```mermaid
 sequenceDiagram
     participant PagarMe
-    participant Webhook as /webhooks/order
+    participant Webhook as /api/webhooks/order
     participant Service as PaymentRepository
     participant DB as PostgreSQL
 
@@ -229,14 +229,14 @@ sequenceDiagram
 ### 1. Health Check
 
 ```bash
-curl -X GET https://seu-dominio.com/webhooks/order/health
+curl -X GET https://seu-dominio.com/api/webhooks/order/health
 ```
 
 **Resposta:**
 ```json
 {
   "status": "UP",
-  "endpoint": "/webhooks/order",
+  "endpoint": "/api/webhooks/order",
   "message": "✅ Webhook endpoint operacional",
   "info": "Configure esta URL no painel do Pagar.me"
 }
@@ -262,7 +262,7 @@ SECRET="seu_webhook_secret"
 SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "$SECRET" | awk '{print $2}')
 
 # Passo 3: Enviar requisição
-curl -X POST http://localhost:8080/webhooks/order \
+curl -X POST http://localhost:8080/api/webhooks/order \
   -H "Content-Type: application/json" \
   -H "X-Hub-Signature: sha256=$SIGNATURE" \
   -d "$PAYLOAD"
@@ -279,7 +279,7 @@ curl -X POST https://api.pagar.me/core/v5/webhooks/test \
   -H "Content-Type: application/json" \
   -d '{
     "event_type": "order.paid",
-    "webhook_url": "https://seu-dominio.com/webhooks/order"
+    "webhook_url": "https://seu-dominio.com/api/webhooks/order"
   }'
 ```
 
@@ -290,7 +290,7 @@ curl -X POST https://api.pagar.me/core/v5/webhooks/test \
 O webhook gera logs detalhados para facilitar troubleshooting:
 
 ```log
-🔔 Webhook recebido em /webhooks/order
+🔔 Webhook recebido em /api/webhooks/order
 📋 Event ID: hook_abc123
 📋 Event Type: order.paid
 📋 Payload: {"id":"hook_abc123","type":"order.paid",...}
@@ -308,7 +308,7 @@ O webhook gera logs detalhados para facilitar troubleshooting:
 ## 📝 Checklist de Deploy
 
 - [ ] Configurar secret do webhook em `application.yml`
-- [ ] Configurar URL do webhook no Dashboard Pagar.me (`https://seu-dominio.com/webhooks/order`)
+- [ ] Configurar URL do webhook no Dashboard Pagar.me (`https://seu-dominio.com/api/webhooks/order`)
 - [ ] Selecionar eventos: `order.paid`, `order.payment_failed`, `order.canceled`
 - [ ] Testar webhook com payload de teste
 - [ ] Validar logs de processamento
@@ -368,6 +368,6 @@ WHERE provider_payment_id = 'or_456def789';
 
 ## 🎉 Pronto!
 
-O webhook `/webhooks/order` está pronto para uso em produção! 🚀
+O webhook `/api/webhooks/order` está pronto para uso em produção! 🚀
 
 Configure no Pagar.me e os pagamentos serão atualizados automaticamente. ✨

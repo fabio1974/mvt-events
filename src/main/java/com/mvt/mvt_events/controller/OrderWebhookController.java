@@ -22,7 +22,7 @@ import java.util.Map;
  * 
  * <p><strong>URL para configurar no Pagar.me:</strong></p>
  * <pre>
- * Produção: https://seu-dominio.com/webhooks/order
+ * Produção: https://seu-dominio.com/api/webhooks/order
  * </pre>
  * 
  * <p><strong>Eventos suportados:</strong></p>
@@ -44,7 +44,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/webhooks")
+@RequestMapping("/api/webhooks")
 @RequiredArgsConstructor
 @Tag(name = "Webhooks", description = "Recebimento de notificações de mudança de status")
 public class OrderWebhookController {
@@ -73,7 +73,7 @@ public class OrderWebhookController {
             @RequestHeader(value = "X-Hub-Signature", required = false) String signature,
             @RequestBody String payload
     ) {
-        log.info("🔔 Webhook recebido em /webhooks/order");
+log.info("🔔 Webhook recebido em /api/webhooks/order");
         
         try {
             // 1. Parse do payload
@@ -235,7 +235,7 @@ public class OrderWebhookController {
     public ResponseEntity<Map<String, String>> health() {
         return ResponseEntity.ok(Map.of(
                 "status", "UP",
-                "endpoint", "/webhooks/order",
+                "endpoint", "/api/webhooks/order",
                 "message", "✅ Webhook endpoint operacional",
                 "info", "Configure esta URL no painel do Pagar.me"
         ));
