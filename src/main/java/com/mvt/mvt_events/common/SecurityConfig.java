@@ -41,6 +41,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/events/public", "/api/events/public/**").permitAll()
                         .requestMatchers("/api/webhooks/**").permitAll() // Permitir todos os webhooks
                         .requestMatchers("/api/payments/webhooks/**").permitAll() // Permitir webhooks de pagamento
+                        .requestMatchers("/webhooks/**").permitAll() // Permitir webhooks (path sem /api)
                         .requestMatchers("/api/payments/methods").permitAll() // Permitir consulta de métodos
                         .requestMatchers("/api/payments/calculate-fee").permitAll() // Permitir cálculo de taxa
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll() // Swagger

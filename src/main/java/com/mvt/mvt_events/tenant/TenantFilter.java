@@ -32,6 +32,7 @@ public class TenantFilter extends OncePerRequestFilter {
                 path.startsWith("/api/metadata") ||
                 path.startsWith("/api/events/public") ||
                 path.startsWith("/api/webhooks/") ||
+                path.startsWith("/webhooks/") || // Novo path sem /api
                 path.startsWith("/api/payments/webhooks/") ||
                 path.startsWith("/api/payments/methods") ||
                 path.startsWith("/api/payments/calculate-fee") ||

@@ -1,0 +1,5 @@
+Starting a Gradle Daemon, 1 busy Daemon could not be reused, use --status for details
+> Task :compileJava
+
+BUILD SUCCESSFUL in 7s
+1 actionable task: 1 executed
