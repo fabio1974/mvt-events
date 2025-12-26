@@ -41,11 +41,13 @@ public class ConsolidatedPaymentScheduler {
      * Timezone: America/Fortaleza (horário de Fortaleza - CE)
      * 
      * Sincronização: lockProvider necessário para ambientes com múltiplas instâncias
+     * 
+     * NOTA: Cron job temporariamente desabilitado. Descomente @Scheduled para reativar.
      */
-    @Scheduled(
-        cron = "0 0 0,4,8,12,16,20 * * *",
-        zone = "America/Fortaleza"
-    )
+    // @Scheduled(
+    //     cron = "0 0 0,4,8,12,16,20 * * *",
+    //     zone = "America/Fortaleza"
+    // )
     public void consolidatePaymentsEvery4Hours() {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         log.info("╔════════════════════════════════════════════════════════════════╗");
