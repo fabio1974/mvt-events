@@ -413,6 +413,7 @@ public class ConsolidatedPaymentService {
 
         // Split: valores absolutos em centavos para cada recipient
         List<OrderRequest.SplitRequest> splits = new ArrayList<>();
+        boolean firstLiableRecipient = true;  // Apenas o primeiro liable recebe chargeRemainderFee
         for (SplitItem item : splitMap.values()) {
             Long amountCents = item.amount != null ? item.amount.longValue() : 0L;
             
@@ -421,17 +422,24 @@ public class ConsolidatedPaymentService {
                 item.amount.divide(BigDecimal.valueOf(100)),
                 amountCents);
             
+            // Apenas o PRIMEIRO recipient liable pode ter chargeRemainderFee=true
+            boolean shouldChargeRemainder = item.isLiable && firstLiableRecipient;
+            
             OrderRequest.SplitRequest split = OrderRequest.SplitRequest.builder()
                     .amount(amountCents.intValue())  // Valor absoluto em centavos
                     .recipientId(item.pagarmeRecipientId)
                     .type("flat")  // flat = valor absoluto (não percentual)
                     .options(OrderRequest.SplitOptionsRequest.builder()
                             .chargeProcessingFee(item.isLiable)
-                            .chargeRemainderFee(item.isLiable)
+                            .chargeRemainderFee(shouldChargeRemainder)
                             .liable(item.isLiable)
                             .build())
                     .build();
             splits.add(split);
+            
+            if (item.isLiable && firstLiableRecipient) {
+                firstLiableRecipient = false;  // Próximos liable não terão chargeRemainderFee
+            }
         }
 
         // Payment
