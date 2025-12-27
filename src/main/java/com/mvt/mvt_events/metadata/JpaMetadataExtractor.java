@@ -346,10 +346,9 @@ public class JpaMetadataExtractor {
         ENUM_TRANSLATIONS.put("ACCEPTED", "Aceita");
         ENUM_TRANSLATIONS.put("PICKED_UP", "Coletada");
         ENUM_TRANSLATIONS.put("IN_TRANSIT", "Em Trânsito");
-        // Sobrescrever STATUS genéricos para usar no contexto de Delivery (feminino)
-        ENUM_TRANSLATIONS.put("PENDING", "Pendente");
-        ENUM_TRANSLATIONS.put("COMPLETED", "Concluída");
-        ENUM_TRANSLATIONS.put("CANCELLED", "Cancelada");
+        // Nota: PENDING, COMPLETED e CANCELLED já estão definidos na seção STATUS genérica
+        // Para Delivery: COMPLETED = "Pago" (compartilhado com Payment)
+        // Se precisar de traduções diferentes por contexto, seria necessário refatorar o sistema
 
         // ==================== ZAPI10 - VEHICLE TYPE ====================
         ENUM_TRANSLATIONS.put("MOTORCYCLE", "Moto");
