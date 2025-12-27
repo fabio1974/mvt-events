@@ -8,6 +8,20 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
+import java.util.TimeZone;
+
+/**
+ * Configuração do Jackson para serialização JSON
+ * 
+ * <p><strong>Timezone Strategy:</strong></p>
+ * <ul>
+ *   <li>Banco de dados: Armazena em UTC (timezone zero)</li>
+ *   <li>Backend API: Retorna datas em formato ISO-8601 com timezone Brazil/East (America/Fortaleza)</li>
+ *   <li>Frontend: Recebe datas já convertidas para o timezone local</li>
+ * </ul>
+ * 
+ * <p>Exemplo: Banco salva "2024-01-15 10:00:00 UTC" → API retorna "2024-01-15T07:00:00-03:00"</p>
+ */
 @Configuration
 public class JacksonConfig {
 
@@ -28,6 +42,11 @@ public class JacksonConfig {
 
         // Desabilita serialização de datas como timestamps (arrays)
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        // Configura timezone para America/Fortaleza (Brasília - UTC-3)
+        // Isso converte automaticamente todas as datas de UTC para o timezone configurado
+        // quando serializar para JSON (LocalDateTime → ZonedDateTime → String ISO-8601)
+        mapper.setTimeZone(TimeZone.getTimeZone("America/Fortaleza"));
 
         return mapper;
     }
