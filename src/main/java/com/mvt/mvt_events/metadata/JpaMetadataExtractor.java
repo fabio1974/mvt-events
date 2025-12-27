@@ -285,7 +285,8 @@ public class JpaMetadataExtractor {
         ENUM_TRANSLATIONS.put("DRAFT", "Rascunho");
         ENUM_TRANSLATIONS.put("PUBLISHED", "Publicado");
         ENUM_TRANSLATIONS.put("CANCELLED", "Cancelado");
-        ENUM_TRANSLATIONS.put("COMPLETED", "Pago");
+        ENUM_TRANSLATIONS.put("PAID", "Pago");
+        ENUM_TRANSLATIONS.put("COMPLETED", "Concluída");
         ENUM_TRANSLATIONS.put("PENDING", "Pendente");
         ENUM_TRANSLATIONS.put("ACTIVE", "Ativa");
         ENUM_TRANSLATIONS.put("PROCESSING", "Processando");

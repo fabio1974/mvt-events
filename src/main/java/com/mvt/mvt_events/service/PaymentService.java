@@ -128,7 +128,7 @@ public class PaymentService {
             boolean hasOverlap = existingDeliveryIds.stream().anyMatch(requestedDeliveryIds::contains);
             
             if (hasOverlap) {
-                String status = existingPayment.getStatus() == PaymentStatus.COMPLETED ? "PAGO" : "PENDENTE";
+                String status = existingPayment.getStatus() == PaymentStatus.PAID ? "PAGO" : "PENDENTE";
                 String deliveriesStr = existingDeliveryIds.stream()
                         .map(String::valueOf)
                         .collect(Collectors.joining(", "));
@@ -184,7 +184,7 @@ public class PaymentService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Payment não encontrado para order: " + orderId));
 
-        if (payment.getStatus() == PaymentStatus.COMPLETED) {
+        if (payment.getStatus() == PaymentStatus.PAID) {
             log.warn("⚠️ Payment já estava COMPLETED: {}", payment.getId());
             return;
         }

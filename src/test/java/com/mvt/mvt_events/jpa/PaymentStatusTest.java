@@ -12,23 +12,25 @@ class PaymentStatusTest {
     void testAllPaymentStatuses() {
         PaymentStatus[] statuses = PaymentStatus.values();
 
-        assertEquals(6, statuses.length);
+        assertEquals(7, statuses.length);
         assertTrue(contains(statuses, PaymentStatus.PENDING));
         assertTrue(contains(statuses, PaymentStatus.PROCESSING));
-        assertTrue(contains(statuses, PaymentStatus.COMPLETED));
+        assertTrue(contains(statuses, PaymentStatus.PAID));
         assertTrue(contains(statuses, PaymentStatus.FAILED));
         assertTrue(contains(statuses, PaymentStatus.REFUNDED));
         assertTrue(contains(statuses, PaymentStatus.CANCELLED));
+        assertTrue(contains(statuses, PaymentStatus.EXPIRED));
     }
 
     @Test
     void testPaymentStatusValueOf() {
         assertEquals(PaymentStatus.PENDING, PaymentStatus.valueOf("PENDING"));
         assertEquals(PaymentStatus.PROCESSING, PaymentStatus.valueOf("PROCESSING"));
-        assertEquals(PaymentStatus.COMPLETED, PaymentStatus.valueOf("COMPLETED"));
+        assertEquals(PaymentStatus.PAID, PaymentStatus.valueOf("PAID"));
         assertEquals(PaymentStatus.FAILED, PaymentStatus.valueOf("FAILED"));
         assertEquals(PaymentStatus.REFUNDED, PaymentStatus.valueOf("REFUNDED"));
         assertEquals(PaymentStatus.CANCELLED, PaymentStatus.valueOf("CANCELLED"));
+        assertEquals(PaymentStatus.EXPIRED, PaymentStatus.valueOf("EXPIRED"));
     }
 
     @Test

@@ -141,7 +141,7 @@ log.info("🔔 Webhook recebido em /api/webhooks/order");
             payment.setStatus(newStatus);
             
             // Se for pagamento confirmado, registrar data de pagamento
-            if (newStatus == PaymentStatus.COMPLETED && payment.getPaymentDate() == null) {
+            if (newStatus == PaymentStatus.PAID && payment.getPaymentDate() == null) {
                 payment.setPaymentDate(LocalDateTime.now());
                 log.info("💰 Data de pagamento registrada: {}", payment.getPaymentDate());
             }

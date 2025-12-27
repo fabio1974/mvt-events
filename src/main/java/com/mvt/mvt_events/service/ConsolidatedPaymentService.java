@@ -731,7 +731,7 @@ public class ConsolidatedPaymentService {
      */
     private boolean hasActivePaidPayment(Delivery delivery) {
         return delivery.getPayments().stream()
-                .anyMatch(p -> p.getStatus() == PaymentStatus.COMPLETED);
+                .anyMatch(p -> p.getStatus() == PaymentStatus.PAID);
     }
 
     /**
@@ -818,7 +818,7 @@ public class ConsolidatedPaymentService {
         
         return switch (pagarmeStatus.toLowerCase()) {
             case "pending" -> PaymentStatus.PENDING;
-            case "paid" -> PaymentStatus.COMPLETED;
+            case "paid" -> PaymentStatus.PAID;
             case "failed" -> PaymentStatus.FAILED;
             case "canceled", "cancelled" -> PaymentStatus.CANCELLED;
             case "processing" -> PaymentStatus.PROCESSING;

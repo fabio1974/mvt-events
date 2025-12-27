@@ -186,7 +186,7 @@ public class PaymentController {
         return paymentRepository.findById(id)
                 .map(payment -> {
                     payment.setStatus(status);
-                    if (status == PaymentStatus.COMPLETED) {
+                    if (status == PaymentStatus.PAID) {
                         payment.setPaymentDate(java.time.LocalDateTime.now());
                     }
                     Payment updated = paymentRepository.save(payment);
@@ -208,7 +208,7 @@ public class PaymentController {
     public ResponseEntity<?> delete(@PathVariable Long id) {
         return paymentRepository.findById(id)
                 .map(payment -> {
-                    if (payment.getStatus() == PaymentStatus.COMPLETED || payment.getStatus() == PaymentStatus.PROCESSING) {
+                    if (payment.getStatus() == PaymentStatus.PAID || payment.getStatus() == PaymentStatus.PROCESSING) {
                         return ResponseEntity.badRequest().body(Map.of(
                                 "error", "INVALID_STATUS",
                                 "message", "Não é possível deletar pagamento com status " + payment.getStatus()

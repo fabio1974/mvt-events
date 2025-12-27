@@ -236,7 +236,7 @@ public class Payment extends BaseEntity {
     }
 
     public boolean isCompleted() {
-        return status == PaymentStatus.COMPLETED;
+        return status == PaymentStatus.PAID;
     }
 
     public boolean isFailed() {
@@ -248,11 +248,11 @@ public class Payment extends BaseEntity {
     }
 
     public boolean canBeRefunded() {
-        return status == PaymentStatus.COMPLETED;
+        return status == PaymentStatus.PAID;
     }
 
     public void markAsCompleted() {
-        this.status = PaymentStatus.COMPLETED;
+        this.status = PaymentStatus.PAID;
         this.paymentDate = LocalDateTime.now();
     }
 
@@ -268,7 +268,7 @@ public class Payment extends BaseEntity {
     }
 
     public void markAsCancelled() {
-        if (status == PaymentStatus.COMPLETED) {
+        if (status == PaymentStatus.PAID) {
             throw new IllegalStateException("Pagamento concluído não pode ser cancelado. Use refund.");
         }
         this.status = PaymentStatus.CANCELLED;
