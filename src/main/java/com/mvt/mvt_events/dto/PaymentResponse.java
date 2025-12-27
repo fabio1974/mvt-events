@@ -182,7 +182,7 @@ public class PaymentResponse {
 
         return switch (payment.getStatus()) {
             case PENDING -> "⏳ Aguardando pagamento. Escaneie o QR Code ou use o código PIX.";
-            case COMPLETED -> "✅ Pagamento confirmado! Obrigado.";
+            case PAID -> "✅ Pagamento confirmado! Obrigado.";
             case FAILED -> "❌ Pagamento falhou. Tente novamente.";
             case CANCELLED -> "🚫 Pagamento cancelado.";
             case REFUNDED -> "↩️ Pagamento reembolsado.";

@@ -190,7 +190,7 @@ log.info("🔔 Webhook recebido em /api/webhooks/order");
         if (eventType != null) {
             switch (eventType.toLowerCase()) {
                 case "order.paid":
-                    return PaymentStatus.COMPLETED;
+                    return PaymentStatus.PAID;
                 case "order.payment_failed":
                     return PaymentStatus.FAILED;
                 case "order.canceled":
@@ -207,7 +207,7 @@ log.info("🔔 Webhook recebido em /api/webhooks/order");
         if (orderStatus != null) {
             switch (orderStatus.toLowerCase()) {
                 case "paid":
-                    return PaymentStatus.COMPLETED;
+                    return PaymentStatus.PAID;
                 case "failed":
                     return PaymentStatus.FAILED;
                 case "canceled":
