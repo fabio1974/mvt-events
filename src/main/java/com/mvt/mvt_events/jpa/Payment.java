@@ -54,12 +54,6 @@ public class Payment extends BaseEntity {
     @Visible(table = true, form = true, filter = true)
     private User payer;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id")
-    @JsonIgnore
-    @Visible(table = true, form = true, filter = true)
-    private Organization organization;
-
     // ============================================================================
     // PAYMENT INFO
     // ============================================================================
