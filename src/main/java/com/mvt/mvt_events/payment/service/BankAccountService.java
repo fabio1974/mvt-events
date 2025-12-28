@@ -87,6 +87,9 @@ public class BankAccountService {
         bankAccount.setMonthlyIncome(request.monthlyIncome());
         bankAccount.setProfessionalOccupation(request.professionalOccupation());
         
+        // Configuração de transferência automática (default: true)
+        bankAccount.setAutomaticTransfer(request.automaticTransfer() != null ? request.automaticTransfer() : true);
+        
         bankAccount.setStatus(BankAccountStatus.PENDING_VALIDATION);
         
         // 4. Salvar primeiro (para gerar ID)
@@ -128,7 +131,9 @@ public class BankAccountService {
         
         // 6. Criar recipient no Pagar.me
         try {
-            String recipientId = pagarMeService.createRecipient(user, bankAccount);
+            // Determinar flag de transferência automática (default: true)
+            boolean automaticTransfer = request.automaticTransfer() != null ? request.automaticTransfer() : true;
+            String recipientId = pagarMeService.createRecipient(user, bankAccount, automaticTransfer);
             
             // 7. Atualizar user com recipient ID
             user.markRecipientAsActive(recipientId);
@@ -195,9 +200,12 @@ public class BankAccountService {
         
         // 4. Verificar se dados bancários mudaram
         boolean bankDataChanged = !bankAccount.getBankCode().equals(request.bankCode()) ||
+                                  !bankAccount.getBankName().equals(request.bankName()) ||
                                   !bankAccount.getAgency().equals(request.agency()) ||
+                                  !bankAccount.getAgencyDigit().equals(request.agencyDigit()) ||
                                   !bankAccount.getAccountNumber().equals(request.accountNumber()) ||
-                                  !bankAccount.getAccountDigit().equals(request.accountDigit());
+                                  !bankAccount.getAccountDigit().equals(request.accountDigit()) ||
+                                  !bankAccount.getAccountType().equals(request.accountType());
         
         if (bankDataChanged) {
             log.info("   ├─ ⚠️ Dados bancários alterados - verificando duplicidade no Pagar.me");
@@ -225,7 +233,11 @@ public class BankAccountService {
             }
         }
         
-        // 4. Atualizar dados locais
+        // 4. Verificar se flag de transferência automática mudou
+        Boolean newAutomaticTransfer = request.automaticTransfer() != null ? request.automaticTransfer() : true;
+        boolean transferSettingsChanged = !bankAccount.getAutomaticTransfer().equals(newAutomaticTransfer);
+        
+        // 5. Atualizar dados locais
         bankAccount.setBankCode(request.bankCode());
         bankAccount.setBankName(request.bankName());
         bankAccount.setAgency(request.agency());
@@ -236,26 +248,59 @@ public class BankAccountService {
         bankAccount.setAccountDigit(request.accountDigit());
         
         bankAccount.setAccountType(request.accountType());
+        bankAccount.setAutomaticTransfer(newAutomaticTransfer);
         
         bankAccount = bankAccountRepository.save(bankAccount);
         log.info("   ├─ ✅ Dados bancários locais atualizados");
         
-        // 5. Criar/Atualizar recipient no Pagar.me
-        // - Se dados bancários mudaram OU se não existe recipientId ainda
-        boolean needsRecipient = bankDataChanged || user.getPagarmeRecipientId() == null;
+        // 6. Atualizar conta bancária no Pagar.me (se dados mudaram E já tem recipient)
+        log.info("   ├─ 🔍 Verificando necessidade de atualizar Pagar.me:");
+        log.info("   │  ├─ Dados bancários mudaram: {}", bankDataChanged);
+        log.info("   │  ├─ Transfer settings mudaram: {}", transferSettingsChanged);
+        log.info("   │  └─ Recipient ID existe: {}", user.getPagarmeRecipientId() != null);
         
-        if (needsRecipient) {
+        if (bankDataChanged && user.getPagarmeRecipientId() != null) {
             try {
-                String oldRecipientId = user.getPagarmeRecipientId();
+                log.info("   ├─ 🔄 Atualizando conta bancária padrão no Pagar.me");
+                log.info("   │  └─ Recipient ID: {}", user.getPagarmeRecipientId());
+                pagarMeService.updateDefaultBankAccount(
+                    user.getPagarmeRecipientId(),
+                    bankAccount,
+                    user
+                );
                 
-                if (oldRecipientId != null) {
-                    log.info("   ├─ 🔄 Criando novo recipient no Pagar.me (dados bancários alterados)");
-                } else {
-                    log.info("   ├─ 🆕 Criando recipient no Pagar.me (não existia anteriormente)");
-                }
+                // Atualizar status da conta para ACTIVE
+                bankAccount.setStatus(BankAccountStatus.ACTIVE);
+                bankAccount = bankAccountRepository.save(bankAccount);
+                log.info("   ├─ ✅ Conta bancária atualizada no Pagar.me");
                 
-                // No Pagar.me, não é possível atualizar dados bancários do recipient
-                // É necessário criar um novo recipient
+            } catch (Exception e) {
+                log.error("   └─ ❌ Erro ao atualizar conta no Pagar.me (dados locais já foram salvos)", e);
+                // Não lançar exceção - dados locais já foram salvos
+                // Se falhar no Pagar.me, usuário pode tentar novamente
+            }
+        }
+        
+        // 7. Atualizar transfer settings se mudou E já tem recipient
+        if (transferSettingsChanged && user.getPagarmeRecipientId() != null) {
+            try {
+                log.info("   ├─ 💰 Atualizando transfer settings no Pagar.me");
+                log.info("   │  └─ Nova configuração: {}", newAutomaticTransfer ? "Automática (Daily)" : "Manual");
+                pagarMeService.updateTransferSettings(
+                    user.getPagarmeRecipientId(),
+                    newAutomaticTransfer,
+                    "Daily"
+                );
+                log.info("   ├─ ✅ Transfer settings atualizados no Pagar.me");
+            } catch (Exception e) {
+                log.error("   └─ ❌ Erro ao atualizar transfer settings no Pagar.me (dados locais já foram salvos)", e);
+                // Não lançar exceção - dados locais já foram salvos
+            }
+            
+        } else if (user.getPagarmeRecipientId() == null) {
+            // 6. Se não tem recipient ainda, criar um novo
+            try {
+                log.info("   ├─ 🆕 Criando recipient no Pagar.me (não existia anteriormente)");
                 String newRecipientId = pagarMeService.createRecipient(user, bankAccount);
                 
                 // Atualizar o recipientId no User
@@ -267,9 +312,6 @@ public class BankAccountService {
                 bankAccount = bankAccountRepository.save(bankAccount);
                 
                 log.info("   ├─ ✅ Recipient criado no Pagar.me: {}", newRecipientId);
-                if (oldRecipientId != null) {
-                    log.info("   ├─ ℹ️ Recipient antigo: {} (deve ser removido manualmente se necessário)", oldRecipientId);
-                }
                 
             } catch (Exception e) {
                 log.error("   └─ ❌ Erro ao criar recipient no Pagar.me", e);

@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.crypto.Mac;
@@ -133,11 +135,16 @@ public class PagarMeService {
      * @return ID do recipient criado
      */
     public String createRecipient(User user, BankAccount bankAccount) {
+        return createRecipient(user, bankAccount, true); // Default: transferência automática habilitada
+    }
+    
+    public String createRecipient(User user, BankAccount bankAccount, boolean automaticTransfer) {
         String name = user.getName();
         String email = user.getUsername();
         String document = user.getDocumentClean();
         
         log.info("🏦 Criando recipient no Pagar.me: {} ({})", name, document);
+        log.info("   ├─ Transferência automática: {}", automaticTransfer ? "✅ Habilitada (Daily)" : "❌ Desabilitada");
 
         // Builder do request com dados obrigatórios
         RecipientRequest.RecipientRequestBuilder requestBuilder = RecipientRequest.builder()
@@ -235,6 +242,12 @@ public class PagarMeService {
             log.info("   ├─ ℹ️ RegisterInformation NÃO incluído - dados insuficientes (motherName={}, monthlyIncome={}, professionalOccupation={}, completeAddress={})",
                 hasMotherName, hasMonthlyIncome, hasProfessionalOccupation, hasCompleteAddress);
         }
+        
+        // Adicionar transfer_settings
+        requestBuilder.transferSettings(RecipientRequest.TransferSettings.builder()
+                .transferEnabled(automaticTransfer)
+                .transferInterval("Daily")
+                .build());
 
         RecipientRequest request = requestBuilder.build();
 
@@ -670,5 +683,145 @@ public class PagarMeService {
             result.append(String.format("%02x", b));
         }
         return result.toString();
+    }
+
+    /**
+     * Atualiza a conta bancária padrão de um recipient no Pagar.me
+     * 
+     * @param recipientId ID do recipient no Pagar.me
+     * @param bankAccount Dados da nova conta bancária
+     * @param user Usuário dono da conta
+     */
+    public void updateDefaultBankAccount(String recipientId, BankAccount bankAccount, User user) {
+        log.info("🏦 Atualizando conta bancária padrão do recipient: {}", recipientId);
+        
+        try {
+            String url = config.getApi().getUrl() + "/recipients/" + recipientId + "/default-bank-account";
+            
+            // Montar request body com estrutura correta (bank_account wrapper)
+            Map<String, Object> bankData = new HashMap<>();
+            bankData.put("holder_name", user.getName());
+            bankData.put("holder_type", "individual");
+            bankData.put("holder_document", user.getDocumentClean());
+            bankData.put("bank", bankAccount.getBankCode());
+            bankData.put("branch_number", bankAccount.getAgency());
+            bankData.put("branch_check_digit", bankAccount.getAgencyDigit() != null ? bankAccount.getAgencyDigit() : "");
+            bankData.put("account_number", bankAccount.getAccountNumber());
+            bankData.put("account_check_digit", bankAccount.getAccountDigit());
+            bankData.put("type", bankAccount.getAccountType() == BankAccount.AccountType.CHECKING ? "checking" : "savings");
+            
+            // Wrapper: Pagar.me espera { "bank_account": { ... } }
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("bank_account", bankData);
+            
+            HttpHeaders headers = createHeaders();
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+            
+            log.debug("   ├─ URL: PATCH {}", url);
+            log.debug("   ├─ Bank: {} Agency: {}-{} Account: {}-{}", 
+                bankAccount.getBankCode(), 
+                bankAccount.getAgency(),
+                bankAccount.getAgencyDigit(),
+                bankAccount.getAccountNumber(), 
+                bankAccount.getAccountDigit());
+            
+            // RestTemplate suporta PATCH normalmente
+            ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.PATCH,
+                request,
+                String.class
+            );
+            
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("   └─ ✅ Conta bancária padrão atualizada com sucesso no Pagar.me");
+            } else if (response.getStatusCode().value() == 412) {
+                log.warn("   └─ ⚠️ Pagar.me retornou 412: Requer configuração de Allow List");
+                log.warn("      Acesse https://docs.pagar.me/reference/allow-list para configurar");
+            } else {
+                log.error("   └─ ❌ Erro HTTP {} ao atualizar conta bancária no Pagar.me: {}", 
+                    response.getStatusCode(), response.getBody());
+            }
+            
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            if (e.getStatusCode().value() == 412) {
+                log.warn("   └─ ⚠️ Pagar.me retornou 412: Requer configuração de Allow List");
+                log.warn("      Acesse https://docs.pagar.me/reference/allow-list para configurar");
+                log.warn("      Response body: {}", e.getResponseBodyAsString());
+                log.warn("      Dados locais salvos, mas Pagar.me não atualizado");
+            } else {
+                log.error("   └─ ❌ Erro HTTP {} ao atualizar conta bancária no Pagar.me: {}", 
+                    e.getStatusCode(), e.getResponseBodyAsString());
+                throw new RuntimeException("Erro ao atualizar conta bancária no Pagar.me: " + e.getMessage(), e);
+            }
+        } catch (Exception e) {
+            log.error("   └─ ❌ Erro ao atualizar conta bancária no Pagar.me", e);
+            throw new RuntimeException("Erro ao atualizar conta bancária no Pagar.me: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Atualiza as configurações de transferência automática do recipient no Pagar.me
+     * 
+     * @param recipientId ID do recipient no Pagar.me
+     * @param transferEnabled Se transferências automáticas estão habilitadas
+     * @param transferInterval Intervalo de transferência: "Daily", "Weekly", "Monthly"
+     */
+    public void updateTransferSettings(String recipientId, boolean transferEnabled, String transferInterval) {
+        log.info("💰 Atualizando transfer settings do recipient: {}", recipientId);
+        log.info("   ├─ Transfer enabled: {}", transferEnabled);
+        log.info("   ├─ Transfer interval: {}", transferInterval);
+        
+        try {
+            String url = config.getApi().getUrl() + "/recipients/" + recipientId + "/transfer-settings";
+            
+            // Montar request body
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("transfer_enabled", transferEnabled);
+            requestBody.put("transfer_interval", transferInterval);
+            
+            // Pagar.me exige transfer_day quando interval é Daily
+            // 0 = Todos os dias (padrão para Daily)
+            if ("Daily".equalsIgnoreCase(transferInterval)) {
+                requestBody.put("transfer_day", 0);
+            }
+            
+            HttpHeaders headers = createHeaders();
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+            
+            log.debug("   ├─ URL: PATCH {}", url);
+            
+            // Enviar PATCH request
+            ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.PATCH,
+                request,
+                String.class
+            );
+            
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("   └─ ✅ Transfer settings atualizados com sucesso no Pagar.me");
+            } else if (response.getStatusCode().value() == 412) {
+                log.warn("   └─ ⚠️ Pagar.me retornou 412: Requer configuração de Allow List");
+                log.warn("      Acesse https://docs.pagar.me/reference/allow-list para configurar");
+            } else {
+                log.error("   └─ ❌ Erro HTTP {} ao atualizar transfer settings no Pagar.me: {}", 
+                    response.getStatusCode(), response.getBody());
+            }
+            
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            if (e.getStatusCode().value() == 412) {
+                log.warn("   └─ ⚠️ Pagar.me retornou 412: Requer configuração de Allow List");
+                log.warn("      Acesse https://docs.pagar.me/reference/allow-list para configurar");
+                log.warn("      Response body: {}", e.getResponseBodyAsString());
+            } else {
+                log.error("   └─ ❌ Erro HTTP {} ao atualizar transfer settings no Pagar.me: {}", 
+                    e.getStatusCode(), e.getResponseBodyAsString());
+                throw new RuntimeException("Erro ao atualizar transfer settings no Pagar.me: " + e.getMessage(), e);
+            }
+        } catch (Exception e) {
+            log.error("   └─ ❌ Erro ao atualizar transfer settings no Pagar.me", e);
+            throw new RuntimeException("Erro ao atualizar transfer settings no Pagar.me: " + e.getMessage(), e);
+        }
     }
 }

@@ -54,7 +54,12 @@ public record BankAccountRequest(
     // Se não fornecidos, o sistema pode funcionar apenas com dados do User
     String motherName,
     String monthlyIncome,
-    String professionalOccupation
+    String professionalOccupation,
+    
+    // ==================== CONFIGURAÇÕES DE TRANSFERÊNCIA ====================
+    // Flag para habilitar transferências automáticas diárias no Pagar.me
+    // Default: true (transferência automática diária habilitada)
+    Boolean automaticTransfer
 ) {
     /**
      * Referência ao usuário dono da conta bancária

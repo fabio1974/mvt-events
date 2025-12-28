@@ -100,6 +100,7 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("accountNumber", "Número da Conta");
         FIELD_TRANSLATIONS.put("accountDigit", "Dígito da Conta");
         FIELD_TRANSLATIONS.put("accountType", "Tipo de Conta");
+        FIELD_TRANSLATIONS.put("automaticTransfer", "Transferência Automática");
         FIELD_TRANSLATIONS.put("accountHolderName", "Nome do Titular");
         FIELD_TRANSLATIONS.put("accountHolderDocument", "CPF do Titular");
         FIELD_TRANSLATIONS.put("motherName", "Nome da Mãe");

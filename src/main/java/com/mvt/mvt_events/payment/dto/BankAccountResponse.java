@@ -26,6 +26,7 @@ public record BankAccountResponse(
     String accountDigit,
     String accountNumberMasked,
     AccountType accountType,
+    Boolean automaticTransfer,
     BankAccountStatus status,
     String statusDisplayName,
     LocalDateTime createdAt,
@@ -47,6 +48,7 @@ public record BankAccountResponse(
             bankAccount.getAccountDigit(),
             bankAccount.getAccountNumberMasked(),
             bankAccount.getAccountType(),
+            bankAccount.getAutomaticTransfer(),
             bankAccount.getStatus(),
             bankAccount.getStatus().getDisplayName(),
             bankAccount.getCreatedAt(),
@@ -72,6 +74,7 @@ public record BankAccountResponse(
                 null, // Não retorna dígito da conta
                 bankAccount.getAccountNumberMasked(),
                 bankAccount.getAccountType(),
+                bankAccount.getAutomaticTransfer(),
                 bankAccount.getStatus(),
                 bankAccount.getStatus().getDisplayName(),
                 bankAccount.getCreatedAt(),

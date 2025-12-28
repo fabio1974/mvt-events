@@ -85,6 +85,14 @@ public class BankAccount extends BaseEntity {
     @Visible(table = true, form = true, filter = true)
     private AccountType accountType = AccountType.CHECKING; // checking (corrente) ou savings (poupança)
 
+    /**
+     * Flag para habilitar transferências automáticas diárias no Pagar.me
+     * Default: true (transferência automática habilitada)
+     */
+    @Column(name = "automatic_transfer", nullable = false)
+    @Visible(table = true, form = true, filter = true)
+    private Boolean automaticTransfer = true;
+
     // ============================================================================
     // PAGAR.ME KYC FIELDS
     // ============================================================================
