@@ -243,7 +243,7 @@ public class PaymentService {
                         .recipientRole("COURIER")
                         .amount(splitCalculator.toReais(courierAmount, 2))
                         .percentage(courierPercentage)
-                        .liable(true)
+                        .liable(false)
                         .build();
                 
                 deliverySplits.add(courierSplit);
@@ -304,7 +304,7 @@ public class PaymentService {
                     .recipientRole("PLATFORM")
                     .amount(splitCalculator.toReais(platformAmount, 2))
                     .percentage(platformPercentage)
-                    .liable(false)
+                    .liable(true)
                     .build();
             
             deliverySplits.add(platformSplit);
@@ -338,7 +338,7 @@ public class PaymentService {
         // Montar relatório
         PaymentReportResponse report = PaymentReportResponse.builder()
                 .paymentId(payment.getId())
-                .pagarmeOrderId(payment.getProviderPaymentId())
+                .providerPaymentId(payment.getProviderPaymentId())
                 .status(payment.getStatus() != null ? payment.getStatus().name() : "UNKNOWN")
                 .totalAmount(payment.getAmount())
                 .currency(payment.getCurrency() != null ? payment.getCurrency().name() : "BRL")

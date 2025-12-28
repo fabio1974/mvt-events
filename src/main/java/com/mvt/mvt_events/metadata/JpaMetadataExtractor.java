@@ -75,6 +75,7 @@ public class JpaMetadataExtractor {
         // ==================== FINANCEIRO/PAYMENT ====================
         FIELD_TRANSLATIONS.put("price", "Preço");
         FIELD_TRANSLATIONS.put("amount", "Valor");
+        FIELD_TRANSLATIONS.put("payer", "Pagador");
         FIELD_TRANSLATIONS.put("paymentMethod", "Método de Pagamento");
         FIELD_TRANSLATIONS.put("gatewayProvider", "Gateway de Pagamento");
         FIELD_TRANSLATIONS.put("gatewayPaymentId", "ID do Pagamento");
@@ -86,12 +87,11 @@ public class JpaMetadataExtractor {
 
         // ==================== PAGAR.ME / BANK ACCOUNT ====================
         FIELD_TRANSLATIONS.put("pagarmeRecipientId", "ID Recipient Pagar.me");
-        FIELD_TRANSLATIONS.put("pagarmeOrderId", "ID Order Pagar.me");
+        FIELD_TRANSLATIONS.put("providerPaymentId", "ID Provider Payment");
         FIELD_TRANSLATIONS.put("pagarmeStatus", "Status Pagar.me");
         FIELD_TRANSLATIONS.put("pixQrCode", "Código PIX");
         FIELD_TRANSLATIONS.put("pixQrCodeUrl", "QR Code PIX (URL)");
         FIELD_TRANSLATIONS.put("expiresAt", "Expira em");
-        FIELD_TRANSLATIONS.put("splitRules", "Regras de Split");
         FIELD_TRANSLATIONS.put("bankAccount", "Conta Bancária");
         FIELD_TRANSLATIONS.put("bankCode", "Código do Banco");
         FIELD_TRANSLATIONS.put("bankName", "Nome do Banco");

@@ -621,6 +621,18 @@ public class PagarMeService {
 
             throw new RuntimeException("Order criada mas sem ID na resposta");
 
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            // Erro HTTP 4xx (como 422) - capturar o corpo da resposta
+            log.error("❌ Erro HTTP ao criar order no Pagar.me: {} - Body: {}", 
+                e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException("Falha ao criar order: " + e.getStatusCode() + " " + 
+                e.getStatusText() + " on " + e.getMessage(), e);
+        } catch (org.springframework.web.client.HttpServerErrorException e) {
+            // Erro HTTP 5xx - capturar o corpo da resposta
+            log.error("❌ Erro do servidor Pagar.me ao criar order: {} - Body: {}", 
+                e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException("Falha ao criar order: " + e.getStatusCode() + " " + 
+                e.getStatusText() + " on " + e.getMessage(), e);
         } catch (Exception e) {
             log.error("❌ Erro ao criar order no Pagar.me", e);
             throw new RuntimeException("Falha ao criar order: " + e.getMessage(), e);

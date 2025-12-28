@@ -61,7 +61,7 @@ import java.util.UUID;
  * <pre>
  * {
  *   "paymentId": 789,
- *   "pagarmeOrderId": "or_abc123xyz",
+ *   "providerPaymentId": "or_abc123xyz",
  *   "pixQrCode": "00020126360014BR.GOV.BCB.PIX...",
  *   "pixQrCodeUrl": "https://api.pagar.me/qr/123.png",
  *   "amount": 50.00,
@@ -267,14 +267,14 @@ public class PaymentController {
 
             // Se retornou um pedido existente pendente, retorna 200 OK
             if (response.getId() != null && response.getStatus().name().equals("PENDING")) {
-                log.info("📤 Pedido pendente existente retornado: {}", response.getPagarmeOrderId());
+                log.info("📤 Pedido pendente existente retornado: {}", response.getProviderPaymentId());
                 return ResponseEntity.ok(response);
             }
 
             // Caso contrário, retorna 201 Created
             log.info("📤 Novo pedido criado com sucesso!");
             log.info("   ├─ Payment ID: {}", response.getId());
-            log.info("   ├─ Provider Payment ID: {}", response.getPagarmeOrderId());
+            log.info("   ├─ Provider Payment ID: {}", response.getProviderPaymentId());
             log.info("   ├─ Amount: R$ {}", response.getAmount());
             log.info("   ├─ Expires: {}", response.getExpiresAt());
             log.info("   └─ PIX QR Code: {}", response.getPixQrCode() != null ? "✅ Disponível" : "❌ Indisponível");

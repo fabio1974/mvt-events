@@ -267,14 +267,14 @@ public class ConsolidatedPaymentService {
 
             log.info("   📦 {} deliveries a pagar encontradas", deliveriesToPay.size());
 
-            // 4. Agrupar deliveries por conjunto de problemas de pagamento
-            // (Para consolidar: remover aquelas que já têm PENDING/COMPLETED)
+            // 4. Filtrar deliveries que podem ser reprocessadas
+            // Incluir apenas: NULL (sem payment), FAILED ou EXPIRED
             List<Delivery> deliverisWithPaymentProblems = deliveriesToPay.stream()
                     .filter(d -> {
                         Set<PaymentStatus> paymentStatuses = d.getPayments().stream()
                                 .map(Payment::getStatus)
                                 .collect(Collectors.toSet());
-                        // Manter apenas se tem FAILED ou EXPIRED
+                        // Manter se: sem payments OU tem FAILED/EXPIRED
                         return paymentStatuses.isEmpty() || 
                                paymentStatuses.stream().anyMatch(s -> 
                                    s == PaymentStatus.FAILED || 
@@ -366,6 +366,29 @@ public class ConsolidatedPaymentService {
             log.info("   ✅ Order Pagar.me criada: {}", orderId);
         } catch (Exception e) {
             log.error("   ⚠️ Erro ao criar order Pagar.me (payment local salvo mesmo assim)", e);
+            
+            // Salvar mensagem de erro no response (se ainda não tiver sido salvo)
+            if (savedPayment.getResponse() == null || savedPayment.getResponse().isEmpty()) {
+                try {
+                    // Extrair mensagem de erro do Pagar.me se disponível
+                    String errorMessage = e.getMessage();
+                    if (e.getCause() != null && e.getCause().getMessage() != null) {
+                        errorMessage = e.getCause().getMessage();
+                    }
+                    
+                    Map<String, Object> errorResponse = new java.util.HashMap<>();
+                    errorResponse.put("error", true);
+                    errorResponse.put("message", errorMessage);
+                    errorResponse.put("timestamp", java.time.Instant.now().toString());
+                    
+                    String errorJson = objectMapper.writeValueAsString(errorResponse);
+                    savedPayment.setResponse(errorJson);
+                    log.info("✅ Erro salvo no response do payment");
+                } catch (Exception jsonError) {
+                    log.error("⚠️ Erro ao serializar mensagem de erro", jsonError);
+                }
+            }
+            
             savedPayment.setStatus(PaymentStatus.FAILED);
             paymentRepository.save(savedPayment);
             throw new RuntimeException("Erro ao criar order Pagar.me", e);
@@ -457,17 +480,22 @@ public class ConsolidatedPaymentService {
                 .payments(List.of(paymentRequest))
                 .build();
 
+        // Salvar REQUEST antes de enviar (para ter em caso de erro)
+        try {
+            String requestJson = objectMapper.writeValueAsString(orderRequest);
+            payment.setRequest(requestJson);
+            paymentRepository.save(payment);
+            log.info("✅ Request salvo no payment antes do envio (tamanho: {} bytes)", requestJson.length());
+        } catch (Exception e) {
+            log.error("⚠️ Erro ao serializar request antes do envio", e);
+        }
+
         // Criar order e capturar response completo
         com.mvt.mvt_events.payment.dto.OrderResponse orderResponse = pagarMeService.createOrderWithFullResponse(orderRequest);
         
-        // Salvar request, response completo e gateway_response no payment para auditoria
+        // Salvar response completo e gateway_response no payment para auditoria
         try {
-            // 1. Salvar REQUEST (o que enviamos ao Pagar.me)
-            String requestJson = objectMapper.writeValueAsString(orderRequest);
-            payment.setRequest(requestJson);
-            log.info("✅ Request salvo no payment (tamanho: {} bytes)", requestJson.length());
-            
-            // 2. Salvar RESPONSE completo (o que o Pagar.me retornou)
+            // Salvar RESPONSE completo (o que o Pagar.me retornou)
             String responseJson = objectMapper.writeValueAsString(orderResponse);
             payment.setResponse(responseJson);
             log.info("✅ Response completo salvo no payment (tamanho: {} bytes)", responseJson.length());
@@ -475,13 +503,13 @@ public class ConsolidatedPaymentService {
                 orderResponse.getStatus(), 
                 orderResponse.getCharges() != null ? orderResponse.getCharges().size() : 0);
             
-            // 3. Mapear e salvar STATUS do Pagar.me para PaymentStatus
+            // Mapear e salvar STATUS do Pagar.me para PaymentStatus
             PaymentStatus mappedStatus = mapPagarMeStatusToPaymentStatus(orderResponse.getStatus());
             payment.setStatus(mappedStatus);
             log.info("✅ Status mapeado: '{}' (Pagar.me) -> {} (PaymentStatus)", 
                 orderResponse.getStatus(), mappedStatus);
             
-            // 4. Extrair e salvar qr_code, qr_code_url, pix_qr_code e pix_qr_code_url de charges[0].last_transaction
+            // Extrair e salvar qr_code, qr_code_url, pix_qr_code e pix_qr_code_url de charges[0].last_transaction
             if (orderResponse.getCharges() != null && !orderResponse.getCharges().isEmpty()) {
                 var firstCharge = orderResponse.getCharges().get(0);
                 log.info("📋 First charge - status: {}, lastTransaction presente: {}", 
@@ -495,20 +523,16 @@ public class ConsolidatedPaymentService {
                         transaction.getGatewayResponse() != null,
                         transaction.getQrCode() != null);
                     
-                    // Salvar qr_code e qr_code_url (novos campos)
+                    // Salvar pixQrCode e pixQrCodeUrl
                     if (transaction.getQrCode() != null) {
-                        payment.setQrCode(transaction.getQrCode());
-                        // Também salvar em pixQrCode para compatibilidade
                         payment.setPixQrCode(transaction.getQrCode());
-                        log.info("✅ QR Code salvo no payment (tamanho: {} caracteres)", 
+                        log.info("✅ PIX QR Code salvo no payment (tamanho: {} caracteres)", 
                             transaction.getQrCode().length());
                     }
                     
                     if (transaction.getQrCodeUrl() != null) {
-                        payment.setQrCodeUrl(transaction.getQrCodeUrl());
-                        // Também salvar em pixQrCodeUrl para compatibilidade
                         payment.setPixQrCodeUrl(transaction.getQrCodeUrl());
-                        log.info("✅ QR Code URL salvo no payment: {}", transaction.getQrCodeUrl());
+                        log.info("✅ PIX QR Code URL salvo no payment: {}", transaction.getQrCodeUrl());
                     }
                     
                     // Verificar se existe gateway_response na transação
@@ -589,7 +613,7 @@ public class ConsolidatedPaymentService {
                     courierSplit = new SplitItem();
                     courierSplit.pagarmeRecipientId = courier.getPagarmeRecipientId();
                     courierSplit.amount = BigDecimal.ZERO;
-                    courierSplit.isLiable = true;
+                    courierSplit.isLiable = false;
                     courierSplit.userName = courier.getName();
                     courierSplit.userRole = "COURIER";
                     splitMap.put(courierKey, courierSplit);
@@ -646,7 +670,7 @@ public class ConsolidatedPaymentService {
                     platformSplit = new SplitItem();
                     platformSplit.pagarmeRecipientId = platformRecipientId;
                     platformSplit.amount = BigDecimal.ZERO;
-                    platformSplit.isLiable = false;
+                    platformSplit.isLiable = true;
                     platformSplit.userName = "Plataforma MVT";
                     platformSplit.userRole = "PLATFORM";
                     splitMap.put(platformKey, platformSplit);
@@ -682,18 +706,18 @@ public class ConsolidatedPaymentService {
             log.warn("   ⚠️ Diferença detectada entre total e soma dos splits: {} centavos", difference);
             log.warn("      Total order: {} centavos | Soma splits: {} centavos", totalCents, totalSplitCents.longValue());
             
-            // Ajustar o courier (liable) para incluir a diferença
-            SplitItem courierToAdjust = splitMap.values().stream()
-                    .filter(item -> item.isLiable && "COURIER".equals(item.userRole))
+            // Ajustar o participant liable (plataforma) para incluir a diferença
+            SplitItem liableToAdjust = splitMap.values().stream()
+                    .filter(item -> item.isLiable)
                     .findFirst()
                     .orElse(null);
             
-            if (courierToAdjust != null) {
-                courierToAdjust.amount = courierToAdjust.amount.add(BigDecimal.valueOf(difference));
-                log.info("      ✅ Ajustado split do courier {} em {} centavos", 
-                    courierToAdjust.userName, difference);
+            if (liableToAdjust != null) {
+                liableToAdjust.amount = liableToAdjust.amount.add(BigDecimal.valueOf(difference));
+                log.info("      ✅ Ajustado split do {} {} em {} centavos", 
+                    liableToAdjust.userRole, liableToAdjust.userName, difference);
             } else {
-                log.error("      ❌ Não foi possível ajustar split - nenhum courier liable encontrado");
+                log.error("      ❌ Não foi possível ajustar split - nenhum participant liable encontrado");
             }
         }
 

@@ -60,7 +60,7 @@ public class Payment extends BaseEntity {
 
     @DisplayLabel
     @Column(name = "transaction_id", length = 100, unique = true)
-    @Visible(table = true, form = false, filter = true)
+    @Visible(table = false, form = false, filter = true)
     private String transactionId;
 
     @DisplayLabel
@@ -72,12 +72,12 @@ public class Payment extends BaseEntity {
     @NotNull(message = "Moeda é obrigatória")
     @Enumerated(EnumType.STRING)
     @Column(name = "currency", length = 3, nullable = false)
-    @Visible(table = true, form = true, filter = true)
+    @Visible(table = false, form = false, filter = false)
     private Currency currency = Currency.BRL; // Moeda padrão: Real Brasileiro
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", length = 20)
-    @Visible(table = true, form = true, filter = true)
+    @Visible(table = false, form = false, filter = false)
     private PaymentMethod paymentMethod;
 
     @NotNull(message = "Status é obrigatório")
@@ -96,7 +96,7 @@ public class Payment extends BaseEntity {
     private PaymentProvider provider; // Gateway de pagamento (Pagar.me, Stripe, etc)
 
     @Column(name = "provider_payment_id", length = 100)
-    @Visible(table = false, form = false, filter = false)
+    @Visible(table = true, form = false, filter = false)
     private String providerPaymentId;
 
     // ============================================================================
@@ -133,28 +133,6 @@ public class Payment extends BaseEntity {
     @Column(name = "pix_qr_code_url", columnDefinition = "TEXT")
     @Visible(table = false, form = false, filter = false)
     private String pixQrCodeUrl;
-
-    /**
-     * QR Code extraído de charges[0].last_transaction.qr_code do response Pagar.me
-     */
-    @Column(name = "qr_code", columnDefinition = "TEXT")
-    @Visible(table = false, form = false, filter = false)
-    private String qrCode;
-
-    /**
-     * URL do QR Code extraído de charges[0].last_transaction.qr_code_url do response Pagar.me
-     */
-    @Column(name = "qr_code_url", columnDefinition = "TEXT")
-    @Visible(table = false, form = false, filter = false)
-    private String qrCodeUrl;
-
-    /**
-     * Regras de split em formato JSON
-     */
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
-    @Column(name = "split_rules", columnDefinition = "JSONB")
-    @Visible(table = false, form = false, filter = false)
-    private String splitRules;
 
     /**
      * Extrato específico do gateway_response retornado pelo Pagar.me

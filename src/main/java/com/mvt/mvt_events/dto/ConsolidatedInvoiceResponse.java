@@ -25,7 +25,7 @@ public class ConsolidatedInvoiceResponse {
     /**
      * ID do pedido no Pagar.me
      */
-    private String pagarmeOrderId;
+    private String providerPaymentId;
 
     /**
      * QR Code PIX (string para copiar/colar)

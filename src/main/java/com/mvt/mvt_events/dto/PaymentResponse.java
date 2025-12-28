@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
  * 
  * Campos principais:
  * - paymentId: ID local do pagamento
- * - pagarmeOrderId: ID do pedido no Pagar.me
+ * - providerPaymentId: ID do pedido no gateway de pagamento
  * - pixQrCode: Código PIX copia-e-cola
  * - pixQrCodeUrl: URL da imagem do QR Code
  * - amount: Valor total
@@ -29,7 +29,7 @@ import java.time.LocalDateTime;
  * <pre>
  * {
  *   "paymentId": 123,
- *   "pagarmeOrderId": "or_abc123xyz",
+ *   "providerPaymentId": "or_abc123xyz",
  *   "pixQrCode": "00020126360014BR.GOV.BCB.PIX...",
  *   "pixQrCodeUrl": "https://api.pagar.me/qr/123.png",
  *   "amount": 50.00,
@@ -54,9 +54,14 @@ public class PaymentResponse {
     private Long id;
 
     /**
-     * ID do pedido no Pagar.me
+     * ID do pagamento no gateway (Pagar.me, Iugu, etc)
      */
-    private String pagarmeOrderId;
+    private String providerPaymentId;
+
+    /**
+     * Dados resumidos do pagador (apenas id e nome para evitar referências circulares)
+     */
+    private PayerInfo payer;
 
     /**
      * Código PIX copia-e-cola
@@ -143,7 +148,7 @@ public class PaymentResponse {
 
         PaymentResponseBuilder builder = PaymentResponse.builder()
                 .id(payment.getId())
-                .pagarmeOrderId(payment.getProviderPaymentId())
+                .providerPaymentId(payment.getProviderPaymentId())
                 .pixQrCode(payment.getPixQrCode())
                 .pixQrCodeUrl(payment.getPixQrCodeUrl())
                 .amount(payment.getAmount())
@@ -155,6 +160,14 @@ public class PaymentResponse {
                 .request(payment.getRequest())
                 .response(payment.getResponse())
                 .gatewayResponse(payment.getGatewayResponse());
+
+        // Adicionar payer (apenas id e nome para evitar referências circulares)
+        if (payment.getPayer() != null) {
+            builder.payer(PayerInfo.builder()
+                    .id(payment.getPayer().getId())
+                    .name(payment.getPayer().getName())
+                    .build());
+        }
 
         // Dados da entrega (se disponível) - pegando a primeira (temporário até refatorar para N:M completo)
         if (payment.getDeliveries() != null && !payment.getDeliveries().isEmpty()) {
@@ -197,5 +210,25 @@ public class PaymentResponse {
         return PaymentResponse.builder()
                 .statusMessage("❌ " + message)
                 .build();
+    }
+
+    /**
+     * Informações resumidas do pagador (payer)
+     * Contém apenas id e nome para evitar referências circulares no JSON
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PayerInfo {
+        /**
+         * ID do pagador (UUID)
+         */
+        private java.util.UUID id;
+
+        /**
+         * Nome do pagador
+         */
+        private String name;
     }
 }

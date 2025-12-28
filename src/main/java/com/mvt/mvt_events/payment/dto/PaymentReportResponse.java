@@ -16,7 +16,7 @@ import java.util.List;
 public class PaymentReportResponse {
     
     private Long paymentId;
-    private String pagarmeOrderId;
+    private String providerPaymentId;
     private String status;
     private BigDecimal totalAmount;
     private String currency;
