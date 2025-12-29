@@ -243,10 +243,11 @@ public class PagarMeService {
                 hasMotherName, hasMonthlyIncome, hasProfessionalOccupation, hasCompleteAddress);
         }
         
-        // Adicionar transfer_settings
+        // Adicionar transfer_settings com transfer_day obrigatório para Daily
         requestBuilder.transferSettings(RecipientRequest.TransferSettings.builder()
                 .transferEnabled(automaticTransfer)
                 .transferInterval("Daily")
+                .transferDay(0)  // Obrigatório quando interval é Daily
                 .build());
 
         RecipientRequest request = requestBuilder.build();
