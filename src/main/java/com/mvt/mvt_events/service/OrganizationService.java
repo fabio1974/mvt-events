@@ -65,21 +65,51 @@ public class OrganizationService {
             organization.setSlug(request.getSlug());
         }
 
+        // Set status if provided
+        if (request.getStatus() != null) {
+            try {
+                organization.setStatus(OrganizationStatus.valueOf(request.getStatus().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Status inválido: " + request.getStatus());
+            }
+        }
+
+        // Set commission percentage if provided
+        if (request.getCommissionPercentage() != null) {
+            organization.setCommissionPercentage(request.getCommissionPercentage());
+        }
+
         // Save organization first
         Organization savedOrganization = repository.save(organization);
 
-        // Set owner if userId is provided
-        if (request.getUserId() != null) {
-            User user = userRepository.findById(request.getUserId())
-                    .orElseThrow(() -> new RuntimeException("Usuário não encontrado com ID: " + request.getUserId()));
+        // Set owner if provided (supports both userId legacy and owner wrapper)
+        String ownerId = request.getOwnerId();
+        if (ownerId != null) {
+            try {
+                UUID ownerUuid = UUID.fromString(ownerId);
+                User user = userRepository.findById(ownerUuid)
+                        .orElseThrow(() -> new RuntimeException("Usuário não encontrado com ID: " + ownerId));
 
-            // Verify user is an organizer
-            if (user.getRole() != User.Role.ORGANIZER) {
-                throw new RuntimeException("Apenas usuários com role ORGANIZER podem ser donos de uma organização");
+                // Verify user is an organizer
+                if (user.getRole() != User.Role.ORGANIZER) {
+                    throw new RuntimeException("Apenas usuários com role ORGANIZER podem ser donos de uma organização");
+                }
+
+                savedOrganization.setOwner(user);
+                savedOrganization = repository.save(savedOrganization);
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("ID de proprietário inválido: " + ownerId);
             }
+        }
 
-            savedOrganization.setOwner(user);
-            savedOrganization = repository.save(savedOrganization);
+        // Process Employment Contracts (Contratos Motoboy)
+        if (request.getEmploymentContracts() != null && !request.getEmploymentContracts().isEmpty()) {
+            processEmploymentContracts(savedOrganization, request.getEmploymentContracts());
+        }
+
+        // Process Client Contracts (Contratos de Cliente)
+        if (request.getClientContracts() != null && !request.getClientContracts().isEmpty()) {
+            processClientContracts(savedOrganization, request.getClientContracts());
         }
 
         return savedOrganization;
@@ -212,7 +242,9 @@ public class OrganizationService {
             List<EmploymentContractRequest> contractRequests) {
         // Clear existing contracts
         employmentContractRepository.deleteAllByOrganization(organization);
-        organization.getEmploymentContracts().clear();
+        if (organization.getEmploymentContracts() != null) {
+            organization.getEmploymentContracts().clear();
+        }
 
         // Add new contracts
         for (EmploymentContractRequest contractRequest : contractRequests) {
@@ -248,7 +280,9 @@ public class OrganizationService {
     private void processClientContracts(Organization organization, List<ContractRequest> contractRequests) {
         // Clear existing contracts
         clientContractRepository.deleteAllByOrganization(organization);
-        organization.getClientContracts().clear();
+        if (organization.getClientContracts() != null) {
+            organization.getClientContracts().clear();
+        }
 
         // Add new contracts
         for (ContractRequest contractRequest : contractRequests) {

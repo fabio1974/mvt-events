@@ -176,8 +176,29 @@ public class OrganizationController {
         private String description;
         private String logoUrl;
 
-        // ID do usuário Gerente ADM que será vinculado à organização
+        // ID do usuário Gerente ADM que será vinculado à organização (legado)
         private UUID userId;
+        
+        // Owner da organização - aceita "uuid" ou {"id": "uuid"}
+        private UserIdWrapper owner;
+        
+        private String status;
+        private BigDecimal commissionPercentage;
+        
+        // Relacionamentos de contratos
+        private java.util.List<EmploymentContractRequest> employmentContracts;
+        private java.util.List<ContractRequest> clientContracts;
+        
+        public String getOwnerId() {
+            // Primeiro tenta owner wrapper, depois userId legado
+            if (owner != null && owner.getId() != null) {
+                return owner.getId();
+            }
+            if (userId != null) {
+                return userId.toString();
+            }
+            return null;
+        }
     }
 
     /**
