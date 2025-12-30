@@ -50,7 +50,6 @@ public class OrganizationService {
         // Create organization
         Organization organization = new Organization();
         organization.setName(request.getName());
-        organization.setContactEmail(request.getContactEmail());
         organization.setWebsite(request.getWebsite());
         organization.setDescription(request.getDescription());
         organization.setLogoUrl(request.getLogoUrl());
@@ -128,8 +127,6 @@ public class OrganizationService {
         // Update fields
         if (request.getName() != null)
             existing.setName(request.getName());
-        if (request.getContactEmail() != null)
-            existing.setContactEmail(request.getContactEmail());
         if (request.getWebsite() != null)
             existing.setWebsite(request.getWebsite());
         if (request.getDescription() != null)

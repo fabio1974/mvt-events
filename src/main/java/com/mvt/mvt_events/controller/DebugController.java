@@ -180,9 +180,9 @@ public class DebugController {
 
                         if (orgCount == 0) {
                                 jdbcTemplate.update(
-                                                "INSERT INTO organizations (id, name, slug, contact_email, created_at, updated_at) "
+                                                "INSERT INTO organizations (id, name, slug, created_at, updated_at) "
                                                                 +
-                                                                "VALUES (6, 'Test Organization', 'test-org', 'test@org.com', NOW(), NOW())");
+                                                                "VALUES (6, 'Test Organization', 'test-org', NOW(), NOW())");
                         }
 
                         // 2. Verificar e criar courier
@@ -331,9 +331,9 @@ public class DebugController {
                         Long orgId;
                         if (existingOrg.isEmpty()) {
                                 orgId = jdbcTemplate.queryForObject(
-                                                "INSERT INTO organizations (name, slug, contact_email, created_at, updated_at) "
+                                                "INSERT INTO organizations (name, slug, created_at, updated_at) "
                                                                 +
-                                                                "VALUES ('Test Organization', 'test-org', 'test@org.com', NOW(), NOW()) RETURNING id",
+                                                                "VALUES ('Test Organization', 'test-org', NOW(), NOW()) RETURNING id",
                                                 Long.class);
                         } else {
                                 orgId = ((Number) existingOrg.get(0).get("id")).longValue();

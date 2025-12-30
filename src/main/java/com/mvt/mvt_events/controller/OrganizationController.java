@@ -169,11 +169,6 @@ public class OrganizationController {
         @Size(max = 100, message = "Slug deve ter no máximo 100 caracteres")
         private String slug;
 
-        @NotBlank(message = "Email de contato é obrigatório")
-        @Email(message = "Email de contato deve ser válido")
-        private String contactEmail;
-
-        private String phone;
         private String website;
         private String description;
         private String logoUrl;
@@ -194,10 +189,6 @@ public class OrganizationController {
         @Size(max = 100, message = "Slug deve ter no máximo 100 caracteres")
         private String slug;
 
-        @Email(message = "Email de contato deve ser válido")
-        private String contactEmail;
-
-        private String phone;
         private String website;
         private String description;
         private String logoUrl;
@@ -290,7 +281,6 @@ public class OrganizationController {
         private LocalDateTime updatedAt;
         private String name;
         private String slug;
-        private String contactEmail;
         private String website;
         private String description;
         private String logoUrl;
@@ -310,7 +300,6 @@ public class OrganizationController {
             this.updatedAt = organization.getUpdatedAt();
             this.name = organization.getName();
             this.slug = organization.getSlug();
-            this.contactEmail = organization.getContactEmail();
             this.website = organization.getWebsite();
             this.description = organization.getDescription();
             this.logoUrl = organization.getLogoUrl();

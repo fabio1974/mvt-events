@@ -19,14 +19,10 @@ public interface OrganizationRepository
         extends JpaRepository<Organization, Long>, JpaSpecificationExecutor<Organization> {
 
     Optional<Organization> findBySlug(String slug);
-
-    Optional<Organization> findByContactEmail(String contactEmail);
     
     Optional<Organization> findByOwner(User owner);
 
     boolean existsBySlug(String slug);
-
-    boolean existsByContactEmail(String contactEmail);
 
     boolean existsBySlugAndIdNot(String slug, Long id);
 

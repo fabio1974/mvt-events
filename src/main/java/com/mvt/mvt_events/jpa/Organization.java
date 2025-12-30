@@ -32,11 +32,6 @@ public class Organization extends BaseEntity {
     @Visible(filter = false, table = false, form = false)
     private String slug;
 
-    @NotBlank(message = "Contact email is required")
-    @Email(message = "Contact email must be valid")
-    @Column(name = "contact_email", nullable = false)
-    private String contactEmail;
-
     @Column(length = 255)
     @Visible(filter = false, table = false, form = false)
     private String website;

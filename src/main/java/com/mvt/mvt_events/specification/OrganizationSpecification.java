@@ -10,7 +10,7 @@ import java.util.List;
 public class OrganizationSpecification {
 
     /**
-     * Busca organizações por nome, slug ou email de contato
+     * Busca organizações por nome ou slug
      */
     public static Specification<Organization> withSearch(String search) {
         return (root, query, criteriaBuilder) -> {
@@ -22,8 +22,7 @@ public class OrganizationSpecification {
 
             return criteriaBuilder.or(
                     criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), searchPattern),
-                    criteriaBuilder.like(criteriaBuilder.lower(root.get("slug")), searchPattern),
-                    criteriaBuilder.like(criteriaBuilder.lower(root.get("contactEmail")), searchPattern));
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("slug")), searchPattern));
         };
     }
 
@@ -47,8 +46,7 @@ public class OrganizationSpecification {
                 predicates.add(
                         criteriaBuilder.or(
                                 criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), searchPattern),
-                                criteriaBuilder.like(criteriaBuilder.lower(root.get("slug")), searchPattern),
-                                criteriaBuilder.like(criteriaBuilder.lower(root.get("contactEmail")), searchPattern)));
+                                criteriaBuilder.like(criteriaBuilder.lower(root.get("slug")), searchPattern)));
             }
 
             if (active != null) {
