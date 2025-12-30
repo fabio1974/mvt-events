@@ -66,7 +66,7 @@ public class ClientContract extends BaseEntity {
     @NotNull(message = "Data de início é obrigatória")
     @Column(name = "start_date", nullable = false)
     @Visible(table = true, form = true, filter = true)
-    private LocalDate startDate;
+    private LocalDate startDate = LocalDate.now();
 
     @Column(name = "end_date")
     @Visible(table = true, form = true, filter = true)
