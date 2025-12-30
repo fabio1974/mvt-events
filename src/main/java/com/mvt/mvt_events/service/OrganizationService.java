@@ -309,10 +309,6 @@ public class OrganizationService {
                 }
 
                 // Parse dates - handle ISO 8601 with timezone (2025-10-25T03:00:00.000Z)
-                if (contractRequest.getContractDate() != null && !contractRequest.getContractDate().trim().isEmpty()) {
-                    contract.setContractDate(parseToLocalDate(contractRequest.getContractDate()));
-                }
-
                 if (contractRequest.getStartDate() != null && !contractRequest.getStartDate().trim().isEmpty()) {
                     contract.setStartDate(parseToLocalDate(contractRequest.getStartDate()));
                 }

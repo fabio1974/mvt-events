@@ -152,9 +152,8 @@ public class OrganizationController {
                     response.setClient(data[0] != null ? data[0].toString() : null); // UUID
                     response.setIsPrimary((Boolean) data[1]); // boolean
                     response.setStatus(data[2] != null ? data[2].toString() : null); // ContractStatus enum
-                    response.setContractDate(data[3] != null ? data[3].toString() : null); // LocalDate
-                    response.setStartDate(data[4] != null ? data[4].toString() : null); // LocalDate
-                    response.setEndDate(data[5] != null ? data[5].toString() : null); // LocalDate
+                    response.setStartDate(data[3] != null ? data[3].toString() : null); // LocalDate
+                    response.setEndDate(data[4] != null ? data[4].toString() : null); // LocalDate
                     return response;
                 })
                 .collect(java.util.stream.Collectors.toList());
@@ -268,9 +267,8 @@ public class OrganizationController {
         private UserIdWrapper client; // Aceita "uuid" ou {"id": "uuid"}
         private Boolean isPrimary;
         private String status; // ACTIVE, SUSPENDED, CANCELLED
-        private String contractDate; // ISO Date string
-        private String startDate; // ISO DateTime string
-        private String endDate; // ISO DateTime string (pode ser vazio)
+        private String startDate; // ISO Date string
+        private String endDate; // ISO Date string (pode ser vazio)
         
         public String getClientId() {
             return client != null ? client.getId() : null;
@@ -432,8 +430,6 @@ public class OrganizationController {
                             }
                             response.setIsPrimary(sc.isPrimary());
                             response.setStatus(sc.getStatus() != null ? sc.getStatus().toString() : null);
-                            response.setContractDate(
-                                    sc.getContractDate() != null ? sc.getContractDate().toString() : null);
                             response.setStartDate(sc.getStartDate() != null ? sc.getStartDate().toString() : null);
                             response.setEndDate(sc.getEndDate() != null ? sc.getEndDate().toString() : null);
                             return response;
@@ -476,7 +472,6 @@ public class OrganizationController {
         private String client; // UUID do cliente
         private Boolean isPrimary;
         private String status;
-        private String contractDate;
         private String startDate;
         private String endDate;
 
@@ -487,7 +482,6 @@ public class OrganizationController {
             }
             this.isPrimary = contract.isPrimary();
             this.status = contract.getStatus() != null ? contract.getStatus().toString() : null;
-            this.contractDate = contract.getContractDate() != null ? contract.getContractDate().toString() : null;
             this.startDate = contract.getStartDate() != null ? contract.getStartDate().toString() : null;
             this.endDate = contract.getEndDate() != null ? contract.getEndDate().toString() : null;
         }

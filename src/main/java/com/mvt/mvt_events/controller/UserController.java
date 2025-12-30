@@ -145,9 +145,8 @@ public class UserController {
 
                     response.setIsPrimary((Boolean) data[2]);
                     response.setStatus(data[3] != null ? data[3].toString() : null);
-                    response.setContractDate(data[4] != null ? data[4].toString() : null);
-                    response.setStartDate(data[5] != null ? data[5].toString() : null);
-                    response.setEndDate(data[6] != null ? data[6].toString() : null);
+                    response.setStartDate(data[4] != null ? data[4].toString() : null);
+                    response.setEndDate(data[5] != null ? data[5].toString() : null);
                     return response;
                 })
                 .collect(java.util.stream.Collectors.toList());
@@ -409,7 +408,6 @@ public class UserController {
         private OrganizationDTO organization; // Objeto aninhado consistente com metadata
         private Boolean isPrimary;
         private String status;
-        private String contractDate;
         private String startDate;
         private String endDate;
     }

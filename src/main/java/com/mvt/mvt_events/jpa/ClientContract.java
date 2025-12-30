@@ -63,11 +63,6 @@ public class ClientContract extends BaseEntity {
     // DATES
     // ============================================================================
 
-    @NotNull(message = "Data do contrato é obrigatória")
-    @Column(name = "contract_date", nullable = false)
-    @Visible(table = true, form = true, filter = false)
-    private LocalDate contractDate = LocalDate.now();
-
     @NotNull(message = "Data de início é obrigatória")
     @Column(name = "start_date", nullable = false)
     @Visible(table = true, form = true, filter = true)

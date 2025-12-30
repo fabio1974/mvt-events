@@ -226,7 +226,7 @@ public class JpaMetadataExtractor {
 
         // Campos específicos de Contract
         FIELD_TRANSLATIONS.put("isPrimary", "Contrato Principal");
-        FIELD_TRANSLATIONS.put("contractDate", "Data do Contrato");
+
         FIELD_TRANSLATIONS.put("client", "Cliente");
         FIELD_TRANSLATIONS.put("organization", "Grupo");
 
