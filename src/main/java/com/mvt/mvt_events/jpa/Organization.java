@@ -37,9 +37,6 @@ public class Organization extends BaseEntity {
     @Column(name = "contact_email", nullable = false)
     private String contactEmail;
 
-    @Column(length = 20, nullable = false)
-    private String phone;
-
     @Column(length = 255)
     @Visible(filter = false, table = false, form = false)
     private String website;
@@ -58,11 +55,6 @@ public class Organization extends BaseEntity {
     @JoinColumn(name = "owner_id")
     @JsonIgnore
     private User owner;
-
-    // Location (campo do antigo ADMProfile)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "city_id")
-    private City city;
 
     // Commission
     @Column(name = "commission_percentage", precision = 5, scale = 2, columnDefinition = "DECIMAL(5,2) DEFAULT 5.00")

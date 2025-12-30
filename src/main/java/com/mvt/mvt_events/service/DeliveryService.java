@@ -216,6 +216,46 @@ public class DeliveryService {
     }
 
     /**
+     * Exclui uma delivery
+     * 
+     * REGRAS:
+     * - ADMIN: pode excluir qualquer delivery
+     * - ORGANIZER: pode excluir apenas deliveries PENDING ou CANCELLED que ele criou (organizer)
+     * - CLIENT: pode excluir apenas suas próprias deliveries PENDING
+     * - COURIER: não pode excluir deliveries
+     */
+    public void delete(Long id, UUID userId, String role) {
+        Delivery delivery = deliveryRepository.findByIdWithJoins(id)
+                .orElseThrow(() -> new RuntimeException("Delivery não encontrada"));
+
+        if ("ADMIN".equals(role)) {
+            // ADMIN pode excluir qualquer delivery
+            deliveryRepository.delete(delivery);
+        } else if ("ORGANIZER".equals(role)) {
+            // ORGANIZER pode excluir apenas deliveries PENDING ou CANCELLED que ele criou
+            if (delivery.getOrganizer() == null || !delivery.getOrganizer().getId().equals(userId)) {
+                throw new RuntimeException("Você não tem permissão para excluir esta delivery (não é o organizador)");
+            }
+            if (delivery.getStatus() != Delivery.DeliveryStatus.PENDING && 
+                delivery.getStatus() != Delivery.DeliveryStatus.CANCELLED) {
+                throw new RuntimeException("Apenas deliveries com status PENDING ou CANCELLED podem ser excluídas");
+            }
+            deliveryRepository.delete(delivery);
+        } else if ("CLIENT".equals(role)) {
+            // CLIENT pode excluir apenas suas próprias deliveries PENDING
+            if (delivery.getClient() == null || !delivery.getClient().getId().equals(userId)) {
+                throw new RuntimeException("Você não tem permissão para excluir esta delivery (não é o cliente)");
+            }
+            if (delivery.getStatus() != Delivery.DeliveryStatus.PENDING) {
+                throw new RuntimeException("Apenas deliveries com status PENDING podem ser excluídas");
+            }
+            deliveryRepository.delete(delivery);
+        } else {
+            throw new RuntimeException("Você não tem permissão para excluir deliveries");
+        }
+    }
+
+    /**
      * Busca delivery por ID com validação de tenant
      */
     public Delivery findById(Long id, Long organizationId) {

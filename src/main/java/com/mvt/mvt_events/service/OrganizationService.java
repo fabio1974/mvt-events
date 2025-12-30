@@ -51,7 +51,6 @@ public class OrganizationService {
         Organization organization = new Organization();
         organization.setName(request.getName());
         organization.setContactEmail(request.getContactEmail());
-        organization.setPhone(request.getPhone());
         organization.setWebsite(request.getWebsite());
         organization.setDescription(request.getDescription());
         organization.setLogoUrl(request.getLogoUrl());
@@ -131,22 +130,12 @@ public class OrganizationService {
             existing.setName(request.getName());
         if (request.getContactEmail() != null)
             existing.setContactEmail(request.getContactEmail());
-        if (request.getPhone() != null)
-            existing.setPhone(request.getPhone());
         if (request.getWebsite() != null)
             existing.setWebsite(request.getWebsite());
         if (request.getDescription() != null)
             existing.setDescription(request.getDescription());
         if (request.getLogoUrl() != null)
             existing.setLogoUrl(request.getLogoUrl());
-
-        // Update city relationship - aceita tanto cityId quanto city: {id: valor}
-        Long cityId = request.getCityIdResolved();
-        if (cityId != null) {
-            City city = cityRepository.findById(cityId)
-                    .orElseThrow(() -> new RuntimeException("Cidade não encontrada com ID: " + cityId));
-            existing.setCity(city);
-        }
 
         // Update status if provided
         if (request.getStatus() != null) {
@@ -365,13 +354,10 @@ public class OrganizationService {
             return Page.empty(pageable);
         }
         
-        // Inicializar owner e city para evitar lazy loading no controller
+        // Inicializar owner para evitar lazy loading no controller
         result.getContent().forEach(org -> {
             if (org.getOwner() != null) {
                 Hibernate.initialize(org.getOwner());
-            }
-            if (org.getCity() != null) {
-                Hibernate.initialize(org.getCity());
             }
         });
         
@@ -385,11 +371,7 @@ public class OrganizationService {
         Organization organization = findById(id)
                 .orElseThrow(() -> new RuntimeException("Organization not found with id: " + id));
 
-        // Forçar inicialização da cidade e do owner
-        if (organization.getCity() != null) {
-            Hibernate.initialize(organization.getCity());
-        }
-        
+        // Forçar inicialização do owner
         if (organization.getOwner() != null) {
             Hibernate.initialize(organization.getOwner());
         }

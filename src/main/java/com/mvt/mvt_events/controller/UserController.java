@@ -364,7 +364,6 @@ public class UserController {
                 this.addresses = new java.util.ArrayList<>();
             }
             
-            this.state = user.getState();
             this.dateOfBirth = user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : null;
             this.gender = user.getGender() != null ? user.getGender().toString() : null;
             this.documentNumber = user.getDocumentFormatted();

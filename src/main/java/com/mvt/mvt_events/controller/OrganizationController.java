@@ -291,11 +291,9 @@ public class OrganizationController {
         private String name;
         private String slug;
         private String contactEmail;
-        private String phone;
         private String website;
         private String description;
         private String logoUrl;
-        private CityDTO city;
         private BigDecimal commissionPercentage;
         private String status;
         
@@ -313,15 +311,11 @@ public class OrganizationController {
             this.name = organization.getName();
             this.slug = organization.getSlug();
             this.contactEmail = organization.getContactEmail();
-            this.phone = organization.getPhone();
             this.website = organization.getWebsite();
             this.description = organization.getDescription();
             this.logoUrl = organization.getLogoUrl();
             this.commissionPercentage = organization.getCommissionPercentage();
             this.status = organization.getStatus() != null ? organization.getStatus().toString() : null;
-
-            // Carregar dados da cidade como objeto usando DTOMapper
-            this.city = DTOMapper.toDTO(organization.getCity());
             
             // Carregar owner se disponível
             if (organization.getOwner() != null) {

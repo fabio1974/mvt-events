@@ -134,15 +134,6 @@ public class User implements UserDetails {
     @Visible(table = true, form = true, filter = false)
     private String phoneNumber;
 
-    /**
-     * Telefone completo formatado (somente para compatibilidade)
-     * Deprecated: Use phoneDdd + phoneNumber instead
-     */
-    @Deprecated
-    @Visible(table = false, form = false, filter = false)
-    @Column(length = 100)
-    private String state;
-
     @Column(nullable = false)
     private boolean enabled = true;
 

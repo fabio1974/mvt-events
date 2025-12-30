@@ -156,9 +156,6 @@ public class UserService {
             user.setPhoneNumber(request.getPhoneNumber().trim());
         }
         // Note: address is now managed via Address entity, not directly on User
-        if (request.getState() != null) {
-            user.setState(request.getState().trim());
-        }
 
         // City - aceita tanto cityId quanto city.id
         // Agora a cidade está em Address, não diretamente no User
@@ -243,10 +240,6 @@ public class UserService {
         if (request.getCityId() != null) {
             // A cidade será atualizada no Address se necessário
             // Por enquanto, não fazemos nada aqui
-        }
-
-        if (request.getState() != null) {
-            user.setState(request.getState().trim());
         }
 
         // Atualizar data de nascimento
@@ -354,10 +347,12 @@ public class UserService {
                 if (addressDTO.getCity() != null && !addressDTO.getCity().trim().isEmpty()) {
                     String cityName = addressDTO.getCity().trim();
                     String stateName = addressDTO.getState() != null ? addressDTO.getState().trim() 
-                                     : (request.getState() != null ? request.getState().trim() : user.getState());
+                                     : (request.getState() != null ? request.getState().trim() : null);
                     
-                    cityRepository.findByNameAndState(cityName, stateName)
-                        .ifPresent(address::setCity);
+                    if (stateName != null) {
+                        cityRepository.findByNameAndState(cityName, stateName)
+                            .ifPresent(address::setCity);
+                    }
                 }
                 
                 // Campos obrigatórios

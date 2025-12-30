@@ -155,6 +155,7 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("contactPhone", "Telefone de Contato");
         FIELD_TRANSLATIONS.put("logoUrl", "URL do Logo");
         FIELD_TRANSLATIONS.put("commissionPercentage", "Comissão (%)");
+        FIELD_TRANSLATIONS.put("owner", "Proprietário");
 
         // ==================== SITE CONFIGURATION ====================
         FIELD_TRANSLATIONS.put("pricePerKm", "Preço por Km (R$)");

@@ -236,6 +236,22 @@ public class DeliveryController {
         return ResponseEntity.ok(mapToResponse(delivery));
     }
 
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Excluir delivery", description = "Exclui uma delivery. Apenas ADMIN pode excluir ou ORGANIZER se a delivery estiver PENDING/CANCELLED.")
+    public ResponseEntity<Void> delete(
+            @PathVariable Long id,
+            Authentication authentication,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+
+        String token = extractTokenFromRequest(httpRequest);
+        String role = jwtUtil.getRoleFromToken(token);
+        UUID userId = UUID.fromString(jwtUtil.getUserIdFromToken(token));
+
+        deliveryService.delete(id, userId, role);
+
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/{id}/accept")
     @Operation(summary = "Aceitar delivery", description = "Courier aceita a delivery. Status: PENDING → ACCEPTED")
     public ResponseEntity<DeliveryResponse> accept(

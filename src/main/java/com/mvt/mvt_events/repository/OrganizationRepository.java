@@ -35,7 +35,6 @@ public interface OrganizationRepository
      * Users will be loaded separately to avoid circular reference
      */
     @Query("SELECT DISTINCT o FROM Organization o " +
-            "LEFT JOIN FETCH o.city " +
             "LEFT JOIN FETCH o.employmentContracts " +
             "LEFT JOIN FETCH o.clientContracts " +
             "WHERE o.id = :id")

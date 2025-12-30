@@ -100,9 +100,8 @@ public class JwtUtil {
                 // Only store city name to avoid Hibernate proxy serialization issues
                 claims.put("city", user.getAddress().getCity().getName());
                 claims.put("cityId", user.getAddress().getCity().getId());
-            }
-            if (user.getState() != null) {
-                claims.put("state", user.getState());
+                // State comes from City via Address
+                claims.put("state", user.getAddress().getCity().getState());
             }
             if (user.getDocumentNumber() != null) {
                 claims.put("cpf", user.getDocumentFormatted());
