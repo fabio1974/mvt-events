@@ -148,6 +148,18 @@ public class OrganizationService {
             existing.setCommissionPercentage(request.getCommissionPercentage());
         }
 
+        // Update owner if provided
+        if (request.getOwnerId() != null) {
+            try {
+                UUID ownerId = UUID.fromString(request.getOwnerId());
+                User owner = userRepository.findById(ownerId)
+                        .orElseThrow(() -> new RuntimeException("Proprietário não encontrado: " + ownerId));
+                existing.setOwner(owner);
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("ID de proprietário inválido: " + request.getOwnerId());
+            }
+        }
+
         // Process Employment Contracts (Contratos Motoboy)
         if (request.getEmploymentContracts() != null) {
             processEmploymentContracts(existing, request.getEmploymentContracts());
@@ -205,7 +217,7 @@ public class OrganizationService {
         // Add new contracts
         for (EmploymentContractRequest contractRequest : contractRequests) {
             try {
-                UUID courierId = UUID.fromString(contractRequest.getCourier());
+                UUID courierId = UUID.fromString(contractRequest.getCourierId());
                 User courier = userRepository.findById(courierId)
                         .orElseThrow(() -> new RuntimeException("Motoboy não encontrado: " + courierId));
 
@@ -227,7 +239,7 @@ public class OrganizationService {
                 employmentContractRepository.save(contract);
 
             } catch (IllegalArgumentException e) {
-                throw new RuntimeException("ID de motoboy inválido: " + contractRequest.getCourier());
+                throw new RuntimeException("ID de motoboy inválido: " + contractRequest.getCourierId());
             }
         }
     }
@@ -241,7 +253,7 @@ public class OrganizationService {
         // Add new contracts
         for (ContractRequest contractRequest : contractRequests) {
             try {
-                UUID clientId = UUID.fromString(contractRequest.getClient());
+                UUID clientId = UUID.fromString(contractRequest.getClientId());
                 User client = userRepository.findById(clientId)
                         .orElseThrow(() -> new RuntimeException("Cliente não encontrado: " + clientId));
 
@@ -280,7 +292,7 @@ public class OrganizationService {
                 clientContractRepository.save(contract);
 
             } catch (IllegalArgumentException e) {
-                throw new RuntimeException("ID de cliente inválido: " + contractRequest.getClient());
+                throw new RuntimeException("ID de cliente inválido: " + contractRequest.getClientId());
             }
         }
     }

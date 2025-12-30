@@ -18,6 +18,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -198,6 +201,9 @@ public class OrganizationController {
 
         private String status;
         private BigDecimal commissionPercentage;
+        
+        // Owner da organização - aceita "uuid" ou {"id": "uuid"}
+        private UserIdWrapper owner;
 
         // Relacionamentos de contratos
         private java.util.List<EmploymentContractRequest> employmentContracts;
@@ -211,6 +217,10 @@ public class OrganizationController {
                 return city.getId();
             return null;
         }
+        
+        public String getOwnerId() {
+            return owner != null ? owner.getId() : null;
+        }
     }
 
     /**
@@ -219,9 +229,13 @@ public class OrganizationController {
     @Data
     @NoArgsConstructor
     public static class EmploymentContractRequest {
-        private String courier; // UUID como string
+        private UserIdWrapper courier; // Aceita "uuid" ou {"id": "uuid"}
         private String linkedAt; // ISO DateTime string
         private Boolean isActive;
+        
+        public String getCourierId() {
+            return courier != null ? courier.getId() : null;
+        }
     }
 
     /**
@@ -230,12 +244,16 @@ public class OrganizationController {
     @Data
     @NoArgsConstructor
     public static class ContractRequest {
-        private String client; // UUID como string
+        private UserIdWrapper client; // Aceita "uuid" ou {"id": "uuid"}
         private Boolean isPrimary;
         private String status; // ACTIVE, SUSPENDED, CANCELLED
         private String contractDate; // ISO Date string
         private String startDate; // ISO DateTime string
         private String endDate; // ISO DateTime string (pode ser vazio)
+        
+        public String getClientId() {
+            return client != null ? client.getId() : null;
+        }
     }
 
     /**
@@ -245,6 +263,47 @@ public class OrganizationController {
     @NoArgsConstructor
     public static class CityIdWrapper {
         private Long id;
+    }
+
+    /**
+     * Wrapper flexível para User ID - aceita tanto "uuid-string" quanto {"id": "uuid-string"}
+     */
+    @Data
+    @NoArgsConstructor
+    public static class UserIdWrapper {
+        private String id;
+        
+        public UserIdWrapper(String id) {
+            this.id = id;
+        }
+        
+        @JsonCreator
+        public static UserIdWrapper from(Object value) {
+            if (value == null) {
+                return null;
+            }
+            if (value instanceof String) {
+                // Formato flat: "uuid-string"
+                UserIdWrapper wrapper = new UserIdWrapper();
+                wrapper.setId((String) value);
+                return wrapper;
+            }
+            if (value instanceof java.util.Map) {
+                // Formato objeto: {"id": "uuid-string"}
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> map = (java.util.Map<String, Object>) value;
+                UserIdWrapper wrapper = new UserIdWrapper();
+                Object id = map.get("id");
+                wrapper.setId(id != null ? id.toString() : null);
+                return wrapper;
+            }
+            return null;
+        }
+        
+        @JsonValue
+        public String toValue() {
+            return id;
+        }
     }
 
     /**
