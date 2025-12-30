@@ -53,16 +53,16 @@ public interface OrganizationRepository
     java.util.List<java.util.UUID> findClientIdsByOrganizationId(@Param("organizationId") Long organizationId);
 
     /**
-     * Override findAll with pagination to eagerly load city
+     * Override findAll with pagination to eagerly load owner
      */
-    @EntityGraph(attributePaths = { "city" })
+    @EntityGraph(attributePaths = { "owner" })
     @NonNull
     Page<Organization> findAll(@NonNull Pageable pageable);
 
     /**
-     * Override findAll with Specification to eagerly load city
+     * Override findAll with Specification to eagerly load owner
      */
-    @EntityGraph(attributePaths = { "city" })
+    @EntityGraph(attributePaths = { "owner" })
     @NonNull
     Page<Organization> findAll(org.springframework.data.jpa.domain.Specification<Organization> spec, @NonNull Pageable pageable);
 }
