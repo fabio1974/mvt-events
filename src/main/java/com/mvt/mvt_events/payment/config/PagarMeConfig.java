@@ -4,6 +4,9 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import jakarta.annotation.PostConstruct;
 
 /**
  * Configurações do gateway de pagamento Pagar.me
@@ -17,6 +20,8 @@ import org.springframework.context.annotation.Configuration;
 @Getter
 @Setter
 public class PagarMeConfig {
+
+    private static final Logger logger = LoggerFactory.getLogger(PagarMeConfig.class);
 
     /**
      * Configurações da API
@@ -37,6 +42,23 @@ public class PagarMeConfig {
      * Configurações de retry
      */
     private Retry retry = new Retry();
+
+    @PostConstruct
+    public void init() {
+        String apiKey = api.getKey();
+        if (apiKey != null) {
+            // Mascarar a chave para segurança, mostrando apenas os últimos 8 caracteres
+            String maskedKey = "***" + apiKey.substring(Math.max(0, apiKey.length() - 8));
+            boolean isProduction = apiKey.startsWith("sk_");
+            boolean isSandbox = apiKey.startsWith("sk_test_");
+            
+            logger.info("🔐 Pagar.me Configuration Loaded:");
+            logger.info("   API Key: {} ({})", maskedKey, isSandbox ? "SANDBOX" : isProduction ? "PRODUCTION" : "UNKNOWN");
+            logger.info("   API URL: {}", api.getUrl());
+        } else {
+            logger.warn("⚠️  Pagar.me API Key not configured!");
+        }
+    }
 
     @Getter
     @Setter
@@ -108,3 +130,4 @@ public class PagarMeConfig {
         private Long initialBackoffMs;
     }
 }
+
