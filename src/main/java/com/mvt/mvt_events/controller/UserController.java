@@ -251,8 +251,8 @@ public class UserController {
         private String country;
         private String birthDate; // Mapeia para "birthDate" do front-end
         private String gender; // M/F/OTHER
-        private Double latitude; // Coordenadas do endereço fixo
-        private Double longitude; // Coordenadas do endereço fixo
+        // NOTE: latitude e longitude estão em Address, não em User!
+        // Use o array de addresses para atualizar coordenadas de endereço fixo
     }
 
     // DTO para atualização de localização

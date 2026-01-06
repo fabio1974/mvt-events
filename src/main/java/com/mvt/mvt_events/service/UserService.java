@@ -327,13 +327,8 @@ public class UserService {
             }
         }
 
-        // Atualizar coordenadas GPS do usuário (posição em tempo real)
-        if (request.getLatitude() != null) {
-            user.setGpsLatitude(request.getLatitude());
-        }
-        if (request.getLongitude() != null) {
-            user.setGpsLongitude(request.getLongitude());
-        }
+        // Nota: latitude e longitude do endereço fixo devem ser atualizados via array de addresses
+        // User apenas tem gpsLatitude e gpsLongitude (coordenadas GPS em tempo real)
 
         // Processar array de endereços (sincronização: update, insert, delete)
         // Usa orphanRemoval=true na coleção user.addresses para deletar automaticamente
