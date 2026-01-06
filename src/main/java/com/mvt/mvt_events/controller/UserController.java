@@ -314,7 +314,7 @@ public class UserController {
         private String phoneDdd; // DDD do telefone (2 dígitos)
         private String phoneNumber; // Número do telefone sem DDD (8 ou 9 dígitos)
         private String address; // Deprecated - use addresses array
-        private List<AddressResponseDTO> addresses; // Lista de endereços
+        private List<AddressResponseDTO> addresses; // Lista de endereços com latitude/longitude
         private CityDTO city;
         private String state;
         private String country;
@@ -324,11 +324,7 @@ public class UserController {
         private String role;
         private OrganizationDTO organization;
 
-        // Campos de localização do endereço fixo
-        private Double latitude;
-        private Double longitude;
-        
-        // Campos de localização GPS (em tempo real)
+        // Campos de localização GPS em tempo real (rastreamento do usuário)
         private Double gpsLatitude;
         private Double gpsLongitude;
         private String updatedAt; // Timestamp da última atualização GPS
@@ -347,11 +343,9 @@ public class UserController {
             // Address from Address entity (deprecated - use addresses array)
             if (user.getAddress() != null) {
                 this.address = user.getAddress().getFullAddress();
-                this.latitude = user.getAddress().getLatitude();
-                this.longitude = user.getAddress().getLongitude();
             }
             
-            // Populate addresses array
+            // Populate addresses array (contém latitude/longitude do endereço fixo)
             if (user.getAddresses() != null && !user.getAddresses().isEmpty()) {
                 this.addresses = user.getAddresses().stream()
                     .map(AddressResponseDTO::new)
@@ -365,7 +359,7 @@ public class UserController {
             this.documentNumber = user.getDocumentFormatted();
             this.role = user.getRole() != null ? user.getRole().toString() : null;
 
-            // Campos de localização GPS (em tempo real) - mantidos no User
+            // Campos de localização GPS (em tempo real) - rastreamento do usuário
             this.gpsLatitude = user.getGpsLatitude();
             this.gpsLongitude = user.getGpsLongitude();
             this.updatedAt = user.getUpdatedAt() != null ? user.getUpdatedAt().toString() : null;
