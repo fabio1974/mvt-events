@@ -87,4 +87,21 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
        @Query("SELECT u FROM User u WHERE u.id IN (SELECT o.owner.id FROM Organization o WHERE o.id IN :organizationIds) AND u.role IN ('ADMIN', 'ORGANIZER')")
        List<User> findAdmsByOrganizationIds(@Param("organizationIds") List<Long> organizationIds);
 
+       /**
+        * Busca couriers próximos usando fórmula Haversine
+        * @param latitude Latitude do ponto de referência
+        * @param longitude Longitude do ponto de referência
+        * @param radiusKm Raio de busca em quilômetros
+        * @return Lista de couriers dentro do raio
+        */
+       @Query("SELECT u FROM User u WHERE u.role = 'COURIER' " +
+              "AND u.gpsLatitude IS NOT NULL " +
+              "AND u.gpsLongitude IS NOT NULL " +
+              "AND (6371 * acos(cos(radians(:latitude)) * cos(radians(u.gpsLatitude)) * " +
+              "cos(radians(u.gpsLongitude) - radians(:longitude)) + " +
+              "sin(radians(:latitude)) * sin(radians(u.gpsLatitude)))) <= :radiusKm")
+       List<User> findAvailableCouriersNearby(@Param("latitude") Double latitude,
+                                              @Param("longitude") Double longitude,
+                                              @Param("radiusKm") Double radiusKm);
+
 }

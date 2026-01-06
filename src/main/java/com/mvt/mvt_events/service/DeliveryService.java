@@ -32,9 +32,6 @@ public class DeliveryService {
     private UserRepository userRepository;
 
     @Autowired
-    private CourierProfileRepository courierProfileRepository;
-
-    @Autowired
     private DeliveryNotificationService deliveryNotificationService;
 
     @Autowired
@@ -403,18 +400,14 @@ public class DeliveryService {
             throw new RuntimeException("Delivery não está pendente");
         }
 
-        // Validar courier
-        CourierProfile courier = courierProfileRepository.findByUserId(courierId)
-                .orElseThrow(() -> new RuntimeException("Courier não encontrado"));
-
-        if (courier.getStatus() != CourierProfile.CourierStatus.AVAILABLE &&
-                courier.getStatus() != CourierProfile.CourierStatus.ON_DELIVERY) {
-            throw new RuntimeException("Courier não está disponível");
-        }
-
-        // Buscar o User do courier para evitar lazy loading
+        // Buscar o User do courier
         User courierUser = userRepository.findById(courierId)
                 .orElseThrow(() -> new RuntimeException("Usuário courier não encontrado"));
+        
+        // Validar se é COURIER
+        if (courierUser.getRole() != User.Role.COURIER) {
+            throw new RuntimeException("Usuário não é um courier");
+        }
 
         // Buscar a organização comum entre courier (employment) e client (client contract)
         Organization commonOrganization = findCommonOrganization(courierUser, delivery.getClient());
@@ -433,10 +426,6 @@ public class DeliveryService {
         delivery.setOrganizer(organizer);
         delivery.setStatus(Delivery.DeliveryStatus.ACCEPTED);
         delivery.setAcceptedAt(LocalDateTime.now());
-
-        // Atualizar métricas do courier
-        courier.setTotalDeliveries(courier.getTotalDeliveries() + 1);
-        courierProfileRepository.save(courier);
 
         Delivery saved = deliveryRepository.save(delivery);
         
@@ -514,12 +503,6 @@ public class DeliveryService {
         delivery.setStatus(Delivery.DeliveryStatus.COMPLETED);
         delivery.setCompletedAt(LocalDateTime.now());
 
-        // Atualizar métricas do courier
-        CourierProfile courier = courierProfileRepository.findByUserId(courierId)
-                .orElseThrow(() -> new RuntimeException("Courier não encontrado"));
-        courier.setCompletedDeliveries(courier.getCompletedDeliveries() + 1);
-        courierProfileRepository.save(courier);
-
         Delivery saved = deliveryRepository.save(delivery);
         
         // Recarregar com joins
@@ -545,15 +528,8 @@ public class DeliveryService {
         delivery.setCancelledAt(LocalDateTime.now());
         delivery.setCancellationReason(reason);
 
-        // Se tinha courier atribuído, atualizar métricas e remover courier e organization
+        // Se tinha courier atribuído, remover courier e organization
         if (delivery.getCourier() != null) {
-            CourierProfile courier = courierProfileRepository.findByUserId(delivery.getCourier().getId())
-                    .orElse(null);
-            if (courier != null) {
-                courier.setCancelledDeliveries(courier.getCancelledDeliveries() + 1);
-                courierProfileRepository.save(courier);
-            }
-            
             // Remover courier e organizer
             delivery.setCourier(null);
             delivery.setOrganizer(null);
@@ -630,16 +606,6 @@ public class DeliveryService {
                     delivery.setInTransitAt(now);
                 }
                 delivery.setCompletedAt(now);
-
-                // Atualizar métricas do courier
-                if (delivery.getCourier() != null) {
-                    CourierProfile courier = courierProfileRepository.findByUserId(delivery.getCourier().getId())
-                            .orElse(null);
-                    if (courier != null) {
-                        courier.setCompletedDeliveries(courier.getCompletedDeliveries() + 1);
-                        courierProfileRepository.save(courier);
-                    }
-                }
                 break;
 
             case CANCELLED:
@@ -648,14 +614,6 @@ public class DeliveryService {
                 
                 // IMPORTANTE: Remover courier e voltar para PENDING
                 if (delivery.getCourier() != null) {
-                    // Atualizar métricas do courier
-                    CourierProfile courier = courierProfileRepository.findByUserId(delivery.getCourier().getId())
-                            .orElse(null);
-                    if (courier != null) {
-                        courier.setCancelledDeliveries(courier.getCancelledDeliveries() + 1);
-                        courierProfileRepository.save(courier);
-                    }
-                    
                     // Remover courier da delivery
                     delivery.setCourier(null);
                 }

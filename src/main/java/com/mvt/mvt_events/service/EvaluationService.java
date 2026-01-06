@@ -34,9 +34,6 @@ public class EvaluationService {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-    private CourierProfileService courierProfileService;
-
     /**
      * Cria avaliação
      * VALIDA: Delivery existe, está completada, não tem avaliação, usuário tem
@@ -81,12 +78,6 @@ public class EvaluationService {
 
         Evaluation saved = evaluationRepository.save(evaluation);
 
-        // Atualizar rating do courier (se avaliação cliente→courier)
-        if (evaluation.getEvaluationType() == Evaluation.EvaluationType.CLIENT_TO_COURIER &&
-                delivery.getCourier() != null) {
-            updateCourierRating(delivery.getCourier().getId());
-        }
-
         return saved;
     }
 
@@ -127,24 +118,8 @@ public class EvaluationService {
         return average != null ? average : 0.0;
     }
 
-    /**
-     * Atualiza rating do courier baseado em todas as avaliações
-     */
-    private void updateCourierRating(UUID courierId) {
-        List<Evaluation> evaluations = evaluationRepository.findReceivedByCourierId(courierId);
-
-        if (!evaluations.isEmpty()) {
-            double sum = evaluations.stream()
-                    .mapToInt(Evaluation::getRating)
-                    .sum();
-            double average = sum / evaluations.size();
-
-            courierProfileService.updateRating(
-                    courierId,
-                    java.math.BigDecimal.valueOf(average),
-                    evaluations.size());
-        }
-    }
+    // Método updateCourierRating removido - CourierProfile não existe mais
+    // Se necessário, o rating pode ser calculado diretamente da tabela evaluations
 
     /**
      * Busca avaliações ruins (rating <= 2) para análise

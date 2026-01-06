@@ -33,7 +33,7 @@ public class FormMetadataController {
 
         // ==================== Zapi10 (Sistema de Entregas) ====================
         ENTITIES.put("delivery", new EntityConfig(Delivery.class, "Entregas", "/api/deliveries"));
-        ENTITIES.put("courierProfile", new EntityConfig(CourierProfile.class, "Perfis de Motoboy", "/api/courier-profiles"));
+        // CourierProfile removido - todos dados de courier estão em User com role COURIER
         ENTITIES.put("evaluation", new EntityConfig(Evaluation.class, "Avaliações", "/api/evaluations"));
         ENTITIES.put("clientContract", new EntityConfig(ClientContract.class, "Contrato de Serviço", "/api/client-contracts"));
         ENTITIES.put("employmentContract", new EntityConfig(EmploymentContract.class, "Contrato de Motoboy", "/api/employment-contracts"));

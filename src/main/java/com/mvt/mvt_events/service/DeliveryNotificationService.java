@@ -41,10 +41,10 @@ public class DeliveryNotificationService {
     private EmploymentContractRepository employmentContractRepository;
 
     @Autowired
-    private CourierProfileRepository courierProfileRepository;
+    private UserPushTokenRepository userPushTokenRepository;
 
     @Autowired
-    private UserPushTokenRepository userPushTokenRepository;
+    private UserRepository userRepository;
 
     @Autowired
     private DeliveryRepository deliveryRepository;
@@ -138,7 +138,7 @@ public class DeliveryNotificationService {
         }
 
         // Filtrar apenas motoboys disponíveis e próximos
-        List<CourierProfile> availableCouriers = getAvailableCouriersInArea(
+        List<User> availableCouriers = getAvailableCouriersInArea(
                 delivery.getFromLatitude(), delivery.getFromLongitude(), INITIAL_RADIUS_KM, courierIds);
 
         if (availableCouriers.isEmpty()) {
@@ -191,7 +191,7 @@ public class DeliveryNotificationService {
         }
 
         // Filtrar apenas motoboys disponíveis e próximos
-        List<CourierProfile> availableCouriers = getAvailableCouriersInArea(
+        List<User> availableCouriers = getAvailableCouriersInArea(
                 delivery.getFromLatitude(), delivery.getFromLongitude(), INITIAL_RADIUS_KM, courierIds);
 
         if (availableCouriers.isEmpty()) {
@@ -219,12 +219,12 @@ public class DeliveryNotificationService {
         log.info("Executando Nível 3: Todos motoboys próximos para delivery {}", delivery.getId());
 
         // Buscar todos os motoboys disponíveis próximos (sem filtro de organização)
-        List<CourierProfile> availableCouriers = courierProfileRepository.findAvailableCouriersNearby(
+        List<User> availableCouriers = userRepository.findAvailableCouriersNearby(
                 delivery.getFromLatitude(), delivery.getFromLongitude(), INITIAL_RADIUS_KM);
 
         if (availableCouriers.isEmpty()) {
             // Tentar raio estendido
-            availableCouriers = courierProfileRepository.findAvailableCouriersNearby(
+            availableCouriers = userRepository.findAvailableCouriersNearby(
                     delivery.getFromLatitude(), delivery.getFromLongitude(), EXTENDED_RADIUS_KM);
         }
 
@@ -241,34 +241,34 @@ public class DeliveryNotificationService {
     /**
      * Busca motoboys disponíveis em uma área específica, filtrados por IDs
      */
-    private List<CourierProfile> getAvailableCouriersInArea(Double latitude, Double longitude,
+    private List<User> getAvailableCouriersInArea(Double latitude, Double longitude,
             Double radiusKm, Set<UUID> courierIds) {
 
         // Buscar todos os motoboys próximos
-        List<CourierProfile> nearbyCouriers = courierProfileRepository.findAvailableCouriersNearby(
+        List<User> nearbyCouriers = userRepository.findAvailableCouriersNearby(
                 latitude, longitude, radiusKm);
 
         // Filtrar pelos IDs especificados
         return nearbyCouriers.stream()
-                .filter(courier -> courierIds.contains(courier.getUser().getId()))
+                .filter(courier -> courierIds.contains(courier.getId()))
                 .collect(Collectors.toList());
     }
 
     /**
      * Envia notificações push HÍBRIDAS para uma lista de motoboys (Expo + Web Push)
      */
-    private void sendNotificationsToDrivers(List<CourierProfile> couriers, Delivery delivery, String level) {
+    private void sendNotificationsToDrivers(List<User> couriers, Delivery delivery, String level) {
         log.info("Enviando notificações HÍBRIDAS {} para {} motoboys da delivery {}",
                 level, couriers.size(), delivery.getId());
 
-        for (CourierProfile courier : couriers) {
+        for (User courier : couriers) {
             try {
                 // Buscar tokens ativos do motoboy
                 List<UserPushToken> tokens = userPushTokenRepository
-                        .findByUserIdAndIsActiveTrue(courier.getUser().getId());
+                        .findByUserIdAndIsActiveTrue(courier.getId());
 
                 if (tokens.isEmpty()) {
-                    log.debug("Motoboy {} não possui tokens push ativos", courier.getUser().getId());
+                    log.debug("Motoboy {} não possui tokens push ativos", courier.getId());
                     continue;
                 }
 
@@ -299,16 +299,16 @@ public class DeliveryNotificationService {
 
                 // Enviar notificação HÍBRIDA usando o novo método
                 pushNotificationService.sendHybridNotificationToUser(
-                        courier.getUser().getId(),
+                        courier.getId(),
                         title,
                         body,
                         data);
 
-                log.debug("Notificação híbrida {} enviada para motoboy {}", level, courier.getUser().getId());
+                log.debug("Notificação híbrida {} enviada para motoboy {}", level, courier.getId());
 
             } catch (Exception e) {
                 log.error("Erro ao enviar notificação híbrida {} para motoboy {}: {}",
-                        level, courier.getUser().getId(), e.getMessage());
+                        level, courier.getId(), e.getMessage());
             }
         }
     }
