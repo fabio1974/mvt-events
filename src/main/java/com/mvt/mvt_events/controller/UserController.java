@@ -230,29 +230,25 @@ public class UserController {
     @Data
     @NoArgsConstructor
     public static class UserUpdateRequest {
-        private String username; // Email - pode ser alterado
-        private String name;
+        // Identificação
+        private String username;           // Email (unique)
+        private String name;               // Nome completo
         
-        // New fields - use these
-        private String documentNumber; // CPF or CNPJ
-        private String phoneDdd;        // 2 digits
-        private String phoneNumber;     // 8-9 digits
-        private List<AddressDTO> addresses; // Array of addresses
+        // Dados pessoais
+        private String documentNumber;     // CPF ou CNPJ
+        private String dateOfBirth;        // Data de nascimento (ISO: YYYY-MM-DD)
+        private String gender;             // MALE, FEMALE, OTHER
         
-        // Deprecated fields - kept for backward compatibility
-        @Deprecated
-        private String phone;
-        @Deprecated
-        private String cpf; // Mapeia para "cpf" do front-end
+        // Telefone (para KYC Pagar.me)
+        private String phoneDdd;           // DDD (2 dígitos)
+        private String phoneNumber;        // Número sem DDD (8-9 dígitos)
         
-        private String address;
-        private Long cityId; // ID da cidade relacionada
-        private String state;
-        private String country;
-        private String birthDate; // Mapeia para "birthDate" do front-end
-        private String gender; // M/F/OTHER
-        // NOTE: latitude e longitude estão em Address, não em User!
-        // Use o array de addresses para atualizar coordenadas de endereço fixo
+        // Endereços
+        private List<AddressDTO> addresses; // Array de endereços
+        
+        // Localização GPS em tempo real (rastreamento)
+        private Double gpsLatitude;        // Latitude GPS em tempo real
+        private Double gpsLongitude;       // Longitude GPS em tempo real
     }
 
     // DTO para atualização de localização

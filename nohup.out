@@ -371,3 +371,314 @@ Hibernate:
             cities c1_0
 2026-01-05T23:46:26.376-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.startup.CityDataLoader  : ✅ Cidades já carregadas no banco: 5570 registros (>= 5570). Não é necessário recarregar.
 2026-01-05T23:46:26.378-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .ConditionEvaluationDeltaLoggingListener : Condition evaluation unchanged
+2026-01-05T23:49:37.261-03:00  INFO 50607 --- [mvt-events] [   File Watcher] rtingClassPathChangeChangedEventListener : Restarting due to 351 class path changes (0 additions, 351 deletions, 0 modifications)
+2026-01-05T23:49:37.333-03:00  INFO 50607 --- [mvt-events] [      Thread-39] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2026-01-05T23:49:37.340-03:00  INFO 50607 --- [mvt-events] [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2026-01-05T23:49:37.389-03:00  INFO 50607 --- [mvt-events] [      Thread-39] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-01-05T23:49:37.411-03:00  INFO 50607 --- [mvt-events] [      Thread-39] com.zaxxer.hikari.HikariDataSource       : HikariPool-5 - Shutdown initiated...
+2026-01-05T23:49:37.419-03:00  INFO 50607 --- [mvt-events] [      Thread-39] com.zaxxer.hikari.HikariDataSource       : HikariPool-5 - Shutdown completed.
+Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.6)
+
+2026-01-05T23:49:37.731-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : Starting MvtEventsApplication using Java 17.0.17 with PID 50607 (/Users/fabio2barros/Documents/projects/mvt-events/build/classes/java/main started by fabio2barros in /Users/fabio2barros/Documents/projects/mvt-events)
+2026-01-05T23:49:37.731-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : No active profile set, falling back to 1 default profile: "default"
+2026-01-05T23:49:37.735-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .s.b.d.c.l.DockerComposeLifecycleManager : Using Docker Compose file /Users/fabio2barros/Documents/projects/mvt-events/compose.yaml
+2026-01-05T23:49:38.344-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .s.b.d.c.l.DockerComposeLifecycleManager : There are already Docker Compose services running, skipping startup
+2026-01-05T23:49:38.586-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-01-05T23:49:38.624-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 36 ms. Found 15 JPA repository interfaces.
+2026-01-05T23:49:38.766-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-01-05T23:49:38.766-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-01-05T23:49:38.766-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.46]
+2026-01-05T23:49:38.794-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-01-05T23:49:38.794-03:00  INFO 50607 --- [mvt-events] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 447 ms
+Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
+2026-01-05T23:49:38.914-03:00  INFO 50607 --- [mvt-events] [  restartedMain] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://127.0.0.1:5435/mvt-events (PostgreSQL 16.11)
+2026-01-05T23:49:38.932-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbValidate     : Successfully validated 34 migrations (execution time 00:00.008s)
+2026-01-05T23:49:38.967-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 35
+2026-01-05T23:49:38.967-03:00 ERROR 50607 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Schema "public" has version 35, but no migration could be resolved in the configured locations !
+2026-01-05T23:49:38.970-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-01-05T23:49:39.003-03:00  INFO 50607 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-6 - Starting...
+2026-01-05T23:49:39.022-03:00  INFO 50607 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-6 - Added connection org.postgresql.jdbc.PgConnection@5832e37e
+2026-01-05T23:49:39.023-03:00  INFO 50607 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-6 - Start completed.
+2026-01-05T23:49:39.023-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-01-05T23:49:39.026-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-01-05T23:49:39.037-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-01-05T23:49:39.047-03:00  INFO 50607 --- [mvt-events] [  restartedMain] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-6)']
+	Database driver: undefined/unknown
+	Database version: 16.11
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-01-05T23:49:39.199-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-01-05T23:49:39.200-03:00  INFO 50607 --- [mvt-events] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-01-05T23:49:39.239-03:00  WARN 50607 --- [mvt-events] [  restartedMain] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-01-05T23:49:39.494-03:00  WARN 50607 --- [mvt-events] [  restartedMain] .s.s.UserDetailsServiceAutoConfiguration : 
+
+Using generated security password: 18fe19f8-86ab-45d9-9d0c-d542a34b4fc2
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+2026-01-05T23:49:39.494-03:00  INFO 50607 --- [mvt-events] [  restartedMain] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+2026-01-05T23:49:39.521-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2026-01-05T23:49:39.727-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : LiveReload server is running on port 35729
+2026-01-05T23:49:39.737-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2026-01-05T23:49:39.744-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : Started MvtEventsApplication in 2.031 seconds (process running for 436.379)
+2026-01-05T23:49:39.746-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .ConditionEvaluationDeltaLoggingListener : Condition evaluation unchanged
+2026-01-05T23:49:41.161-03:00  INFO 50607 --- [mvt-events] [   File Watcher] rtingClassPathChangeChangedEventListener : Restarting due to 280 class path changes (280 additions, 0 deletions, 0 modifications)
+2026-01-05T23:49:41.165-03:00  INFO 50607 --- [mvt-events] [      Thread-43] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2026-01-05T23:49:41.170-03:00  INFO 50607 --- [mvt-events] [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2026-01-05T23:49:41.174-03:00  INFO 50607 --- [mvt-events] [      Thread-43] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-01-05T23:49:41.176-03:00  WARN 50607 --- [mvt-events] [      Thread-43] o.s.b.f.support.DisposableBeanAdapter    : Invocation of destroy method failed on bean with name 'inMemoryDatabaseShutdownExecutor': org.springframework.boot.autoconfigure.jdbc.DataSourceProperties$DataSourceBeanCreationException: Failed to determine a suitable driver class
+2026-01-05T23:49:41.176-03:00  INFO 50607 --- [mvt-events] [      Thread-43] com.zaxxer.hikari.HikariDataSource       : HikariPool-6 - Shutdown initiated...
+2026-01-05T23:49:41.177-03:00  INFO 50607 --- [mvt-events] [      Thread-43] com.zaxxer.hikari.HikariDataSource       : HikariPool-6 - Shutdown completed.
+Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.6)
+
+2026-01-05T23:49:41.304-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : Starting MvtEventsApplication using Java 17.0.17 with PID 50607 (/Users/fabio2barros/Documents/projects/mvt-events/build/classes/java/main started by fabio2barros in /Users/fabio2barros/Documents/projects/mvt-events)
+2026-01-05T23:49:41.305-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : No active profile set, falling back to 1 default profile: "default"
+2026-01-05T23:49:41.306-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .s.b.d.c.l.DockerComposeLifecycleManager : Using Docker Compose file /Users/fabio2barros/Documents/projects/mvt-events/compose.yaml
+2026-01-05T23:49:41.585-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .s.b.d.c.l.DockerComposeLifecycleManager : There are already Docker Compose services running, skipping startup
+2026-01-05T23:49:41.748-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-01-05T23:49:41.774-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 24 ms. Found 15 JPA repository interfaces.
+2026-01-05T23:49:41.866-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-01-05T23:49:41.866-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-01-05T23:49:41.866-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.46]
+2026-01-05T23:49:41.881-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-01-05T23:49:41.881-03:00  INFO 50607 --- [mvt-events] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 295 ms
+Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
+2026-01-05T23:49:41.985-03:00  INFO 50607 --- [mvt-events] [  restartedMain] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://127.0.0.1:5435/mvt-events (PostgreSQL 16.11)
+2026-01-05T23:49:42.002-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbValidate     : Successfully validated 34 migrations (execution time 00:00.007s)
+2026-01-05T23:49:42.029-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 35
+2026-01-05T23:49:42.029-03:00 ERROR 50607 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Schema "public" has version 35, but no migration could be resolved in the configured locations !
+2026-01-05T23:49:42.030-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-01-05T23:49:42.045-03:00  INFO 50607 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-7 - Starting...
+2026-01-05T23:49:42.059-03:00  INFO 50607 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-7 - Added connection org.postgresql.jdbc.PgConnection@644fb839
+2026-01-05T23:49:42.059-03:00  INFO 50607 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-7 - Start completed.
+2026-01-05T23:49:42.060-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-01-05T23:49:42.061-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-01-05T23:49:42.066-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-01-05T23:49:42.069-03:00  INFO 50607 --- [mvt-events] [  restartedMain] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-7)']
+	Database driver: undefined/unknown
+	Database version: 16.11
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-01-05T23:49:42.312-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-01-05T23:49:42.312-03:00  INFO 50607 --- [mvt-events] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-01-05T23:49:42.350-03:00  WARN 50607 --- [mvt-events] [  restartedMain] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'webPushConfig': Injection of autowired dependencies failed
+2026-01-05T23:49:42.350-03:00  INFO 50607 --- [mvt-events] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-01-05T23:49:42.350-03:00  WARN 50607 --- [mvt-events] [  restartedMain] o.s.b.f.support.DisposableBeanAdapter    : Invocation of destroy method failed on bean with name 'inMemoryDatabaseShutdownExecutor': org.springframework.boot.autoconfigure.jdbc.DataSourceProperties$DataSourceBeanCreationException: Failed to determine a suitable driver class
+2026-01-05T23:49:42.350-03:00  INFO 50607 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-7 - Shutdown initiated...
+2026-01-05T23:49:42.367-03:00  INFO 50607 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-7 - Shutdown completed.
+2026-01-05T23:49:42.368-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.apache.catalina.core.StandardService   : Stopping service [Tomcat]
+2026-01-05T23:49:42.377-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .s.b.a.l.ConditionEvaluationReportLogger : 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2026-01-05T23:49:42.388-03:00 ERROR 50607 --- [mvt-events] [  restartedMain] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'webPushConfig': Injection of autowired dependencies failed
+	at org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor.postProcessProperties(AutowiredAnnotationBeanPostProcessor.java:515) ~[spring-beans-6.2.11.jar:6.2.11]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1459) ~[spring-beans-6.2.11.jar:6.2.11]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:606) ~[spring-beans-6.2.11.jar:6.2.11]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529) ~[spring-beans-6.2.11.jar:6.2.11]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339) ~[spring-beans-6.2.11.jar:6.2.11]
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373) ~[spring-beans-6.2.11.jar:6.2.11]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337) ~[spring-beans-6.2.11.jar:6.2.11]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202) ~[spring-beans-6.2.11.jar:6.2.11]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.instantiateSingleton(DefaultListableBeanFactory.java:1221) ~[spring-beans-6.2.11.jar:6.2.11]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingleton(DefaultListableBeanFactory.java:1187) ~[spring-beans-6.2.11.jar:6.2.11]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingletons(DefaultListableBeanFactory.java:1123) ~[spring-beans-6.2.11.jar:6.2.11]
+	at org.springframework.context.support.AbstractApplicationContext.finishBeanFactoryInitialization(AbstractApplicationContext.java:987) ~[spring-context-6.2.11.jar:6.2.11]
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:627) ~[spring-context-6.2.11.jar:6.2.11]
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:146) ~[spring-boot-3.5.6.jar:3.5.6]
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:752) ~[spring-boot-3.5.6.jar:3.5.6]
+	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:439) ~[spring-boot-3.5.6.jar:3.5.6]
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:318) ~[spring-boot-3.5.6.jar:3.5.6]
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1361) ~[spring-boot-3.5.6.jar:3.5.6]
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1350) ~[spring-boot-3.5.6.jar:3.5.6]
+	at com.mvt.mvt_events.MvtEventsApplication.main(MvtEventsApplication.java:38) ~[main/:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77) ~[na:na]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569) ~[na:na]
+	at org.springframework.boot.devtools.restart.RestartLauncher.run(RestartLauncher.java:50) ~[spring-boot-devtools-3.5.6.jar:3.5.6]
+Caused by: org.springframework.util.PlaceholderResolutionException: Could not resolve placeholder 'webpush.vapid.public-key' in value "${webpush.vapid.public-key}"
+	at org.springframework.util.PlaceholderResolutionException.withValue(PlaceholderResolutionException.java:81) ~[spring-core-6.2.11.jar:6.2.11]
+	at org.springframework.util.PlaceholderParser$ParsedValue.resolve(PlaceholderParser.java:423) ~[spring-core-6.2.11.jar:6.2.11]
+	at org.springframework.util.PlaceholderParser.replacePlaceholders(PlaceholderParser.java:128) ~[spring-core-6.2.11.jar:6.2.11]
+	at org.springframework.util.PropertyPlaceholderHelper.parseStringValue(PropertyPlaceholderHelper.java:118) ~[spring-core-6.2.11.jar:6.2.11]
+	at org.springframework.util.PropertyPlaceholderHelper.replacePlaceholders(PropertyPlaceholderHelper.java:114) ~[spring-core-6.2.11.jar:6.2.11]
+	at org.springframework.core.env.AbstractPropertyResolver.doResolvePlaceholders(AbstractPropertyResolver.java:293) ~[spring-core-6.2.11.jar:6.2.11]
+	at org.springframework.core.env.AbstractPropertyResolver.resolveRequiredPlaceholders(AbstractPropertyResolver.java:264) ~[spring-core-6.2.11.jar:6.2.11]
+	at org.springframework.context.support.PropertySourcesPlaceholderConfigurer.lambda$processProperties$0(PropertySourcesPlaceholderConfigurer.java:186) ~[spring-context-6.2.11.jar:6.2.11]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.resolveEmbeddedValue(AbstractBeanFactory.java:970) ~[spring-beans-6.2.11.jar:6.2.11]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1665) ~[spring-beans-6.2.11.jar:6.2.11]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1643) ~[spring-beans-6.2.11.jar:6.2.11]
+	at org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor$AutowiredFieldElement.resolveFieldValue(AutowiredAnnotationBeanPostProcessor.java:785) ~[spring-beans-6.2.11.jar:6.2.11]
+	at org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor$AutowiredFieldElement.inject(AutowiredAnnotationBeanPostProcessor.java:768) ~[spring-beans-6.2.11.jar:6.2.11]
+	at org.springframework.beans.factory.annotation.InjectionMetadata.inject(InjectionMetadata.java:146) ~[spring-beans-6.2.11.jar:6.2.11]
+	at org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor.postProcessProperties(AutowiredAnnotationBeanPostProcessor.java:509) ~[spring-beans-6.2.11.jar:6.2.11]
+	... 24 common frames omitted
+
+Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.6)
+
+2026-01-05T23:49:50.993-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : Starting MvtEventsApplication using Java 17.0.17 with PID 50607 (/Users/fabio2barros/Documents/projects/mvt-events/build/classes/java/main started by fabio2barros in /Users/fabio2barros/Documents/projects/mvt-events)
+2026-01-05T23:49:50.993-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : No active profile set, falling back to 1 default profile: "default"
+2026-01-05T23:49:50.995-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .s.b.d.c.l.DockerComposeLifecycleManager : Using Docker Compose file /Users/fabio2barros/Documents/projects/mvt-events/compose.yaml
+2026-01-05T23:49:51.519-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .s.b.d.c.l.DockerComposeLifecycleManager : There are already Docker Compose services running, skipping startup
+2026-01-05T23:49:51.709-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-01-05T23:49:51.742-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 31 ms. Found 15 JPA repository interfaces.
+2026-01-05T23:49:51.844-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-01-05T23:49:51.847-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-01-05T23:49:51.847-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.46]
+2026-01-05T23:49:51.897-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.a.c.c.C.[Tomcat-1].[localhost].[/]     : Initializing Spring embedded WebApplicationContext
+2026-01-05T23:49:51.899-03:00  INFO 50607 --- [mvt-events] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 377 ms
+Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
+2026-01-05T23:49:52.163-03:00  INFO 50607 --- [mvt-events] [  restartedMain] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://127.0.0.1:5435/mvt-events (PostgreSQL 16.11)
+2026-01-05T23:49:52.188-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbValidate     : Successfully validated 34 migrations (execution time 00:00.007s)
+2026-01-05T23:49:52.224-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 35
+2026-01-05T23:49:52.225-03:00 ERROR 50607 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Schema "public" has version 35, but no migration could be resolved in the configured locations !
+2026-01-05T23:49:52.227-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-01-05T23:49:52.289-03:00  INFO 50607 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-8 - Starting...
+2026-01-05T23:49:52.322-03:00  INFO 50607 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-8 - Added connection org.postgresql.jdbc.PgConnection@9a33c3d
+2026-01-05T23:49:52.322-03:00  INFO 50607 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-8 - Start completed.
+2026-01-05T23:49:52.324-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-01-05T23:49:52.329-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-01-05T23:49:52.344-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-01-05T23:49:52.354-03:00  INFO 50607 --- [mvt-events] [  restartedMain] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-8)']
+	Database driver: undefined/unknown
+	Database version: 16.11
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-01-05T23:49:52.644-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-01-05T23:49:52.645-03:00  INFO 50607 --- [mvt-events] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-01-05T23:49:52.649-03:00  WARN 50607 --- [mvt-events] [  restartedMain] c.m.m.payment.config.PagarMeConfig       : ⚠️  Pagar.me API Key not configured!
+2026-01-05T23:49:52.654-03:00  WARN 50607 --- [mvt-events] [  restartedMain] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'pagarMeService' defined in file [/Users/fabio2barros/Documents/projects/mvt-events/build/classes/java/main/com/mvt/mvt_events/payment/service/PagarMeService.class]: Unsatisfied dependency expressed through constructor parameter 1: No qualifying bean of type 'org.springframework.web.client.RestTemplate' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}
+2026-01-05T23:49:52.654-03:00  INFO 50607 --- [mvt-events] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-01-05T23:49:52.655-03:00  WARN 50607 --- [mvt-events] [  restartedMain] o.s.b.f.support.DisposableBeanAdapter    : Invocation of destroy method failed on bean with name 'inMemoryDatabaseShutdownExecutor': org.springframework.boot.autoconfigure.jdbc.DataSourceProperties$DataSourceBeanCreationException: Failed to determine a suitable driver class
+2026-01-05T23:49:52.655-03:00  INFO 50607 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-8 - Shutdown initiated...
+2026-01-05T23:49:52.676-03:00  INFO 50607 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-8 - Shutdown completed.
+2026-01-05T23:49:52.680-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.apache.catalina.core.StandardService   : Stopping service [Tomcat]
+2026-01-05T23:49:52.688-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .s.b.a.l.ConditionEvaluationReportLogger : 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2026-01-05T23:49:52.694-03:00 ERROR 50607 --- [mvt-events] [  restartedMain] o.s.b.d.LoggingFailureAnalysisReporter   : 
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Parameter 1 of constructor in com.mvt.mvt_events.payment.service.PagarMeService required a bean of type 'org.springframework.web.client.RestTemplate' that could not be found.
+
+
+Action:
+
+Consider defining a bean of type 'org.springframework.web.client.RestTemplate' in your configuration.
+
+Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.6)
+
+2026-01-05T23:49:54.160-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : Starting MvtEventsApplication using Java 17.0.17 with PID 50607 (/Users/fabio2barros/Documents/projects/mvt-events/build/classes/java/main started by fabio2barros in /Users/fabio2barros/Documents/projects/mvt-events)
+2026-01-05T23:49:54.160-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : No active profile set, falling back to 1 default profile: "default"
+2026-01-05T23:49:54.369-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-01-05T23:49:54.389-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 19 ms. Found 15 JPA repository interfaces.
+2026-01-05T23:49:54.469-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-01-05T23:49:54.469-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-01-05T23:49:54.469-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.46]
+2026-01-05T23:49:54.480-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.a.c.c.C.[Tomcat-2].[localhost].[/]     : Initializing Spring embedded WebApplicationContext
+2026-01-05T23:49:54.480-03:00  INFO 50607 --- [mvt-events] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 319 ms
+Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
+2026-01-05T23:49:54.520-03:00  INFO 50607 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-9 - Starting...
+2026-01-05T23:49:54.560-03:00  INFO 50607 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-9 - Added connection org.postgresql.jdbc.PgConnection@67622b16
+2026-01-05T23:49:54.560-03:00  INFO 50607 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-9 - Start completed.
+2026-01-05T23:49:54.562-03:00  INFO 50607 --- [mvt-events] [  restartedMain] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5435/mvt-events (PostgreSQL 16.11)
+2026-01-05T23:49:54.578-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbValidate     : Successfully validated 34 migrations (execution time 00:00.009s)
+2026-01-05T23:49:54.599-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 35
+2026-01-05T23:49:54.600-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-01-05T23:49:54.617-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-01-05T23:49:54.621-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-01-05T23:49:54.629-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-01-05T23:49:54.634-03:00  INFO 50607 --- [mvt-events] [  restartedMain] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-9)']
+	Database driver: undefined/unknown
+	Database version: 16.11
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-01-05T23:49:54.750-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-01-05T23:49:54.785-03:00  INFO 50607 --- [mvt-events] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-01-05T23:49:54.842-03:00 DEBUG 50607 --- [mvt-events] [  restartedMain] com.mvt.mvt_events.tenant.TenantFilter   : Filter 'tenantFilter' configured for use
+2026-01-05T23:49:54.870-03:00  INFO 50607 --- [mvt-events] [  restartedMain] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2026-01-05T23:49:54.912-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.m.m.payment.config.PagarMeConfig       : 🔐 Pagar.me Configuration Loaded:
+2026-01-05T23:49:54.912-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.m.m.payment.config.PagarMeConfig       :    API Key: ***a210fc11 (SANDBOX)
+2026-01-05T23:49:54.912-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.m.m.payment.config.PagarMeConfig       :    API URL: https://api.pagar.me/core/v5
+2026-01-05T23:49:55.018-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : BouncyCastle provider já estava registrado
+2026-01-05T23:49:55.018-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : ✅ Web Push Service configurado com VAPID keys
+2026-01-05T23:49:55.019-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : 🔑 Public Key: BN8ym6-oByG6GoAEC939...
+2026-01-05T23:49:55.019-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : 📧 Subject: mailto:admin@mvt-events.com
+2026-01-05T23:49:55.171-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoints beneath base path '/actuator'
+2026-01-05T23:49:55.295-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : LiveReload server is running on port 35729
+2026-01-05T23:49:55.305-03:00  INFO 50607 --- [mvt-events] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2026-01-05T23:49:55.312-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : Started MvtEventsApplication in 1.169 seconds (process running for 451.947)
+2026-01-05T23:49:55.314-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.startup.CityDataLoader  : 🇧🇷 Iniciando verificação das cidades brasileiras...
+2026-01-05T23:49:55.316-03:00 DEBUG 50607 --- [mvt-events] [  restartedMain] org.hibernate.SQL                        : 
+    /* select
+        count(*) 
+    from
+        City x */ select
+            count(*) 
+        from
+            cities c1_0
+Hibernate: 
+    /* select
+        count(*) 
+    from
+        City x */ select
+            count(*) 
+        from
+            cities c1_0
+2026-01-05T23:49:55.324-03:00  INFO 50607 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.startup.CityDataLoader  : ✅ Cidades já carregadas no banco: 5570 registros (>= 5570). Não é necessário recarregar.
+2026-01-05T23:49:55.325-03:00  INFO 50607 --- [mvt-events] [  restartedMain] .ConditionEvaluationDeltaLoggingListener : Condition evaluation unchanged

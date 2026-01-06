@@ -246,37 +246,10 @@ public class UserService {
             user.setPhoneNumber(request.getPhoneNumber().trim());
         }
 
-        // Note: address is now managed via Address entity, not directly on User
-
-        // City is now part of Address, not User directly
-        // cityId será processado no array de addresses abaixo
-
-        // Atualizar campos deprecated (backward compatibility)
-        // Se cpf for fornecido, mapeia para documentNumber
-        if (request.getCpf() != null && !request.getCpf().trim().isEmpty() && 
-            (request.getDocumentNumber() == null || request.getDocumentNumber().trim().isEmpty())) {
-            String document = request.getCpf().trim().replaceAll("[^0-9]", "");
-            if (com.mvt.mvt_events.util.CPFUtil.isValid(document)) {
-                user.setDocumentNumber(document);
-            }
-        }
-        
-        // Se phone for fornecido, mapeia para phoneDdd + phoneNumber
-        if (request.getPhone() != null && !request.getPhone().trim().isEmpty()) {
-            String phone = request.getPhone().trim().replaceAll("[^0-9]", "");
-            if (phone.length() >= 10) {
-                // Últimos 8 ou 9 dígitos = número
-                user.setPhoneNumber(phone.substring(phone.length() - 8));
-                // Primeiros 2 dígitos = DDD
-                user.setPhoneDdd(phone.substring(0, 2));
-            }
-        }
-
-        // Atualizar data de nascimento (suporta ambos: birthDate e dateOfBirth)
-        String dateValue = request.getBirthDate() != null ? request.getBirthDate() : null;
-        if (dateValue != null && !dateValue.trim().isEmpty()) {
+        // Atualizar data de nascimento
+        if (request.getDateOfBirth() != null && !request.getDateOfBirth().trim().isEmpty()) {
             try {
-                LocalDate birthDate = LocalDate.parse(dateValue, DateTimeFormatter.ISO_LOCAL_DATE);
+                LocalDate birthDate = LocalDate.parse(request.getDateOfBirth(), DateTimeFormatter.ISO_LOCAL_DATE);
                 user.setDateOfBirth(birthDate);
             } catch (Exception e) {
                 throw new RuntimeException("Data de nascimento inválida. Use o formato YYYY-MM-DD");
@@ -287,7 +260,6 @@ public class UserService {
         if (request.getGender() != null && !request.getGender().trim().isEmpty()) {
             try {
                 String gender = request.getGender().trim().toUpperCase();
-                // Mapear valores do front-end
                 switch (gender) {
                     case "M":
                     case "MALE":
@@ -327,8 +299,13 @@ public class UserService {
             }
         }
 
-        // Nota: latitude e longitude do endereço fixo devem ser atualizados via array de addresses
-        // User apenas tem gpsLatitude e gpsLongitude (coordenadas GPS em tempo real)
+        // Atualizar coordenadas GPS (posição em tempo real)
+        if (request.getGpsLatitude() != null) {
+            user.setGpsLatitude(request.getGpsLatitude());
+        }
+        if (request.getGpsLongitude() != null) {
+            user.setGpsLongitude(request.getGpsLongitude());
+        }
 
         // Processar array de endereços (sincronização: update, insert, delete)
         // Usa orphanRemoval=true na coleção user.addresses para deletar automaticamente
@@ -372,8 +349,7 @@ public class UserService {
                 // Buscar cidade pelo nome
                 if (addressDTO.getCity() != null && !addressDTO.getCity().trim().isEmpty()) {
                     String cityName = addressDTO.getCity().trim();
-                    String stateName = addressDTO.getState() != null ? addressDTO.getState().trim() 
-                                     : (request.getState() != null ? request.getState().trim() : null);
+                    String stateName = addressDTO.getState() != null ? addressDTO.getState().trim() : null;
                     
                     if (stateName != null) {
                         cityRepository.findByNameAndState(cityName, stateName)
