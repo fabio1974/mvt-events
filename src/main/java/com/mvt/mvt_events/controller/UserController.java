@@ -230,6 +230,7 @@ public class UserController {
     @Data
     @NoArgsConstructor
     public static class UserUpdateRequest {
+        private String username; // Email - pode ser alterado
         private String name;
         
         // New fields - use these

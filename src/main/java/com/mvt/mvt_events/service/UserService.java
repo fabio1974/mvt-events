@@ -26,6 +26,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -222,6 +223,17 @@ public class UserService {
 
         User user = findById(id);
 
+        // Atualizar username (email) se fornecido
+        if (request.getUsername() != null && !request.getUsername().trim().isEmpty()) {
+            String newUsername = request.getUsername().trim();
+            // Verificar se o novo username já existe (exceto se for o mesmo usuário)
+            Optional<User> existingUser = userRepository.findByUsername(newUsername);
+            if (existingUser.isPresent() && !existingUser.get().getId().equals(id)) {
+                throw new RuntimeException("Email já cadastrado no sistema");
+            }
+            user.setUsername(newUsername);
+        }
+
         // Atualizar campos básicos
         if (request.getName() != null && !request.getName().trim().isEmpty()) {
             user.setName(request.getName().trim());
@@ -237,15 +249,34 @@ public class UserService {
         // Note: address is now managed via Address entity, not directly on User
 
         // City is now part of Address, not User directly
-        if (request.getCityId() != null) {
-            // A cidade será atualizada no Address se necessário
-            // Por enquanto, não fazemos nada aqui
+        // cityId será processado no array de addresses abaixo
+
+        // Atualizar campos deprecated (backward compatibility)
+        // Se cpf for fornecido, mapeia para documentNumber
+        if (request.getCpf() != null && !request.getCpf().trim().isEmpty() && 
+            (request.getDocumentNumber() == null || request.getDocumentNumber().trim().isEmpty())) {
+            String document = request.getCpf().trim().replaceAll("[^0-9]", "");
+            if (com.mvt.mvt_events.util.CPFUtil.isValid(document)) {
+                user.setDocumentNumber(document);
+            }
+        }
+        
+        // Se phone for fornecido, mapeia para phoneDdd + phoneNumber
+        if (request.getPhone() != null && !request.getPhone().trim().isEmpty()) {
+            String phone = request.getPhone().trim().replaceAll("[^0-9]", "");
+            if (phone.length() >= 10) {
+                // Últimos 8 ou 9 dígitos = número
+                user.setPhoneNumber(phone.substring(phone.length() - 8));
+                // Primeiros 2 dígitos = DDD
+                user.setPhoneDdd(phone.substring(0, 2));
+            }
         }
 
-        // Atualizar data de nascimento
-        if (request.getBirthDate() != null && !request.getBirthDate().trim().isEmpty()) {
+        // Atualizar data de nascimento (suporta ambos: birthDate e dateOfBirth)
+        String dateValue = request.getBirthDate() != null ? request.getBirthDate() : null;
+        if (dateValue != null && !dateValue.trim().isEmpty()) {
             try {
-                LocalDate birthDate = LocalDate.parse(request.getBirthDate(), DateTimeFormatter.ISO_LOCAL_DATE);
+                LocalDate birthDate = LocalDate.parse(dateValue, DateTimeFormatter.ISO_LOCAL_DATE);
                 user.setDateOfBirth(birthDate);
             } catch (Exception e) {
                 throw new RuntimeException("Data de nascimento inválida. Use o formato YYYY-MM-DD");
@@ -296,7 +327,7 @@ public class UserService {
             }
         }
 
-        // Atualizar coordenadas GPS do usuário (posição real)
+        // Atualizar coordenadas GPS do usuário (posição em tempo real)
         if (request.getLatitude() != null) {
             user.setGpsLatitude(request.getLatitude());
         }
