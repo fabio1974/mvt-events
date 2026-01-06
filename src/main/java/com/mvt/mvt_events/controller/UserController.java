@@ -92,12 +92,12 @@ public class UserController {
     }
 
     @PutMapping("/{id}/location")
-    @Operation(summary = "Atualizar localização do usuário", description = "Atualiza latitude, longitude e timestamp do usuário")
+    @Operation(summary = "Atualizar localização do usuário", description = "Atualiza gpsLatitude, gpsLongitude e timestamp do usuário")
     public ResponseEntity<UserResponse> updateLocation(
             @PathVariable UUID id,
             @RequestBody @Valid LocationUpdateRequest request,
             Authentication authentication) {
-        User updatedUser = userService.updateUserLocation(id, request.getLatitude(), request.getLongitude(),
+        User updatedUser = userService.updateUserLocation(id, request.getGpsLatitude(), request.getGpsLongitude(),
                 request.getUpdatedAt(), authentication);
         return ResponseEntity.ok(new UserResponse(updatedUser));
     }
@@ -255,15 +255,15 @@ public class UserController {
     @Data
     @NoArgsConstructor
     public static class LocationUpdateRequest {
-        @jakarta.validation.constraints.NotNull(message = "Latitude é obrigatória")
-        @jakarta.validation.constraints.DecimalMin(value = "-90.0", message = "Latitude deve estar entre -90 e 90")
-        @jakarta.validation.constraints.DecimalMax(value = "90.0", message = "Latitude deve estar entre -90 e 90")
-        private Double latitude;
+        @jakarta.validation.constraints.NotNull(message = "GPS Latitude é obrigatória")
+        @jakarta.validation.constraints.DecimalMin(value = "-90.0", message = "GPS Latitude deve estar entre -90 e 90")
+        @jakarta.validation.constraints.DecimalMax(value = "90.0", message = "GPS Latitude deve estar entre -90 e 90")
+        private Double gpsLatitude;
 
-        @jakarta.validation.constraints.NotNull(message = "Longitude é obrigatória")
-        @jakarta.validation.constraints.DecimalMin(value = "-180.0", message = "Longitude deve estar entre -180 e 180")
-        @jakarta.validation.constraints.DecimalMax(value = "180.0", message = "Longitude deve estar entre -180 e 180")
-        private Double longitude;
+        @jakarta.validation.constraints.NotNull(message = "GPS Longitude é obrigatória")
+        @jakarta.validation.constraints.DecimalMin(value = "-180.0", message = "GPS Longitude deve estar entre -180 e 180")
+        @jakarta.validation.constraints.DecimalMax(value = "180.0", message = "GPS Longitude deve estar entre -180 e 180")
+        private Double gpsLongitude;
 
         // Timestamp do GPS - se não fornecido, usa timestamp atual
         private String updatedAt; // ISO DateTime string (ex: "2025-10-31T15:30:45.123Z")

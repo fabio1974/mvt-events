@@ -128,7 +128,7 @@ public class User implements UserDetails {
 
     /**
      * Número do telefone sem DDD (8 ou 9 dígitos)
-     * Exemplo: "987654321"
+     * Exemplo: "987654321"?
      */
     @Column(name = "phone_number", length = 9)
     @Visible(table = true, form = true, filter = false)

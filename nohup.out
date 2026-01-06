@@ -87,3 +87,1557 @@ Hibernate:
 2026-01-06T00:37:58.530-03:00  WARN 82481 --- [mvt-events] [0.0-8080-exec-1] c.m.m.common.JwtAuthenticationFilter     : JWT Token does not begin with Bearer String
 
 Timed out waiting for finished message from client socket connection from /127.0.0.1:53202 to /127.0.0.1:61320. Discarding connection.
+
+> Task :bootRun
+2026-01-06T01:07:37.505-03:00 DEBUG 82481 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+Hibernate: 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+2026-01-06T01:07:37.526-03:00 TRACE 82481 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [admin@mvt.com]
+2026-01-06T01:07:37.662-03:00 DEBUG 82481 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
+    select
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
+    from
+        bank_accounts ba1_0 
+    where
+        ba1_0.user_id=?
+Hibernate: 
+    select
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
+    from
+        bank_accounts ba1_0 
+    where
+        ba1_0.user_id=?
+2026-01-06T01:07:37.663-03:00 TRACE 82481 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [5a9ec5f8-6a5f-44d4-bb76-82ff3e872d57]
+2026-01-06T01:24:16.626-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=17m8s438ms).
+2026-01-06T01:24:19.766-03:00 DEBUG 82481 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+Hibernate: 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+2026-01-06T01:24:19.779-03:00 TRACE 82481 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [admin@mvt.com]
+2026-01-06T01:24:19.811-03:00 DEBUG 82481 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.SQL                        : 
+    select
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
+    from
+        bank_accounts ba1_0 
+    where
+        ba1_0.user_id=?
+Hibernate: 
+    select
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
+    from
+        bank_accounts ba1_0 
+    where
+        ba1_0.user_id=?
+2026-01-06T01:24:19.811-03:00 TRACE 82481 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [5a9ec5f8-6a5f-44d4-bb76-82ff3e872d57]
+2026-01-06T01:24:19.817-03:00  INFO 82481 --- [mvt-events] [0.0-8080-exec-6] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Request: GET /api/users
+2026-01-06T01:24:19.817-03:00  INFO 82481 --- [mvt-events] [0.0-8080-exec-6] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Authentication: UsernamePasswordAuthenticationToken
+2026-01-06T01:24:19.817-03:00  INFO 82481 --- [mvt-events] [0.0-8080-exec-6] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Principal type: com.mvt.mvt_events.jpa.User
+2026-01-06T01:24:19.818-03:00  INFO 82481 --- [mvt-events] [0.0-8080-exec-6] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Principal instanceof User: true
+2026-01-06T01:24:19.818-03:00  INFO 82481 --- [mvt-events] [0.0-8080-exec-6] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - User: admin@mvt.com
+2026-01-06T01:24:19.820-03:00  INFO 82481 --- [mvt-events] [0.0-8080-exec-6] com.mvt.mvt_events.tenant.TenantFilter   : ✅ TenantFilter - Tenant ID set to: -564
+2026-01-06T01:24:19.892-03:00 DEBUG 82481 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.SQL                        : 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.date_of_birth,
+        u1_0.document_number,
+        u1_0.enabled,
+        u1_0.gender,
+        u1_0.gps_latitude,
+        u1_0.gps_longitude,
+        u1_0.name,
+        u1_0.pagarme_recipient_id,
+        u1_0.pagarme_status,
+        u1_0.password,
+        u1_0.phone_ddd,
+        u1_0.phone_number,
+        u1_0.role,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.role=? 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.date_of_birth,
+        u1_0.document_number,
+        u1_0.enabled,
+        u1_0.gender,
+        u1_0.gps_latitude,
+        u1_0.gps_longitude,
+        u1_0.name,
+        u1_0.pagarme_recipient_id,
+        u1_0.pagarme_status,
+        u1_0.password,
+        u1_0.phone_ddd,
+        u1_0.phone_number,
+        u1_0.role,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.role=? 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+2026-01-06T01:24:19.893-03:00 TRACE 82481 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [COURIER]
+2026-01-06T01:24:19.893-03:00 TRACE 82481 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (2:INTEGER) <- [0]
+2026-01-06T01:24:19.893-03:00 TRACE 82481 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (3:INTEGER) <- [10]
+2026-01-06T01:24:19.903-03:00 DEBUG 82481 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.SQL                        : 
+    select
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
+    from
+        bank_accounts ba1_0 
+    where
+        ba1_0.user_id=?
+Hibernate: 
+    select
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
+    from
+        bank_accounts ba1_0 
+    where
+        ba1_0.user_id=?
+2026-01-06T01:24:19.903-03:00 TRACE 82481 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [6186c7af-2311-4756-bfc6-ce98bd31ed27]
+2026-01-06T01:24:19.924-03:00 DEBUG 82481 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.SQL                        : 
+    select
+        a1_0.user_id,
+        a1_0.id,
+        a1_0.city_id,
+        a1_0.complement,
+        a1_0.created_at,
+        a1_0.is_default,
+        a1_0.latitude,
+        a1_0.longitude,
+        a1_0.neighborhood,
+        a1_0.number,
+        a1_0.reference_point,
+        a1_0.street,
+        a1_0.updated_at,
+        a1_0.zip_code 
+    from
+        addresses a1_0 
+    where
+        a1_0.user_id=?
+Hibernate: 
+    select
+        a1_0.user_id,
+        a1_0.id,
+        a1_0.city_id,
+        a1_0.complement,
+        a1_0.created_at,
+        a1_0.is_default,
+        a1_0.latitude,
+        a1_0.longitude,
+        a1_0.neighborhood,
+        a1_0.number,
+        a1_0.reference_point,
+        a1_0.street,
+        a1_0.updated_at,
+        a1_0.zip_code 
+    from
+        addresses a1_0 
+    where
+        a1_0.user_id=?
+2026-01-06T01:24:19.926-03:00 TRACE 82481 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [6186c7af-2311-4756-bfc6-ce98bd31ed27]
+2026-01-06T01:24:19.973-03:00  INFO 82481 --- [mvt-events] [0.0-8080-exec-6] com.mvt.mvt_events.tenant.TenantFilter   : 🔚 TenantFilter - Request completed
+2026-01-06T02:47:03.504-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=1h22m46s877ms).
+2026-01-06T03:26:03.666-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=39m164ms).
+2026-01-06T04:09:45.079-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=43m41s412ms).
+2026-01-06T05:10:39.976-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=1h54s897ms).
+2026-01-06T06:11:36.481-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=1h56s505ms).
+2026-01-06T07:12:37.770-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=1h1m1s289ms).
+2026-01-06T08:03:42.718-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=51m4s946ms).
+2026-01-06T08:44:48.180-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=41m5s463ms).
+2026-01-06T09:00:47.599-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=15m59s417ms).
+2026-01-06T09:01:49.831-03:00  WARN 82481 --- [mvt-events] [0.0-8080-exec-9] c.m.m.common.JwtAuthenticationFilter     : JWT Token has expired or is invalid
+2026-01-06T09:01:50.225-03:00  WARN 82481 --- [mvt-events] [.0-8080-exec-10] c.m.m.common.JwtAuthenticationFilter     : JWT Token has expired or is invalid
+2026-01-06T09:01:50.227-03:00  INFO 82481 --- [mvt-events] [.0-8080-exec-10] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Request: GET /api/users
+2026-01-06T09:01:50.236-03:00  INFO 82481 --- [mvt-events] [.0-8080-exec-10] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Authentication: null
+2026-01-06T09:01:50.237-03:00  WARN 82481 --- [mvt-events] [.0-8080-exec-10] com.mvt.mvt_events.tenant.TenantFilter   : ⚠️ TenantFilter - No authentication or not authenticated
+2026-01-06T09:01:50.349-03:00  INFO 82481 --- [mvt-events] [.0-8080-exec-10] com.mvt.mvt_events.tenant.TenantFilter   : 🔚 TenantFilter - Request completed
+2026-01-06T09:01:50.452-03:00  WARN 82481 --- [mvt-events] [0.0-8080-exec-1] c.m.m.common.JwtAuthenticationFilter     : JWT Token does not begin with Bearer String
+2026-01-06T09:01:50.452-03:00  INFO 82481 --- [mvt-events] [0.0-8080-exec-1] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Request: GET /api/users
+2026-01-06T09:01:50.452-03:00  INFO 82481 --- [mvt-events] [0.0-8080-exec-1] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Authentication: null
+2026-01-06T09:01:50.452-03:00  WARN 82481 --- [mvt-events] [0.0-8080-exec-1] com.mvt.mvt_events.tenant.TenantFilter   : ⚠️ TenantFilter - No authentication or not authenticated
+2026-01-06T09:01:50.453-03:00  INFO 82481 --- [mvt-events] [0.0-8080-exec-1] com.mvt.mvt_events.tenant.TenantFilter   : 🔚 TenantFilter - Request completed
+2026-01-06T09:01:52.450-03:00  WARN 82481 --- [mvt-events] [0.0-8080-exec-2] c.m.m.common.JwtAuthenticationFilter     : JWT Token does not begin with Bearer String
+2026-01-06T10:47:00.251-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=17m36s423ms).
+2026-01-06T12:18:03.113-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=2m1s810ms).
+2026-01-06T12:32:39.815-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=14m36s724ms).
+2026-01-06T13:06:31.414-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=6m21s178ms).
+2026-01-06T14:32:13.389-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=1h25m42s7ms).
+2026-01-06T15:16:22.014-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=44m8s636ms).
+2026-01-06T16:08:35.384-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=52m13s264ms).
+2026-01-06T17:44:05.817-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=29m29s465ms).
+2026-01-06T18:10:57.265-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=26m51s451ms).
+2026-01-06T18:17:30.521-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=6m33s266ms).
+2026-01-06T18:24:58.355-03:00  WARN 82481 --- [mvt-events] [l-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=7m27s682ms).
+2026-01-06T19:29:17.770-03:00  WARN 82481 --- [mvt-events] [0.0-8080-exec-4] c.m.m.common.JwtAuthenticationFilter     : JWT Token has expired or is invalid
+2026-01-06T19:29:18.973-03:00  WARN 82481 --- [mvt-events] [0.0-8080-exec-5] c.m.m.common.JwtAuthenticationFilter     : JWT Token does not begin with Bearer String
+2026-01-06T19:29:19.351-03:00 DEBUG 82481 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+Hibernate: 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+2026-01-06T19:29:19.369-03:00 TRACE 82481 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [courier1@mvt.com]
+2026-01-06T19:29:19.548-03:00 DEBUG 82481 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.documentNumber = :documentNumber */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.document_number=?
+Hibernate: 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.documentNumber = :documentNumber */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.document_number=?
+2026-01-06T19:29:19.548-03:00 TRACE 82481 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [courier1@mvt.com]
+2026-01-06T19:31:06.440-03:00  WARN 82481 --- [mvt-events] [0.0-8080-exec-6] c.m.m.common.JwtAuthenticationFilter     : JWT Token does not begin with Bearer String
+2026-01-06T19:31:06.459-03:00 DEBUG 82481 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+Hibernate: 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+2026-01-06T19:31:06.463-03:00 TRACE 82481 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [courier1@mvt.com]
+2026-01-06T19:31:06.504-03:00 DEBUG 82481 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.documentNumber = :documentNumber */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.document_number=?
+Hibernate: 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.documentNumber = :documentNumber */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.document_number=?
+2026-01-06T19:31:06.505-03:00 TRACE 82481 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [courier1@mvt.com]
+2026-01-06T19:32:23.976-03:00  WARN 82481 --- [mvt-events] [0.0-8080-exec-7] c.m.m.common.JwtAuthenticationFilter     : JWT Token does not begin with Bearer String
+2026-01-06T19:32:24.016-03:00 DEBUG 82481 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+Hibernate: 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+2026-01-06T19:32:24.019-03:00 TRACE 82481 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fb040974@gmail.com]
+2026-01-06T19:32:24.033-03:00 DEBUG 82481 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.documentNumber = :documentNumber */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.document_number=?
+Hibernate: 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.documentNumber = :documentNumber */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.document_number=?
+2026-01-06T19:32:24.033-03:00 TRACE 82481 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fb040974@gmail.com]
+
+The message received from the daemon indicates that the daemon has disappeared.
+Build request sent: Build{id=f57f8cde-b65b-4677-8cd8-ace9424ba997, currentDir=/Users/fabio2barros/Documents/projects/mvt-events}
+Attempting to read last messages from the daemon log...
+Daemon pid: 18240
+  log file: /Users/fabio2barros/.gradle/daemon/8.14.3/daemon-18240.out.log
+----- Last 20 lines from daemon log file - daemon-18240.out.log -----
+        where
+            u1_0.document_number=?
+2026-01-06T19:32:24.033-03:00 TRACE 82481 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fb040974@gmail.com]
+Daemon vm is shutting down... The daemon has exited normally or was terminated in response to a user interrupt.
+Remove shutdown hook failed
+java.lang.IllegalStateException: Shutdown in progress
+	at java.base/java.lang.ApplicationShutdownHooks.remove(ApplicationShutdownHooks.java:82)
+	at java.base/java.lang.Runtime.removeShutdownHook(Runtime.java:245)
+	at org.gradle.process.internal.shutdown.ShutdownHooks.removeShutdownHook(ShutdownHooks.java:38)
+	at org.gradle.process.internal.DefaultExecHandle.setEndStateInfo(DefaultExecHandle.java:208)
+	at org.gradle.process.internal.DefaultExecHandle.aborted(DefaultExecHandle.java:392)
+	at org.gradle.process.internal.ExecHandleRunner.completed(ExecHandleRunner.java:132)
+	at org.gradle.process.internal.ExecHandleRunner.lambda$run$2(ExecHandleRunner.java:97)
+	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
+	at org.gradle.process.internal.ExecHandleRunner.run(ExecHandleRunner.java:95)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)----- End of the daemon log -----
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Gradle build daemon disappeared unexpectedly (it may have been killed or may have crashed)
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
