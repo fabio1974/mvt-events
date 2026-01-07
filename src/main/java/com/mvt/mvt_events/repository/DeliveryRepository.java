@@ -97,7 +97,7 @@ public interface DeliveryRepository
          */
         @Query("SELECT d FROM Delivery d " +
                         "WHERE d.courier.id = :courierId " +
-                        "AND d.status IN ('ASSIGNED', 'PICKED_UP', 'IN_TRANSIT') " +
+                        "AND d.status IN ('ACCEPTED', 'PICKED_UP', 'IN_TRANSIT') " +
                         "ORDER BY d.updatedAt DESC")
         List<Delivery> findActiveByCourierId(@Param("courierId") UUID courierId);
 
