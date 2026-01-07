@@ -699,6 +699,9 @@ public class DeliveryService {
      * (<= radiusKm) em relação ao pickup OU destino.
      */
     public List<Delivery> findPendingNearbyInPrimaryOrgs(UUID courierId, double radiusKm) {
+        org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(getClass());
+        log.info("🔍 [COURIER PENDINGS] Buscando entregas para courier: {}, raio: {}km", courierId, radiusKm);
+        
         // Carregar courier para obter coordenadas GPS
         User courier = userRepository.findById(courierId)
                 .orElseThrow(() -> new RuntimeException("Courier não encontrado: " + courierId));
@@ -709,14 +712,19 @@ public class DeliveryService {
 
         Double courierLat = courier.getGpsLatitude();
         Double courierLng = courier.getGpsLongitude();
+        log.info("📍 [COURIER PENDINGS] Courier location: lat={}, lng={}", courierLat, courierLng);
+        
         if (courierLat == null || courierLng == null) {
-            // Sem localização, não é possível aplicar proximidade
+            log.warn("⚠️ [COURIER PENDINGS] Courier sem localização GPS");
             return java.util.Collections.emptyList();
         }
 
         // Organizações onde o courier tem contrato ativo
         List<EmploymentContract> activeContracts = employmentContractRepository.findActiveByCourierId(courierId);
+        log.info("📋 [COURIER PENDINGS] Contratos ativos encontrados: {}", activeContracts.size());
+        
         if (activeContracts == null || activeContracts.isEmpty()) {
+            log.warn("⚠️ [COURIER PENDINGS] Nenhum contrato ativo encontrado");
             return java.util.Collections.emptyList();
         }
 
@@ -725,6 +733,8 @@ public class DeliveryService {
                 .filter(java.util.Objects::nonNull)
                 .distinct()
                 .toList();
+        
+        log.info("🏢 [COURIER PENDINGS] Organization IDs: {}", organizationIds);
 
         if (organizationIds.isEmpty()) {
             return java.util.Collections.emptyList();
@@ -732,22 +742,40 @@ public class DeliveryService {
 
         // Buscar deliveries pendentes nas organizações PRIMÁRIAS dos clientes
         List<Delivery> candidates = deliveryRepository.findPendingInPrimaryOrganizations(organizationIds);
+        log.info("📦 [COURIER PENDINGS] Candidatas (org primária): {}", candidates.size());
+
+        // Log detalhado de cada candidata
+        for (Delivery d : candidates) {
+            log.info("   → Delivery #{}: from=({}, {}), to=({}, {}), status={}, courier={}", 
+                d.getId(), 
+                d.getFromLatitude(), d.getFromLongitude(),
+                d.getToLatitude(), d.getToLongitude(),
+                d.getStatus(),
+                d.getCourier() != null ? d.getCourier().getId() : "null");
+        }
 
         // Aplicar filtro de proximidade: pickup OU destino dentro do raio
-        return candidates.stream()
-                .filter(d -> isWithinRadius(courierLat, courierLng, d, radiusKm))
+        List<Delivery> result = candidates.stream()
+                .filter(d -> isWithinRadius(courierLat, courierLng, d, radiusKm, log))
                 .toList();
+        
+        log.info("✅ [COURIER PENDINGS] Resultado final: {} deliveries", result.size());
+        return result;
     }
 
-    private boolean isWithinRadius(Double courierLat, Double courierLng, Delivery d, double radiusKm) {
+    private boolean isWithinRadius(Double courierLat, Double courierLng, Delivery d, double radiusKm, org.slf4j.Logger log) {
         // Pickup
         if (d.getFromLatitude() != null && d.getFromLongitude() != null) {
             double dist = calculateDistance(courierLat, courierLng, d.getFromLatitude(), d.getFromLongitude());
+            log.info("   📏 Delivery #{} pickup distance: {:.2f}km (limit: {}km) -> {}", 
+                d.getId(), dist, radiusKm, dist <= radiusKm ? "✅ PASS" : "❌ FAIL");
             if (dist <= radiusKm) return true;
         }
         // Destino
         if (d.getToLatitude() != null && d.getToLongitude() != null) {
             double dist = calculateDistance(courierLat, courierLng, d.getToLatitude(), d.getToLongitude());
+            log.info("   📏 Delivery #{} destination distance: {:.2f}km (limit: {}km) -> {}", 
+                d.getId(), dist, radiusKm, dist <= radiusKm ? "✅ PASS" : "❌ FAIL");
             if (dist <= radiusKm) return true;
         }
         return false;
