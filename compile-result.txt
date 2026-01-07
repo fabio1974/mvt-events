@@ -1,4 +1,22 @@
-> Task :compileJava
+Starting a Gradle Daemon, 1 busy Daemon could not be reused, use --status for details
+> Task :clean
 
-BUILD SUCCESSFUL in 4s
-1 actionable task: 1 executed
+> Task :compileJava
+/Users/fabio2barros/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/SpecialZone.java:83: warning: @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+    private Boolean isActive = true;
+                    ^
+1 warning
+
+> Task :processResources
+> Task :classes
+> Task :resolveMainClassName
+> Task :bootWar
+> Task :war
+> Task :assemble
+> Task :check
+> Task :build
+
+[Incubating] Problems report is available at: file:///Users/fabio2barros/Documents/projects/mvt-events/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 15s
+6 actionable tasks: 6 executed

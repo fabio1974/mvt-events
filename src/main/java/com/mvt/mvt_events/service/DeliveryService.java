@@ -761,6 +761,15 @@ public class DeliveryService {
                 .toList();
         
         log.info("✅ [COURIER PENDINGS] Resultado final: {} deliveries", result.size());
+        
+        // IMPORTANTE: Inicializar relacionamentos lazy-loaded para evitar LazyInitializationException
+        // Força a inicialização dentro da transação @Transactional
+        for (Delivery delivery : result) {
+            org.hibernate.Hibernate.initialize(delivery.getClient());
+            org.hibernate.Hibernate.initialize(delivery.getCourier());
+            org.hibernate.Hibernate.initialize(delivery.getOrganizer());
+        }
+        
         return result;
     }
 
