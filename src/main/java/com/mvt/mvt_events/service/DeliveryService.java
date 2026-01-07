@@ -698,6 +698,7 @@ public class DeliveryService {
      * onde o courier possui contratos ativos, aplicando filtro de proximidade
      * (<= radiusKm) em relação ao pickup OU destino.
      */
+    @Transactional(readOnly = true)
     public List<Delivery> findPendingNearbyInPrimaryOrgs(UUID courierId, double radiusKm) {
         org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(getClass());
         log.info("🔍 [COURIER PENDINGS] Buscando entregas para courier: {}, raio: {}km", courierId, radiusKm);
