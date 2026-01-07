@@ -694,6 +694,66 @@ public class DeliveryService {
     }
 
     /**
+     * Lista deliveries PENDING e sem courier das organizações PRIMÁRIAS do cliente
+     * onde o courier possui contratos ativos, aplicando filtro de proximidade
+     * (<= radiusKm) em relação ao pickup OU destino.
+     */
+    public List<Delivery> findPendingNearbyInPrimaryOrgs(UUID courierId, double radiusKm) {
+        // Carregar courier para obter coordenadas GPS
+        User courier = userRepository.findById(courierId)
+                .orElseThrow(() -> new RuntimeException("Courier não encontrado: " + courierId));
+
+        if (courier.getRole() != User.Role.COURIER) {
+            throw new RuntimeException("Apenas COURIER pode listar entregas específicas");
+        }
+
+        Double courierLat = courier.getGpsLatitude();
+        Double courierLng = courier.getGpsLongitude();
+        if (courierLat == null || courierLng == null) {
+            // Sem localização, não é possível aplicar proximidade
+            return java.util.Collections.emptyList();
+        }
+
+        // Organizações onde o courier tem contrato ativo
+        List<EmploymentContract> activeContracts = employmentContractRepository.findActiveByCourierId(courierId);
+        if (activeContracts == null || activeContracts.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        List<Long> organizationIds = activeContracts.stream()
+                .map(ec -> ec.getOrganization().getId())
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+
+        if (organizationIds.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        // Buscar deliveries pendentes nas organizações PRIMÁRIAS dos clientes
+        List<Delivery> candidates = deliveryRepository.findPendingInPrimaryOrganizations(organizationIds);
+
+        // Aplicar filtro de proximidade: pickup OU destino dentro do raio
+        return candidates.stream()
+                .filter(d -> isWithinRadius(courierLat, courierLng, d, radiusKm))
+                .toList();
+    }
+
+    private boolean isWithinRadius(Double courierLat, Double courierLng, Delivery d, double radiusKm) {
+        // Pickup
+        if (d.getFromLatitude() != null && d.getFromLongitude() != null) {
+            double dist = calculateDistance(courierLat, courierLng, d.getFromLatitude(), d.getFromLongitude());
+            if (dist <= radiusKm) return true;
+        }
+        // Destino
+        if (d.getToLatitude() != null && d.getToLongitude() != null) {
+            double dist = calculateDistance(courierLat, courierLng, d.getToLatitude(), d.getToLongitude());
+            if (dist <= radiusKm) return true;
+        }
+        return false;
+    }
+
+    /**
      * Estatísticas de deliveries por status
      */
     public Long countByStatus(Long organizationId, Delivery.DeliveryStatus status) {

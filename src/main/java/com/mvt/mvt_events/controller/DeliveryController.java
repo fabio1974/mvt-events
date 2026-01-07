@@ -382,6 +382,15 @@ public class DeliveryController {
         return ResponseEntity.ok(deliveries.stream().map(this::mapToResponse).toList());
     }
 
+    @GetMapping("/courier/pendings")
+    @Operation(summary = "Listar pendentes próximas (5km) nas organizações primárias do cliente para o courier autenticado")
+    public ResponseEntity<?> listCourierPendings(Authentication authentication) {
+        UUID courierId = getUserIdFromAuthentication(authentication);
+        double radiusKm = 5.0; // raio padrão
+        var deliveries = deliveryService.findPendingNearbyInPrimaryOrgs(courierId, radiusKm);
+        return ResponseEntity.ok(deliveries.stream().map(this::mapToResponse).toList());
+    }
+
     // ========================================================================
     // MAPPERS
     // ========================================================================

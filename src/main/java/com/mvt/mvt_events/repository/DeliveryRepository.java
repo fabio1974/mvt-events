@@ -174,6 +174,18 @@ public interface DeliveryRepository
         List<Delivery> findAllWithJoinsByOrganizationId(@Param("organizationId") Long organizationId);
 
         /**
+         * Busca deliveries PENDING e sem courier em organizações PRIMÁRIAS (isPrimary=true)
+         * onde o courier possui contratos ativos. Ordenadas por updatedAt DESC.
+         */
+        @Query("SELECT d FROM Delivery d WHERE d.status = 'PENDING' AND d.courier IS NULL AND d.client.id IN (" +
+               "  SELECT cc.client.id FROM ClientContract cc " +
+               "  WHERE cc.organization.id IN :organizationIds " +
+               "    AND cc.status = 'ACTIVE' " +
+               "    AND cc.isPrimary = true" +
+               ") ORDER BY d.updatedAt DESC")
+        List<Delivery> findPendingInPrimaryOrganizations(@Param("organizationIds") List<Long> organizationIds);
+
+        /**
          * Busca deliveries com fetch joins usando contratos ativos (nova arquitetura)
          * Para COURIERs que acessam organizações via employment_contracts
          * Ordenado por updatedAt DESC
