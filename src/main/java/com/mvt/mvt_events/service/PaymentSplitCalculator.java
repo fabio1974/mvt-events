@@ -109,21 +109,22 @@ public class PaymentSplitCalculator {
     /**
      * Calcula o valor em centavos que a plataforma deve receber de uma delivery.
      * 
-     * ATENÇÃO: Quando não há organizer, inclui os 5% que seriam dele.
+     * IMPORTANTE: O valor da plataforma é calculado por DIFERENÇA (não por percentagem)
+     * para evitar problemas de arredondamento. A plataforma absorve qualquer diferença
+     * de arredondamento, garantindo que o total distribuído seja exato.
      * 
-     * @param shippingFeeCents Valor do frete em centavos
-     * @param config Configuração com percentuais
-     * @param hasOrganizer Se a delivery tem um organizer válido
-     * @return Valor em centavos (arredondado para baixo)
+     * @param shippingFeeCents Valor total do frete em centavos
+     * @param courierAmountCents Valor já calculado do courier em centavos
+     * @param organizerAmountCents Valor já calculado do organizer em centavos (0 se não houver)
+     * @return Valor em centavos (por diferença)
      */
     public BigDecimal calculatePlatformAmount(BigDecimal shippingFeeCents, 
-                                             SiteConfiguration config, 
-                                             boolean hasOrganizer) {
-        BigDecimal platformPercentage = calculatePlatformPercentage(config, hasOrganizer);
-        
+                                             BigDecimal courierAmountCents,
+                                             BigDecimal organizerAmountCents) {
+        // Plataforma = Total - Courier - Organizer
         return shippingFeeCents
-                .multiply(platformPercentage)
-                .divide(BigDecimal.valueOf(100), 0, RoundingMode.DOWN);
+                .subtract(courierAmountCents)
+                .subtract(organizerAmountCents);
     }
 
     /**

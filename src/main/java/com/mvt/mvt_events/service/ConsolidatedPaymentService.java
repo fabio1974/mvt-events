@@ -676,9 +676,11 @@ public class ConsolidatedPaymentService {
                     splitMap.put(platformKey, platformSplit);
                 }
                 
-                // Calcular valor da plataforma (8% base, ou 13% se não houver organizer)
+                // Calcular valor da plataforma por DIFERENÇA (evita erro de arredondamento)
+                BigDecimal courierAmountCents = splitCalculator.calculateCourierAmount(deliveryAmountCents, config);
+                BigDecimal organizerAmountCents = hasOrganizer ? splitCalculator.calculateOrganizerAmount(deliveryAmountCents, config) : BigDecimal.ZERO;
                 BigDecimal platformAmountCents = splitCalculator.calculatePlatformAmount(
-                    deliveryAmountCents, config, hasOrganizer);
+                    deliveryAmountCents, courierAmountCents, organizerAmountCents);
                 platformSplit.amount = platformSplit.amount.add(platformAmountCents);
                 
                 BigDecimal actualPercentage = splitCalculator.calculatePlatformPercentage(config, hasOrganizer);

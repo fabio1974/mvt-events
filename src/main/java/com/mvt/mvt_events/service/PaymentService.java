@@ -232,16 +232,21 @@ public class PaymentService {
             // Verificar se há organizer válido
             boolean hasOrganizer = splitCalculator.hasValidOrganizer(delivery);
             
+            // Calcular valores em centavos (necessário para cálculo da plataforma)
+            BigDecimal courierAmountCents = delivery.getCourier() != null ? 
+                splitCalculator.calculateCourierAmount(shippingFeeCents, config) : BigDecimal.ZERO;
+            BigDecimal organizerAmountCents = hasOrganizer ? 
+                splitCalculator.calculateOrganizerAmount(shippingFeeCents, config) : BigDecimal.ZERO;
+            
             // Split do COURIER (87% padrão)
             if (delivery.getCourier() != null) {
                 BigDecimal courierPercentage = splitCalculator.calculateCourierPercentage(config);
-                BigDecimal courierAmount = splitCalculator.calculateCourierAmount(shippingFeeCents, config);
                 
                 PaymentReportResponse.SplitItem courierSplit = PaymentReportResponse.SplitItem.builder()
                         .recipientId(delivery.getCourier().getPagarmeRecipientId())
                         .recipientName(delivery.getCourier().getName())
                         .recipientRole("COURIER")
-                        .amount(splitCalculator.toReais(courierAmount, 2))
+                        .amount(splitCalculator.toReais(courierAmountCents, 2))
                         .percentage(courierPercentage)
                         .liable(false)
                         .build();
@@ -266,13 +271,12 @@ public class PaymentService {
             if (hasOrganizer) {
                 User organizer = delivery.getOrganizer();
                 BigDecimal organizerPercentage = config.getOrganizerPercentage();
-                BigDecimal organizerAmount = splitCalculator.calculateOrganizerAmount(shippingFeeCents, config);
                 
                 PaymentReportResponse.SplitItem organizerSplit = PaymentReportResponse.SplitItem.builder()
                         .recipientId(organizer.getPagarmeRecipientId())
                         .recipientName(organizer.getName())
                         .recipientRole("ORGANIZER")
-                        .amount(splitCalculator.toReais(organizerAmount, 2))
+                        .amount(splitCalculator.toReais(organizerAmountCents, 2))
                         .percentage(organizerPercentage)
                         .liable(false)
                         .build();
@@ -294,15 +298,15 @@ public class PaymentService {
             }
             
             // Split da PLATAFORMA
-            // ATENÇÃO: Se não há organizer, plataforma recebe 8% + 5% = 13%
+            // ATENÇÃO: Calculado por DIFERENÇA para evitar erros de arredondamento
             BigDecimal platformPercentage = splitCalculator.calculatePlatformPercentage(config, hasOrganizer);
-            BigDecimal platformAmount = splitCalculator.calculatePlatformAmount(shippingFeeCents, config, hasOrganizer);
+            BigDecimal platformAmountCents = splitCalculator.calculatePlatformAmount(shippingFeeCents, courierAmountCents, organizerAmountCents);
             
             PaymentReportResponse.SplitItem platformSplit = PaymentReportResponse.SplitItem.builder()
                     .recipientId(config.getPagarmeRecipientId())
                     .recipientName("Plataforma Zapi10")
                     .recipientRole("PLATFORM")
-                    .amount(splitCalculator.toReais(platformAmount, 2))
+                    .amount(splitCalculator.toReais(platformAmountCents, 2))
                     .percentage(platformPercentage)
                     .liable(true)
                     .build();
