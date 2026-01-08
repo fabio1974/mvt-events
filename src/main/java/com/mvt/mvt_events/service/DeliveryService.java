@@ -694,6 +694,24 @@ public class DeliveryService {
     }
 
     /**
+     * Busca deliveries concluídas de um courier
+     * Ordenadas por completedAt DESC (mais recentes primeiro)
+     */
+    @Transactional(readOnly = true)
+    public List<Delivery> findCompletedByCourier(UUID courierId) {
+        List<Delivery> deliveries = deliveryRepository.findCompletedByCourierId(courierId);
+        
+        // Inicializar relacionamentos lazy-loaded para evitar LazyInitializationException
+        for (Delivery delivery : deliveries) {
+            org.hibernate.Hibernate.initialize(delivery.getClient());
+            org.hibernate.Hibernate.initialize(delivery.getCourier());
+            org.hibernate.Hibernate.initialize(delivery.getOrganizer());
+        }
+        
+        return deliveries;
+    }
+
+    /**
      * Lista deliveries PENDING e sem courier das organizações PRIMÁRIAS do cliente
      * onde o courier possui contratos ativos, aplicando filtro de proximidade
      * (<= radiusKm) em relação ao pickup OU destino.

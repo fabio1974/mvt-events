@@ -102,6 +102,16 @@ public interface DeliveryRepository
         List<Delivery> findActiveByCourierId(@Param("courierId") UUID courierId);
 
         /**
+         * Busca deliveries concluídas de um courier
+         * Ordenadas por completedAt DESC para mostrar as mais recentes primeiro
+         */
+        @Query("SELECT d FROM Delivery d " +
+                        "WHERE d.courier.id = :courierId " +
+                        "AND d.status = 'COMPLETED' " +
+                        "ORDER BY d.completedAt DESC")
+        List<Delivery> findCompletedByCourierId(@Param("courierId") UUID courierId);
+
+        /**
          * Busca deliveries em um período para uma organização (ordenado por updatedAt DESC)
          * Usa ClientContract para determinar organização do cliente
          */

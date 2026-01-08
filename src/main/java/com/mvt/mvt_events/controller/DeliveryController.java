@@ -382,6 +382,15 @@ public class DeliveryController {
         return ResponseEntity.ok(deliveries.stream().map(this::mapToResponse).toList());
     }
 
+    @GetMapping("/courier/completed")
+    @Operation(summary = "Listar deliveries concluídas do courier autenticado", 
+               description = "Retorna as entregas concluídas pelo courier, ordenadas pela mais recente primeiro (completedAt DESC)")
+    public ResponseEntity<?> listCourierCompleted(Authentication authentication) {
+        UUID courierId = getUserIdFromAuthentication(authentication);
+        var deliveries = deliveryService.findCompletedByCourier(courierId);
+        return ResponseEntity.ok(deliveries.stream().map(this::mapToResponse).toList());
+    }
+
     @GetMapping("/courier/pendings")
     @Operation(summary = "Listar pendentes próximas (5km) nas organizações primárias do cliente para o courier autenticado")
     public ResponseEntity<?> listCourierPendings(Authentication authentication) {
