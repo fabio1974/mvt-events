@@ -688,9 +688,20 @@ public class DeliveryService {
 
     /**
      * Busca deliveries ativas de um courier
+     * Inicializa relacionamentos lazy para evitar LazyInitializationException
      */
+    @Transactional(readOnly = true)
     public List<Delivery> findActiveByCourier(UUID courierId) {
-        return deliveryRepository.findActiveByCourierId(courierId);
+        List<Delivery> deliveries = deliveryRepository.findActiveByCourierId(courierId);
+        
+        // Inicializar relacionamentos lazy-loaded para evitar LazyInitializationException
+        for (Delivery delivery : deliveries) {
+            org.hibernate.Hibernate.initialize(delivery.getClient());
+            org.hibernate.Hibernate.initialize(delivery.getCourier());
+            org.hibernate.Hibernate.initialize(delivery.getOrganizer());
+        }
+        
+        return deliveries;
     }
 
     /**
