@@ -89,14 +89,19 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
 
        /**
         * Busca couriers próximos usando fórmula Haversine
+        * Filtra apenas motoboys SEM entregas ativas (livres para aceitar nova entrega)
         * @param latitude Latitude do ponto de referência
         * @param longitude Longitude do ponto de referência
         * @param radiusKm Raio de busca em quilômetros
-        * @return Lista de couriers dentro do raio
+        * @return Lista de couriers livres dentro do raio
         */
        @Query("SELECT u FROM User u WHERE u.role = 'COURIER' " +
               "AND u.gpsLatitude IS NOT NULL " +
               "AND u.gpsLongitude IS NOT NULL " +
+              "AND NOT EXISTS (" +
+              "  SELECT 1 FROM Delivery d WHERE d.courier.id = u.id " +
+              "  AND d.status IN ('PENDING', 'ACCEPTED', 'PICKED_UP', 'IN_TRANSIT')" +
+              ") " +
               "AND (6371 * acos(cos(radians(:latitude)) * cos(radians(u.gpsLatitude)) * " +
               "cos(radians(u.gpsLongitude) - radians(:longitude)) + " +
               "sin(radians(:latitude)) * sin(radians(u.gpsLatitude)))) <= :radiusKm")
