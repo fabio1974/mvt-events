@@ -732,6 +732,14 @@ public class DeliveryService {
         org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(getClass());
         log.info("🔍 [COURIER PENDINGS] Buscando entregas para courier: {}, raio: {}km", courierId, radiusKm);
         
+        // Verificar se o courier tem entregas ativas
+        List<Delivery> activeDeliveries = deliveryRepository.findActiveByCourierId(courierId);
+        if (!activeDeliveries.isEmpty()) {
+            log.info("⚠️ [COURIER PENDINGS] Courier {} possui {} entrega(s) ativa(s) - não retornando pendentes",
+                    courierId, activeDeliveries.size());
+            return java.util.Collections.emptyList();
+        }
+        
         // Carregar courier para obter coordenadas GPS
         User courier = userRepository.findById(courierId)
                 .orElseThrow(() -> new RuntimeException("Courier não encontrado: " + courierId));
