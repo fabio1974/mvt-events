@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,6 +19,7 @@ import com.mvt.mvt_events.service.CustomUserDetailsService;
 import java.io.IOException;
 
 @Component
+@Slf4j
 @Order(0) // Executa ANTES do TenantFilter (que tem @Order(1))
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -43,13 +45,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 username = jwtUtil.getUsernameFromToken(jwtToken);
             } catch (IllegalArgumentException e) {
-                logger.warn("Unable to get JWT Token");
+                log.warn("Unable to get JWT Token");
             } catch (Exception e) {
-                logger.warn("JWT Token has expired or is invalid");
+                log.warn("JWT Token has expired or is invalid");
             }
-        } else {
-            logger.warn("JWT Token does not begin with Bearer String");
+        } else if (requestTokenHeader != null) {
+            // Só loga se houver Authorization header MAS não começar com "Bearer "
+            String headerPreview = requestTokenHeader.substring(0, Math.min(20, requestTokenHeader.length()));
+            log.debug("Authorization header present but does not begin with Bearer String: {}", headerPreview);
         }
+        // Se não houver Authorization header, é normal para endpoints públicos - não loga nada
 
         // Once we get the token validate it.
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
