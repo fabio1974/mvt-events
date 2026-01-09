@@ -260,21 +260,35 @@ public class DeliveryNotificationService {
 
     /**
      * Envia notificações push HÍBRIDAS para uma lista de motoboys (Expo + Web Push)
+     * Envia sequencialmente com delay de 5 segundos entre cada notificação
+     * Interrompe se a delivery for aceita durante o processo
      */
     private void sendNotificationsToDrivers(List<User> couriers, Delivery delivery, String level) {
-        log.info("Enviando notificações HÍBRIDAS {} para {} motoboys da delivery {}",
+        log.info("Enviando notificações HÍBRIDAS {} sequencialmente para {} motoboys da delivery {} (delay 5s entre cada)",
                 level, couriers.size(), delivery.getId());
 
+        int notificationCount = 0;
+        
         for (User courier : couriers) {
             try {
+                // Verificar se a delivery ainda está PENDING antes de cada notificação
+                if (!isDeliveryStillPending(delivery.getId())) {
+                    log.info("Delivery {} foi aceita durante processo de notificação {} - Parando envio. Total enviado: {}/{}",
+                            delivery.getId(), level, notificationCount, couriers.size());
+                    return;
+                }
+
                 // Buscar tokens ativos do motoboy
                 List<UserPushToken> tokens = userPushTokenRepository
                         .findByUserIdAndIsActiveTrue(courier.getId());
 
                 if (tokens.isEmpty()) {
-                    log.debug("Motoboy {} não possui tokens push ativos", courier.getId());
+                    log.debug("Motoboy {} não possui tokens push ativos - pulando", courier.getId());
                     continue;
                 }
+
+                log.info("Notificando motoboy {} ({}) - Posição: {}/{}",
+                        courier.getName(), courier.getId(), notificationCount + 1, couriers.size());
 
                 // Criar dados da notificação
                 DeliveryNotificationData notificationData = createNotificationData(delivery, level);
@@ -308,13 +322,29 @@ public class DeliveryNotificationService {
                         body,
                         data);
 
-                log.debug("Notificação híbrida {} enviada para motoboy {}", level, courier.getId());
+                notificationCount++;
+                log.debug("Notificação híbrida {} enviada com sucesso para motoboy {} ({}/{})",
+                        level, courier.getId(), notificationCount, couriers.size());
 
+                // Aguardar 5 segundos antes da próxima notificação (exceto na última)
+                if (notificationCount < couriers.size()) {
+                    log.debug("Aguardando 5 segundos antes de notificar próximo motoboy...");
+                    Thread.sleep(5000);
+                }
+
+            } catch (InterruptedException e) {
+                log.warn("Processo de notificação {} interrompido para delivery {}", level, delivery.getId());
+                Thread.currentThread().interrupt();
+                return;
             } catch (Exception e) {
                 log.error("Erro ao enviar notificação híbrida {} para motoboy {}: {}",
                         level, courier.getId(), e.getMessage());
+                // Continua para o próximo motoboy mesmo se houver erro
             }
         }
+        
+        log.info("Processo de notificação {} concluído para delivery {} - Total enviado: {}/{}",
+                level, delivery.getId(), notificationCount, couriers.size());
     }
 
     /**

@@ -90,10 +90,11 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
        /**
         * Busca couriers próximos usando fórmula Haversine
         * Filtra apenas motoboys SEM entregas ativas (livres para aceitar nova entrega)
+        * Ordena por distância (mais próximo primeiro)
         * @param latitude Latitude do ponto de referência
         * @param longitude Longitude do ponto de referência
         * @param radiusKm Raio de busca em quilômetros
-        * @return Lista de couriers livres dentro do raio
+        * @return Lista de couriers livres dentro do raio, ordenados por proximidade
         */
        @Query("SELECT u FROM User u WHERE u.role = 'COURIER' " +
               "AND u.gpsLatitude IS NOT NULL " +
@@ -104,7 +105,10 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
               ") " +
               "AND (6371 * acos(cos(radians(:latitude)) * cos(radians(u.gpsLatitude)) * " +
               "cos(radians(u.gpsLongitude) - radians(:longitude)) + " +
-              "sin(radians(:latitude)) * sin(radians(u.gpsLatitude)))) <= :radiusKm")
+              "sin(radians(:latitude)) * sin(radians(u.gpsLatitude)))) <= :radiusKm " +
+              "ORDER BY (6371 * acos(cos(radians(:latitude)) * cos(radians(u.gpsLatitude)) * " +
+              "cos(radians(u.gpsLongitude) - radians(:longitude)) + " +
+              "sin(radians(:latitude)) * sin(radians(u.gpsLatitude)))) ASC")
        List<User> findAvailableCouriersNearby(@Param("latitude") Double latitude,
                                               @Param("longitude") Double longitude,
                                               @Param("radiusKm") Double radiusKm);
