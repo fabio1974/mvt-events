@@ -48,6 +48,21 @@ public class UserPushTokenService {
                         .build();
             }
 
+            // Garantir unicidade do token entre usuários: se o mesmo token estiver
+            // associado a outro usuário, desativamos essa(s) associação(ões)
+            // e prosseguimos com o registro para o usuário atual.
+            try {
+                Optional<UserPushToken> tokenFromOtherUser = pushTokenRepository.findByToken(request.getToken());
+                if (tokenFromOtherUser.isPresent() && !tokenFromOtherUser.get().getUserId().equals(userId)) {
+                    int deactivated = pushTokenRepository.deactivateToken(request.getToken());
+                    log.info(
+                            "Token já estava associado a outro usuário ({}). Desativadas {} associações antes de registrar para {}",
+                            tokenFromOtherUser.get().getUserId(), deactivated, userId);
+                }
+            } catch (Exception ex) {
+                log.warn("Falha ao verificar/desativar token existente para outros usuários: {}", ex.getMessage());
+            }
+
             // Verificar se o token já existe para este usuário (ativo ou não)
             Optional<UserPushToken> existingToken = pushTokenRepository.findByUserIdAndToken(userId, request.getToken());
             

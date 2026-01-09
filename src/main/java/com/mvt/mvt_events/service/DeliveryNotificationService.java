@@ -64,33 +64,37 @@ public class DeliveryNotificationService {
 
         try {
             // Nível 1: Organização titular do cliente
-            if (notifyLevel1PrimaryOrganization(delivery)) {
+            boolean level1Notified = notifyLevel1PrimaryOrganization(delivery);
+            if (level1Notified) {
                 log.info("Notificação Nível 1 enviada para delivery {}", delivery.getId());
-                return CompletableFuture.completedFuture(null);
-            }
+                
+                // Aguardar 2 minutos antes do Nível 2
+                Thread.sleep(TimeUnit.MINUTES.toMillis(LEVEL_TIMEOUT_MINUTES));
 
-            // Aguardar 2 minutos antes do Nível 2
-            Thread.sleep(TimeUnit.MINUTES.toMillis(LEVEL_TIMEOUT_MINUTES));
-
-            // Verificar se a delivery ainda está PENDING
-            if (!isDeliveryStillPending(delivery.getId())) {
-                log.info("Delivery {} foi aceita durante timeout do Nível 1", delivery.getId());
-                return CompletableFuture.completedFuture(null);
+                // Verificar se a delivery ainda está PENDING
+                if (!isDeliveryStillPending(delivery.getId())) {
+                    log.info("Delivery {} foi aceita durante timeout do Nível 1", delivery.getId());
+                    return CompletableFuture.completedFuture(null);
+                }
+            } else {
+                log.info("Nível 1 não encontrou motoboys, pulando direto para Nível 2");
             }
 
             // Nível 2: Outras organizações do cliente
-            if (notifyLevel2OtherOrganizations(delivery)) {
+            boolean level2Notified = notifyLevel2OtherOrganizations(delivery);
+            if (level2Notified) {
                 log.info("Notificação Nível 2 enviada para delivery {}", delivery.getId());
-                return CompletableFuture.completedFuture(null);
-            }
+                
+                // Aguardar 2 minutos antes do Nível 3
+                Thread.sleep(TimeUnit.MINUTES.toMillis(LEVEL_TIMEOUT_MINUTES));
 
-            // Aguardar 2 minutos antes do Nível 3
-            Thread.sleep(TimeUnit.MINUTES.toMillis(LEVEL_TIMEOUT_MINUTES));
-
-            // Verificar se a delivery ainda está PENDING
-            if (!isDeliveryStillPending(delivery.getId())) {
-                log.info("Delivery {} foi aceita durante timeout do Nível 2", delivery.getId());
-                return CompletableFuture.completedFuture(null);
+                // Verificar se a delivery ainda está PENDING
+                if (!isDeliveryStillPending(delivery.getId())) {
+                    log.info("Delivery {} foi aceita durante timeout do Nível 2", delivery.getId());
+                    return CompletableFuture.completedFuture(null);
+                }
+            } else {
+                log.info("Nível 2 não encontrou motoboys, pulando direto para Nível 3");
             }
 
             // Nível 3: Todos os motoboys próximos
