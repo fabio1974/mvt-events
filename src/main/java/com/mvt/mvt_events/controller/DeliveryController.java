@@ -384,10 +384,13 @@ public class DeliveryController {
 
     @GetMapping("/courier/completed")
     @Operation(summary = "Listar deliveries concluídas do courier autenticado", 
-               description = "Retorna as entregas concluídas pelo courier, ordenadas pela mais recente primeiro (completedAt DESC)")
-    public ResponseEntity<?> listCourierCompleted(Authentication authentication) {
+               description = "Retorna as entregas concluídas pelo courier, ordenadas pela mais recente primeiro (completedAt DESC). " +
+                           "Use unpaidOnly=true para retornar apenas entregas sem pagamento confirmado (PAID).")
+    public ResponseEntity<?> listCourierCompleted(
+            Authentication authentication,
+            @RequestParam(value = "unpaidOnly", required = false, defaultValue = "false") boolean unpaidOnly) {
         UUID courierId = getUserIdFromAuthentication(authentication);
-        var deliveries = deliveryService.findCompletedByCourier(courierId);
+        var deliveries = deliveryService.findCompletedByCourier(courierId, unpaidOnly);
         return ResponseEntity.ok(deliveries.stream().map(this::mapToResponse).toList());
     }
 

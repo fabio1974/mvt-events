@@ -707,10 +707,19 @@ public class DeliveryService {
     /**
      * Busca deliveries concluídas de um courier
      * Ordenadas por completedAt DESC (mais recentes primeiro)
+     * 
+     * @param courierId ID do courier
+     * @param unpaidOnly Se true, retorna apenas deliveries sem nenhum pagamento PAID
      */
     @Transactional(readOnly = true)
-    public List<Delivery> findCompletedByCourier(UUID courierId) {
-        List<Delivery> deliveries = deliveryRepository.findCompletedByCourierId(courierId);
+    public List<Delivery> findCompletedByCourier(UUID courierId, boolean unpaidOnly) {
+        List<Delivery> deliveries;
+        
+        if (unpaidOnly) {
+            deliveries = deliveryRepository.findCompletedUnpaidByCourierId(courierId);
+        } else {
+            deliveries = deliveryRepository.findCompletedByCourierId(courierId);
+        }
         
         // Inicializar relacionamentos lazy-loaded para evitar LazyInitializationException
         for (Delivery delivery : deliveries) {
@@ -720,6 +729,15 @@ public class DeliveryService {
         }
         
         return deliveries;
+    }
+
+    /**
+     * Busca deliveries concluídas de um courier (todas, sem filtro de pagamento)
+     * Ordenadas por completedAt DESC (mais recentes primeiro)
+     */
+    @Transactional(readOnly = true)
+    public List<Delivery> findCompletedByCourier(UUID courierId) {
+        return findCompletedByCourier(courierId, false);
     }
 
     /**
