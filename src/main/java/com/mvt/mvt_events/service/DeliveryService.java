@@ -397,7 +397,7 @@ public class DeliveryService {
         Delivery delivery = findById(deliveryId, organizationId);
 
         if (delivery.getStatus() != Delivery.DeliveryStatus.PENDING) {
-            throw new RuntimeException("Delivery não está pendente");
+            throw new RuntimeException("Esta Delivery já foi aceita por outro motoboy");
         }
 
         // Buscar o User do courier
