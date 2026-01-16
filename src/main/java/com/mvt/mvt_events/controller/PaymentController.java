@@ -1,5 +1,6 @@
 package com.mvt.mvt_events.controller;
 
+import com.mvt.mvt_events.common.JwtUtil;
 import com.mvt.mvt_events.dto.PaymentRequest;
 import com.mvt.mvt_events.dto.PaymentResponse;
 import com.mvt.mvt_events.payment.dto.PaymentReportResponse;
@@ -85,28 +86,42 @@ public class PaymentController {
 
     private final PaymentService paymentService;
     private final PaymentRepository paymentRepository;
+    private final JwtUtil jwtUtil;
 
     /**
      * Listar todos os pagamentos com paginação e filtros
+     * CLIENT vê apenas seus próprios pagamentos (filtro automático por payer)
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER', 'CLIENT')")
     @Transactional(readOnly = true)
     @Operation(
             summary = "Listar pagamentos",
-            description = "Lista todos os pagamentos com suporte a paginação e filtros por status, payer, etc."
+            description = "Lista pagamentos. CLIENT vê apenas seus próprios pagamentos (payer). " +
+                         "ADMIN/ORGANIZER veem todos. Suporte a paginação e filtros."
     )
     public Page<PaymentResponse> list(
             @RequestParam(required = false) UUID payerId,
             @RequestParam(required = false) PaymentStatus status,
             @RequestParam(required = false) String transactionId,
-            Pageable pageable) {
+            Pageable pageable,
+            jakarta.servlet.http.HttpServletRequest request) {
+        
+        // Extrair role e userId do token JWT
+        String token = extractTokenFromRequest(request);
+        String role = jwtUtil.getRoleFromToken(token);
+        UUID userIdFromToken = UUID.fromString(jwtUtil.getUserIdFromToken(token));
         
         Specification<Payment> spec = (root, query, cb) -> cb.conjunction();
         
-        if (payerId != null) {
+        // CLIENT só pode ver seus próprios pagamentos (onde ele é o payer)
+        if ("CLIENT".equals(role)) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("payer").get("id"), userIdFromToken));
+        } else if (payerId != null) {
+            // ADMIN/ORGANIZER podem filtrar por payerId se desejado
             spec = spec.and((root, query, cb) -> cb.equal(root.get("payer").get("id"), payerId));
         }
+        
         if (status != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
         }
@@ -116,6 +131,17 @@ public class PaymentController {
         
         return paymentRepository.findAll(spec, pageable)
                 .map(PaymentResponse::from);
+    }
+    
+    /**
+     * Helper para extrair token do request
+     */
+    private String extractTokenFromRequest(jakarta.servlet.http.HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        throw new RuntimeException("Token JWT não encontrado no header Authorization");
     }
 
     /**
