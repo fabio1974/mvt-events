@@ -27,6 +27,18 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
     List<Address> findAllByUserId(UUID userId);
 
     /**
+     * Busca todos os endereços de um usuário com City carregada (evita lazy loading)
+     */
+    @Query("SELECT a FROM Address a LEFT JOIN FETCH a.city WHERE a.user.id = :userId")
+    List<Address> findAllByUserIdWithCity(@Param("userId") UUID userId);
+
+    /**
+     * Busca endereço por ID do usuário com City carregada
+     */
+    @Query("SELECT a FROM Address a LEFT JOIN FETCH a.city WHERE a.user.id = :userId")
+    Optional<Address> findByUserIdWithCity(@Param("userId") UUID userId);
+
+    /**
      * Busca endereços por cidade
      */
     List<Address> findByCityId(Long cityId);

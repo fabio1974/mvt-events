@@ -49,6 +49,9 @@ public class DeliveryService {
     @Autowired
     private SpecialZoneService specialZoneService;
 
+    @Autowired
+    private PaymentRepository paymentRepository;
+
     // TODO: ADMProfileRepository não mais usado após remoção de CourierADMLink
     // @Autowired
     // private ADMProfileRepository admProfileRepository;
@@ -224,6 +227,11 @@ public class DeliveryService {
     public void delete(Long id, UUID userId, String role) {
         Delivery delivery = deliveryRepository.findByIdWithJoins(id)
                 .orElseThrow(() -> new RuntimeException("Delivery não encontrada"));
+
+        // PROTEÇÃO: Não permitir excluir delivery associada a um Payment
+        if (paymentRepository.existsByDeliveryIdLong(id)) {
+            throw new RuntimeException("Esta delivery não pode ser excluída pois está associada a um pagamento. Cancele ou exclua o pagamento primeiro.");
+        }
 
         if ("ADMIN".equals(role)) {
             // ADMIN pode excluir qualquer delivery

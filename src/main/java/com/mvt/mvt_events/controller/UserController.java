@@ -217,13 +217,38 @@ public class UserController {
         private String number;
         private String complement;
         private String neighborhood;
-        private String city;
+        private AddressCityDTO city;    // Aceita objeto city com id
         private String state;
         private String zipCode;
         private String referencePoint;
-        private String latitude;
-        private String longitude;
+        private Double latitude;        // Aceita Double
+        private Double longitude;       // Aceita Double
         private Boolean isDefault;
+        
+        // Helper para obter o cityId
+        public Long getCityId() {
+            return city != null ? city.getId() : null;
+        }
+        
+        // Helper para obter o nome da cidade
+        public String getCityName() {
+            return city != null ? city.getName() : null;
+        }
+        
+        // Helper para obter o estado da cidade
+        public String getCityState() {
+            return city != null ? city.getState() : null;
+        }
+    }
+    
+    // DTO para City nos requests de Address (evita conflito com CityDTO importado)
+    @Data
+    @NoArgsConstructor
+    public static class AddressCityDTO {
+        private Long id;
+        private String name;
+        private String state;
+        private String stateCode;
     }
 
     // DTO para atualização de usuário

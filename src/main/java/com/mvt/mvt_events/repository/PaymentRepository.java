@@ -71,6 +71,12 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
         boolean existsByDeliveryId(@Param("deliveryId") UUID deliveryId);
 
         /**
+         * Verifica se existe pagamento para uma entrega por ID Long (N:M via payment_deliveries)
+         */
+        @Query("SELECT COUNT(p) > 0 FROM Payment p JOIN p.deliveries d WHERE d.id = :deliveryId")
+        boolean existsByDeliveryIdLong(@Param("deliveryId") Long deliveryId);
+
+        /**
          * Busca pagamentos que incluem uma entrega com status específico (N:M via payment_deliveries)
          */
         @Query("SELECT p FROM Payment p JOIN p.deliveries d WHERE d = :delivery AND p.status = :status")

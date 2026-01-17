@@ -346,10 +346,16 @@ public class UserService {
                     isNewAddress = true;
                 }
                 
-                // Buscar cidade pelo nome
-                if (addressDTO.getCity() != null && !addressDTO.getCity().trim().isEmpty()) {
-                    String cityName = addressDTO.getCity().trim();
-                    String stateName = addressDTO.getState() != null ? addressDTO.getState().trim() : null;
+                // Buscar cidade pelo ID ou pelo nome
+                if (addressDTO.getCityId() != null) {
+                    // Usar ID da cidade diretamente
+                    cityRepository.findById(addressDTO.getCityId())
+                        .ifPresent(address::setCity);
+                } else if (addressDTO.getCityName() != null) {
+                    // Fallback: buscar por nome e estado
+                    String cityName = addressDTO.getCityName().trim();
+                    String stateName = addressDTO.getState() != null ? addressDTO.getState().trim() : 
+                                      (addressDTO.getCityState() != null ? addressDTO.getCityState().trim() : null);
                     
                     if (stateName != null) {
                         cityRepository.findByNameAndState(cityName, stateName)
@@ -378,19 +384,11 @@ public class UserService {
                 if (addressDTO.getZipCode() != null) {
                     address.setZipCode(addressDTO.getZipCode().replaceAll("[^0-9]", ""));
                 }
-                if (addressDTO.getLatitude() != null && !addressDTO.getLatitude().trim().isEmpty()) {
-                    try {
-                        address.setLatitude(Double.parseDouble(addressDTO.getLatitude()));
-                    } catch (NumberFormatException e) {
-                        // Ignorar se não for um número válido
-                    }
+                if (addressDTO.getLatitude() != null) {
+                    address.setLatitude(addressDTO.getLatitude());
                 }
-                if (addressDTO.getLongitude() != null && !addressDTO.getLongitude().trim().isEmpty()) {
-                    try {
-                        address.setLongitude(Double.parseDouble(addressDTO.getLongitude()));
-                    } catch (NumberFormatException e) {
-                        // Ignorar se não for um número válido
-                    }
+                if (addressDTO.getLongitude() != null) {
+                    address.setLongitude(addressDTO.getLongitude());
                 }
                 
                 // Definir como padrão
