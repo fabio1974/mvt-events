@@ -135,16 +135,32 @@ public class PagarMeService {
      * @return ID do recipient criado
      */
     public String createRecipient(User user, BankAccount bankAccount) {
-        return createRecipient(user, bankAccount, true); // Default: transferência automática habilitada
+        return createRecipient(user, bankAccount, "Daily", 0); // Default: transferência automática diária
     }
     
-    public String createRecipient(User user, BankAccount bankAccount, boolean automaticTransfer) {
+    public String createRecipient(User user, BankAccount bankAccount, String transferInterval, Integer transferDay) {
         String name = user.getName();
         String email = user.getUsername();
         String document = user.getDocumentClean();
         
+        // Validar e normalizar intervalo
+        if (transferInterval == null || transferInterval.isBlank()) {
+            transferInterval = "Daily";
+        }
+        // Validar transferDay conforme o intervalo
+        if (transferDay == null) {
+            transferDay = 0;
+        }
+        if ("Weekly".equalsIgnoreCase(transferInterval) && (transferDay < 0 || transferDay > 6)) {
+            transferDay = 1; // Default: segunda-feira
+        }
+        if ("Monthly".equalsIgnoreCase(transferInterval) && (transferDay < 1 || transferDay > 31)) {
+            transferDay = 1; // Default: dia 1
+        }
+        
         log.info("🏦 Criando recipient no Pagar.me: {} ({})", name, document);
-        log.info("   ├─ Transferência automática: {}", automaticTransfer ? "✅ Habilitada (Daily)" : "❌ Desabilitada");
+        log.info("   ├─ Transferência automática: ✅ Habilitada");
+        log.info("   ├─ Intervalo: {} | Dia: {}", transferInterval, transferDay);
 
         // Builder do request com dados obrigatórios
         RecipientRequest.RecipientRequestBuilder requestBuilder = RecipientRequest.builder()
@@ -243,11 +259,11 @@ public class PagarMeService {
                 hasMotherName, hasMonthlyIncome, hasProfessionalOccupation, hasCompleteAddress);
         }
         
-        // Adicionar transfer_settings com transfer_day obrigatório para Daily
+        // Adicionar transfer_settings com os parâmetros fornecidos pelo usuário
         requestBuilder.transferSettings(RecipientRequest.TransferSettings.builder()
-                .transferEnabled(automaticTransfer)
-                .transferInterval("Daily")
-                .transferDay(0)  // Obrigatório quando interval é Daily
+                .transferEnabled(true) // Sempre habilitado
+                .transferInterval(transferInterval)
+                .transferDay(transferDay)
                 .build());
 
         RecipientRequest request = requestBuilder.build();
@@ -765,27 +781,22 @@ public class PagarMeService {
      * Atualiza as configurações de transferência automática do recipient no Pagar.me
      * 
      * @param recipientId ID do recipient no Pagar.me
-     * @param transferEnabled Se transferências automáticas estão habilitadas
      * @param transferInterval Intervalo de transferência: "Daily", "Weekly", "Monthly"
+     * @param transferDay Dia da transferência (0 para Daily, 0-6 para Weekly, 1-31 para Monthly)
      */
-    public void updateTransferSettings(String recipientId, boolean transferEnabled, String transferInterval) {
+    public void updateTransferSettings(String recipientId, String transferInterval, Integer transferDay) {
         log.info("💰 Atualizando transfer settings do recipient: {}", recipientId);
-        log.info("   ├─ Transfer enabled: {}", transferEnabled);
         log.info("   ├─ Transfer interval: {}", transferInterval);
+        log.info("   ├─ Transfer day: {}", transferDay);
         
         try {
             String url = config.getApi().getUrl() + "/recipients/" + recipientId + "/transfer-settings";
             
             // Montar request body
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("transfer_enabled", transferEnabled);
+            requestBody.put("transfer_enabled", true); // Sempre habilitado
             requestBody.put("transfer_interval", transferInterval);
-            
-            // Pagar.me exige transfer_day quando interval é Daily
-            // 0 = Todos os dias (padrão para Daily)
-            if ("Daily".equalsIgnoreCase(transferInterval)) {
-                requestBody.put("transfer_day", 0);
-            }
+            requestBody.put("transfer_day", transferDay != null ? transferDay : 0);
             
             HttpHeaders headers = createHeaders();
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);

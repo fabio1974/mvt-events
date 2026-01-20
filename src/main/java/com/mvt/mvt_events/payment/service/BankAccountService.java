@@ -87,8 +87,8 @@ public class BankAccountService {
         bankAccount.setMonthlyIncome(request.monthlyIncome());
         bankAccount.setProfessionalOccupation(request.professionalOccupation());
         
-        // Configuração de transferência automática (default: true)
-        bankAccount.setAutomaticTransfer(request.automaticTransfer() != null ? request.automaticTransfer() : true);
+        // Configuração de transferência automática (sempre true agora)
+        bankAccount.setAutomaticTransfer(true);
         
         bankAccount.setStatus(BankAccountStatus.PENDING_VALIDATION);
         
@@ -131,9 +131,10 @@ public class BankAccountService {
         
         // 6. Criar recipient no Pagar.me
         try {
-            // Determinar flag de transferência automática (default: true)
-            boolean automaticTransfer = request.automaticTransfer() != null ? request.automaticTransfer() : true;
-            String recipientId = pagarMeService.createRecipient(user, bankAccount, automaticTransfer);
+            // Determinar configurações de transferência (defaults: Daily, dia 0)
+            String transferInterval = request.transferInterval() != null ? request.transferInterval() : "Daily";
+            Integer transferDay = request.transferDay() != null ? request.transferDay() : 0;
+            String recipientId = pagarMeService.createRecipient(user, bankAccount, transferInterval, transferDay);
             
             // 7. Atualizar user com recipient ID
             user.markRecipientAsActive(recipientId);
@@ -233,9 +234,11 @@ public class BankAccountService {
             }
         }
         
-        // 4. Verificar se flag de transferência automática mudou
-        Boolean newAutomaticTransfer = request.automaticTransfer() != null ? request.automaticTransfer() : true;
-        boolean transferSettingsChanged = !bankAccount.getAutomaticTransfer().equals(newAutomaticTransfer);
+        // 4. Verificar se configurações de transferência mudaram
+        String newTransferInterval = request.transferInterval() != null ? request.transferInterval() : "Daily";
+        Integer newTransferDay = request.transferDay() != null ? request.transferDay() : 0;
+        // Para simplificar, sempre assume que pode ter mudado se os campos foram passados
+        boolean transferSettingsChanged = request.transferInterval() != null || request.transferDay() != null;
         
         // 5. Atualizar dados locais
         bankAccount.setBankCode(request.bankCode());
@@ -248,7 +251,7 @@ public class BankAccountService {
         bankAccount.setAccountDigit(request.accountDigit());
         
         bankAccount.setAccountType(request.accountType());
-        bankAccount.setAutomaticTransfer(newAutomaticTransfer);
+        bankAccount.setAutomaticTransfer(true); // Sempre true agora
         
         bankAccount = bankAccountRepository.save(bankAccount);
         log.info("   ├─ ✅ Dados bancários locais atualizados");
@@ -285,11 +288,11 @@ public class BankAccountService {
         if (transferSettingsChanged && user.getPagarmeRecipientId() != null) {
             try {
                 log.info("   ├─ 💰 Atualizando transfer settings no Pagar.me");
-                log.info("   │  └─ Nova configuração: {}", newAutomaticTransfer ? "Automática (Daily)" : "Manual");
+                log.info("   │  └─ Nova configuração: Intervalo={}, Dia={}", newTransferInterval, newTransferDay);
                 pagarMeService.updateTransferSettings(
                     user.getPagarmeRecipientId(),
-                    newAutomaticTransfer,
-                    "Daily"
+                    newTransferInterval,
+                    newTransferDay
                 );
                 log.info("   ├─ ✅ Transfer settings atualizados no Pagar.me");
             } catch (Exception e) {

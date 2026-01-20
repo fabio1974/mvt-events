@@ -57,9 +57,25 @@ public record BankAccountRequest(
     String professionalOccupation,
     
     // ==================== CONFIGURAÇÕES DE TRANSFERÊNCIA ====================
-    // Flag para habilitar transferências automáticas diárias no Pagar.me
-    // Default: true (transferência automática diária habilitada)
-    Boolean automaticTransfer
+    // Transferência automática sempre habilitada, usuário escolhe intervalo e dia
+    
+    /**
+     * Intervalo de transferência:
+     * - "Daily" = diário (todo dia útil)
+     * - "Weekly" = semanal
+     * - "Monthly" = mensal
+     * Default: "Daily"
+     */
+    String transferInterval,
+    
+    /**
+     * Dia da transferência:
+     * - Para Daily: sempre 0
+     * - Para Weekly: 0-6 (0=domingo, 1=segunda, ..., 6=sábado)
+     * - Para Monthly: 1-31 (dia do mês)
+     * Default: 0
+     */
+    Integer transferDay
 ) {
     /**
      * Referência ao usuário dono da conta bancária
