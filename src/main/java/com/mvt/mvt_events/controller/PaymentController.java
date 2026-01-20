@@ -117,8 +117,20 @@ public class PaymentController {
         // CLIENT só pode ver seus próprios pagamentos (onde ele é o payer)
         if ("CLIENT".equals(role)) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("payer").get("id"), userIdFromToken));
+        } else if ("COURIER".equals(role)) {
+            // COURIER vê apenas pagamentos de entregas onde ele foi o motoboy
+            spec = spec.and((root, query, cb) -> {
+                var deliveriesJoin = root.join("deliveries");
+                return cb.equal(deliveriesJoin.get("courier").get("id"), userIdFromToken);
+            });
+        } else if ("ORGANIZER".equals(role)) {
+            // ORGANIZER vê apenas pagamentos de entregas onde ele é o gerente
+            spec = spec.and((root, query, cb) -> {
+                var deliveriesJoin = root.join("deliveries");
+                return cb.equal(deliveriesJoin.get("organizer").get("id"), userIdFromToken);
+            });
         } else if (payerId != null) {
-            // ADMIN/ORGANIZER podem filtrar por payerId se desejado
+            // ADMIN pode filtrar por payerId se desejado
             spec = spec.and((root, query, cb) -> cb.equal(root.get("payer").get("id"), payerId));
         }
         

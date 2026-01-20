@@ -124,10 +124,11 @@ public class DeliveryController {
             deliveries = deliveryService.findAll(null, clientUuid, courierUuid, organizerUuid,
                     deliveryStatus, start, end, hasPayment, completedAfterDate, completedBeforeDate, pageable);
         } else if ("COURIER".equals(role)) {
-            // Para COURIERs: buscar deliveries das organizações onde ele trabalha
+            // Para COURIERs: mostrar apenas entregas onde ele é o courier
             UUID courierUserId = UUID.fromString(jwtUtil.getUserIdFromToken(token));
-            deliveries = findDeliveriesForCourier(courierUserId, clientUuid, courierUuid,
-                    deliveryStatus, start, end, pageable);
+            // Sempre filtra pelo próprio courier, independente do parâmetro
+            deliveries = deliveryService.findAll(null, clientUuid, courierUserId, organizerUuid,
+                    deliveryStatus, start, end, hasPayment, completedAfterDate, completedBeforeDate, pageable);
         } else if ("CLIENT".equals(role)) {
             // Para CLIENTs: mostrar apenas suas próprias entregas
             UUID clientUserId = UUID.fromString(jwtUtil.getUserIdFromToken(token));
