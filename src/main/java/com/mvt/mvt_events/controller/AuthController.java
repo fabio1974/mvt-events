@@ -1,11 +1,13 @@
 package com.mvt.mvt_events.controller;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.mvt.mvt_events.common.JwtUtil;
 import com.mvt.mvt_events.exception.EmailAlreadyExistsException;
 import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.jpa.Organization;
 import com.mvt.mvt_events.repository.UserRepository;
 import com.mvt.mvt_events.repository.OrganizationRepository;
+import com.mvt.mvt_events.service.EmailService;
 import com.mvt.mvt_events.validation.CPF;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,18 +20,22 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping({"/api/auth", "/auth"})
@@ -51,10 +57,35 @@ public class AuthController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private EmailService emailService;
+
+    @Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
+
     @PostMapping("/login")
     @Operation(summary = "Login de usuário", description = "Autenticação via email ou CPF e senha, retorna token JWT")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         try {
+            // Primeiro verificar se o usuário existe e está confirmado
+            Optional<User> userOpt = userRepository.findByUsername(loginRequest.getUsername());
+            if (userOpt.isEmpty()) {
+                // Tentar buscar por CPF
+                userOpt = userRepository.findByDocumentNumberForAuth(loginRequest.getUsername());
+            }
+            
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                // Verificar se o email foi confirmado
+                if (!user.isConfirmed()) {
+                    return ResponseEntity.status(403).body(Map.of(
+                        "error", "EMAIL_NOT_CONFIRMED",
+                        "message", "Por favor, confirme seu email antes de fazer login. Verifique sua caixa de entrada.",
+                        "username", user.getUsername()
+                    ));
+                }
+            }
+
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
@@ -72,12 +103,12 @@ public class AuthController {
 
             return ResponseEntity.ok(response);
         } catch (BadCredentialsException e) {
-            return ResponseEntity.badRequest().body("Invalid username or password");
+            return ResponseEntity.badRequest().body(Map.of("error", "INVALID_CREDENTIALS", "message", "Email/CPF ou senha inválidos"));
         }
     }
 
     @PostMapping("/register")
-    @Operation(summary = "Registrar novo usuário", description = "Criação de conta (acesso público)")
+    @Operation(summary = "Registrar novo usuário", description = "Criação de conta (acesso público). Envia email de confirmação.")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest) {
         if (userRepository.findByUsername(registerRequest.getUsername()).isPresent()) {
             throw new EmailAlreadyExistsException(registerRequest.getUsername(), "Email");
@@ -94,14 +125,111 @@ public class AuthController {
             user.setDocumentNumber(registerRequest.getDocumentNumber());
         }
 
+        // Gerar token de confirmação de email
+        String confirmationToken = UUID.randomUUID().toString();
+        user.setConfirmationToken(confirmationToken);
+        user.setConfirmationTokenExpiresAt(LocalDateTime.now().plusHours(24)); // Expira em 24h
+        user.setConfirmed(false); // Não confirmado até clicar no link
+
         userRepository.save(user);
 
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "User registered successfully!");
+        // Enviar email de confirmação (async)
+        emailService.sendConfirmationEmail(user);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Cadastro realizado! Verifique seu email para confirmar a conta.");
         response.put("username", user.getUsername());
         response.put("role", user.getRole().toString());
+        response.put("confirmationRequired", true);
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Confirma o email do usuário através do token enviado por email.
+     * Pode ser acessado diretamente (redirect) ou via frontend.
+     */
+    @GetMapping("/confirm")
+    @Operation(summary = "Confirmar email", description = "Confirma o email do usuário através do token enviado")
+    public ResponseEntity<?> confirmEmail(@RequestParam String token) {
+        Optional<User> userOpt = userRepository.findByConfirmationToken(token);
+        
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "INVALID_TOKEN",
+                "message", "Token de confirmação inválido ou já utilizado"
+            ));
+        }
+
+        User user = userOpt.get();
+
+        // Verificar se token expirou
+        if (user.getConfirmationTokenExpiresAt() != null && 
+            user.getConfirmationTokenExpiresAt().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "TOKEN_EXPIRED",
+                "message", "Token de confirmação expirado. Solicite um novo email de confirmação.",
+                "username", user.getUsername()
+            ));
+        }
+
+        // Confirmar email
+        user.setConfirmed(true);
+        user.setConfirmationToken(null); // Limpar token após uso
+        user.setConfirmationTokenExpiresAt(null);
+        userRepository.save(user);
+
+        // Redirecionar para o frontend ou retornar JSON
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "message", "Email confirmado com sucesso! Você já pode fazer login.",
+            "username", user.getUsername()
+        ));
+    }
+
+    /**
+     * Reenvia email de confirmação para usuários que não receberam ou cujo token expirou.
+     */
+    @PostMapping("/resend-confirmation")
+    @Operation(summary = "Reenviar email de confirmação", description = "Reenvia o email de confirmação para o usuário")
+    public ResponseEntity<?> resendConfirmation(@RequestBody Map<String, String> request) {
+        String username = request.get("username");
+        if (username == null || username.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "MISSING_USERNAME",
+                "message", "Email é obrigatório"
+            ));
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(username.trim());
+        if (userOpt.isEmpty()) {
+            // Não revelar se o email existe ou não (segurança)
+            return ResponseEntity.ok(Map.of(
+                "message", "Se o email estiver cadastrado, você receberá um novo link de confirmação."
+            ));
+        }
+
+        User user = userOpt.get();
+
+        // Se já confirmado, não reenviar
+        if (user.isConfirmed()) {
+            return ResponseEntity.ok(Map.of(
+                "message", "Este email já foi confirmado. Você pode fazer login."
+            ));
+        }
+
+        // Gerar novo token
+        String newToken = UUID.randomUUID().toString();
+        user.setConfirmationToken(newToken);
+        user.setConfirmationTokenExpiresAt(LocalDateTime.now().plusHours(24));
+        userRepository.save(user);
+
+        // Enviar email
+        emailService.sendConfirmationEmail(user);
+
+        return ResponseEntity.ok(Map.of(
+            "message", "Email de confirmação reenviado! Verifique sua caixa de entrada."
+        ));
     }
 
     @GetMapping("/validate")
@@ -426,6 +554,7 @@ public class AuthController {
         private String role;
 
         @com.mvt.mvt_events.validation.Document(message = "CPF ou CNPJ inválido", required = true)
+        @JsonAlias({"cpf", "cnpj", "document"})
         private String documentNumber;
 
         public String getName() {

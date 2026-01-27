@@ -93,6 +93,28 @@ public class BankAccount extends BaseEntity {
     @Visible(table = true, form = true, filter = true)
     private Boolean automaticTransfer = true;
 
+    /**
+     * Intervalo de transferência automática:
+     * - "Daily" = diário (todo dia útil)
+     * - "Weekly" = semanal
+     * - "Monthly" = mensal
+     * Default: "Daily"
+     */
+    @Column(name = "transfer_interval", length = 10)
+    @Visible(table = true, form = true, filter = true)
+    private String transferInterval = "Daily";
+
+    /**
+     * Dia da transferência:
+     * - Para Daily: sempre 0
+     * - Para Weekly: 0-6 (0=domingo, 1=segunda, ..., 6=sábado)
+     * - Para Monthly: 1-31 (dia do mês)
+     * Default: 0
+     */
+    @Column(name = "transfer_day")
+    @Visible(table = true, form = true, filter = false)
+    private Integer transferDay = 0;
+
     // ============================================================================
     // PAGAR.ME KYC FIELDS
     // ============================================================================

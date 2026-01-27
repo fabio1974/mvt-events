@@ -101,6 +101,8 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("accountDigit", "Dígito da Conta");
         FIELD_TRANSLATIONS.put("accountType", "Tipo de Conta");
         FIELD_TRANSLATIONS.put("automaticTransfer", "Transferência Automática");
+        FIELD_TRANSLATIONS.put("transferInterval", "Intervalo de Saque");
+        FIELD_TRANSLATIONS.put("transferDay", "Dia do Saque");
         FIELD_TRANSLATIONS.put("accountHolderName", "Nome do Titular");
         FIELD_TRANSLATIONS.put("accountHolderDocument", "CPF do Titular");
         FIELD_TRANSLATIONS.put("motherName", "Nome da Mãe");
@@ -338,6 +340,7 @@ public class JpaMetadataExtractor {
         ENUM_TRANSLATIONS.put("ADMIN", "Administrador");
         ENUM_TRANSLATIONS.put("CLIENT", "Cliente");
         ENUM_TRANSLATIONS.put("COURIER", "Motoboy");
+        ENUM_TRANSLATIONS.put("CUSTOMER", "Cliente Avulso");
 
         // ==================== ORGANIZATION STATUS ====================
         ENUM_TRANSLATIONS.put("INACTIVE", "Inativo");

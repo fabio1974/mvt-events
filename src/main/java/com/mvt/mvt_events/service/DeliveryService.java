@@ -82,18 +82,18 @@ public class DeliveryService {
         User client = userRepository.findById(clientId)
                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
 
-        // Validação de role: cliente deve ser CLIENT
-        if (client.getRole() != User.Role.CLIENT) {
-            throw new RuntimeException("O destinatário da entrega deve ser um CLIENT (role atual: " + client.getRole() + ")");
+        // Validação de role: cliente deve ser CLIENT ou CUSTOMER
+        if (client.getRole() != User.Role.CLIENT && client.getRole() != User.Role.CUSTOMER) {
+            throw new RuntimeException("O destinatário da entrega deve ser um CLIENT ou CUSTOMER (role atual: " + client.getRole() + ")");
         }
 
         // Validação de permissões do criador
         User.Role creatorRole = creator.getRole();
         
-        if (creatorRole == User.Role.CLIENT) {
-            // CLIENT só pode criar entregas para si mesmo
+        if (creatorRole == User.Role.CLIENT || creatorRole == User.Role.CUSTOMER) {
+            // CLIENT/CUSTOMER só pode criar entregas para si mesmo
             if (!creator.getId().equals(client.getId())) {
-                throw new RuntimeException("CLIENT só pode criar entregas para si mesmo");
+                throw new RuntimeException("CLIENT/CUSTOMER só pode criar entregas para si mesmo");
             }
         } else if (creatorRole == User.Role.ADMIN) {
             // ADMIN pode criar entregas para qualquer cliente (sem restrições)
@@ -178,10 +178,10 @@ public class DeliveryService {
         // Validar permissões
         User.Role userRole = user.getRole();
         
-        // CLIENT só pode editar suas próprias deliveries PENDING
-        if (userRole == User.Role.CLIENT) {
+        // CLIENT/CUSTOMER só pode editar suas próprias deliveries PENDING
+        if (userRole == User.Role.CLIENT || userRole == User.Role.CUSTOMER) {
             if (!delivery.getClient().getId().equals(userId)) {
-                throw new RuntimeException("CLIENT só pode editar suas próprias entregas");
+                throw new RuntimeException("CLIENT/CUSTOMER só pode editar suas próprias entregas");
             }
             if (delivery.getStatus() != Delivery.DeliveryStatus.PENDING) {
                 throw new RuntimeException("Apenas entregas PENDING podem ser editadas");

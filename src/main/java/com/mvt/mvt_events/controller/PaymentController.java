@@ -93,11 +93,11 @@ public class PaymentController {
      * CLIENT vê apenas seus próprios pagamentos (filtro automático por payer)
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER', 'CLIENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER', 'CLIENT', 'CUSTOMER')")
     @Transactional(readOnly = true)
     @Operation(
             summary = "Listar pagamentos",
-            description = "Lista pagamentos. CLIENT vê apenas seus próprios pagamentos (payer). " +
+            description = "Lista pagamentos. CLIENT/CUSTOMER vê apenas seus próprios pagamentos (payer). " +
                          "ADMIN/ORGANIZER veem todos. Suporte a paginação e filtros."
     )
     public Page<PaymentResponse> list(
@@ -114,8 +114,8 @@ public class PaymentController {
         
         Specification<Payment> spec = (root, query, cb) -> cb.conjunction();
         
-        // CLIENT só pode ver seus próprios pagamentos (onde ele é o payer)
-        if ("CLIENT".equals(role)) {
+        // CLIENT e CUSTOMER só podem ver seus próprios pagamentos (onde ele é o payer)
+        if ("CLIENT".equals(role) || "CUSTOMER".equals(role)) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("payer").get("id"), userIdFromToken));
         } else if ("COURIER".equals(role)) {
             // COURIER vê apenas pagamentos de entregas onde ele foi o motoboy
@@ -160,7 +160,7 @@ public class PaymentController {
      * Buscar pagamento por ID
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER', 'CLIENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER', 'CLIENT', 'CUSTOMER')")
     @Transactional(readOnly = true)
     @Operation(
             summary = "Buscar pagamento por ID",
@@ -177,7 +177,7 @@ public class PaymentController {
      * Buscar pagamentos por delivery ID
      */
     @GetMapping("/by-delivery/{deliveryId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER', 'CLIENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER', 'CLIENT', 'CUSTOMER')")
     @Transactional(readOnly = true)
     @Operation(
             summary = "Buscar pagamentos por delivery",
@@ -195,7 +195,7 @@ public class PaymentController {
      * Gerar relatório detalhado de um pagamento
      */
     @GetMapping("/{id}/report")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER', 'CLIENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER', 'CLIENT', 'CUSTOMER')")
     @Transactional(readOnly = true)
     @Operation(
             summary = "Gerar relatório detalhado do pagamento",
@@ -290,7 +290,7 @@ public class PaymentController {
      * @return PaymentResponse com QR Code PIX e dados do pedido
      */
     @PostMapping("/create-with-split")
-    @PreAuthorize("hasAnyRole('COURIER', 'ORGANIZER', 'CLIENT')")
+    @PreAuthorize("hasAnyRole('COURIER', 'ORGANIZER', 'CLIENT', 'CUSTOMER')")
     @Operation(
             summary = "Criar pedido PIX com split para múltiplas deliveries",
             description = "Cria um pedido PIX no Pagar.me com divisão automática de valores entre motoboy (87%), gestor (5%) e plataforma (8% - Zapi10 assume risco e paga taxas). Suporta 1-10 deliveries em um único pagamento. Retorna QR Code PIX para pagamento."

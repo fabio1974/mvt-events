@@ -90,6 +90,12 @@ public class BankAccountService {
         // Configuração de transferência automática (sempre true agora)
         bankAccount.setAutomaticTransfer(true);
         
+        // Configurações de intervalo de transferência
+        String transferInterval = request.transferInterval() != null ? request.transferInterval() : "Daily";
+        Integer transferDay = request.transferDay() != null ? request.transferDay() : 0;
+        bankAccount.setTransferInterval(transferInterval);
+        bankAccount.setTransferDay(transferDay);
+        
         bankAccount.setStatus(BankAccountStatus.PENDING_VALIDATION);
         
         // 4. Salvar primeiro (para gerar ID)
@@ -131,10 +137,8 @@ public class BankAccountService {
         
         // 6. Criar recipient no Pagar.me
         try {
-            // Determinar configurações de transferência (defaults: Daily, dia 0)
-            String transferInterval = request.transferInterval() != null ? request.transferInterval() : "Daily";
-            Integer transferDay = request.transferDay() != null ? request.transferDay() : 0;
-            String recipientId = pagarMeService.createRecipient(user, bankAccount, transferInterval, transferDay);
+            // Usar as configurações de transferência já salvas na entidade
+            String recipientId = pagarMeService.createRecipient(user, bankAccount, bankAccount.getTransferInterval(), bankAccount.getTransferDay());
             
             // 7. Atualizar user com recipient ID
             user.markRecipientAsActive(recipientId);
@@ -252,6 +256,10 @@ public class BankAccountService {
         
         bankAccount.setAccountType(request.accountType());
         bankAccount.setAutomaticTransfer(true); // Sempre true agora
+        
+        // Salvar configurações de transferência
+        bankAccount.setTransferInterval(newTransferInterval);
+        bankAccount.setTransferDay(newTransferDay);
         
         bankAccount = bankAccountRepository.save(bankAccount);
         log.info("   ├─ ✅ Dados bancários locais atualizados");

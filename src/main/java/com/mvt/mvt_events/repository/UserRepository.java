@@ -113,4 +113,13 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
                                               @Param("longitude") Double longitude,
                                               @Param("radiusKm") Double radiusKm);
 
+       // ============================================================================
+       // EMAIL CONFIRMATION
+       // ============================================================================
+
+       /**
+        * Busca usuário pelo token de confirmação de email
+        */
+       Optional<User> findByConfirmationToken(String confirmationToken);
+
 }

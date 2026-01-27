@@ -138,6 +138,35 @@ public class User implements UserDetails {
     private boolean enabled = true;
 
     // ============================================================================
+    // EMAIL CONFIRMATION FIELDS
+    // ============================================================================
+
+    /**
+     * Indica se o usuário confirmou o email.
+     * Novos usuários começam com confirmed = false.
+     * Após clicar no link de confirmação, confirmed = true.
+     */
+    @Column(nullable = false)
+    @Visible(table = true, form = false, filter = true)
+    private boolean confirmed = false;
+
+    /**
+     * Token único para confirmação de email.
+     * Gerado no registro e enviado por email.
+     */
+    @Column(name = "confirmation_token")
+    @Visible(table = false, form = false, filter = false)
+    private String confirmationToken;
+
+    /**
+     * Data de expiração do token de confirmação.
+     * Tokens expiram em 24 horas por padrão.
+     */
+    @Column(name = "confirmation_token_expires_at")
+    @Visible(table = false, form = false, filter = false)
+    private LocalDateTime confirmationTokenExpiresAt;
+
+    // ============================================================================
     // PAGAR.ME INTEGRATION FIELDS
     // ============================================================================
 
@@ -202,11 +231,12 @@ public class User implements UserDetails {
     // ============================================================================
 
     public enum Role {
-        USER, // Mantido para compatibilidade
+        USER, // Mantido para compatibilidade (atleta - legado eventos)
         ORGANIZER, // Gerente ADM - Dono da Organization (tenant)
         ADMIN, // Admin do sistema
-        CLIENT, // Cliente que solicita entregas
-        COURIER // Motoboy que realiza entregas
+        CLIENT, // Cliente corporativo que solicita entregas (vinculado a Organization)
+        COURIER, // Motoboy que realiza entregas
+        CUSTOMER // Cliente avulso/consumidor final (sem vínculo com Organization)
     }
 
     public enum Gender {

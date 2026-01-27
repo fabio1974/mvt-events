@@ -56,8 +56,8 @@ public class UserController {
             response.setEmploymentContracts(buildEmploymentContractsForUser(id));
         }
 
-        // Carregar contratos de serviço (se for CLIENT)
-        if (user.getRole() == User.Role.CLIENT) {
+        // Carregar contratos de serviço (se for CLIENT ou CUSTOMER)
+        if (user.getRole() == User.Role.CLIENT || user.getRole() == User.Role.CUSTOMER) {
             response.setClientContracts(buildClientContractsForUser(id));
         }
 
