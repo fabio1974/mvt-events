@@ -471,8 +471,105 @@ public class AuthController {
         }
     }
 
+    // ============================================================================
+    // PASSWORD RECOVERY ENDPOINTS (Public)
+    // ============================================================================
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Solicitar recuperação de senha", 
+               description = "Envia email com link para redefinir a senha. O link expira em 1 hora.")
+    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        try {
+            // Sempre retorna sucesso para não revelar se o email existe
+            Optional<User> userOpt = userRepository.findByUsername(request.getEmail());
+            
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                
+                // Gerar token único
+                String resetToken = UUID.randomUUID().toString();
+                user.setResetToken(resetToken);
+                user.setResetTokenExpiresAt(LocalDateTime.now().plusHours(1));
+                userRepository.save(user);
+                
+                // Enviar email de recuperação
+                emailService.sendPasswordResetEmail(user);
+            }
+            
+            // Sempre retorna sucesso (segurança: não revelar se email existe)
+            return ResponseEntity.ok(Map.of(
+                "message", "Se o email estiver cadastrado, você receberá um link para redefinir sua senha."
+            ));
+            
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "Erro ao processar solicitação: " + e.getMessage()
+            ));
+        }
+    }
+
     @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+    @Operation(summary = "Redefinir senha com token", 
+               description = "Define nova senha usando o token recebido por email.")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordWithTokenRequest request) {
+        try {
+            // Validar token
+            if (request.getToken() == null || request.getToken().isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "TOKEN_REQUIRED",
+                    "message", "Token de recuperação é obrigatório"
+                ));
+            }
+            
+            // Buscar usuário pelo token
+            Optional<User> userOpt = userRepository.findByResetToken(request.getToken());
+            
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "INVALID_TOKEN",
+                    "message", "Token inválido ou já utilizado"
+                ));
+            }
+            
+            User user = userOpt.get();
+            
+            // Verificar expiração
+            if (user.getResetTokenExpiresAt() == null || 
+                user.getResetTokenExpiresAt().isBefore(LocalDateTime.now())) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "TOKEN_EXPIRED",
+                    "message", "Token expirado. Solicite um novo link de recuperação."
+                ));
+            }
+            
+            // Validar nova senha
+            if (request.getNewPassword() == null || request.getNewPassword().length() < 4) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "INVALID_PASSWORD",
+                    "message", "A senha deve ter pelo menos 4 caracteres"
+                ));
+            }
+            
+            // Atualizar senha e limpar token
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            user.setResetToken(null);
+            user.setResetTokenExpiresAt(null);
+            userRepository.save(user);
+            
+            return ResponseEntity.ok(Map.of(
+                "message", "Senha redefinida com sucesso! Você já pode fazer login."
+            ));
+            
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "Erro ao redefinir senha: " + e.getMessage()
+            ));
+        }
+    }
+
+    @Deprecated
+    @PostMapping("/reset-password-legacy")
+    public ResponseEntity<?> resetPasswordLegacy(@RequestBody ResetPasswordRequest request) {
         try {
             // Log the request for debugging
             System.out.println("Reset password request received for: " + request.getUsername());
@@ -641,6 +738,49 @@ public class AuthController {
 
         public void setUsername(String username) {
             this.username = username;
+        }
+
+        public String getNewPassword() {
+            return newPassword;
+        }
+
+        public void setNewPassword(String newPassword) {
+            this.newPassword = newPassword;
+        }
+    }
+
+    // ============================================================================
+    // PASSWORD RECOVERY DTOs
+    // ============================================================================
+
+    public static class ForgotPasswordRequest {
+        @NotBlank(message = "Email é obrigatório")
+        @Email(message = "Email deve ser válido")
+        private String email;
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
+        }
+    }
+
+    public static class ResetPasswordWithTokenRequest {
+        @NotBlank(message = "Token é obrigatório")
+        private String token;
+
+        @NotBlank(message = "Nova senha é obrigatória")
+        @Size(min = 4, message = "Senha deve ter no mínimo 4 caracteres")
+        private String newPassword;
+
+        public String getToken() {
+            return token;
+        }
+
+        public void setToken(String token) {
+            this.token = token;
         }
 
         public String getNewPassword() {

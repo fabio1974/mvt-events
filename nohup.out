@@ -1,13 +1,8 @@
-
-> Task :compileJava
-/Users/fabio2barros/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/jpa/SpecialZone.java:83: warning: @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
-    private Boolean isActive = true;
-                    ^
-1 warning
-
-> Task :processResources
-> Task :classes
-> Task :resolveMainClassName
+Starting a Gradle Daemon, 2 busy Daemons could not be reused, use --status for details
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :resolveMainClassName UP-TO-DATE
 
 > Task :bootRun
 Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
@@ -22,35 +17,30 @@ Standard Commons Logging discovery in action with spring-jcl: please remove comm
 
  :: Spring Boot ::                (v3.5.6)
 
-2026-01-26T23:53:17.322-03:00  INFO 23888 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : Starting MvtEventsApplication using Java 17.0.17 with PID 23888 (/Users/fabio2barros/Documents/projects/mvt-events/build/classes/java/main started by fabio2barros in /Users/fabio2barros/Documents/projects/mvt-events)
-2026-01-26T23:53:17.324-03:00  INFO 23888 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : No active profile set, falling back to 1 default profile: "default"
-2026-01-26T23:53:17.372-03:00  INFO 23888 --- [mvt-events] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
-2026-01-26T23:53:17.372-03:00  INFO 23888 --- [mvt-events] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
-2026-01-26T23:53:18.466-03:00  INFO 23888 --- [mvt-events] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-01-26T23:53:18.506-03:00  INFO 23888 --- [mvt-events] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 35 ms. Found 14 JPA repository interfaces.
-2026-01-26T23:53:19.730-03:00  INFO 23888 --- [mvt-events] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
-2026-01-26T23:53:19.745-03:00  INFO 23888 --- [mvt-events] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-01-26T23:53:19.745-03:00  INFO 23888 --- [mvt-events] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.46]
-2026-01-26T23:53:19.778-03:00  INFO 23888 --- [mvt-events] [  restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
-2026-01-26T23:53:19.779-03:00  INFO 23888 --- [mvt-events] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2356 ms
+2026-01-27T08:23:03.963-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : Starting MvtEventsApplication using Java 17.0.17 with PID 88519 (/Users/fabio2barros/Documents/projects/mvt-events/build/classes/java/main started by fabio2barros in /Users/fabio2barros/Documents/projects/mvt-events)
+2026-01-27T08:23:03.964-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : No active profile set, falling back to 1 default profile: "default"
+2026-01-27T08:23:03.985-03:00  INFO 88519 --- [mvt-events] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-01-27T08:23:03.985-03:00  INFO 88519 --- [mvt-events] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-01-27T08:23:04.706-03:00  INFO 88519 --- [mvt-events] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-01-27T08:23:04.746-03:00  INFO 88519 --- [mvt-events] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 36 ms. Found 14 JPA repository interfaces.
+2026-01-27T08:23:05.120-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-01-27T08:23:05.129-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-01-27T08:23:05.129-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.46]
+2026-01-27T08:23:05.154-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-01-27T08:23:05.154-03:00  INFO 88519 --- [mvt-events] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1165 ms
 Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
-2026-01-26T23:53:20.068-03:00  INFO 23888 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-01-26T23:53:20.452-03:00  INFO 23888 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@bcfb472
-2026-01-26T23:53:20.494-03:00  INFO 23888 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-01-26T23:53:20.547-03:00  INFO 23888 --- [mvt-events] [  restartedMain] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5435/mvt-events (PostgreSQL 16.11)
-2026-01-26T23:53:20.665-03:00  INFO 23888 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbValidate     : Successfully validated 41 migrations (execution time 00:00.045s)
-2026-01-26T23:53:20.682-03:00  INFO 23888 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 41
-2026-01-26T23:53:20.690-03:00  INFO 23888 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "42 - add email confirmation fields"
-2026-01-26T23:53:20.856-03:00  INFO 23888 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Successfully applied 1 migration to schema "public", now at version v42 (execution time 00:00.139s)
-2026-01-26T23:53:20.959-03:00  INFO 23888 --- [mvt-events] [  restartedMain] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-01-26T23:53:21.011-03:00  INFO 23888 --- [mvt-events] [  restartedMain] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.29.Final
-2026-01-26T23:53:21.037-03:00  INFO 23888 --- [mvt-events] [  restartedMain] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
-
-Timed out waiting for finished message from client socket connection from /127.0.0.1:49289 to /127.0.0.1:62385. Discarding connection.
-
-> Task :bootRun
-2026-01-26T23:53:21.301-03:00  INFO 23888 --- [mvt-events] [  restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-01-26T23:53:21.384-03:00  INFO 23888 --- [mvt-events] [  restartedMain] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+2026-01-27T08:23:05.348-03:00  INFO 88519 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-01-27T08:23:05.439-03:00  INFO 88519 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@76e2b9b
+2026-01-27T08:23:05.440-03:00  INFO 88519 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-01-27T08:23:05.454-03:00  INFO 88519 --- [mvt-events] [  restartedMain] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5435/mvt-events (PostgreSQL 16.11)
+2026-01-27T08:23:05.505-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbValidate     : Successfully validated 41 migrations (execution time 00:00.031s)
+2026-01-27T08:23:05.539-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 42
+2026-01-27T08:23:05.541-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-01-27T08:23:05.584-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-01-27T08:23:05.616-03:00  INFO 88519 --- [mvt-events] [  restartedMain] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.29.Final
+2026-01-27T08:23:05.633-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-01-27T08:23:05.758-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-01-27T08:23:05.803-03:00  INFO 88519 --- [mvt-events] [  restartedMain] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
 	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
 	Database driver: undefined/unknown
 	Database version: 16.11
@@ -58,24 +48,24 @@ Timed out waiting for finished message from client socket connection from /127.0
 	Isolation level: undefined/unknown
 	Minimum pool size: undefined/unknown
 	Maximum pool size: undefined/unknown
-2026-01-26T23:53:22.998-03:00  INFO 23888 --- [mvt-events] [  restartedMain] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-01-26T23:53:23.101-03:00  INFO 23888 --- [mvt-events] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-01-26T23:53:23.292-03:00  INFO 23888 --- [mvt-events] [  restartedMain] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
-2026-01-26T23:53:24.598-03:00 DEBUG 23888 --- [mvt-events] [  restartedMain] com.mvt.mvt_events.tenant.TenantFilter   : Filter 'tenantFilter' configured for use
-2026-01-26T23:53:24.727-03:00  INFO 23888 --- [mvt-events] [  restartedMain] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
-2026-01-26T23:53:25.869-03:00  INFO 23888 --- [mvt-events] [  restartedMain] c.m.m.payment.config.PagarMeConfig       : 🔐 Pagar.me Configuration Loaded:
-2026-01-26T23:53:25.869-03:00  INFO 23888 --- [mvt-events] [  restartedMain] c.m.m.payment.config.PagarMeConfig       :    API Key: ***a210fc11 (SANDBOX)
-2026-01-26T23:53:25.869-03:00  INFO 23888 --- [mvt-events] [  restartedMain] c.m.m.payment.config.PagarMeConfig       :    API URL: https://api.pagar.me/core/v5
-2026-01-26T23:53:26.374-03:00  INFO 23888 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : BouncyCastle provider registrado para Web Push
-2026-01-26T23:53:26.454-03:00  INFO 23888 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : ✅ Web Push Service configurado com VAPID keys
-2026-01-26T23:53:26.454-03:00  INFO 23888 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : 🔑 Public Key: BN8ym6-oByG6GoAEC939...
-2026-01-26T23:53:26.454-03:00  INFO 23888 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : 📧 Subject: mailto:admin@mvt-events.com
-2026-01-26T23:53:26.782-03:00  INFO 23888 --- [mvt-events] [  restartedMain] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoints beneath base path '/actuator'
-2026-01-26T23:53:27.059-03:00  INFO 23888 --- [mvt-events] [  restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : LiveReload server is running on port 35729
-2026-01-26T23:53:27.095-03:00  INFO 23888 --- [mvt-events] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
-2026-01-26T23:53:27.106-03:00  INFO 23888 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : Started MvtEventsApplication in 10.137 seconds (process running for 10.558)
-2026-01-26T23:53:27.135-03:00  INFO 23888 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.startup.CityDataLoader  : 🇧🇷 Iniciando verificação das cidades brasileiras...
-2026-01-26T23:53:27.160-03:00 DEBUG 23888 --- [mvt-events] [  restartedMain] org.hibernate.SQL                        : 
+2026-01-27T08:23:06.368-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-01-27T08:23:06.407-03:00  INFO 88519 --- [mvt-events] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-01-27T08:23:06.543-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-01-27T08:23:07.620-03:00 DEBUG 88519 --- [mvt-events] [  restartedMain] com.mvt.mvt_events.tenant.TenantFilter   : Filter 'tenantFilter' configured for use
+2026-01-27T08:23:07.687-03:00  INFO 88519 --- [mvt-events] [  restartedMain] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2026-01-27T08:23:08.592-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.m.m.payment.config.PagarMeConfig       : 🔐 Pagar.me Configuration Loaded:
+2026-01-27T08:23:08.593-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.m.m.payment.config.PagarMeConfig       :    API Key: ***a210fc11 (SANDBOX)
+2026-01-27T08:23:08.593-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.m.m.payment.config.PagarMeConfig       :    API URL: https://api.pagar.me/core/v5
+2026-01-27T08:23:09.191-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : BouncyCastle provider registrado para Web Push
+2026-01-27T08:23:09.269-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : ✅ Web Push Service configurado com VAPID keys
+2026-01-27T08:23:09.269-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : 🔑 Public Key: BN8ym6-oByG6GoAEC939...
+2026-01-27T08:23:09.269-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : 📧 Subject: mailto:admin@mvt-events.com
+2026-01-27T08:23:09.549-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoints beneath base path '/actuator'
+2026-01-27T08:23:09.882-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : LiveReload server is running on port 35729
+2026-01-27T08:23:09.914-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2026-01-27T08:23:09.925-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : Started MvtEventsApplication in 6.125 seconds (process running for 6.355)
+2026-01-27T08:23:09.955-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.startup.CityDataLoader  : 🇧🇷 Iniciando verificação das cidades brasileiras...
+2026-01-27T08:23:09.980-03:00 DEBUG 88519 --- [mvt-events] [  restartedMain] org.hibernate.SQL                        : 
     /* select
         count(*) 
     from
@@ -91,14 +81,11 @@ Hibernate:
             count(*) 
         from
             cities c1_0
-2026-01-26T23:53:27.182-03:00  INFO 23888 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.startup.CityDataLoader  : ✅ Cidades já carregadas no banco: 5570 registros (>= 5570). Não é necessário recarregar.
-2026-01-26T23:53:42.375-03:00  INFO 23888 --- [mvt-events] [0.0-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-01-26T23:53:42.375-03:00  INFO 23888 --- [mvt-events] [0.0-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2026-01-26T23:53:42.384-03:00  INFO 23888 --- [mvt-events] [0.0-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 9 ms
-2026-01-26T23:53:42.477-03:00  WARN 23888 --- [mvt-events] [0.0-8080-exec-1] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [org.springframework.web.bind.MethodArgumentNotValidException: Validation failed for argument [0] in public org.springframework.http.ResponseEntity<?> com.mvt.mvt_events.controller.AuthController.register(com.mvt.mvt_events.controller.AuthController$RegisterRequest): [Field error in object 'registerRequest' on field 'documentNumber': rejected value [45678901230]; codes [Document.registerRequest.documentNumber,Document.documentNumber,Document.java.lang.String,Document]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [registerRequest.documentNumber,documentNumber]; arguments []; default message [documentNumber],true]; default message [CPF ou CNPJ inválido]] ]
-2026-01-26T23:53:47.868-03:00  WARN 23888 --- [mvt-events] [0.0-8080-exec-2] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [org.springframework.web.bind.MethodArgumentNotValidException: Validation failed for argument [0] in public org.springframework.http.ResponseEntity<?> com.mvt.mvt_events.controller.AuthController.register(com.mvt.mvt_events.controller.AuthController$RegisterRequest): [Field error in object 'registerRequest' on field 'documentNumber': rejected value [71428793090]; codes [Document.registerRequest.documentNumber,Document.documentNumber,Document.java.lang.String,Document]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [registerRequest.documentNumber,documentNumber]; arguments []; default message [documentNumber],true]; default message [CPF ou CNPJ inválido]] ]
-2026-01-26T23:53:51.691-03:00  WARN 23888 --- [mvt-events] [0.0-8080-exec-3] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [org.springframework.web.bind.MethodArgumentNotValidException: Validation failed for argument [0] in public org.springframework.http.ResponseEntity<?> com.mvt.mvt_events.controller.AuthController.register(com.mvt.mvt_events.controller.AuthController$RegisterRequest): [Field error in object 'registerRequest' on field 'documentNumber': rejected value [71428793090]; codes [Document.registerRequest.documentNumber,Document.documentNumber,Document.java.lang.String,Document]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [registerRequest.documentNumber,documentNumber]; arguments []; default message [documentNumber],true]; default message [CPF ou CNPJ inválido]] ]
-2026-01-26T23:53:56.197-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.SQL                        : 
+2026-01-27T08:23:09.995-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.startup.CityDataLoader  : ✅ Cidades já carregadas no banco: 5570 registros (>= 5570). Não é necessário recarregar.
+2026-01-27T08:23:59.663-03:00  INFO 88519 --- [mvt-events] [0.0-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-01-27T08:23:59.663-03:00  INFO 88519 --- [mvt-events] [0.0-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-01-27T08:23:59.677-03:00  INFO 88519 --- [mvt-events] [0.0-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 14 ms
+2026-01-27T08:23:59.785-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.SQL                        : 
     /* <criteria> */ select
         u1_0.id,
         u1_0.confirmation_token,
@@ -150,281 +137,8 @@ Hibernate:
         users u1_0 
     where
         u1_0.username=?
-2026-01-26T23:53:56.203-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [teste.confirmacao@gmail.com]
-2026-01-26T23:53:56.385-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.SQL                        : 
-    /* insert for
-        com.mvt.mvt_events.jpa.User */insert 
-    into
-        users (confirmation_token, confirmation_token_expires_at, confirmed, created_at, date_of_birth, document_number, enabled, gender, gps_latitude, gps_longitude, name, pagarme_recipient_id, pagarme_status, password, phone_ddd, phone_number, role, updated_at, username, id) 
-    values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-Hibernate: 
-    /* insert for
-        com.mvt.mvt_events.jpa.User */insert 
-    into
-        users (confirmation_token, confirmation_token_expires_at, confirmed, created_at, date_of_birth, document_number, enabled, gender, gps_latitude, gps_longitude, name, pagarme_recipient_id, pagarme_status, password, phone_ddd, phone_number, role, updated_at, username, id) 
-    values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-2026-01-26T23:53:56.386-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [571b4b67-1a9b-4776-ac72-d3430f5483b5]
-2026-01-26T23:53:56.386-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (2:TIMESTAMP) <- [2026-01-27T23:53:56.337343]
-2026-01-26T23:53:56.386-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (3:BOOLEAN) <- [false]
-2026-01-26T23:53:56.386-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (4:TIMESTAMP) <- [2026-01-26T23:53:56.366236]
-2026-01-26T23:53:56.386-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (5:DATE) <- [null]
-2026-01-26T23:53:56.386-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (6:VARCHAR) <- [52998224725]
-2026-01-26T23:53:56.387-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (7:BOOLEAN) <- [true]
-2026-01-26T23:53:56.387-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (8:VARCHAR) <- [null]
-2026-01-26T23:53:56.387-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (9:DOUBLE) <- [null]
-2026-01-26T23:53:56.387-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (10:DOUBLE) <- [null]
-2026-01-26T23:53:56.387-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (11:VARCHAR) <- [Cliente Teste Confirmacao]
-2026-01-26T23:53:56.387-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (12:VARCHAR) <- [null]
-2026-01-26T23:53:56.387-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (13:VARCHAR) <- [null]
-2026-01-26T23:53:56.387-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (14:VARCHAR) <- [$2a$10$Eosz.0tS/KuGjAxO9zXfcuOnjQUDAzjUWAN30l4fP5s92CTVxG0MC]
-2026-01-26T23:53:56.387-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (15:VARCHAR) <- [null]
-2026-01-26T23:53:56.387-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (16:VARCHAR) <- [null]
-2026-01-26T23:53:56.387-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (17:VARCHAR) <- [CUSTOMER]
-2026-01-26T23:53:56.387-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (18:TIMESTAMP) <- [2026-01-26T23:53:56.366244]
-2026-01-26T23:53:56.387-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (19:VARCHAR) <- [teste.confirmacao@gmail.com]
-2026-01-26T23:53:56.387-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (20:UUID) <- [ae1237e3-ee79-4527-abaf-0eabab23ab5d]
-2026-01-26T23:53:56.400-03:00  WARN 23888 --- [mvt-events] [0.0-8080-exec-4] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 0, SQLState: 23505
-2026-01-26T23:53:56.400-03:00 ERROR 23888 --- [mvt-events] [0.0-8080-exec-4] o.h.engine.jdbc.spi.SqlExceptionHelper   : ERROR: duplicate key value violates unique constraint "uk_users_document_number"
-  Detalhe: Key (document_number)=(52998224725) already exists.
-2026-01-26T23:53:56.409-03:00  WARN 23888 --- [mvt-events] [0.0-8080-exec-4] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [org.springframework.dao.DataIntegrityViolationException: could not execute statement [ERROR: duplicate key value violates unique constraint "uk_users_document_number"<EOL>  Detalhe: Key (document_number)=(52998224725) already exists.] [/* insert for com.mvt.mvt_events.jpa.User */insert into users (confirmation_token,confirmation_token_expires_at,confirmed,created_at,date_of_birth,document_number,enabled,gender,gps_latitude,gps_longitude,name,pagarme_recipient_id,pagarme_status,password,phone_ddd,phone_number,role,updated_at,username,id) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)]; SQL [/* insert for com.mvt.mvt_events.jpa.User */insert into users (confirmation_token,confirmation_token_expires_at,confirmed,created_at,date_of_birth,document_number,enabled,gender,gps_latitude,gps_longitude,name,pagarme_recipient_id,pagarme_status,password,phone_ddd,phone_number,role,updated_at,username,id) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)]; constraint [uk_users_document_number]]
-2026-01-26T23:54:00.984-03:00  WARN 23888 --- [mvt-events] [0.0-8080-exec-6] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [org.springframework.web.bind.MethodArgumentNotValidException: Validation failed for argument [0] in public org.springframework.http.ResponseEntity<?> com.mvt.mvt_events.controller.AuthController.register(com.mvt.mvt_events.controller.AuthController$RegisterRequest): [Field error in object 'registerRequest' on field 'documentNumber': rejected value [19131243070]; codes [Document.registerRequest.documentNumber,Document.documentNumber,Document.java.lang.String,Document]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [registerRequest.documentNumber,documentNumber]; arguments []; default message [documentNumber],true]; default message [CPF ou CNPJ inválido]] ]
-2026-01-26T23:54:04.771-03:00  WARN 23888 --- [mvt-events] [0.0-8080-exec-7] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [org.springframework.web.bind.MethodArgumentNotValidException: Validation failed for argument [0] in public org.springframework.http.ResponseEntity<?> com.mvt.mvt_events.controller.AuthController.register(com.mvt.mvt_events.controller.AuthController$RegisterRequest): [Field error in object 'registerRequest' on field 'documentNumber': rejected value [84916813090]; codes [Document.registerRequest.documentNumber,Document.documentNumber,Document.java.lang.String,Document]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [registerRequest.documentNumber,documentNumber]; arguments []; default message [documentNumber],true]; default message [CPF ou CNPJ inválido]] ]
-2026-01-26T23:54:09.116-03:00  WARN 23888 --- [mvt-events] [0.0-8080-exec-8] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [org.springframework.web.bind.MethodArgumentNotValidException: Validation failed for argument [0] in public org.springframework.http.ResponseEntity<?> com.mvt.mvt_events.controller.AuthController.register(com.mvt.mvt_events.controller.AuthController$RegisterRequest): [Field error in object 'registerRequest' on field 'documentNumber': rejected value [93945355000125]; codes [Document.registerRequest.documentNumber,Document.documentNumber,Document.java.lang.String,Document]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [registerRequest.documentNumber,documentNumber]; arguments []; default message [documentNumber],true]; default message [CPF ou CNPJ inválido]] ]
-2026-01-26T23:55:50.993-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.SQL                        : 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
-Hibernate: 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
-2026-01-26T23:55:51.004-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [teste.confirmacao@gmail.com]
-2026-01-26T23:55:51.120-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.SQL                        : 
-    /* insert for
-        com.mvt.mvt_events.jpa.User */insert 
-    into
-        users (confirmation_token, confirmation_token_expires_at, confirmed, created_at, date_of_birth, document_number, enabled, gender, gps_latitude, gps_longitude, name, pagarme_recipient_id, pagarme_status, password, phone_ddd, phone_number, role, updated_at, username, id) 
-    values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-Hibernate: 
-    /* insert for
-        com.mvt.mvt_events.jpa.User */insert 
-    into
-        users (confirmation_token, confirmation_token_expires_at, confirmed, created_at, date_of_birth, document_number, enabled, gender, gps_latitude, gps_longitude, name, pagarme_recipient_id, pagarme_status, password, phone_ddd, phone_number, role, updated_at, username, id) 
-    values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-2026-01-26T23:55:51.121-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [4b7e8804-121e-4985-975b-1831a02584a7]
-2026-01-26T23:55:51.121-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (2:TIMESTAMP) <- [2026-01-27T23:55:51.109921]
-2026-01-26T23:55:51.122-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (3:BOOLEAN) <- [false]
-2026-01-26T23:55:51.122-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (4:TIMESTAMP) <- [2026-01-26T23:55:51.115599]
-2026-01-26T23:55:51.123-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (5:DATE) <- [null]
-2026-01-26T23:55:51.123-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (6:VARCHAR) <- [50560868006]
-2026-01-26T23:55:51.123-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (7:BOOLEAN) <- [true]
-2026-01-26T23:55:51.123-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (8:VARCHAR) <- [null]
-2026-01-26T23:55:51.123-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (9:DOUBLE) <- [null]
-2026-01-26T23:55:51.123-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (10:DOUBLE) <- [null]
-2026-01-26T23:55:51.123-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (11:VARCHAR) <- [Cliente Teste Confirmacao]
-2026-01-26T23:55:51.123-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (12:VARCHAR) <- [null]
-2026-01-26T23:55:51.123-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (13:VARCHAR) <- [null]
-2026-01-26T23:55:51.123-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (14:VARCHAR) <- [$2a$10$iguQaUamEtOqTO9jjZugBeXr.8UOTc0R2OiUQ3hvSD1KoSDQErGIK]
-2026-01-26T23:55:51.123-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (15:VARCHAR) <- [null]
-2026-01-26T23:55:51.123-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (16:VARCHAR) <- [null]
-2026-01-26T23:55:51.123-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (17:VARCHAR) <- [CUSTOMER]
-2026-01-26T23:55:51.123-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (18:TIMESTAMP) <- [2026-01-26T23:55:51.115604]
-2026-01-26T23:55:51.123-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (19:VARCHAR) <- [teste.confirmacao@gmail.com]
-2026-01-26T23:55:51.123-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (20:UUID) <- [68f2441c-516d-4522-a3a4-85a02fb92663]
-2026-01-26T23:55:51.128-03:00  WARN 23888 --- [mvt-events] [0.0-8080-exec-9] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 0, SQLState: 23505
-2026-01-26T23:55:51.128-03:00 ERROR 23888 --- [mvt-events] [0.0-8080-exec-9] o.h.engine.jdbc.spi.SqlExceptionHelper   : ERROR: duplicate key value violates unique constraint "uk_users_document_number"
-  Detalhe: Key (document_number)=(50560868006) already exists.
-2026-01-26T23:55:51.132-03:00  WARN 23888 --- [mvt-events] [0.0-8080-exec-9] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [org.springframework.dao.DataIntegrityViolationException: could not execute statement [ERROR: duplicate key value violates unique constraint "uk_users_document_number"<EOL>  Detalhe: Key (document_number)=(50560868006) already exists.] [/* insert for com.mvt.mvt_events.jpa.User */insert into users (confirmation_token,confirmation_token_expires_at,confirmed,created_at,date_of_birth,document_number,enabled,gender,gps_latitude,gps_longitude,name,pagarme_recipient_id,pagarme_status,password,phone_ddd,phone_number,role,updated_at,username,id) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)]; SQL [/* insert for com.mvt.mvt_events.jpa.User */insert into users (confirmation_token,confirmation_token_expires_at,confirmed,created_at,date_of_birth,document_number,enabled,gender,gps_latitude,gps_longitude,name,pagarme_recipient_id,pagarme_status,password,phone_ddd,phone_number,role,updated_at,username,id) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)]; constraint [uk_users_document_number]]
-2026-01-26T23:55:56.141-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.SQL                        : 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
-Hibernate: 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
-2026-01-26T23:55:56.144-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [teste.confirmacao@gmail.com]
-2026-01-26T23:55:56.232-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.SQL                        : 
-    /* insert for
-        com.mvt.mvt_events.jpa.User */insert 
-    into
-        users (confirmation_token, confirmation_token_expires_at, confirmed, created_at, date_of_birth, document_number, enabled, gender, gps_latitude, gps_longitude, name, pagarme_recipient_id, pagarme_status, password, phone_ddd, phone_number, role, updated_at, username, id) 
-    values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-Hibernate: 
-    /* insert for
-        com.mvt.mvt_events.jpa.User */insert 
-    into
-        users (confirmation_token, confirmation_token_expires_at, confirmed, created_at, date_of_birth, document_number, enabled, gender, gps_latitude, gps_longitude, name, pagarme_recipient_id, pagarme_status, password, phone_ddd, phone_number, role, updated_at, username, id) 
-    values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-2026-01-26T23:55:56.232-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [1340ac9d-8e65-4549-b090-187ba7f9f073]
-2026-01-26T23:55:56.232-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (2:TIMESTAMP) <- [2026-01-27T23:55:56.231124]
-2026-01-26T23:55:56.233-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (3:BOOLEAN) <- [false]
-2026-01-26T23:55:56.233-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (4:TIMESTAMP) <- [2026-01-26T23:55:56.232107]
-2026-01-26T23:55:56.233-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (5:DATE) <- [null]
-2026-01-26T23:55:56.233-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (6:VARCHAR) <- [39053344705]
-2026-01-26T23:55:56.233-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (7:BOOLEAN) <- [true]
-2026-01-26T23:55:56.233-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (8:VARCHAR) <- [null]
-2026-01-26T23:55:56.233-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (9:DOUBLE) <- [null]
-2026-01-26T23:55:56.233-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (10:DOUBLE) <- [null]
-2026-01-26T23:55:56.233-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (11:VARCHAR) <- [Cliente Teste Confirmacao]
-2026-01-26T23:55:56.233-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (12:VARCHAR) <- [null]
-2026-01-26T23:55:56.233-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (13:VARCHAR) <- [null]
-2026-01-26T23:55:56.233-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (14:VARCHAR) <- [$2a$10$dAbyYB3WvvewF83DLKWpJ.Z0CVA0LdGaxPAxxY9j54DP1DceM4lK2]
-2026-01-26T23:55:56.233-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (15:VARCHAR) <- [null]
-2026-01-26T23:55:56.233-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (16:VARCHAR) <- [null]
-2026-01-26T23:55:56.233-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (17:VARCHAR) <- [CUSTOMER]
-2026-01-26T23:55:56.233-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (18:TIMESTAMP) <- [2026-01-26T23:55:56.232110]
-2026-01-26T23:55:56.233-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (19:VARCHAR) <- [teste.confirmacao@gmail.com]
-2026-01-26T23:55:56.233-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (20:UUID) <- [2274eb32-f775-4e6d-b4ba-a38e31436795]
-2026-01-26T23:55:56.318-03:00 ERROR 23888 --- [mvt-events] [        async-1] c.mvt.mvt_events.service.EmailService    : ❌ Erro ao enviar email de confirmação para teste.confirmacao@gmail.com: Illegal address
-2026-01-26T23:56:40.863-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
-Hibernate: 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
-2026-01-26T23:56:40.872-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [teste.confirmacao@gmail.com]
-2026-01-26T23:56:40.899-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
+2026-01-27T08:23:59.797-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-01-27T08:23:59.822-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.SQL                        : 
     select
         ba1_0.id,
         ba1_0.account_digit,
@@ -476,114 +190,8 @@ Hibernate:
         bank_accounts ba1_0 
     where
         ba1_0.user_id=?
-2026-01-26T23:56:40.899-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [2274eb32-f775-4e6d-b4ba-a38e31436795]
-2026-01-26T23:56:45.602-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.SQL                        : 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.confirmation_token=?
-Hibernate: 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.confirmation_token=?
-2026-01-26T23:56:45.606-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [1340ac9d-8e65-4549-b090-187ba7f9f073]
-2026-01-26T23:56:45.610-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.SQL                        : 
-    select
-        ba1_0.id,
-        ba1_0.account_digit,
-        ba1_0.account_number,
-        ba1_0.account_type,
-        ba1_0.agency,
-        ba1_0.agency_digit,
-        ba1_0.automatic_transfer,
-        ba1_0.bank_code,
-        ba1_0.bank_name,
-        ba1_0.created_at,
-        ba1_0.monthly_income,
-        ba1_0.mother_name,
-        ba1_0.notes,
-        ba1_0.professional_occupation,
-        ba1_0.status,
-        ba1_0.transfer_day,
-        ba1_0.transfer_interval,
-        ba1_0.updated_at,
-        ba1_0.user_id,
-        ba1_0.validated_at 
-    from
-        bank_accounts ba1_0 
-    where
-        ba1_0.user_id=?
-Hibernate: 
-    select
-        ba1_0.id,
-        ba1_0.account_digit,
-        ba1_0.account_number,
-        ba1_0.account_type,
-        ba1_0.agency,
-        ba1_0.agency_digit,
-        ba1_0.automatic_transfer,
-        ba1_0.bank_code,
-        ba1_0.bank_name,
-        ba1_0.created_at,
-        ba1_0.monthly_income,
-        ba1_0.mother_name,
-        ba1_0.notes,
-        ba1_0.professional_occupation,
-        ba1_0.status,
-        ba1_0.transfer_day,
-        ba1_0.transfer_interval,
-        ba1_0.updated_at,
-        ba1_0.user_id,
-        ba1_0.validated_at 
-    from
-        bank_accounts ba1_0 
-    where
-        ba1_0.user_id=?
-2026-01-26T23:56:45.610-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [2274eb32-f775-4e6d-b4ba-a38e31436795]
-2026-01-26T23:56:45.643-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.SQL                        : 
+2026-01-27T08:23:59.822-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-01-27T08:23:59.854-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.SQL                        : 
     select
         u1_0.id,
         a1_0.user_id,
@@ -715,8 +323,8 @@ Hibernate:
             on u1_0.id=ba1_0.user_id 
     where
         u1_0.id=?
-2026-01-26T23:56:45.643-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [2274eb32-f775-4e6d-b4ba-a38e31436795]
-2026-01-26T23:56:45.664-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.SQL                        : 
+2026-01-27T08:23:59.854-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-01-27T08:23:59.869-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.SQL                        : 
     select
         ec1_0.courier_id,
         ec1_0.id,
@@ -742,8 +350,8 @@ Hibernate:
         employment_contracts ec1_0 
     where
         ec1_0.courier_id=?
-2026-01-26T23:56:45.665-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [2274eb32-f775-4e6d-b4ba-a38e31436795]
-2026-01-26T23:56:45.668-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.SQL                        : 
+2026-01-27T08:23:59.869-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-01-27T08:23:59.873-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.SQL                        : 
     select
         cc1_0.client_id,
         cc1_0.id,
@@ -773,8 +381,8 @@ Hibernate:
         client_contracts cc1_0 
     where
         cc1_0.client_id=?
-2026-01-26T23:56:45.668-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [2274eb32-f775-4e6d-b4ba-a38e31436795]
-2026-01-26T23:56:45.678-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.SQL                        : 
+2026-01-27T08:23:59.874-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-01-27T08:23:59.930-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.SQL                        : 
     /* update
         for com.mvt.mvt_events.jpa.User */update users 
     set
@@ -822,26 +430,27 @@ Hibernate:
         username=? 
     where
         id=?
-2026-01-26T23:56:45.678-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [null]
-2026-01-26T23:56:45.678-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (2:TIMESTAMP) <- [null]
-2026-01-26T23:56:45.679-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (3:BOOLEAN) <- [true]
-2026-01-26T23:56:45.679-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (4:DATE) <- [null]
-2026-01-26T23:56:45.679-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (5:VARCHAR) <- [39053344705]
-2026-01-26T23:56:45.679-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (6:BOOLEAN) <- [true]
-2026-01-26T23:56:45.679-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (7:VARCHAR) <- [null]
-2026-01-26T23:56:45.679-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (8:DOUBLE) <- [null]
-2026-01-26T23:56:45.679-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (9:DOUBLE) <- [null]
-2026-01-26T23:56:45.679-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (10:VARCHAR) <- [Cliente Teste Confirmacao]
-2026-01-26T23:56:45.679-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (11:VARCHAR) <- [null]
-2026-01-26T23:56:45.679-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (12:VARCHAR) <- [null]
-2026-01-26T23:56:45.679-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (13:VARCHAR) <- [$2a$10$dAbyYB3WvvewF83DLKWpJ.Z0CVA0LdGaxPAxxY9j54DP1DceM4lK2]
-2026-01-26T23:56:45.679-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (14:VARCHAR) <- [null]
-2026-01-26T23:56:45.679-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (15:VARCHAR) <- [null]
-2026-01-26T23:56:45.679-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (16:VARCHAR) <- [CUSTOMER]
-2026-01-26T23:56:45.679-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (17:TIMESTAMP) <- [2026-01-26T23:56:45.673564]
-2026-01-26T23:56:45.680-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (18:VARCHAR) <- [teste.confirmacao@gmail.com]
-2026-01-26T23:56:45.680-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (19:UUID) <- [2274eb32-f775-4e6d-b4ba-a38e31436795]
-2026-01-26T23:56:50.059-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.SQL                        : 
+2026-01-27T08:23:59.931-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [cd3b0138-749a-4a48-8739-eeac5508fac7]
+2026-01-27T08:23:59.931-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (2:TIMESTAMP) <- [2026-01-28T08:23:59.839077]
+2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (3:BOOLEAN) <- [false]
+2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (4:DATE) <- [null]
+2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (5:VARCHAR) <- [39776425020]
+2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (6:BOOLEAN) <- [true]
+2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (7:VARCHAR) <- [null]
+2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (8:DOUBLE) <- [null]
+2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (9:DOUBLE) <- [null]
+2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (10:VARCHAR) <- [Fabio Barros]
+2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (11:VARCHAR) <- [null]
+2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (12:VARCHAR) <- [null]
+2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (13:VARCHAR) <- [$2a$10$xtAvjODID8H7M7jb/UMjReAuF1d2UvwaAaJ9Ods94Lz55vZZ36lBq]
+2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (14:VARCHAR) <- [null]
+2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (15:VARCHAR) <- [null]
+2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (16:VARCHAR) <- [CUSTOMER]
+2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (17:TIMESTAMP) <- [2026-01-27T08:23:59.905924]
+2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (18:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (19:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-01-27T08:24:04.289-03:00  INFO 88519 --- [mvt-events] [        async-1] c.mvt.mvt_events.service.EmailService    : ✅ Email de confirmação enviado para: fabio.barros@prf.gov.br
+2026-01-27T12:36:20.427-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.SQL                        : 
     /* <criteria> */ select
         u1_0.id,
         u1_0.confirmation_token,
@@ -893,8 +502,8 @@ Hibernate:
         users u1_0 
     where
         u1_0.username=?
-2026-01-26T23:56:50.065-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [teste.confirmacao@gmail.com]
-2026-01-26T23:56:50.068-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.SQL                        : 
+2026-01-27T12:36:20.482-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-01-27T12:36:20.592-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.SQL                        : 
     select
         ba1_0.id,
         ba1_0.account_digit,
@@ -946,255 +555,9 @@ Hibernate:
         bank_accounts ba1_0 
     where
         ba1_0.user_id=?
-2026-01-26T23:56:50.068-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [2274eb32-f775-4e6d-b4ba-a38e31436795]
-2026-01-26T23:56:50.342-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.SQL                        : 
-    /* SELECT
-        u 
-    FROM
-        User u 
-    WHERE
-        u.username = :username */ select
-            u1_0.id,
-            a1_0.user_id,
-            a1_0.id,
-            c1_0.id,
-            c1_0.created_at,
-            c1_0.ibge_code,
-            c1_0.name,
-            c1_0.state,
-            c1_0.state_code,
-            c1_0.updated_at,
-            a1_0.complement,
-            a1_0.created_at,
-            a1_0.is_default,
-            a1_0.latitude,
-            a1_0.longitude,
-            a1_0.neighborhood,
-            a1_0.number,
-            a1_0.reference_point,
-            a1_0.street,
-            a1_0.updated_at,
-            a1_0.zip_code,
-            cc1_0.client_id,
-            cc1_0.id,
-            cc1_0.created_at,
-            cc1_0.end_date,
-            cc1_0.is_primary,
-            cc1_0.organization_id,
-            cc1_0.start_date,
-            cc1_0.status,
-            cc1_0.updated_at,
-            u1_0.confirmation_token,
-            u1_0.confirmation_token_expires_at,
-            u1_0.confirmed,
-            u1_0.created_at,
-            u1_0.date_of_birth,
-            u1_0.document_number,
-            ec1_0.courier_id,
-            ec1_0.id,
-            ec1_0.created_at,
-            ec1_0.is_active,
-            ec1_0.linked_at,
-            ec1_0.organization_id,
-            ec1_0.updated_at,
-            u1_0.enabled,
-            u1_0.gender,
-            u1_0.gps_latitude,
-            u1_0.gps_longitude,
-            u1_0.name,
-            u1_0.pagarme_recipient_id,
-            u1_0.pagarme_status,
-            u1_0.password,
-            u1_0.phone_ddd,
-            u1_0.phone_number,
-            u1_0.role,
-            u1_0.updated_at,
-            u1_0.username 
-        from
-            users u1_0 
-        left join
-            addresses a1_0 
-                on u1_0.id=a1_0.user_id 
-        left join
-            cities c1_0 
-                on c1_0.id=a1_0.city_id 
-        left join
-            client_contracts cc1_0 
-                on u1_0.id=cc1_0.client_id 
-        left join
-            employment_contracts ec1_0 
-                on u1_0.id=ec1_0.courier_id 
-        where
-            u1_0.username=?
-Hibernate: 
-    /* SELECT
-        u 
-    FROM
-        User u 
-    WHERE
-        u.username = :username */ select
-            u1_0.id,
-            a1_0.user_id,
-            a1_0.id,
-            c1_0.id,
-            c1_0.created_at,
-            c1_0.ibge_code,
-            c1_0.name,
-            c1_0.state,
-            c1_0.state_code,
-            c1_0.updated_at,
-            a1_0.complement,
-            a1_0.created_at,
-            a1_0.is_default,
-            a1_0.latitude,
-            a1_0.longitude,
-            a1_0.neighborhood,
-            a1_0.number,
-            a1_0.reference_point,
-            a1_0.street,
-            a1_0.updated_at,
-            a1_0.zip_code,
-            cc1_0.client_id,
-            cc1_0.id,
-            cc1_0.created_at,
-            cc1_0.end_date,
-            cc1_0.is_primary,
-            cc1_0.organization_id,
-            cc1_0.start_date,
-            cc1_0.status,
-            cc1_0.updated_at,
-            u1_0.confirmation_token,
-            u1_0.confirmation_token_expires_at,
-            u1_0.confirmed,
-            u1_0.created_at,
-            u1_0.date_of_birth,
-            u1_0.document_number,
-            ec1_0.courier_id,
-            ec1_0.id,
-            ec1_0.created_at,
-            ec1_0.is_active,
-            ec1_0.linked_at,
-            ec1_0.organization_id,
-            ec1_0.updated_at,
-            u1_0.enabled,
-            u1_0.gender,
-            u1_0.gps_latitude,
-            u1_0.gps_longitude,
-            u1_0.name,
-            u1_0.pagarme_recipient_id,
-            u1_0.pagarme_status,
-            u1_0.password,
-            u1_0.phone_ddd,
-            u1_0.phone_number,
-            u1_0.role,
-            u1_0.updated_at,
-            u1_0.username 
-        from
-            users u1_0 
-        left join
-            addresses a1_0 
-                on u1_0.id=a1_0.user_id 
-        left join
-            cities c1_0 
-                on c1_0.id=a1_0.city_id 
-        left join
-            client_contracts cc1_0 
-                on u1_0.id=cc1_0.client_id 
-        left join
-            employment_contracts ec1_0 
-                on u1_0.id=ec1_0.courier_id 
-        where
-            u1_0.username=?
-2026-01-26T23:56:50.344-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [teste.confirmacao@gmail.com]
-2026-01-26T23:56:50.359-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.SQL                        : 
-    select
-        ba1_0.id,
-        ba1_0.account_digit,
-        ba1_0.account_number,
-        ba1_0.account_type,
-        ba1_0.agency,
-        ba1_0.agency_digit,
-        ba1_0.automatic_transfer,
-        ba1_0.bank_code,
-        ba1_0.bank_name,
-        ba1_0.created_at,
-        ba1_0.monthly_income,
-        ba1_0.mother_name,
-        ba1_0.notes,
-        ba1_0.professional_occupation,
-        ba1_0.status,
-        ba1_0.transfer_day,
-        ba1_0.transfer_interval,
-        ba1_0.updated_at,
-        ba1_0.user_id,
-        ba1_0.validated_at 
-    from
-        bank_accounts ba1_0 
-    where
-        ba1_0.user_id=?
-Hibernate: 
-    select
-        ba1_0.id,
-        ba1_0.account_digit,
-        ba1_0.account_number,
-        ba1_0.account_type,
-        ba1_0.agency,
-        ba1_0.agency_digit,
-        ba1_0.automatic_transfer,
-        ba1_0.bank_code,
-        ba1_0.bank_name,
-        ba1_0.created_at,
-        ba1_0.monthly_income,
-        ba1_0.mother_name,
-        ba1_0.notes,
-        ba1_0.professional_occupation,
-        ba1_0.status,
-        ba1_0.transfer_day,
-        ba1_0.transfer_interval,
-        ba1_0.updated_at,
-        ba1_0.user_id,
-        ba1_0.validated_at 
-    from
-        bank_accounts ba1_0 
-    where
-        ba1_0.user_id=?
-2026-01-26T23:56:50.360-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [2274eb32-f775-4e6d-b4ba-a38e31436795]
-2026-01-26T23:56:50.466-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.SQL                        : 
-    /* <criteria> */ select
-        o1_0.id,
-        o1_0.commission_percentage,
-        o1_0.created_at,
-        o1_0.description,
-        o1_0.logo_url,
-        o1_0.name,
-        o1_0.owner_id,
-        o1_0.slug,
-        o1_0.status,
-        o1_0.updated_at,
-        o1_0.website 
-    from
-        organizations o1_0 
-    where
-        o1_0.owner_id=?
-Hibernate: 
-    /* <criteria> */ select
-        o1_0.id,
-        o1_0.commission_percentage,
-        o1_0.created_at,
-        o1_0.description,
-        o1_0.logo_url,
-        o1_0.name,
-        o1_0.owner_id,
-        o1_0.slug,
-        o1_0.status,
-        o1_0.updated_at,
-        o1_0.website 
-    from
-        organizations o1_0 
-    where
-        o1_0.owner_id=?
-2026-01-26T23:56:50.466-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [2274eb32-f775-4e6d-b4ba-a38e31436795]
-2026-01-26T23:56:55.559-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.SQL                        : 
+2026-01-27T12:36:20.593-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-01-27T12:36:20.726-03:00  WARN 88519 --- [mvt-events] [0.0-8080-exec-5] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [com.mvt.mvt_events.exception.EmailAlreadyExistsException: Email 'fabio.barros@prf.gov.br' já está cadastrado no sistema]
+2026-01-27T12:43:07.581-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-2] org.hibernate.SQL                        : 
     /* <criteria> */ select
         u1_0.id,
         u1_0.confirmation_token,
@@ -1246,8 +609,8 @@ Hibernate:
         users u1_0 
     where
         u1_0.username=?
-2026-01-26T23:56:55.564-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [teste.confirmacao@gmail.com]
-2026-01-26T23:56:55.566-03:00 DEBUG 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.SQL                        : 
+2026-01-27T12:43:07.629-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-01-27T12:43:07.806-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-2] org.hibernate.SQL                        : 
     select
         ba1_0.id,
         ba1_0.account_digit,
@@ -1299,4 +662,689 @@ Hibernate:
         bank_accounts ba1_0 
     where
         ba1_0.user_id=?
-2026-01-26T23:56:55.566-03:00 TRACE 23888 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [2274eb32-f775-4e6d-b4ba-a38e31436795]
+2026-01-27T12:43:07.807-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-01-27T12:43:07.993-03:00  WARN 88519 --- [mvt-events] [0.0-8080-exec-2] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [com.mvt.mvt_events.exception.EmailAlreadyExistsException: Email 'fabio.barros@prf.gov.br' já está cadastrado no sistema]
+2026-01-27T12:48:01.931-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.SQL                        : 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.confirmation_token,
+        u1_0.confirmation_token_expires_at,
+        u1_0.confirmed,
+        u1_0.created_at,
+        u1_0.date_of_birth,
+        u1_0.document_number,
+        u1_0.enabled,
+        u1_0.gender,
+        u1_0.gps_latitude,
+        u1_0.gps_longitude,
+        u1_0.name,
+        u1_0.pagarme_recipient_id,
+        u1_0.pagarme_status,
+        u1_0.password,
+        u1_0.phone_ddd,
+        u1_0.phone_number,
+        u1_0.role,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.confirmation_token,
+        u1_0.confirmation_token_expires_at,
+        u1_0.confirmed,
+        u1_0.created_at,
+        u1_0.date_of_birth,
+        u1_0.document_number,
+        u1_0.enabled,
+        u1_0.gender,
+        u1_0.gps_latitude,
+        u1_0.gps_longitude,
+        u1_0.name,
+        u1_0.pagarme_recipient_id,
+        u1_0.pagarme_status,
+        u1_0.password,
+        u1_0.phone_ddd,
+        u1_0.phone_number,
+        u1_0.role,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2026-01-27T12:48:01.946-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-01-27T12:48:01.993-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.SQL                        : 
+    select
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.transfer_day,
+        ba1_0.transfer_interval,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
+    from
+        bank_accounts ba1_0 
+    where
+        ba1_0.user_id=?
+Hibernate: 
+    select
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.transfer_day,
+        ba1_0.transfer_interval,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
+    from
+        bank_accounts ba1_0 
+    where
+        ba1_0.user_id=?
+2026-01-27T12:48:01.993-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-01-27T12:48:02.025-03:00  WARN 88519 --- [mvt-events] [0.0-8080-exec-6] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [com.mvt.mvt_events.exception.EmailAlreadyExistsException: Email 'fabio.barros@prf.gov.br' já está cadastrado no sistema]
+2026-01-27T12:51:27.226-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.confirmation_token,
+        u1_0.confirmation_token_expires_at,
+        u1_0.confirmed,
+        u1_0.created_at,
+        u1_0.date_of_birth,
+        u1_0.document_number,
+        u1_0.enabled,
+        u1_0.gender,
+        u1_0.gps_latitude,
+        u1_0.gps_longitude,
+        u1_0.name,
+        u1_0.pagarme_recipient_id,
+        u1_0.pagarme_status,
+        u1_0.password,
+        u1_0.phone_ddd,
+        u1_0.phone_number,
+        u1_0.role,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.confirmation_token,
+        u1_0.confirmation_token_expires_at,
+        u1_0.confirmed,
+        u1_0.created_at,
+        u1_0.date_of_birth,
+        u1_0.document_number,
+        u1_0.enabled,
+        u1_0.gender,
+        u1_0.gps_latitude,
+        u1_0.gps_longitude,
+        u1_0.name,
+        u1_0.pagarme_recipient_id,
+        u1_0.pagarme_status,
+        u1_0.password,
+        u1_0.phone_ddd,
+        u1_0.phone_number,
+        u1_0.role,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2026-01-27T12:51:27.261-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-01-27T12:51:27.330-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
+    select
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.transfer_day,
+        ba1_0.transfer_interval,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
+    from
+        bank_accounts ba1_0 
+    where
+        ba1_0.user_id=?
+Hibernate: 
+    select
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.transfer_day,
+        ba1_0.transfer_interval,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
+    from
+        bank_accounts ba1_0 
+    where
+        ba1_0.user_id=?
+2026-01-27T12:51:27.332-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-01-27T12:51:27.491-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        a1_0.user_id,
+        a1_0.id,
+        a1_0.city_id,
+        a1_0.complement,
+        a1_0.created_at,
+        a1_0.is_default,
+        a1_0.latitude,
+        a1_0.longitude,
+        a1_0.neighborhood,
+        a1_0.number,
+        a1_0.reference_point,
+        a1_0.street,
+        a1_0.updated_at,
+        a1_0.zip_code,
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.transfer_day,
+        ba1_0.transfer_interval,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at,
+        u1_0.confirmation_token,
+        u1_0.confirmation_token_expires_at,
+        u1_0.confirmed,
+        u1_0.created_at,
+        u1_0.date_of_birth,
+        u1_0.document_number,
+        u1_0.enabled,
+        u1_0.gender,
+        u1_0.gps_latitude,
+        u1_0.gps_longitude,
+        u1_0.name,
+        u1_0.pagarme_recipient_id,
+        u1_0.pagarme_status,
+        u1_0.password,
+        u1_0.phone_ddd,
+        u1_0.phone_number,
+        u1_0.role,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    left join
+        addresses a1_0 
+            on u1_0.id=a1_0.user_id 
+    left join
+        bank_accounts ba1_0 
+            on u1_0.id=ba1_0.user_id 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        a1_0.user_id,
+        a1_0.id,
+        a1_0.city_id,
+        a1_0.complement,
+        a1_0.created_at,
+        a1_0.is_default,
+        a1_0.latitude,
+        a1_0.longitude,
+        a1_0.neighborhood,
+        a1_0.number,
+        a1_0.reference_point,
+        a1_0.street,
+        a1_0.updated_at,
+        a1_0.zip_code,
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.transfer_day,
+        ba1_0.transfer_interval,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at,
+        u1_0.confirmation_token,
+        u1_0.confirmation_token_expires_at,
+        u1_0.confirmed,
+        u1_0.created_at,
+        u1_0.date_of_birth,
+        u1_0.document_number,
+        u1_0.enabled,
+        u1_0.gender,
+        u1_0.gps_latitude,
+        u1_0.gps_longitude,
+        u1_0.name,
+        u1_0.pagarme_recipient_id,
+        u1_0.pagarme_status,
+        u1_0.password,
+        u1_0.phone_ddd,
+        u1_0.phone_number,
+        u1_0.role,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    left join
+        addresses a1_0 
+            on u1_0.id=a1_0.user_id 
+    left join
+        bank_accounts ba1_0 
+            on u1_0.id=ba1_0.user_id 
+    where
+        u1_0.id=?
+2026-01-27T12:51:27.492-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-01-27T12:51:27.561-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
+    select
+        ec1_0.courier_id,
+        ec1_0.id,
+        ec1_0.created_at,
+        ec1_0.is_active,
+        ec1_0.linked_at,
+        ec1_0.organization_id,
+        ec1_0.updated_at 
+    from
+        employment_contracts ec1_0 
+    where
+        ec1_0.courier_id=?
+Hibernate: 
+    select
+        ec1_0.courier_id,
+        ec1_0.id,
+        ec1_0.created_at,
+        ec1_0.is_active,
+        ec1_0.linked_at,
+        ec1_0.organization_id,
+        ec1_0.updated_at 
+    from
+        employment_contracts ec1_0 
+    where
+        ec1_0.courier_id=?
+2026-01-27T12:51:27.563-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-01-27T12:51:27.585-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
+    select
+        cc1_0.client_id,
+        cc1_0.id,
+        cc1_0.created_at,
+        cc1_0.end_date,
+        cc1_0.is_primary,
+        cc1_0.organization_id,
+        cc1_0.start_date,
+        cc1_0.status,
+        cc1_0.updated_at 
+    from
+        client_contracts cc1_0 
+    where
+        cc1_0.client_id=?
+Hibernate: 
+    select
+        cc1_0.client_id,
+        cc1_0.id,
+        cc1_0.created_at,
+        cc1_0.end_date,
+        cc1_0.is_primary,
+        cc1_0.organization_id,
+        cc1_0.start_date,
+        cc1_0.status,
+        cc1_0.updated_at 
+    from
+        client_contracts cc1_0 
+    where
+        cc1_0.client_id=?
+2026-01-27T12:51:27.585-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-01-27T12:51:27.703-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
+    /* update
+        for com.mvt.mvt_events.jpa.User */update users 
+    set
+        confirmation_token=?,
+        confirmation_token_expires_at=?,
+        confirmed=?,
+        date_of_birth=?,
+        document_number=?,
+        enabled=?,
+        gender=?,
+        gps_latitude=?,
+        gps_longitude=?,
+        name=?,
+        pagarme_recipient_id=?,
+        pagarme_status=?,
+        password=?,
+        phone_ddd=?,
+        phone_number=?,
+        role=?,
+        updated_at=?,
+        username=? 
+    where
+        id=?
+Hibernate: 
+    /* update
+        for com.mvt.mvt_events.jpa.User */update users 
+    set
+        confirmation_token=?,
+        confirmation_token_expires_at=?,
+        confirmed=?,
+        date_of_birth=?,
+        document_number=?,
+        enabled=?,
+        gender=?,
+        gps_latitude=?,
+        gps_longitude=?,
+        name=?,
+        pagarme_recipient_id=?,
+        pagarme_status=?,
+        password=?,
+        phone_ddd=?,
+        phone_number=?,
+        role=?,
+        updated_at=?,
+        username=? 
+    where
+        id=?
+2026-01-27T12:51:27.704-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [9b014694-389f-431b-aeac-99d0ef7d9fef]
+2026-01-27T12:51:27.705-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (2:TIMESTAMP) <- [2026-01-28T12:51:27.368582]
+2026-01-27T12:51:27.705-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (3:BOOLEAN) <- [false]
+2026-01-27T12:51:27.706-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (4:DATE) <- [null]
+2026-01-27T12:51:27.706-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (5:VARCHAR) <- [39776425020]
+2026-01-27T12:51:27.706-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (6:BOOLEAN) <- [true]
+2026-01-27T12:51:27.706-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (7:VARCHAR) <- [null]
+2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (8:DOUBLE) <- [null]
+2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (9:DOUBLE) <- [null]
+2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (10:VARCHAR) <- [Fabio Barros]
+2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (11:VARCHAR) <- [null]
+2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (12:VARCHAR) <- [null]
+2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (13:VARCHAR) <- [$2a$10$xtAvjODID8H7M7jb/UMjReAuF1d2UvwaAaJ9Ods94Lz55vZZ36lBq]
+2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (14:VARCHAR) <- [null]
+2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (15:VARCHAR) <- [null]
+2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (16:VARCHAR) <- [CUSTOMER]
+2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (17:TIMESTAMP) <- [2026-01-27T12:51:27.658832]
+2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (18:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (19:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-01-27T12:51:32.923-03:00  INFO 88519 --- [mvt-events] [        async-2] c.mvt.mvt_events.service.EmailService    : ✅ Email de confirmação enviado para: fabio.barros@prf.gov.br
+2026-01-27T12:55:34.589-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.SQL                        : 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.confirmation_token,
+        u1_0.confirmation_token_expires_at,
+        u1_0.confirmed,
+        u1_0.created_at,
+        u1_0.date_of_birth,
+        u1_0.document_number,
+        u1_0.enabled,
+        u1_0.gender,
+        u1_0.gps_latitude,
+        u1_0.gps_longitude,
+        u1_0.name,
+        u1_0.pagarme_recipient_id,
+        u1_0.pagarme_status,
+        u1_0.password,
+        u1_0.phone_ddd,
+        u1_0.phone_number,
+        u1_0.role,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.confirmation_token,
+        u1_0.confirmation_token_expires_at,
+        u1_0.confirmed,
+        u1_0.created_at,
+        u1_0.date_of_birth,
+        u1_0.document_number,
+        u1_0.enabled,
+        u1_0.gender,
+        u1_0.gps_latitude,
+        u1_0.gps_longitude,
+        u1_0.name,
+        u1_0.pagarme_recipient_id,
+        u1_0.pagarme_status,
+        u1_0.password,
+        u1_0.phone_ddd,
+        u1_0.phone_number,
+        u1_0.role,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2026-01-27T12:55:34.603-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-01-27T12:55:34.729-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.SQL                        : 
+    select
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.transfer_day,
+        ba1_0.transfer_interval,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
+    from
+        bank_accounts ba1_0 
+    where
+        ba1_0.user_id=?
+Hibernate: 
+    select
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.transfer_day,
+        ba1_0.transfer_interval,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
+    from
+        bank_accounts ba1_0 
+    where
+        ba1_0.user_id=?
+2026-01-27T12:55:34.730-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-01-27T12:58:54.245-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.SQL                        : 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.confirmation_token,
+        u1_0.confirmation_token_expires_at,
+        u1_0.confirmed,
+        u1_0.created_at,
+        u1_0.date_of_birth,
+        u1_0.document_number,
+        u1_0.enabled,
+        u1_0.gender,
+        u1_0.gps_latitude,
+        u1_0.gps_longitude,
+        u1_0.name,
+        u1_0.pagarme_recipient_id,
+        u1_0.pagarme_status,
+        u1_0.password,
+        u1_0.phone_ddd,
+        u1_0.phone_number,
+        u1_0.role,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.confirmation_token,
+        u1_0.confirmation_token_expires_at,
+        u1_0.confirmed,
+        u1_0.created_at,
+        u1_0.date_of_birth,
+        u1_0.document_number,
+        u1_0.enabled,
+        u1_0.gender,
+        u1_0.gps_latitude,
+        u1_0.gps_longitude,
+        u1_0.name,
+        u1_0.pagarme_recipient_id,
+        u1_0.pagarme_status,
+        u1_0.password,
+        u1_0.phone_ddd,
+        u1_0.phone_number,
+        u1_0.role,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2026-01-27T12:58:54.291-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-01-27T12:58:54.410-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.SQL                        : 
+    select
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.transfer_day,
+        ba1_0.transfer_interval,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
+    from
+        bank_accounts ba1_0 
+    where
+        ba1_0.user_id=?
+Hibernate: 
+    select
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.transfer_day,
+        ba1_0.transfer_interval,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
+    from
+        bank_accounts ba1_0 
+    where
+        ba1_0.user_id=?
+2026-01-27T12:58:54.410-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]

@@ -167,6 +167,26 @@ public class User implements UserDetails {
     private LocalDateTime confirmationTokenExpiresAt;
 
     // ============================================================================
+    // PASSWORD RESET FIELDS
+    // ============================================================================
+
+    /**
+     * Token único para reset de senha.
+     * Gerado quando usuário solicita recuperação e enviado por email.
+     */
+    @Column(name = "reset_token")
+    @Visible(table = false, form = false, filter = false)
+    private String resetToken;
+
+    /**
+     * Data de expiração do token de reset.
+     * Tokens expiram em 1 hora por padrão.
+     */
+    @Column(name = "reset_token_expires_at")
+    @Visible(table = false, form = false, filter = false)
+    private LocalDateTime resetTokenExpiresAt;
+
+    // ============================================================================
     // PAGAR.ME INTEGRATION FIELDS
     // ============================================================================
 

@@ -122,4 +122,13 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
         */
        Optional<User> findByConfirmationToken(String confirmationToken);
 
+       // ============================================================================
+       // PASSWORD RESET
+       // ============================================================================
+
+       /**
+        * Busca usuário pelo token de reset de senha
+        */
+       Optional<User> findByResetToken(String resetToken);
+
 }
