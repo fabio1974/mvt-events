@@ -73,8 +73,7 @@ public class EmailService {
 
         try (SesClient sesClient = createSesClient()) {
             String confirmationLink = frontendUrl + "/confirm-email?token=" + user.getConfirmationToken();
-            String directLink = backendUrl + "/api/auth/confirm?token=" + user.getConfirmationToken();
-            String htmlContent = buildConfirmationEmailHtml(user.getName(), confirmationLink, directLink);
+            String htmlContent = buildConfirmationEmailHtml(user.getName(), confirmationLink);
             String subject = "✅ Confirme seu cadastro - " + appName;
 
             // Formata o remetente com nome
@@ -115,7 +114,7 @@ public class EmailService {
     /**
      * Constrói o HTML do email de confirmação.
      */
-    private String buildConfirmationEmailHtml(String userName, String confirmationLink, String directLink) {
+    private String buildConfirmationEmailHtml(String userName, String confirmationLink) {
         return """
             <!DOCTYPE html>
             <html>
@@ -126,7 +125,7 @@ public class EmailService {
                     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
                     .header { background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
                     .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-                    .button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+                    .button { display: inline-block; background: #667eea; color: #ffffff !important; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
                     .button:hover { background: #5a6fd6; }
                     .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #999; }
                     .link { word-break: break-all; color: #667eea; }
@@ -135,7 +134,8 @@ public class EmailService {
             <body>
                 <div class="container">
                     <div class="header">
-                        <h1>🚀 %s</h1>
+                        <img src="%s/new_icon_cropped.png" alt="%s" style="width: 80px; height: 80px; margin-bottom: 10px;" />
+                        <h1>%s</h1>
                         <p>Bem-vindo(a)!</p>
                     </div>
                     <div class="content">
@@ -143,7 +143,7 @@ public class EmailService {
                         <p>Obrigado por se cadastrar! Para ativar sua conta e começar a usar nossos serviços, confirme seu email clicando no botão abaixo:</p>
                         
                         <center>
-                            <a href="%s" class="button">✅ Confirmar meu email</a>
+                            <a href="%s" class="button" style="display: inline-block; background: #667eea; color: #ffffff !important; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0;">✅ Confirmar meu email</a>
                         </center>
                         
                         <p><small>Se o botão não funcionar, copie e cole este link no navegador:</small></p>
@@ -161,7 +161,7 @@ public class EmailService {
                 </div>
             </body>
             </html>
-            """.formatted(appName, userName, confirmationLink, directLink, appName);
+            """.formatted(backendUrl, appName, appName, userName, confirmationLink, confirmationLink, appName);
     }
 
     /**
