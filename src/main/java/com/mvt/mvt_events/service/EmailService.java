@@ -1,6 +1,10 @@
 package com.mvt.mvt_events.service;
 
 import com.mvt.mvt_events.jpa.User;
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
+import com.resend.services.emails.model.CreateEmailResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
@@ -12,12 +16,42 @@ import software.amazon.awssdk.services.ses.SesClient;
 import software.amazon.awssdk.services.ses.model.*;
 
 /**
- * Serviço para envio de emails via Amazon SES.
- * Suporta confirmação de conta, reset de senha, notificações, etc.
+ * Servico para envio de emails.
+ * Suporta multiplos provedores: Resend (padrao) e AWS SES.
+ * 
+ * Para usar Resend: EMAIL_PROVIDER=RESEND (padrao)
+ * Para usar AWS SES: EMAIL_PROVIDER=AWS_SES
  */
 @Service
 @Slf4j
 public class EmailService {
+
+    // ============================================================================
+    // EMAIL PROVIDER CONFIGURATION
+    // ============================================================================
+    
+    @Value("${email.provider:RESEND}")
+    private String emailProvider;
+
+    // ============================================================================
+    // RESEND CONFIGURATION
+    // ============================================================================
+
+    @Value("${resend.api-key:}")
+    private String resendApiKey;
+
+    @Value("${resend.from-email:suporte@zapi10.com.br}")
+    private String resendFromEmail;
+
+    @Value("${resend.from-name:Zapi10}")
+    private String resendFromName;
+
+    @Value("${resend.enabled:true}")
+    private boolean resendEnabled;
+
+    // ============================================================================
+    // AWS SES CONFIGURATION
+    // ============================================================================
 
     @Value("${aws.ses.access-key:}")
     private String awsAccessKey;
@@ -25,17 +59,21 @@ public class EmailService {
     @Value("${aws.ses.secret-key:}")
     private String awsSecretKey;
 
-    @Value("${aws.ses.region:us-east-1}")
+    @Value("${aws.ses.region:us-east-2}")
     private String awsRegion;
 
     @Value("${aws.ses.from-email:suporte@zapi10.com.br}")
-    private String fromEmail;
+    private String awsFromEmail;
 
     @Value("${aws.ses.from-name:Zapi10}")
-    private String fromName;
+    private String awsFromName;
 
-    @Value("${aws.ses.enabled:true}")
-    private boolean sesEnabled;
+    @Value("${aws.ses.enabled:false}")
+    private boolean awsSesEnabled;
+
+    // ============================================================================
+    // APP CONFIGURATION
+    // ============================================================================
 
     @Value("${app.frontend.url:http://localhost:5173}")
     private String frontendUrl;
@@ -46,43 +84,139 @@ public class EmailService {
     @Value("${app.name:Zapi10}")
     private String appName;
 
-    /**
-     * Cria o cliente SES com as credenciais configuradas.
-     */
-    private SesClient createSesClient() {
-        AwsBasicCredentials credentials = AwsBasicCredentials.create(awsAccessKey, awsSecretKey);
-        return SesClient.builder()
-                .region(Region.of(awsRegion))
-                .credentialsProvider(StaticCredentialsProvider.create(credentials))
-                .build();
+    // ============================================================================
+    // PROVIDER DETECTION
+    // ============================================================================
+
+    private boolean isResendProvider() {
+        return "RESEND".equalsIgnoreCase(emailProvider);
     }
 
+    private boolean isAwsSesProvider() {
+        return "AWS_SES".equalsIgnoreCase(emailProvider);
+    }
+
+    private String getFromEmail() {
+        return isResendProvider() ? resendFromEmail : awsFromEmail;
+    }
+
+    private String getFromName() {
+        return isResendProvider() ? resendFromName : awsFromName;
+    }
+
+    private boolean isEmailEnabled() {
+        if (isResendProvider()) {
+            return resendEnabled && resendApiKey != null && !resendApiKey.isBlank();
+        } else if (isAwsSesProvider()) {
+            return awsSesEnabled && awsAccessKey != null && !awsAccessKey.isBlank() 
+                   && awsSecretKey != null && !awsSecretKey.isBlank();
+        }
+        return false;
+    }
+
+    // ============================================================================
+    // PUBLIC METHODS
+    // ============================================================================
+
     /**
-     * Envia email de confirmação de conta via Amazon SES.
-     * O link direciona para o frontend que faz a chamada ao backend.
+     * Envia email de confirmacao de conta.
      */
     @Async
     public void sendConfirmationEmail(User user) {
-        if (!sesEnabled || awsAccessKey == null || awsAccessKey.isBlank() || 
-            awsSecretKey == null || awsSecretKey.isBlank()) {
-            log.warn("⚠️ Amazon SES não configurado. Email de confirmação não enviado para: {}", user.getUsername());
-            log.info("📧 Token de confirmação para {}: {}", user.getUsername(), user.getConfirmationToken());
-            log.info("🔗 Link de confirmação (backend): {}/api/auth/confirm?token={}", backendUrl, user.getConfirmationToken());
+        if (!isEmailEnabled()) {
+            logEmailNotConfigured("confirmacao", user.getUsername(), user.getConfirmationToken(),
+                frontendUrl + "/confirm-email?token=" + user.getConfirmationToken());
             return;
         }
 
-        try (SesClient sesClient = createSesClient()) {
-            String confirmationLink = frontendUrl + "/confirm-email?token=" + user.getConfirmationToken();
-            String htmlContent = buildConfirmationEmailHtml(user.getName(), confirmationLink);
-            String subject = "✅ Confirme seu cadastro - " + appName;
+        String confirmationLink = frontendUrl + "/confirm-email?token=" + user.getConfirmationToken();
+        String htmlContent = buildConfirmationEmailHtml(user.getName(), confirmationLink);
+        String subject = "Confirme seu cadastro - " + appName;
 
-            // Formata o remetente com nome
-            String formattedFrom = String.format("%s <%s>", fromName, fromEmail);
+        sendEmail(user.getUsername(), subject, htmlContent, "confirmacao");
+    }
+
+    /**
+     * Reenvia email de confirmacao (gera novo token).
+     */
+    @Async
+    public void resendConfirmationEmail(User user, String newToken) {
+        user.setConfirmationToken(newToken);
+        sendConfirmationEmail(user);
+    }
+
+    /**
+     * Envia email de recuperacao de senha.
+     */
+    @Async
+    public void sendPasswordResetEmail(User user) {
+        if (!isEmailEnabled()) {
+            logEmailNotConfigured("reset de senha", user.getUsername(), user.getResetToken(),
+                frontendUrl + "/nova-senha?token=" + user.getResetToken());
+            return;
+        }
+
+        String resetLink = frontendUrl + "/nova-senha?token=" + user.getResetToken();
+        String htmlContent = buildPasswordResetEmailHtml(user.getName(), resetLink);
+        String subject = "Recuperacao de senha - " + appName;
+
+        sendEmail(user.getUsername(), subject, htmlContent, "reset de senha");
+    }
+
+    // ============================================================================
+    // PRIVATE METHODS - EMAIL SENDING
+    // ============================================================================
+
+    private void sendEmail(String to, String subject, String htmlContent, String emailType) {
+        if (isResendProvider()) {
+            sendViaResend(to, subject, htmlContent, emailType);
+        } else if (isAwsSesProvider()) {
+            sendViaAwsSes(to, subject, htmlContent, emailType);
+        } else {
+            log.error("Provedor de email nao reconhecido: {}", emailProvider);
+        }
+    }
+
+    /**
+     * Envia email via Resend.
+     */
+    private void sendViaResend(String to, String subject, String htmlContent, String emailType) {
+        try {
+            Resend resend = new Resend(resendApiKey);
+
+            String from = String.format("%s <%s>", getFromName(), getFromEmail());
+
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from(from)
+                    .to(to)
+                    .subject(subject)
+                    .html(htmlContent)
+                    .build();
+
+            CreateEmailResponse response = resend.emails().send(params);
+            log.info("Email de {} enviado via Resend para: {} (ID: {})", 
+                    emailType, to, response.getId());
+
+        } catch (ResendException e) {
+            log.error("Erro ao enviar email de {} via Resend para {}: {}", 
+                    emailType, to, e.getMessage());
+        } catch (Exception e) {
+            log.error("Erro inesperado ao enviar email via Resend para {}: {}", 
+                    to, e.getMessage());
+        }
+    }
+
+    /**
+     * Envia email via AWS SES.
+     */
+    private void sendViaAwsSes(String to, String subject, String htmlContent, String emailType) {
+        try (SesClient sesClient = createSesClient()) {
+            String formattedFrom = String.format("%s <%s>", getFromName(), getFromEmail());
 
             SendEmailRequest emailRequest = SendEmailRequest.builder()
                     .source(formattedFrom)
                     .destination(Destination.builder()
-                            .toAddresses(user.getUsername())
+                            .toAddresses(to)
                             .build())
                     .message(Message.builder()
                             .subject(Content.builder()
@@ -99,20 +233,42 @@ public class EmailService {
                     .build();
 
             SendEmailResponse response = sesClient.sendEmail(emailRequest);
-            log.info("✅ Email de confirmação enviado via Amazon SES para: {} (MessageId: {})", 
-                    user.getUsername(), response.messageId());
+            log.info("Email de {} enviado via AWS SES para: {} (MessageId: {})", 
+                    emailType, to, response.messageId());
 
         } catch (SesException e) {
-            log.error("❌ Erro ao enviar email de confirmação via Amazon SES para {}: {}", 
-                    user.getUsername(), e.awsErrorDetails().errorMessage());
+            log.error("Erro ao enviar email de {} via AWS SES para {}: {}", 
+                    emailType, to, e.awsErrorDetails().errorMessage());
         } catch (Exception e) {
-            log.error("❌ Erro inesperado ao enviar email via Amazon SES para {}: {}", 
-                    user.getUsername(), e.getMessage());
+            log.error("Erro inesperado ao enviar email via AWS SES para {}: {}", 
+                    to, e.getMessage());
         }
     }
 
     /**
-     * Constrói o HTML do email de confirmação.
+     * Cria o cliente SES com as credenciais configuradas.
+     */
+    private SesClient createSesClient() {
+        AwsBasicCredentials credentials = AwsBasicCredentials.create(awsAccessKey, awsSecretKey);
+        return SesClient.builder()
+                .region(Region.of(awsRegion))
+                .credentialsProvider(StaticCredentialsProvider.create(credentials))
+                .build();
+    }
+
+    private void logEmailNotConfigured(String emailType, String username, String token, String link) {
+        String provider = isResendProvider() ? "Resend" : "AWS SES";
+        log.warn("{} nao configurado. Email de {} nao enviado para: {}", provider, emailType, username);
+        log.info("Token de {} para {}: {}", emailType, username, token);
+        log.info("Link de {}: {}", emailType, link);
+    }
+
+    // ============================================================================
+    // HTML TEMPLATES
+    // ============================================================================
+
+    /**
+     * Constroi o HTML do email de confirmacao.
      */
     private String buildConfirmationEmailHtml(String userName, String confirmationLink) {
         return """
@@ -139,24 +295,24 @@ public class EmailService {
                         <p>Bem-vindo(a)!</p>
                     </div>
                     <div class="content">
-                        <h2>Olá, %s!</h2>
-                        <p>Obrigado por se cadastrar! Para ativar sua conta e começar a usar nossos serviços, confirme seu email clicando no botão abaixo:</p>
+                        <h2>Ola, %s!</h2>
+                        <p>Obrigado por se cadastrar! Para ativar sua conta e comecar a usar nossos servicos, confirme seu email clicando no botao abaixo:</p>
                         
                         <center>
-                            <a href="%s" class="button" style="display: inline-block; background: #667eea; color: #ffffff !important; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0;">✅ Confirmar meu email</a>
+                            <a href="%s" class="button" style="display: inline-block; background: #667eea; color: #ffffff !important; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0;">Confirmar meu email</a>
                         </center>
                         
-                        <p><small>Se o botão não funcionar, copie e cole este link no navegador:</small></p>
+                        <p><small>Se o botao nao funcionar, copie e cole este link no navegador:</small></p>
                         <p class="link"><small>%s</small></p>
                         
                         <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
                         
-                        <p><strong>⚠️ Este link expira em 24 horas.</strong></p>
-                        <p>Se você não solicitou este cadastro, ignore este email.</p>
+                        <p><strong>Este link expira em 24 horas.</strong></p>
+                        <p>Se voce nao solicitou este cadastro, ignore este email.</p>
                     </div>
                     <div class="footer">
-                        <p>© 2026 %s - Todos os direitos reservados</p>
-                        <p>Este é um email automático, não responda.</p>
+                        <p>2026 %s - Todos os direitos reservados</p>
+                        <p>Este e um email automatico, nao responda.</p>
                     </div>
                 </div>
             </body>
@@ -165,70 +321,7 @@ public class EmailService {
     }
 
     /**
-     * Reenvia email de confirmação (gera novo token).
-     */
-    @Async
-    public void resendConfirmationEmail(User user, String newToken) {
-        user.setConfirmationToken(newToken);
-        sendConfirmationEmail(user);
-    }
-
-    /**
-     * Envia email de recuperação de senha via Amazon SES.
-     * O link direciona para o frontend onde o usuário define a nova senha.
-     */
-    @Async
-    public void sendPasswordResetEmail(User user) {
-        if (!sesEnabled || awsAccessKey == null || awsAccessKey.isBlank() || 
-            awsSecretKey == null || awsSecretKey.isBlank()) {
-            log.warn("⚠️ Amazon SES não configurado. Email de reset não enviado para: {}", user.getUsername());
-            log.info("📧 Token de reset para {}: {}", user.getUsername(), user.getResetToken());
-            log.info("🔗 Link de reset: {}/nova-senha?token={}", frontendUrl, user.getResetToken());
-            return;
-        }
-
-        try (SesClient sesClient = createSesClient()) {
-            String resetLink = frontendUrl + "/nova-senha?token=" + user.getResetToken();
-            String htmlContent = buildPasswordResetEmailHtml(user.getName(), resetLink);
-            String subject = "🔐 Recuperação de senha - " + appName;
-
-            // Formata o remetente com nome
-            String formattedFrom = String.format("%s <%s>", fromName, fromEmail);
-
-            SendEmailRequest emailRequest = SendEmailRequest.builder()
-                    .source(formattedFrom)
-                    .destination(Destination.builder()
-                            .toAddresses(user.getUsername())
-                            .build())
-                    .message(Message.builder()
-                            .subject(Content.builder()
-                                    .charset("UTF-8")
-                                    .data(subject)
-                                    .build())
-                            .body(Body.builder()
-                                    .html(Content.builder()
-                                            .charset("UTF-8")
-                                            .data(htmlContent)
-                                            .build())
-                                    .build())
-                            .build())
-                    .build();
-
-            SendEmailResponse response = sesClient.sendEmail(emailRequest);
-            log.info("✅ Email de reset enviado via Amazon SES para: {} (MessageId: {})", 
-                    user.getUsername(), response.messageId());
-
-        } catch (SesException e) {
-            log.error("❌ Erro ao enviar email de reset via Amazon SES para {}: {}", 
-                    user.getUsername(), e.awsErrorDetails().errorMessage());
-        } catch (Exception e) {
-            log.error("❌ Erro inesperado ao enviar email de reset via Amazon SES para {}: {}", 
-                    user.getUsername(), e.getMessage());
-        }
-    }
-
-    /**
-     * Constrói o HTML do email de recuperação de senha.
+     * Constroi o HTML do email de recuperacao de senha.
      */
     private String buildPasswordResetEmailHtml(String userName, String resetLink) {
         return """
@@ -253,27 +346,27 @@ public class EmailService {
                     <div class="header">
                         <img src="%s/new_icon_cropped.png" alt="%s" style="width: 80px; height: 80px; margin-bottom: 10px;" />
                         <h1>%s</h1>
-                        <p>Recuperação de Senha</p>
+                        <p>Recuperacao de Senha</p>
                     </div>
                     <div class="content">
-                        <h2>Olá, %s!</h2>
-                        <p>Recebemos uma solicitação para redefinir a senha da sua conta. Clique no botão abaixo para criar uma nova senha:</p>
+                        <h2>Ola, %s!</h2>
+                        <p>Recebemos uma solicitacao para redefinir a senha da sua conta. Clique no botao abaixo para criar uma nova senha:</p>
                         
                         <center>
-                            <a href="%s" class="button" style="display: inline-block; background: #667eea; color: #ffffff !important; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0;">🔐 Redefinir minha senha</a>
+                            <a href="%s" class="button" style="display: inline-block; background: #667eea; color: #ffffff !important; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0;">Redefinir minha senha</a>
                         </center>
                         
-                        <p><small>Se o botão não funcionar, copie e cole este link no navegador:</small></p>
+                        <p><small>Se o botao nao funcionar, copie e cole este link no navegador:</small></p>
                         <p class="link"><small>%s</small></p>
                         
                         <div class="warning">
-                            <strong>⚠️ Este link expira em 1 hora.</strong><br>
-                            Se você não solicitou a recuperação de senha, ignore este email. Sua senha permanecerá inalterada.
+                            <strong>Este link expira em 1 hora.</strong><br>
+                            Se voce nao solicitou a recuperacao de senha, ignore este email. Sua senha permanecera inalterada.
                         </div>
                     </div>
                     <div class="footer">
-                        <p>© 2026 %s - Todos os direitos reservados</p>
-                        <p>Este é um email automático, não responda.</p>
+                        <p>2026 %s - Todos os direitos reservados</p>
+                        <p>Este e um email automatico, nao responda.</p>
                     </div>
                 </div>
             </body>
