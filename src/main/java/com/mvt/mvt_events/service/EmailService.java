@@ -2,26 +2,40 @@ package com.mvt.mvt_events.service;
 
 import com.mvt.mvt_events.jpa.User;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.ses.SesClient;
+import software.amazon.awssdk.services.ses.model.*;
 
 /**
- * Serviço para envio de emails.
+ * Serviço para envio de emails via Amazon SES.
  * Suporta confirmação de conta, reset de senha, notificações, etc.
  */
 @Service
 @Slf4j
 public class EmailService {
 
-    @Autowired(required = false)
-    private JavaMailSender mailSender;
+    @Value("${aws.ses.access-key:}")
+    private String awsAccessKey;
+
+    @Value("${aws.ses.secret-key:}")
+    private String awsSecretKey;
+
+    @Value("${aws.ses.region:us-east-1}")
+    private String awsRegion;
+
+    @Value("${aws.ses.from-email:suporte@zapi10.com.br}")
+    private String fromEmail;
+
+    @Value("${aws.ses.from-name:Zapi10}")
+    private String fromName;
+
+    @Value("${aws.ses.enabled:true}")
+    private boolean sesEnabled;
 
     @Value("${app.frontend.url:http://localhost:5173}")
     private String frontendUrl;
@@ -29,44 +43,72 @@ public class EmailService {
     @Value("${app.backend.url:http://localhost:8080}")
     private String backendUrl;
 
-    @Value("${spring.mail.username:noreply@zapi10.com}")
-    private String fromEmail;
-
     @Value("${app.name:Zapi10}")
     private String appName;
 
     /**
-     * Envia email de confirmação de conta.
+     * Cria o cliente SES com as credenciais configuradas.
+     */
+    private SesClient createSesClient() {
+        AwsBasicCredentials credentials = AwsBasicCredentials.create(awsAccessKey, awsSecretKey);
+        return SesClient.builder()
+                .region(Region.of(awsRegion))
+                .credentialsProvider(StaticCredentialsProvider.create(credentials))
+                .build();
+    }
+
+    /**
+     * Envia email de confirmação de conta via Amazon SES.
      * O link direciona para o frontend que faz a chamada ao backend.
      */
     @Async
     public void sendConfirmationEmail(User user) {
-        if (mailSender == null) {
-            log.warn("⚠️ JavaMailSender não configurado. Email de confirmação não enviado para: {}", user.getUsername());
+        if (!sesEnabled || awsAccessKey == null || awsAccessKey.isBlank() || 
+            awsSecretKey == null || awsSecretKey.isBlank()) {
+            log.warn("⚠️ Amazon SES não configurado. Email de confirmação não enviado para: {}", user.getUsername());
             log.info("📧 Token de confirmação para {}: {}", user.getUsername(), user.getConfirmationToken());
             log.info("🔗 Link de confirmação (backend): {}/api/auth/confirm?token={}", backendUrl, user.getConfirmationToken());
             return;
         }
 
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setFrom(fromEmail);
-            helper.setTo(user.getUsername());
-            helper.setSubject("✅ Confirme seu cadastro - " + appName);
-
+        try (SesClient sesClient = createSesClient()) {
             String confirmationLink = frontendUrl + "/confirm-email?token=" + user.getConfirmationToken();
             String directLink = backendUrl + "/api/auth/confirm?token=" + user.getConfirmationToken();
-
             String htmlContent = buildConfirmationEmailHtml(user.getName(), confirmationLink, directLink);
-            helper.setText(htmlContent, true);
+            String subject = "✅ Confirme seu cadastro - " + appName;
 
-            mailSender.send(message);
-            log.info("✅ Email de confirmação enviado para: {}", user.getUsername());
+            // Formata o remetente com nome
+            String formattedFrom = String.format("%s <%s>", fromName, fromEmail);
 
-        } catch (MessagingException e) {
-            log.error("❌ Erro ao enviar email de confirmação para {}: {}", user.getUsername(), e.getMessage());
+            SendEmailRequest emailRequest = SendEmailRequest.builder()
+                    .source(formattedFrom)
+                    .destination(Destination.builder()
+                            .toAddresses(user.getUsername())
+                            .build())
+                    .message(Message.builder()
+                            .subject(Content.builder()
+                                    .charset("UTF-8")
+                                    .data(subject)
+                                    .build())
+                            .body(Body.builder()
+                                    .html(Content.builder()
+                                            .charset("UTF-8")
+                                            .data(htmlContent)
+                                            .build())
+                                    .build())
+                            .build())
+                    .build();
+
+            SendEmailResponse response = sesClient.sendEmail(emailRequest);
+            log.info("✅ Email de confirmação enviado via Amazon SES para: {} (MessageId: {})", 
+                    user.getUsername(), response.messageId());
+
+        } catch (SesException e) {
+            log.error("❌ Erro ao enviar email de confirmação via Amazon SES para {}: {}", 
+                    user.getUsername(), e.awsErrorDetails().errorMessage());
+        } catch (Exception e) {
+            log.error("❌ Erro inesperado ao enviar email via Amazon SES para {}: {}", 
+                    user.getUsername(), e.getMessage());
         }
     }
 

@@ -69,6 +69,10 @@ dependencies {
 	implementation 'org.bouncycastle:bcprov-jdk15on:1.70'
 	implementation 'org.bouncycastle:bcpkix-jdk15on:1.70'
 	
+	// AWS SES Email
+	implementation platform('software.amazon.awssdk:bom:2.25.0')
+	implementation 'software.amazon.awssdk:ses'
+	
 	// Apache HttpClient para suporte a PATCH no RestTemplate
 	implementation 'org.apache.httpcomponents.client5:httpclient5:5.4.1'
 	
