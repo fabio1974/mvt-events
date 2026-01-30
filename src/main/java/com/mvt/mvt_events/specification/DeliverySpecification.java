@@ -255,18 +255,23 @@ public class DeliverySpecification {
         };
     }
 
-    // Busca por texto
+    // Busca por texto (accent-insensitive)
     public static Specification<Delivery> searchByText(String text) {
         return (root, query, cb) -> {
             if (text == null || text.trim().isEmpty()) {
                 return cb.conjunction();
             }
             String pattern = "%" + text.toLowerCase() + "%";
+            // Usa immutable_unaccent para busca insensível a acentos
             return cb.or(
-                    cb.like(cb.lower(root.get("fromAddress")), pattern),
-                    cb.like(cb.lower(root.get("toAddress")), pattern),
-                    cb.like(cb.lower(root.get("recipientName")), pattern),
-                    cb.like(cb.lower(root.get("recipientPhone")), pattern));
+                    cb.like(cb.function("immutable_unaccent", String.class, cb.lower(root.get("fromAddress"))),
+                            cb.function("immutable_unaccent", String.class, cb.literal(pattern))),
+                    cb.like(cb.function("immutable_unaccent", String.class, cb.lower(root.get("toAddress"))),
+                            cb.function("immutable_unaccent", String.class, cb.literal(pattern))),
+                    cb.like(cb.function("immutable_unaccent", String.class, cb.lower(root.get("recipientName"))),
+                            cb.function("immutable_unaccent", String.class, cb.literal(pattern))),
+                    cb.like(cb.function("immutable_unaccent", String.class, cb.lower(root.get("recipientPhone"))),
+                            cb.function("immutable_unaccent", String.class, cb.literal(pattern))));
         };
     }
 

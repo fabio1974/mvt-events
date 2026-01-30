@@ -62,16 +62,19 @@ public class ADMProfileSpecification {
                 : cb.greaterThanOrEqualTo(root.get("totalDeliveries"), minDeliveries);
     }
 
-    // Busca por texto
+    // Busca por texto (accent-insensitive)
     public static Specification<ADMProfile> searchByText(String text) {
         return (root, query, cb) -> {
             if (text == null || text.trim().isEmpty()) {
                 return cb.conjunction();
             }
             String pattern = "%" + text.toLowerCase() + "%";
+            // Usa immutable_unaccent para busca insensível a acentos
             return cb.or(
-                    cb.like(cb.lower(root.get("user").get("name")), pattern),
-                    cb.like(cb.lower(root.get("region")), pattern));
+                    cb.like(cb.function("immutable_unaccent", String.class, cb.lower(root.get("user").get("name"))),
+                            cb.function("immutable_unaccent", String.class, cb.literal(pattern))),
+                    cb.like(cb.function("immutable_unaccent", String.class, cb.lower(root.get("region"))),
+                            cb.function("immutable_unaccent", String.class, cb.literal(pattern))));
         };
     }
 

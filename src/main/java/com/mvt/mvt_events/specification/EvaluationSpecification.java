@@ -91,14 +91,17 @@ public class EvaluationSpecification {
                 : cb.equal(root.get("delivery").get("adm").get("id"), admId);
     }
 
-    // Busca por texto
+    // Busca por texto (accent-insensitive)
     public static Specification<Evaluation> searchByComments(String text) {
         return (root, query, cb) -> {
             if (text == null || text.trim().isEmpty()) {
                 return cb.conjunction();
             }
             String pattern = "%" + text.toLowerCase() + "%";
-            return cb.like(cb.lower(root.get("comments")), pattern);
+            // Usa immutable_unaccent para busca insensível a acentos
+            return cb.like(
+                    cb.function("immutable_unaccent", String.class, cb.lower(root.get("comments"))),
+                    cb.function("immutable_unaccent", String.class, cb.literal(pattern)));
         };
     }
 

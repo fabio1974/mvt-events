@@ -71,14 +71,19 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
            "LEFT JOIN FETCH u.clientContracts cc " +
            "LEFT JOIN FETCH cc.organization " +
            "WHERE u.id = :id")
-    Optional<User> findByIdWithClientContracts(@Param("id") UUID id);       // Métodos de busca textual - mantidos (não cobertos por Specifications simples)
-       @Query("SELECT u FROM User u WHERE " +
-                     "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-                     "LOWER(u.username) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
+    Optional<User> findByIdWithClientContracts(@Param("id") UUID id);
+
+       // Métodos de busca textual - mantidos (não cobertos por Specifications simples)
+       // Usa immutable_unaccent para busca insensível a acentos (native query)
+       @Query(value = "SELECT * FROM users u WHERE " +
+                     "immutable_unaccent(LOWER(u.name)) LIKE immutable_unaccent(LOWER(CONCAT('%', :searchTerm, '%'))) OR " +
+                     "immutable_unaccent(LOWER(u.username)) LIKE immutable_unaccent(LOWER(CONCAT('%', :searchTerm, '%')))",
+              nativeQuery = true)
        List<User> searchUsers(@Param("searchTerm") String searchTerm);
 
-       @Query("SELECT u FROM User u WHERE u.role = 'USER' AND " +
-                     "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
+       @Query(value = "SELECT * FROM users u WHERE u.role = 'USER' AND " +
+                     "immutable_unaccent(LOWER(u.name)) LIKE immutable_unaccent(LOWER(CONCAT('%', :searchTerm, '%')))",
+              nativeQuery = true)
        List<User> searchAthletes(@Param("searchTerm") String searchTerm);
 
        /**
@@ -138,10 +143,11 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
        /**
         * Busca motoboys por nome ou email que NÃO estão na organização especificada
         * Para typeahead mobile do gerente ao adicionar motoboys no grupo
+        * Usa immutable_unaccent para busca insensível a acentos
         */
        @Query(value = "SELECT * FROM users u WHERE u.role = 'COURIER' " +
               "AND u.enabled = true " +
-              "AND (LOWER(u.name) LIKE CONCAT('%', :search, '%') OR LOWER(u.username) LIKE CONCAT('%', :search, '%')) " +
+              "AND (immutable_unaccent(LOWER(u.name)) LIKE immutable_unaccent(LOWER(CONCAT('%', :search, '%'))) OR immutable_unaccent(LOWER(u.username)) LIKE immutable_unaccent(LOWER(CONCAT('%', :search, '%')))) " +
               "AND NOT EXISTS (SELECT 1 FROM employment_contracts ec WHERE ec.courier_id = u.id AND ec.organization_id = :organizationId AND ec.is_active = true) " +
               "ORDER BY u.name ASC " +
               "LIMIT :limit", nativeQuery = true)
@@ -151,10 +157,11 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
 
        /**
         * Busca motoboys por nome ou email (sem filtro de organização)
+        * Usa immutable_unaccent para busca insensível a acentos
         */
        @Query(value = "SELECT * FROM users u WHERE u.role = 'COURIER' " +
               "AND u.enabled = true " +
-              "AND (LOWER(u.name) LIKE CONCAT('%', :search, '%') OR LOWER(u.username) LIKE CONCAT('%', :search, '%')) " +
+              "AND (immutable_unaccent(LOWER(u.name)) LIKE immutable_unaccent(LOWER(CONCAT('%', :search, '%'))) OR immutable_unaccent(LOWER(u.username)) LIKE immutable_unaccent(LOWER(CONCAT('%', :search, '%')))) " +
               "ORDER BY u.name ASC " +
               "LIMIT :limit", nativeQuery = true)
        List<User> searchCouriersWithLimit(@Param("search") String search, 

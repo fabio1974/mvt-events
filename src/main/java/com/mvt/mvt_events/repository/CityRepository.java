@@ -55,26 +55,28 @@ public interface CityRepository extends JpaRepository<City, Long> {
 
     /**
      * Find top cities by name for autocomplete with enhanced search
-     */
-    @Query("""
-                SELECT c FROM City c
-                WHERE LOWER(c.name) LIKE LOWER(CONCAT('%', :query, '%'))
-                ORDER BY
-                    CASE WHEN LOWER(c.name) LIKE LOWER(CONCAT(:query, '%')) THEN 1 ELSE 2 END,
-                    c.name
-            """)
-    List<City> findCitiesForAutocomplete(String query);
-
-    /**
-     * Enhanced search with basic accent handling - PostgreSQL compatible
+     * Usa immutable_unaccent para busca insensível a acentos (native query)
      */
     @Query(value = """
                 SELECT * FROM cities c
-                WHERE LOWER(c.name) LIKE LOWER('%' || :query || '%')
+                WHERE immutable_unaccent(LOWER(c.name)) LIKE immutable_unaccent(LOWER('%' || :query || '%'))
+                ORDER BY
+                    CASE WHEN immutable_unaccent(LOWER(c.name)) LIKE immutable_unaccent(LOWER(:query || '%')) THEN 1 ELSE 2 END,
+                    c.name
+            """, nativeQuery = true)
+    List<City> findCitiesForAutocomplete(String query);
+
+    /**
+     * Enhanced search with accent handling - PostgreSQL compatible
+     * Usa immutable_unaccent para busca insensível a acentos
+     */
+    @Query(value = """
+                SELECT * FROM cities c
+                WHERE immutable_unaccent(LOWER(c.name)) LIKE immutable_unaccent(LOWER('%' || :query || '%'))
                 ORDER BY
                     CASE
-                        WHEN LOWER(c.name) LIKE LOWER(:query || '%') THEN 1
-                        WHEN LOWER(c.name) LIKE LOWER('%' || :query || '%') THEN 2
+                        WHEN immutable_unaccent(LOWER(c.name)) LIKE immutable_unaccent(LOWER(:query || '%')) THEN 1
+                        WHEN immutable_unaccent(LOWER(c.name)) LIKE immutable_unaccent(LOWER('%' || :query || '%')) THEN 2
                         ELSE 3
                     END,
                     char_length(c.name),
@@ -86,39 +88,41 @@ public interface CityRepository extends JpaRepository<City, Long> {
     /**
      * Search cities by partial word matches (for "São José" finding "São José dos
      * Campos")
+     * Usa immutable_unaccent para busca insensível a acentos (native query)
      */
-    @Query("""
-                SELECT c FROM City c
-                WHERE LOWER(c.name) LIKE LOWER(CONCAT('%', :query, '%'))
+    @Query(value = """
+                SELECT * FROM cities c
+                WHERE immutable_unaccent(LOWER(c.name)) LIKE immutable_unaccent(LOWER('%' || :query || '%'))
                 ORDER BY
                     CASE
-                        WHEN LOWER(c.name) LIKE LOWER(CONCAT(:query, '%')) THEN 1
-                        WHEN LOWER(c.name) LIKE LOWER(CONCAT('%', :query, '%')) THEN 2
+                        WHEN immutable_unaccent(LOWER(c.name)) LIKE immutable_unaccent(LOWER(:query || '%')) THEN 1
+                        WHEN immutable_unaccent(LOWER(c.name)) LIKE immutable_unaccent(LOWER('%' || :query || '%')) THEN 2
                         ELSE 3
                     END,
                     c.name
-            """)
+            """, nativeQuery = true)
     List<City> findCitiesByWords(String query);
 
     /**
      * Search by two separate words
+     * Usa immutable_unaccent para busca insensível a acentos (native query)
      */
-    @Query("""
-                SELECT c FROM City c
-                WHERE (LOWER(c.name) LIKE LOWER(CONCAT('%', :word1, '%'))
-                   AND LOWER(c.name) LIKE LOWER(CONCAT('%', :word2, '%')))
-                   OR LOWER(c.name) LIKE LOWER(CONCAT('%', :word1, '%'))
-                   OR LOWER(c.name) LIKE LOWER(CONCAT('%', :word2, '%'))
+    @Query(value = """
+                SELECT * FROM cities c
+                WHERE (immutable_unaccent(LOWER(c.name)) LIKE immutable_unaccent(LOWER('%' || :word1 || '%'))
+                   AND immutable_unaccent(LOWER(c.name)) LIKE immutable_unaccent(LOWER('%' || :word2 || '%')))
+                   OR immutable_unaccent(LOWER(c.name)) LIKE immutable_unaccent(LOWER('%' || :word1 || '%'))
+                   OR immutable_unaccent(LOWER(c.name)) LIKE immutable_unaccent(LOWER('%' || :word2 || '%'))
                 ORDER BY
                     CASE
-                        WHEN (LOWER(c.name) LIKE LOWER(CONCAT('%', :word1, '%'))
-                             AND LOWER(c.name) LIKE LOWER(CONCAT('%', :word2, '%'))) THEN 1
-                        WHEN LOWER(c.name) LIKE LOWER(CONCAT(:word1, '%')) THEN 2
-                        WHEN LOWER(c.name) LIKE LOWER(CONCAT(:word2, '%')) THEN 3
+                        WHEN (immutable_unaccent(LOWER(c.name)) LIKE immutable_unaccent(LOWER('%' || :word1 || '%'))
+                             AND immutable_unaccent(LOWER(c.name)) LIKE immutable_unaccent(LOWER('%' || :word2 || '%'))) THEN 1
+                        WHEN immutable_unaccent(LOWER(c.name)) LIKE immutable_unaccent(LOWER(:word1 || '%')) THEN 2
+                        WHEN immutable_unaccent(LOWER(c.name)) LIKE immutable_unaccent(LOWER(:word2 || '%')) THEN 3
                         ELSE 4
                     END,
                     c.name
-            """)
+            """, nativeQuery = true)
     List<City> findCitiesByTwoWords(String word1, String word2);
 
     /**

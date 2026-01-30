@@ -10,7 +10,7 @@ import java.util.List;
 public class OrganizationSpecification {
 
     /**
-     * Busca organizações por nome ou slug
+     * Busca organizações por nome ou slug (accent-insensitive)
      */
     public static Specification<Organization> withSearch(String search) {
         return (root, query, criteriaBuilder) -> {
@@ -20,9 +20,14 @@ public class OrganizationSpecification {
 
             String searchPattern = "%" + search.toLowerCase() + "%";
 
+            // Usa immutable_unaccent para busca insensível a acentos
             return criteriaBuilder.or(
-                    criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), searchPattern),
-                    criteriaBuilder.like(criteriaBuilder.lower(root.get("slug")), searchPattern));
+                    criteriaBuilder.like(
+                            criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.lower(root.get("name"))),
+                            criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.literal(searchPattern))),
+                    criteriaBuilder.like(
+                            criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.lower(root.get("slug"))),
+                            criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.literal(searchPattern))));
         };
     }
 
@@ -35,7 +40,7 @@ public class OrganizationSpecification {
     }
 
     /**
-     * Combinação de filtros
+     * Combinação de filtros (accent-insensitive)
      */
     public static Specification<Organization> withFilters(String search, Boolean active) {
         return (root, query, criteriaBuilder) -> {
@@ -43,10 +48,15 @@ public class OrganizationSpecification {
 
             if (search != null && !search.trim().isEmpty()) {
                 String searchPattern = "%" + search.toLowerCase() + "%";
+                // Usa immutable_unaccent para busca insensível a acentos
                 predicates.add(
                         criteriaBuilder.or(
-                                criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), searchPattern),
-                                criteriaBuilder.like(criteriaBuilder.lower(root.get("slug")), searchPattern)));
+                                criteriaBuilder.like(
+                                        criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.lower(root.get("name"))),
+                                        criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.literal(searchPattern))),
+                                criteriaBuilder.like(
+                                        criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.lower(root.get("slug"))),
+                                        criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.literal(searchPattern)))));
             }
 
             if (active != null) {

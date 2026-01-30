@@ -37,13 +37,16 @@ public class UserSpecification {
                 predicates.add(criteriaBuilder.equal(root.get("enabled"), enabled));
             }
 
-            // Busca por nome, email ou username (case-insensitive)
+            // Busca por nome, email ou username (case-insensitive e accent-insensitive)
             if (search != null && !search.trim().isEmpty()) {
                 String searchPattern = "%" + search.toLowerCase().trim() + "%";
+                // Usa immutable_unaccent para busca insensível a acentos
                 Predicate namePredicate = criteriaBuilder.like(
-                        criteriaBuilder.lower(root.get("name")), searchPattern);
+                        criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.lower(root.get("name"))),
+                        criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.literal(searchPattern)));
                 Predicate emailPredicate = criteriaBuilder.like(
-                        criteriaBuilder.lower(root.get("username")), searchPattern);
+                        criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.lower(root.get("username"))),
+                        criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.literal(searchPattern)));
 
                 predicates.add(criteriaBuilder.or(namePredicate, emailPredicate));
             }
