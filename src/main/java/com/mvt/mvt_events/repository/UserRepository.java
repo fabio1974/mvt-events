@@ -167,4 +167,35 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
        List<User> searchCouriersWithLimit(@Param("search") String search, 
                                           @Param("limit") Integer limit);
 
+       // ============================================================================
+       // CLIENT SEARCH (typeahead para mobile)
+       // ============================================================================
+
+       /**
+        * Busca clientes por nome ou email que NÃO estão na organização especificada
+        * Para typeahead mobile do gerente ao adicionar clientes no grupo
+        * Usa immutable_unaccent para busca insensível a acentos
+        */
+       @Query(value = "SELECT * FROM users u WHERE u.role IN ('CLIENT', 'CUSTOMER') " +
+              "AND u.enabled = true " +
+              "AND (immutable_unaccent(LOWER(u.name)) LIKE immutable_unaccent(LOWER(CONCAT('%', :search, '%'))) OR immutable_unaccent(LOWER(u.username)) LIKE immutable_unaccent(LOWER(CONCAT('%', :search, '%')))) " +
+              "AND NOT EXISTS (SELECT 1 FROM client_contracts cc WHERE cc.client_id = u.id AND cc.organization_id = :organizationId AND cc.status = 'ACTIVE') " +
+              "ORDER BY u.name ASC " +
+              "LIMIT :limit", nativeQuery = true)
+       List<User> searchClientsNotInOrganization(@Param("search") String search, 
+                                                  @Param("organizationId") Long organizationId, 
+                                                  @Param("limit") Integer limit);
+
+       /**
+        * Busca clientes por nome ou email (sem filtro de organização)
+        * Usa immutable_unaccent para busca insensível a acentos
+        */
+       @Query(value = "SELECT * FROM users u WHERE u.role IN ('CLIENT', 'CUSTOMER') " +
+              "AND u.enabled = true " +
+              "AND (immutable_unaccent(LOWER(u.name)) LIKE immutable_unaccent(LOWER(CONCAT('%', :search, '%'))) OR immutable_unaccent(LOWER(u.username)) LIKE immutable_unaccent(LOWER(CONCAT('%', :search, '%')))) " +
+              "ORDER BY u.name ASC " +
+              "LIMIT :limit", nativeQuery = true)
+       List<User> searchClientsWithLimit(@Param("search") String search, 
+                                         @Param("limit") Integer limit);
+
 }

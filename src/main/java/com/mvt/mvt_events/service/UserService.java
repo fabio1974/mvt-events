@@ -709,4 +709,193 @@ public class UserService {
         // Deletar contrato do banco
         employmentContractRepository.delete(contract);
     }
+
+    // ============================================================================
+    // CLIENT GROUP MANAGEMENT
+    // ============================================================================
+
+    /**
+     * Busca clientes por nome ou email para adicionar ao grupo (typeahead).
+     * Exclui clientes que já têm contrato ativo com a organização do usuário logado.
+     * 
+     * @param search Termo de busca (parte do nome ou email)
+     * @param limit Limite de resultados (padrão: 10)
+     * @param authentication Autenticação do usuário logado
+     * @return Lista de ClientSearchResponse
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<com.mvt.mvt_events.controller.UserController.ClientSearchResponse> searchClientsForTypeahead(
+            String search, 
+            Integer limit, 
+            Authentication authentication) {
+        
+        // Buscar usuário logado
+        String currentUsername = authentication.getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado"));
+        
+        // Buscar organização do usuário logado (ORGANIZER/ADM)
+        Long organizationId = null;
+        Optional<com.mvt.mvt_events.jpa.Organization> orgOpt = organizationRepository.findByOwner(currentUser);
+        if (orgOpt.isPresent()) {
+            organizationId = orgOpt.get().getId();
+        }
+        
+        // Buscar clientes que NÃO estão na organização do usuário
+        java.util.List<User> clients;
+        if (organizationId != null) {
+            clients = userRepository.searchClientsNotInOrganization(
+                    search != null ? search.toLowerCase().trim() : "", 
+                    organizationId, 
+                    limit != null ? limit : 10);
+        } else {
+            // Se não tem organização, busca todos os clientes
+            clients = userRepository.searchClientsWithLimit(
+                    search != null ? search.toLowerCase().trim() : "", 
+                    limit != null ? limit : 10);
+        }
+        
+        return clients.stream()
+                .map(com.mvt.mvt_events.controller.UserController.ClientSearchResponse::new)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Lista todos os clientes vinculados à organização do ORGANIZER logado.
+     * Retorna dados completos do cliente + status do contrato.
+     * 
+     * @param authentication Autenticação do usuário logado
+     * @return Lista de ClientForOrganizerResponse
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<com.mvt.mvt_events.controller.UserController.ClientForOrganizerResponse> getClientsForLoggedOrganizer(
+            Authentication authentication) {
+        
+        // Buscar usuário logado
+        String currentUsername = authentication.getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado"));
+        
+        // Verificar se é ORGANIZER
+        if (!currentUser.isOrganizer() && !currentUser.isAdmin()) {
+            throw new RuntimeException("Apenas organizadores podem listar seus clientes");
+        }
+        
+        // Buscar organização do usuário
+        com.mvt.mvt_events.jpa.Organization organization = organizationRepository.findByOwner(currentUser)
+                .orElseThrow(() -> new RuntimeException("Organização não encontrada para o usuário logado"));
+        
+        // Buscar contratos de serviço ATIVOS da organização
+        java.util.List<com.mvt.mvt_events.jpa.ClientContract> contracts = 
+                clientContractRepository.findActiveByOrganizationId(organization.getId());
+        
+        // Mapear para DTO
+        return contracts.stream()
+                .map(contract -> new com.mvt.mvt_events.controller.UserController.ClientForOrganizerResponse(
+                        contract.getClient(), contract))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Adiciona um cliente à organização do ORGANIZER logado.
+     * Cria um contrato de serviço (ClientContract) ativo.
+     * 
+     * @param clientId ID do cliente a ser adicionado
+     * @param authentication Autenticação do usuário logado
+     * @return ClientForOrganizerResponse com dados do cliente adicionado
+     */
+    public com.mvt.mvt_events.controller.UserController.ClientForOrganizerResponse addClientToOrganization(
+            UUID clientId,
+            Authentication authentication) {
+        
+        // Buscar usuário logado
+        String currentUsername = authentication.getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado"));
+        
+        // Verificar se é ORGANIZER
+        if (!currentUser.isOrganizer() && !currentUser.isAdmin()) {
+            throw new RuntimeException("Apenas organizadores podem adicionar clientes ao grupo");
+        }
+        
+        // Buscar organização do usuário
+        com.mvt.mvt_events.jpa.Organization organization = organizationRepository.findByOwner(currentUser)
+                .orElseThrow(() -> new RuntimeException("Organização não encontrada para o usuário logado"));
+        
+        // Buscar o cliente
+        User client = userRepository.findById(clientId)
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+        
+        // Verificar se é CLIENT ou CUSTOMER
+        if (client.getRole() != User.Role.CLIENT && client.getRole() != User.Role.CUSTOMER) {
+            throw new RuntimeException("Usuário não é um cliente (CLIENT/CUSTOMER)");
+        }
+        
+        // Verificar se já existe contrato
+        java.util.Optional<com.mvt.mvt_events.jpa.ClientContract> existingContract = 
+                clientContractRepository.findByClientAndOrganization(client, organization);
+        
+        com.mvt.mvt_events.jpa.ClientContract contract;
+        
+        if (existingContract.isPresent()) {
+            // Se já existe, reativar
+            contract = existingContract.get();
+            if (contract.isActive()) {
+                throw new RuntimeException("Cliente já está vinculado à sua organização");
+            }
+            contract.setStatus(com.mvt.mvt_events.jpa.ClientContract.ContractStatus.ACTIVE);
+            contract.setStartDate(java.time.LocalDate.now());
+            contract.setEndDate(null);
+            contract = clientContractRepository.save(contract);
+        } else {
+            // Criar novo contrato
+            contract = new com.mvt.mvt_events.jpa.ClientContract();
+            contract.setClient(client);
+            contract.setOrganization(organization);
+            contract.setStatus(com.mvt.mvt_events.jpa.ClientContract.ContractStatus.ACTIVE);
+            contract.setStartDate(java.time.LocalDate.now());
+            contract.setPrimary(false);
+            contract = clientContractRepository.save(contract);
+        }
+        
+        return new com.mvt.mvt_events.controller.UserController.ClientForOrganizerResponse(client, contract);
+    }
+
+    /**
+     * Remove um cliente da organização do ORGANIZER logado.
+     * Deleta o contrato de serviço (ClientContract).
+     * 
+     * @param clientId ID do cliente a ser removido
+     * @param authentication Autenticação do usuário logado
+     */
+    public void removeClientFromOrganization(
+            UUID clientId,
+            Authentication authentication) {
+        
+        // Buscar usuário logado
+        String currentUsername = authentication.getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado"));
+        
+        // Verificar se é ORGANIZER
+        if (!currentUser.isOrganizer() && !currentUser.isAdmin()) {
+            throw new RuntimeException("Apenas organizadores podem remover clientes do grupo");
+        }
+        
+        // Buscar organização do usuário
+        com.mvt.mvt_events.jpa.Organization organization = organizationRepository.findByOwner(currentUser)
+                .orElseThrow(() -> new RuntimeException("Organização não encontrada para o usuário logado"));
+        
+        // Buscar o cliente
+        User client = userRepository.findById(clientId)
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+        
+        // Buscar contrato
+        com.mvt.mvt_events.jpa.ClientContract contract = 
+                clientContractRepository.findByClientAndOrganization(client, organization)
+                .orElseThrow(() -> new RuntimeException("Cliente não está vinculado à sua organização"));
+        
+        // Deletar contrato do banco
+        clientContractRepository.delete(contract);
+    }
 }

@@ -98,6 +98,67 @@ public class UserController {
         }
     }
 
+    // ============================================================================
+    // CLIENT GROUP MANAGEMENT (my-clients)
+    // ============================================================================
+
+    @GetMapping("/search/clients")
+    @Operation(summary = "Buscar clientes para adicionar ao grupo (typeahead)",
+               description = "Busca clientes por parte do nome ou email para adicionar ao grupo. " +
+                           "Retorna lista leve e limitada para uso em typeahead mobile. " +
+                           "Exclui clientes que já estão vinculados à organização do usuário logado.")
+    @Transactional(readOnly = true)
+    public List<ClientSearchResponse> searchClients(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "10") Integer limit,
+            Authentication authentication) {
+        return userService.searchClientsForTypeahead(search, limit, authentication);
+    }
+
+    @GetMapping("/my-clients")
+    @Operation(summary = "Listar clientes da minha organização", 
+               description = "Retorna todos os clientes vinculados à organização do usuário logado (ORGANIZER). " +
+                           "Inclui informações básicas do cliente e status do contrato de serviço.")
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<ClientForOrganizerResponse>> listMyClients(Authentication authentication) {
+        List<ClientForOrganizerResponse> clients = userService.getClientsForLoggedOrganizer(authentication);
+        return ResponseEntity.ok(clients);
+    }
+
+    @PostMapping("/my-clients/{clientId}")
+    @Operation(summary = "Adicionar cliente ao meu grupo", 
+               description = "Vincula um cliente à organização do usuário logado (ORGANIZER). " +
+                           "Cria um contrato de serviço (ClientContract) ativo.")
+    public ResponseEntity<?> addClientToMyGroup(
+            @PathVariable UUID clientId,
+            Authentication authentication) {
+        try {
+            ClientForOrganizerResponse response = userService.addClientToOrganization(clientId, authentication);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/my-clients/{clientId}")
+    @Operation(summary = "Remover cliente do meu grupo", 
+               description = "Remove o vínculo de um cliente com a organização do usuário logado (ORGANIZER). " +
+                           "Deleta o contrato de serviço (ClientContract).")
+    public ResponseEntity<?> removeClientFromMyGroup(
+            @PathVariable UUID clientId,
+            Authentication authentication) {
+        try {
+            userService.removeClientFromOrganization(clientId, authentication);
+            return ResponseEntity.ok(java.util.Map.of("message", "Cliente removido do grupo com sucesso"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    // ============================================================================
+    // CRUD OPERATIONS
+    // ============================================================================
+
     @GetMapping("/{id}")
     @Operation(summary = "Buscar usuário por ID")
     public UserResponse get(@PathVariable UUID id) {
@@ -557,6 +618,78 @@ public class UserController {
             if (contract != null) {
                 this.isActive = contract.isActive();
                 this.linkedAt = contract.getLinkedAt() != null ? contract.getLinkedAt().toString() : null;
+            }
+        }
+    }
+
+    // ============================================================================
+    // CLIENT GROUP DTOs
+    // ============================================================================
+
+    /**
+     * DTO para busca de clientes (typeahead) - dados mínimos
+     */
+    @Data
+    @NoArgsConstructor
+    public static class ClientSearchResponse {
+        private UUID id;
+        private String name;
+        private String email;
+        private String phone;
+
+        public ClientSearchResponse(User user) {
+            this.id = user.getId();
+            this.name = user.getName();
+            this.email = user.getUsername();
+            
+            // Formata telefone para exibição
+            if (user.getPhoneDdd() != null && user.getPhoneNumber() != null) {
+                this.phone = "(" + user.getPhoneDdd() + ") " + user.getPhoneNumber();
+            }
+        }
+    }
+
+    /**
+     * DTO para listagem de clientes vinculados à organização do ORGANIZER
+     * Retorna dados completos do cliente + status do contrato
+     */
+    @Data
+    @NoArgsConstructor
+    public static class ClientForOrganizerResponse {
+        private UUID id;
+        private String name;
+        private String email;
+        private String phone;           // Formato: (DDD) XXXXX-XXXX
+        private String documentNumber;  // CPF formatado
+        private String dateOfBirth;
+        private String gender;
+        
+        // Status do contrato
+        private String contractStatus;  // ACTIVE, SUSPENDED, CANCELLED
+        private Boolean isPrimary;      // Se é contrato titular
+        private String startDate;       // Data de início do contrato
+        private String endDate;         // Data de fim do contrato (opcional)
+
+        public ClientForOrganizerResponse(User client, com.mvt.mvt_events.jpa.ClientContract contract) {
+            this.id = client.getId();
+            this.name = client.getName();
+            this.email = client.getUsername();
+            
+            // Formata telefone
+            if (client.getPhoneDdd() != null && client.getPhoneNumber() != null) {
+                this.phone = "(" + client.getPhoneDdd() + ") " + client.getPhoneNumber();
+            }
+            
+            this.documentNumber = client.getDocumentFormatted();
+            this.dateOfBirth = client.getDateOfBirth() != null ? client.getDateOfBirth().toString() : null;
+            this.gender = client.getGender() != null ? client.getGender().toString() : null;
+            
+            // Dados do contrato
+            if (contract != null) {
+                this.contractStatus = contract.getStatus() != null ? contract.getStatus().toString() : null;
+                this.isPrimary = contract.isPrimary();
+                this.startDate = contract.getStartDate() != null ? contract.getStartDate().toString() : null;
+                this.endDate = contract.getEndDate() != null ? contract.getEndDate().toString() : null;
             }
         }
     }
