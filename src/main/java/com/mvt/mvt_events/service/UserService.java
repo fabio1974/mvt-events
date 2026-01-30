@@ -674,7 +674,7 @@ public class UserService {
 
     /**
      * Remove um motoboy da organização do ORGANIZER logado.
-     * Desativa o contrato de trabalho (EmploymentContract).
+     * Deleta o contrato de trabalho (EmploymentContract).
      * 
      * @param courierId ID do motoboy a ser removido
      * @param authentication Autenticação do usuário logado
@@ -706,8 +706,7 @@ public class UserService {
                 employmentContractRepository.findByCourierAndOrganization(courier, organization)
                 .orElseThrow(() -> new RuntimeException("Motoboy não está vinculado à sua organização"));
         
-        // Desativar contrato (não deletar para manter histórico)
-        contract.deactivate();
-        employmentContractRepository.save(contract);
+        // Deletar contrato do banco
+        employmentContractRepository.delete(contract);
     }
 }
