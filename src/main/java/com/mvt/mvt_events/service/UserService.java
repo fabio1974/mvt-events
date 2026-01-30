@@ -599,9 +599,9 @@ public class UserService {
         com.mvt.mvt_events.jpa.Organization organization = organizationRepository.findByOwner(currentUser)
                 .orElseThrow(() -> new RuntimeException("Organização não encontrada para o usuário logado"));
         
-        // Buscar contratos de trabalho ativos da organização
+        // Buscar contratos de trabalho ATIVOS da organização
         java.util.List<com.mvt.mvt_events.jpa.EmploymentContract> contracts = 
-                employmentContractRepository.findByOrganizationId(organization.getId());
+                employmentContractRepository.findActiveByOrganizationId(organization.getId());
         
         // Mapear para DTO
         return contracts.stream()
