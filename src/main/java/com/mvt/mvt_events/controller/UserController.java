@@ -45,6 +45,19 @@ public class UserController {
         return users.map(UserResponse::new);
     }
 
+    @GetMapping("/search/couriers")
+    @Operation(summary = "Buscar motoboys para typeahead", 
+               description = "Busca motoboys por parte do nome ou email para adicionar ao grupo. " +
+                           "Retorna lista leve e limitada para uso em typeahead mobile. " +
+                           "Exclui motoboys que já estão vinculados à organização do usuário logado.")
+    @Transactional(readOnly = true)
+    public List<CourierSearchResponse> searchCouriers(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "10") Integer limit,
+            Authentication authentication) {
+        return userService.searchCouriersForTypeahead(search, limit, authentication);
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Buscar usuário por ID")
     public UserResponse get(@PathVariable UUID id) {
@@ -426,5 +439,28 @@ public class UserController {
         private String status;
         private String startDate;
         private String endDate;
+    }
+
+    /**
+     * DTO leve para busca de motoboys em typeahead (mobile)
+     * Retorna apenas campos essenciais para exibição em lista de seleção
+     */
+    @Data
+    @NoArgsConstructor
+    public static class CourierSearchResponse {
+        private UUID id;
+        private String name;
+        private String email;
+        private String phone; // Formato: (DDD) XXXXX-XXXX
+
+        public CourierSearchResponse(User user) {
+            this.id = user.getId();
+            this.name = user.getName();
+            this.email = user.getUsername();
+            // Formata telefone para exibição
+            if (user.getPhoneDdd() != null && user.getPhoneNumber() != null) {
+                this.phone = "(" + user.getPhoneDdd() + ") " + user.getPhoneNumber();
+            }
+        }
     }
 }

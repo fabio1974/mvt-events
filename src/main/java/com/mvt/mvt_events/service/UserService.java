@@ -519,4 +519,58 @@ public class UserService {
     public java.util.List<Object[]> getClientContractsForUser(UUID userId) {
         return clientContractRepository.findContractDataByClientId(userId);
     }
+
+    // ============================================================================
+    // MÉTODOS PARA BUSCA DE COURIERS (typeahead mobile)
+    // ============================================================================
+
+    @Autowired
+    private com.mvt.mvt_events.repository.OrganizationRepository organizationRepository;
+
+    /**
+     * Busca motoboys para typeahead mobile.
+     * Retorna lista leve com apenas id, nome, email e telefone.
+     * Exclui motoboys que já estão vinculados à organização do usuário logado.
+     * 
+     * @param search Termo de busca (parte do nome ou email)
+     * @param limit Limite de resultados (padrão: 10)
+     * @param authentication Autenticação do usuário logado
+     * @return Lista de CourierSearchResponse
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<com.mvt.mvt_events.controller.UserController.CourierSearchResponse> searchCouriersForTypeahead(
+            String search, 
+            Integer limit, 
+            Authentication authentication) {
+        
+        // Buscar usuário logado
+        String currentUsername = authentication.getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado"));
+        
+        // Buscar organização do usuário logado (ORGANIZER/ADM)
+        Long organizationId = null;
+        Optional<com.mvt.mvt_events.jpa.Organization> orgOpt = organizationRepository.findByOwner(currentUser);
+        if (orgOpt.isPresent()) {
+            organizationId = orgOpt.get().getId();
+        }
+        
+        // Buscar motoboys que NÃO estão na organização do usuário
+        java.util.List<User> couriers;
+        if (organizationId != null) {
+            couriers = userRepository.searchCouriersNotInOrganization(
+                    search != null ? search.toLowerCase().trim() : "", 
+                    organizationId, 
+                    limit != null ? limit : 10);
+        } else {
+            // Se não tem organização, busca todos os couriers
+            couriers = userRepository.searchCouriersWithLimit(
+                    search != null ? search.toLowerCase().trim() : "", 
+                    limit != null ? limit : 10);
+        }
+        
+        return couriers.stream()
+                .map(com.mvt.mvt_events.controller.UserController.CourierSearchResponse::new)
+                .collect(java.util.stream.Collectors.toList());
+    }
 }

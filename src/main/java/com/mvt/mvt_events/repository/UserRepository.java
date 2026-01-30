@@ -131,4 +131,33 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
         */
        Optional<User> findByResetToken(String resetToken);
 
+       // ============================================================================
+       // COURIER SEARCH (typeahead para mobile)
+       // ============================================================================
+
+       /**
+        * Busca motoboys por nome ou email que NÃO estão na organização especificada
+        * Para typeahead mobile do gerente ao adicionar motoboys no grupo
+        */
+       @Query(value = "SELECT * FROM users u WHERE u.role = 'COURIER' " +
+              "AND u.enabled = true " +
+              "AND (LOWER(u.name) LIKE CONCAT('%', :search, '%') OR LOWER(u.username) LIKE CONCAT('%', :search, '%')) " +
+              "AND NOT EXISTS (SELECT 1 FROM employment_contracts ec WHERE ec.courier_id = u.id AND ec.organization_id = :organizationId AND ec.is_active = true) " +
+              "ORDER BY u.name ASC " +
+              "LIMIT :limit", nativeQuery = true)
+       List<User> searchCouriersNotInOrganization(@Param("search") String search, 
+                                                   @Param("organizationId") Long organizationId, 
+                                                   @Param("limit") Integer limit);
+
+       /**
+        * Busca motoboys por nome ou email (sem filtro de organização)
+        */
+       @Query(value = "SELECT * FROM users u WHERE u.role = 'COURIER' " +
+              "AND u.enabled = true " +
+              "AND (LOWER(u.name) LIKE CONCAT('%', :search, '%') OR LOWER(u.username) LIKE CONCAT('%', :search, '%')) " +
+              "ORDER BY u.name ASC " +
+              "LIMIT :limit", nativeQuery = true)
+       List<User> searchCouriersWithLimit(@Param("search") String search, 
+                                          @Param("limit") Integer limit);
+
 }
