@@ -573,4 +573,141 @@ public class UserService {
                 .map(com.mvt.mvt_events.controller.UserController.CourierSearchResponse::new)
                 .collect(java.util.stream.Collectors.toList());
     }
+
+    /**
+     * Lista todos os motoboys vinculados à organização do ORGANIZER logado.
+     * Retorna dados completos do motoboy + status do contrato.
+     * 
+     * @param authentication Autenticação do usuário logado
+     * @return Lista de CourierForOrganizerResponse
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<com.mvt.mvt_events.controller.UserController.CourierForOrganizerResponse> getCouriersForLoggedOrganizer(
+            Authentication authentication) {
+        
+        // Buscar usuário logado
+        String currentUsername = authentication.getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado"));
+        
+        // Verificar se é ORGANIZER
+        if (!currentUser.isOrganizer() && !currentUser.isAdmin()) {
+            throw new RuntimeException("Apenas organizadores podem listar seus motoboys");
+        }
+        
+        // Buscar organização do usuário
+        com.mvt.mvt_events.jpa.Organization organization = organizationRepository.findByOwner(currentUser)
+                .orElseThrow(() -> new RuntimeException("Organização não encontrada para o usuário logado"));
+        
+        // Buscar contratos de trabalho ativos da organização
+        java.util.List<com.mvt.mvt_events.jpa.EmploymentContract> contracts = 
+                employmentContractRepository.findByOrganizationId(organization.getId());
+        
+        // Mapear para DTO
+        return contracts.stream()
+                .map(contract -> new com.mvt.mvt_events.controller.UserController.CourierForOrganizerResponse(
+                        contract.getCourier(), contract))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Adiciona um motoboy à organização do ORGANIZER logado.
+     * Cria um contrato de trabalho (EmploymentContract) ativo.
+     * 
+     * @param courierId ID do motoboy a ser adicionado
+     * @param authentication Autenticação do usuário logado
+     * @return CourierForOrganizerResponse com dados do motoboy adicionado
+     */
+    public com.mvt.mvt_events.controller.UserController.CourierForOrganizerResponse addCourierToOrganization(
+            UUID courierId,
+            Authentication authentication) {
+        
+        // Buscar usuário logado
+        String currentUsername = authentication.getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado"));
+        
+        // Verificar se é ORGANIZER
+        if (!currentUser.isOrganizer() && !currentUser.isAdmin()) {
+            throw new RuntimeException("Apenas organizadores podem adicionar motoboys ao grupo");
+        }
+        
+        // Buscar organização do usuário
+        com.mvt.mvt_events.jpa.Organization organization = organizationRepository.findByOwner(currentUser)
+                .orElseThrow(() -> new RuntimeException("Organização não encontrada para o usuário logado"));
+        
+        // Buscar o motoboy
+        User courier = userRepository.findById(courierId)
+                .orElseThrow(() -> new RuntimeException("Motoboy não encontrado"));
+        
+        // Verificar se é COURIER
+        if (courier.getRole() != User.Role.COURIER) {
+            throw new RuntimeException("Usuário não é um motoboy (COURIER)");
+        }
+        
+        // Verificar se já existe contrato
+        java.util.Optional<com.mvt.mvt_events.jpa.EmploymentContract> existingContract = 
+                employmentContractRepository.findByCourierAndOrganization(courier, organization);
+        
+        com.mvt.mvt_events.jpa.EmploymentContract contract;
+        
+        if (existingContract.isPresent()) {
+            // Se já existe, reativar
+            contract = existingContract.get();
+            if (contract.isActive()) {
+                throw new RuntimeException("Motoboy já está vinculado à sua organização");
+            }
+            contract.activate();
+            contract = employmentContractRepository.save(contract);
+        } else {
+            // Criar novo contrato
+            contract = new com.mvt.mvt_events.jpa.EmploymentContract();
+            contract.setCourier(courier);
+            contract.setOrganization(organization);
+            contract.setActive(true);
+            contract.setLinkedAt(java.time.LocalDateTime.now());
+            contract = employmentContractRepository.save(contract);
+        }
+        
+        return new com.mvt.mvt_events.controller.UserController.CourierForOrganizerResponse(courier, contract);
+    }
+
+    /**
+     * Remove um motoboy da organização do ORGANIZER logado.
+     * Desativa o contrato de trabalho (EmploymentContract).
+     * 
+     * @param courierId ID do motoboy a ser removido
+     * @param authentication Autenticação do usuário logado
+     */
+    public void removeCourierFromOrganization(
+            UUID courierId,
+            Authentication authentication) {
+        
+        // Buscar usuário logado
+        String currentUsername = authentication.getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado"));
+        
+        // Verificar se é ORGANIZER
+        if (!currentUser.isOrganizer() && !currentUser.isAdmin()) {
+            throw new RuntimeException("Apenas organizadores podem remover motoboys do grupo");
+        }
+        
+        // Buscar organização do usuário
+        com.mvt.mvt_events.jpa.Organization organization = organizationRepository.findByOwner(currentUser)
+                .orElseThrow(() -> new RuntimeException("Organização não encontrada para o usuário logado"));
+        
+        // Buscar o motoboy
+        User courier = userRepository.findById(courierId)
+                .orElseThrow(() -> new RuntimeException("Motoboy não encontrado"));
+        
+        // Buscar contrato
+        com.mvt.mvt_events.jpa.EmploymentContract contract = 
+                employmentContractRepository.findByCourierAndOrganization(courier, organization)
+                .orElseThrow(() -> new RuntimeException("Motoboy não está vinculado à sua organização"));
+        
+        // Desativar contrato (não deletar para manter histórico)
+        contract.deactivate();
+        employmentContractRepository.save(contract);
+    }
 }

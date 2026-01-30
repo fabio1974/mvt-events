@@ -58,6 +58,46 @@ public class UserController {
         return userService.searchCouriersForTypeahead(search, limit, authentication);
     }
 
+    @GetMapping("/my-couriers")
+    @Operation(summary = "Listar motoboys da minha organização", 
+               description = "Retorna todos os motoboys vinculados à organização do usuário logado (ORGANIZER). " +
+                           "Inclui informações básicas do motoboy e status do contrato de trabalho.")
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<CourierForOrganizerResponse>> listMyCouriers(Authentication authentication) {
+        List<CourierForOrganizerResponse> couriers = userService.getCouriersForLoggedOrganizer(authentication);
+        return ResponseEntity.ok(couriers);
+    }
+
+    @PostMapping("/my-couriers/{courierId}")
+    @Operation(summary = "Adicionar motoboy ao meu grupo", 
+               description = "Vincula um motoboy à organização do usuário logado (ORGANIZER). " +
+                           "Cria um contrato de trabalho (EmploymentContract) ativo.")
+    public ResponseEntity<?> addCourierToMyGroup(
+            @PathVariable UUID courierId,
+            Authentication authentication) {
+        try {
+            CourierForOrganizerResponse response = userService.addCourierToOrganization(courierId, authentication);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/my-couriers/{courierId}")
+    @Operation(summary = "Remover motoboy do meu grupo", 
+               description = "Remove o vínculo de um motoboy com a organização do usuário logado (ORGANIZER). " +
+                           "Desativa o contrato de trabalho (EmploymentContract).")
+    public ResponseEntity<?> removeCourierFromMyGroup(
+            @PathVariable UUID courierId,
+            Authentication authentication) {
+        try {
+            userService.removeCourierFromOrganization(courierId, authentication);
+            return ResponseEntity.ok(java.util.Map.of("message", "Motoboy removido do grupo com sucesso"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Buscar usuário por ID")
     public UserResponse get(@PathVariable UUID id) {
@@ -460,6 +500,63 @@ public class UserController {
             // Formata telefone para exibição
             if (user.getPhoneDdd() != null && user.getPhoneNumber() != null) {
                 this.phone = "(" + user.getPhoneDdd() + ") " + user.getPhoneNumber();
+            }
+        }
+    }
+
+    /**
+     * DTO para listagem de motoboys vinculados à organização do ORGANIZER
+     * Retorna dados completos do motoboy + status do contrato
+     */
+    @Data
+    @NoArgsConstructor
+    public static class CourierForOrganizerResponse {
+        private UUID id;
+        private String name;
+        private String email;
+        private String phone;           // Formato: (DDD) XXXXX-XXXX
+        private String documentNumber;  // CPF formatado
+        private String dateOfBirth;
+        private String gender;
+        
+        // Localização GPS em tempo real
+        private Double gpsLatitude;
+        private Double gpsLongitude;
+        private String lastLocationUpdate;  // Timestamp da última atualização
+        
+        // Status do contrato
+        private Boolean isActive;
+        private String linkedAt;         // Data de vínculo com a organização
+        
+        // Status Pagar.me
+        private String pagarmeStatus;
+
+        public CourierForOrganizerResponse(User courier, com.mvt.mvt_events.jpa.EmploymentContract contract) {
+            this.id = courier.getId();
+            this.name = courier.getName();
+            this.email = courier.getUsername();
+            
+            // Formata telefone
+            if (courier.getPhoneDdd() != null && courier.getPhoneNumber() != null) {
+                this.phone = "(" + courier.getPhoneDdd() + ") " + courier.getPhoneNumber();
+            }
+            
+            this.documentNumber = courier.getDocumentFormatted();
+            this.dateOfBirth = courier.getDateOfBirth() != null ? courier.getDateOfBirth().toString() : null;
+            this.gender = courier.getGender() != null ? courier.getGender().toString() : null;
+            
+            // GPS em tempo real
+            this.gpsLatitude = courier.getGpsLatitude();
+            this.gpsLongitude = courier.getGpsLongitude();
+            this.lastLocationUpdate = courier.getUpdatedAt() != null ? courier.getUpdatedAt().toString() : null;
+            
+            // Status Pagar.me
+            this.pagarmeStatus = courier.getPagarmeStatus();
+            
+            // Dados do contrato
+            if (contract != null) {
+                this.isActive = contract.isActive();
+                this.linkedAt = contract.getLinkedAt() != null ? contract.getLinkedAt().toString() : null;
             }
         }
     }
