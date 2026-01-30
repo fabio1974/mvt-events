@@ -1,14 +1,22 @@
 -- Migration V44: Enable unaccent extension for accent-insensitive search
 -- This allows searching "joao" to find "João", "Grilo" to find "Grílò", etc.
 
--- Enable the unaccent extension (requires superuser or extension creation privileges)
-CREATE EXTENSION IF NOT EXISTS unaccent;
+-- Try to enable the unaccent extension (may fail on managed databases without superuser privileges)
+-- If it fails, we'll create a fallback function that does manual accent removal
+DO $$
+BEGIN
+    CREATE EXTENSION IF NOT EXISTS unaccent;
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'unaccent extension not available, will use manual accent removal';
+END $$;
 
 -- Create an immutable version of unaccent for use in indexes
--- This is needed because the default unaccent function is not IMMUTABLE
+-- Uses manual translate() for accent removal (works everywhere, no extension needed)
 CREATE OR REPLACE FUNCTION immutable_unaccent(text)
 RETURNS text AS $$
-    SELECT unaccent('unaccent', $1)
+    SELECT translate($1, 
+        'áàâãäåÁÀÂÃÄÅéèêëÉÈÊËíìîïÍÌÎÏóòôõöÓÒÔÕÖúùûüÚÙÛÜçÇñÑýÝ',
+        'aaaaaaAAAAAAeeeeEEEEiiiiIIIIoooooOOOOOuuuuUUUUcCnNyY')
 $$ LANGUAGE SQL IMMUTABLE PARALLEL SAFE;
 
 -- Create indexes for faster accent-insensitive searches on commonly searched fields
@@ -23,4 +31,4 @@ CREATE INDEX IF NOT EXISTS idx_cities_name_unaccent ON cities (immutable_unaccen
 -- Organizations table - name
 CREATE INDEX IF NOT EXISTS idx_organizations_name_unaccent ON organizations (immutable_unaccent(lower(name)));
 
-COMMENT ON FUNCTION immutable_unaccent(text) IS 'Immutable version of unaccent for use in indexes and accent-insensitive searches';
+COMMENT ON FUNCTION immutable_unaccent(text) IS 'Immutable function for accent-insensitive searches using translate()';
