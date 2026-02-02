@@ -1,0 +1,188 @@
+{
+  "info": {
+    "_postman_id": "4ee3e0d7-39ad-4ae2-bc7a-0283328e8212",
+    "name": "Cartões - Pagar.me API",
+    "description": "Coleção exportada da pasta 'Cartões' contendo endpoints para gerenciamento de cartões na API Pagar.me V5 PSP. Esta coleção pode ser usada como especificação para GitHub Copilot.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "8082764"
+  },
+  "item": [
+    {
+      "name": "Cartão PSP | Criar cartão (Card Id)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "https://api.pagar.me/core/v5/customers/cus_LxKNB7VTpT5kpjY3/cards",
+          "protocol": "https",
+          "host": [
+            "api",
+            "pagar",
+            "me"
+          ],
+          "path": [
+            "core",
+            "v5",
+            "customers",
+            "cus_LxKNB7VTpT5kpjY3",
+            "cards"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Cartão PSP | Obter cartão",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.pagar.me/core/v5/customers/{{ID do cliente}}/cards/{{ID do cartão}}",
+          "protocol": "https",
+          "host": [
+            "api",
+            "pagar",
+            "me"
+          ],
+          "path": [
+            "core",
+            "v5",
+            "customers",
+            "{{ID do cliente}}",
+            "cards",
+            "{{ID do cartão}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Cartão PSP | Listar cartões",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.pagar.me/core/v5/customers/{{ID do cliente}}/cards",
+          "protocol": "https",
+          "host": [
+            "api",
+            "pagar",
+            "me"
+          ],
+          "path": [
+            "core",
+            "v5",
+            "customers",
+            "{{ID do cliente}}",
+            "cards"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Cartão PSP | Editar cartão",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "https://api.pagar.me/core/v5/customers/{{ID do cliente}}/cards/{{card_id}}",
+          "protocol": "https",
+          "host": [
+            "api",
+            "pagar",
+            "me"
+          ],
+          "path": [
+            "core",
+            "v5",
+            "customers",
+            "{{ID do cliente}}",
+            "cards",
+            "{{card_id}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Cartão PSP | Excluir cartão",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "https://api.pagar.me/core/v5/customers/{{ID do cliente}}/cards/{{card_id}}",
+          "protocol": "https",
+          "host": [
+            "api",
+            "pagar",
+            "me"
+          ],
+          "path": [
+            "core",
+            "v5",
+            "customers",
+            "{{ID do cliente}}",
+            "cards",
+            "{{card_id}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Cartão PSP | Renovar cartão",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "https://api.pagar.me/core/v5/customers/{{customer_id}}/cards/{{card_id}}/renew",
+          "protocol": "https",
+          "host": [
+            "api",
+            "pagar",
+            "me"
+          ],
+          "path": [
+            "core",
+            "v5",
+            "customers",
+            "{{customer_id}}",
+            "cards",
+            "{{card_id}}",
+            "renew"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Cartão PSP |  Criar Token de cartão (Card Token)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "https://api.pagar.me/core/v5/tokens?appId={{CHAVE PUBLICA}}",
+          "protocol": "https",
+          "host": [
+            "api",
+            "pagar",
+            "me"
+          ],
+          "path": [
+            "core",
+            "v5",
+            "tokens"
+          ],
+          "query": [
+            {
+              "key": "appId",
+              "value": "{{CHAVE PUBLICA}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

@@ -1,8 +1,7 @@
-Starting a Gradle Daemon, 2 busy Daemons could not be reused, use --status for details
 > Task :compileJava UP-TO-DATE
-> Task :processResources UP-TO-DATE
-> Task :classes UP-TO-DATE
-> Task :resolveMainClassName UP-TO-DATE
+> Task :processResources
+> Task :classes
+> Task :resolveMainClassName
 
 > Task :bootRun
 Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
@@ -17,30 +16,30 @@ Standard Commons Logging discovery in action with spring-jcl: please remove comm
 
  :: Spring Boot ::                (v3.5.6)
 
-2026-01-27T08:23:03.963-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : Starting MvtEventsApplication using Java 17.0.17 with PID 88519 (/Users/fabio2barros/Documents/projects/mvt-events/build/classes/java/main started by fabio2barros in /Users/fabio2barros/Documents/projects/mvt-events)
-2026-01-27T08:23:03.964-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : No active profile set, falling back to 1 default profile: "default"
-2026-01-27T08:23:03.985-03:00  INFO 88519 --- [mvt-events] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
-2026-01-27T08:23:03.985-03:00  INFO 88519 --- [mvt-events] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
-2026-01-27T08:23:04.706-03:00  INFO 88519 --- [mvt-events] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-01-27T08:23:04.746-03:00  INFO 88519 --- [mvt-events] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 36 ms. Found 14 JPA repository interfaces.
-2026-01-27T08:23:05.120-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
-2026-01-27T08:23:05.129-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-01-27T08:23:05.129-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.46]
-2026-01-27T08:23:05.154-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
-2026-01-27T08:23:05.154-03:00  INFO 88519 --- [mvt-events] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1165 ms
+2026-02-02T16:13:32.330-03:00  INFO 36430 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : Starting MvtEventsApplication using Java 17.0.17 with PID 36430 (/Users/fabio2barros/Documents/projects/mvt-events/build/classes/java/main started by fabio2barros in /Users/fabio2barros/Documents/projects/mvt-events)
+2026-02-02T16:13:32.331-03:00  INFO 36430 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : No active profile set, falling back to 1 default profile: "default"
+2026-02-02T16:13:32.377-03:00  INFO 36430 --- [mvt-events] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-02-02T16:13:32.377-03:00  INFO 36430 --- [mvt-events] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-02-02T16:13:33.235-03:00  INFO 36430 --- [mvt-events] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-02-02T16:13:33.285-03:00  INFO 36430 --- [mvt-events] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 45 ms. Found 15 JPA repository interfaces.
+2026-02-02T16:13:33.789-03:00  INFO 36430 --- [mvt-events] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-02-02T16:13:33.807-03:00  INFO 36430 --- [mvt-events] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-02-02T16:13:33.807-03:00  INFO 36430 --- [mvt-events] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.46]
+2026-02-02T16:13:33.839-03:00  INFO 36430 --- [mvt-events] [  restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-02-02T16:13:33.839-03:00  INFO 36430 --- [mvt-events] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1450 ms
 Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
-2026-01-27T08:23:05.348-03:00  INFO 88519 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-01-27T08:23:05.439-03:00  INFO 88519 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@76e2b9b
-2026-01-27T08:23:05.440-03:00  INFO 88519 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-01-27T08:23:05.454-03:00  INFO 88519 --- [mvt-events] [  restartedMain] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5435/mvt-events (PostgreSQL 16.11)
-2026-01-27T08:23:05.505-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbValidate     : Successfully validated 41 migrations (execution time 00:00.031s)
-2026-01-27T08:23:05.539-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 42
-2026-01-27T08:23:05.541-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
-2026-01-27T08:23:05.584-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-01-27T08:23:05.616-03:00  INFO 88519 --- [mvt-events] [  restartedMain] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.29.Final
-2026-01-27T08:23:05.633-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
-2026-01-27T08:23:05.758-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-01-27T08:23:05.803-03:00  INFO 88519 --- [mvt-events] [  restartedMain] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+2026-02-02T16:13:34.062-03:00  INFO 36430 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-02-02T16:13:34.457-03:00  INFO 36430 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@27af0b7c
+2026-02-02T16:13:34.458-03:00  INFO 36430 --- [mvt-events] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-02-02T16:13:34.491-03:00  INFO 36430 --- [mvt-events] [  restartedMain] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5435/mvt-events (PostgreSQL 16.11)
+2026-02-02T16:13:34.680-03:00  INFO 36430 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbValidate     : Successfully validated 45 migrations (execution time 00:00.089s)
+2026-02-02T16:13:34.693-03:00  INFO 36430 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 46
+2026-02-02T16:13:34.696-03:00  INFO 36430 --- [mvt-events] [  restartedMain] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-02-02T16:13:34.754-03:00  INFO 36430 --- [mvt-events] [  restartedMain] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-02-02T16:13:34.819-03:00  INFO 36430 --- [mvt-events] [  restartedMain] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.29.Final
+2026-02-02T16:13:34.866-03:00  INFO 36430 --- [mvt-events] [  restartedMain] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-02-02T16:13:35.119-03:00  INFO 36430 --- [mvt-events] [  restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-02-02T16:13:35.176-03:00  INFO 36430 --- [mvt-events] [  restartedMain] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
 	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
 	Database driver: undefined/unknown
 	Database version: 16.11
@@ -48,24 +47,24 @@ Standard Commons Logging discovery in action with spring-jcl: please remove comm
 	Isolation level: undefined/unknown
 	Minimum pool size: undefined/unknown
 	Maximum pool size: undefined/unknown
-2026-01-27T08:23:06.368-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-01-27T08:23:06.407-03:00  INFO 88519 --- [mvt-events] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-01-27T08:23:06.543-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
-2026-01-27T08:23:07.620-03:00 DEBUG 88519 --- [mvt-events] [  restartedMain] com.mvt.mvt_events.tenant.TenantFilter   : Filter 'tenantFilter' configured for use
-2026-01-27T08:23:07.687-03:00  INFO 88519 --- [mvt-events] [  restartedMain] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
-2026-01-27T08:23:08.592-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.m.m.payment.config.PagarMeConfig       : 🔐 Pagar.me Configuration Loaded:
-2026-01-27T08:23:08.593-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.m.m.payment.config.PagarMeConfig       :    API Key: ***a210fc11 (SANDBOX)
-2026-01-27T08:23:08.593-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.m.m.payment.config.PagarMeConfig       :    API URL: https://api.pagar.me/core/v5
-2026-01-27T08:23:09.191-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : BouncyCastle provider registrado para Web Push
-2026-01-27T08:23:09.269-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : ✅ Web Push Service configurado com VAPID keys
-2026-01-27T08:23:09.269-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : 🔑 Public Key: BN8ym6-oByG6GoAEC939...
-2026-01-27T08:23:09.269-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : 📧 Subject: mailto:admin@mvt-events.com
-2026-01-27T08:23:09.549-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoints beneath base path '/actuator'
-2026-01-27T08:23:09.882-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : LiveReload server is running on port 35729
-2026-01-27T08:23:09.914-03:00  INFO 88519 --- [mvt-events] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
-2026-01-27T08:23:09.925-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : Started MvtEventsApplication in 6.125 seconds (process running for 6.355)
-2026-01-27T08:23:09.955-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.startup.CityDataLoader  : 🇧🇷 Iniciando verificação das cidades brasileiras...
-2026-01-27T08:23:09.980-03:00 DEBUG 88519 --- [mvt-events] [  restartedMain] org.hibernate.SQL                        : 
+2026-02-02T16:13:35.917-03:00  INFO 36430 --- [mvt-events] [  restartedMain] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-02-02T16:13:36.012-03:00  INFO 36430 --- [mvt-events] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-02-02T16:13:36.130-03:00  INFO 36430 --- [mvt-events] [  restartedMain] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-02-02T16:13:37.298-03:00 DEBUG 36430 --- [mvt-events] [  restartedMain] com.mvt.mvt_events.tenant.TenantFilter   : Filter 'tenantFilter' configured for use
+2026-02-02T16:13:37.366-03:00  INFO 36430 --- [mvt-events] [  restartedMain] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2026-02-02T16:13:37.595-03:00  INFO 36430 --- [mvt-events] [  restartedMain] c.m.m.payment.config.PagarMeConfig       : 🔐 Pagar.me Configuration Loaded:
+2026-02-02T16:13:37.596-03:00  INFO 36430 --- [mvt-events] [  restartedMain] c.m.m.payment.config.PagarMeConfig       :    API Key: ***a210fc11 (SANDBOX)
+2026-02-02T16:13:37.596-03:00  INFO 36430 --- [mvt-events] [  restartedMain] c.m.m.payment.config.PagarMeConfig       :    API URL: https://api.pagar.me/core/v5
+2026-02-02T16:13:38.098-03:00  INFO 36430 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : BouncyCastle provider registrado para Web Push
+2026-02-02T16:13:38.172-03:00  INFO 36430 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : ✅ Web Push Service configurado com VAPID keys
+2026-02-02T16:13:38.172-03:00  INFO 36430 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : 🔑 Public Key: BN8ym6-oByG6GoAEC939...
+2026-02-02T16:13:38.172-03:00  INFO 36430 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.config.WebPushConfig    : 📧 Subject: mailto:admin@mvt-events.com
+2026-02-02T16:13:38.457-03:00  INFO 36430 --- [mvt-events] [  restartedMain] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoints beneath base path '/actuator'
+2026-02-02T16:13:38.879-03:00  INFO 36430 --- [mvt-events] [  restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : LiveReload server is running on port 35729
+2026-02-02T16:13:38.924-03:00  INFO 36430 --- [mvt-events] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2026-02-02T16:13:38.940-03:00  INFO 36430 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.MvtEventsApplication    : Started MvtEventsApplication in 6.941 seconds (process running for 7.534)
+2026-02-02T16:13:38.976-03:00  INFO 36430 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.startup.CityDataLoader  : 🇧🇷 Iniciando verificação das cidades brasileiras...
+2026-02-02T16:13:39.007-03:00 DEBUG 36430 --- [mvt-events] [  restartedMain] org.hibernate.SQL                        : 
     /* select
         count(*) 
     from
@@ -81,64 +80,176 @@ Hibernate:
             count(*) 
         from
             cities c1_0
-2026-01-27T08:23:09.995-03:00  INFO 88519 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.startup.CityDataLoader  : ✅ Cidades já carregadas no banco: 5570 registros (>= 5570). Não é necessário recarregar.
-2026-01-27T08:23:59.663-03:00  INFO 88519 --- [mvt-events] [0.0-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-01-27T08:23:59.663-03:00  INFO 88519 --- [mvt-events] [0.0-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2026-01-27T08:23:59.677-03:00  INFO 88519 --- [mvt-events] [0.0-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 14 ms
-2026-01-27T08:23:59.785-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.SQL                        : 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
+2026-02-02T16:13:39.051-03:00  INFO 36430 --- [mvt-events] [  restartedMain] c.mvt.mvt_events.startup.CityDataLoader  : ✅ Cidades já carregadas no banco: 5570 registros (>= 5570). Não é necessário recarregar.
+2026-02-02T16:13:58.676-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-02-02T16:13:58.681-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-02-02T16:13:58.704-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 22 ms
+2026-02-02T16:14:35.921-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-2] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.confirmation_token,
+            u1_0.confirmation_token_expires_at,
+            u1_0.confirmed,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_customer_id,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.reset_token,
+            u1_0.reset_token_expires_at,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
 Hibernate: 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
-2026-01-27T08:23:59.797-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
-2026-01-27T08:23:59.822-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.confirmation_token,
+            u1_0.confirmation_token_expires_at,
+            u1_0.confirmed,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_customer_id,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.reset_token,
+            u1_0.reset_token_expires_at,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+2026-02-02T16:14:35.934-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-02-02T16:14:36.026-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-2] org.hibernate.SQL                        : 
     select
         ba1_0.id,
         ba1_0.account_digit,
@@ -190,24 +301,256 @@ Hibernate:
         bank_accounts ba1_0 
     where
         ba1_0.user_id=?
-2026-01-27T08:23:59.822-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
-2026-01-27T08:23:59.854-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.SQL                        : 
+2026-02-02T16:14:36.026-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:14:36.045-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-2] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Request: GET /api/customer-cards
+2026-02-02T16:14:36.045-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-2] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Authentication: UsernamePasswordAuthenticationToken
+2026-02-02T16:14:36.045-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-2] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Principal type: com.mvt.mvt_events.jpa.User
+2026-02-02T16:14:36.045-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-2] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Principal instanceof User: true
+2026-02-02T16:14:36.045-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-2] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - User: fabio.barros@prf.gov.br
+2026-02-02T16:14:36.046-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-2] com.mvt.mvt_events.tenant.TenantFilter   : ✅ TenantFilter - Tenant ID set to: 565
+2026-02-02T16:14:36.061-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-2] org.hibernate.SQL                        : 
+    /* SELECT
+        c 
+    FROM
+        CustomerCard c 
+    WHERE
+        c.customer.id = :customerId 
+        AND c.deletedAt IS NULL 
+    ORDER BY
+        c.isDefault DESC,
+        c.lastUsedAt DESC NULLS LAST,
+        c.createdAt DESC */ select
+            cc1_0.id,
+            cc1_0.brand,
+            cc1_0.created_at,
+            cc1_0.customer_id,
+            cc1_0.deleted_at,
+            cc1_0.exp_month,
+            cc1_0.exp_year,
+            cc1_0.holder_name,
+            cc1_0.is_active,
+            cc1_0.is_default,
+            cc1_0.is_verified,
+            cc1_0.last_four_digits,
+            cc1_0.last_used_at,
+            cc1_0.pagarme_card_id,
+            cc1_0.updated_at,
+            cc1_0.verified_at 
+        from
+            customer_cards cc1_0 
+        where
+            cc1_0.customer_id=? 
+            and cc1_0.deleted_at is null 
+        order by
+            cc1_0.is_default desc,
+            cc1_0.last_used_at desc nulls last,
+            cc1_0.created_at desc
+Hibernate: 
+    /* SELECT
+        c 
+    FROM
+        CustomerCard c 
+    WHERE
+        c.customer.id = :customerId 
+        AND c.deletedAt IS NULL 
+    ORDER BY
+        c.isDefault DESC,
+        c.lastUsedAt DESC NULLS LAST,
+        c.createdAt DESC */ select
+            cc1_0.id,
+            cc1_0.brand,
+            cc1_0.created_at,
+            cc1_0.customer_id,
+            cc1_0.deleted_at,
+            cc1_0.exp_month,
+            cc1_0.exp_year,
+            cc1_0.holder_name,
+            cc1_0.is_active,
+            cc1_0.is_default,
+            cc1_0.is_verified,
+            cc1_0.last_four_digits,
+            cc1_0.last_used_at,
+            cc1_0.pagarme_card_id,
+            cc1_0.updated_at,
+            cc1_0.verified_at 
+        from
+            customer_cards cc1_0 
+        where
+            cc1_0.customer_id=? 
+            and cc1_0.deleted_at is null 
+        order by
+            cc1_0.is_default desc,
+            cc1_0.last_used_at desc nulls last,
+            cc1_0.created_at desc
+2026-02-02T16:14:36.061-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:14:36.072-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-2] com.mvt.mvt_events.tenant.TenantFilter   : 🔚 TenantFilter - Request completed
+2026-02-02T16:15:05.121-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.confirmation_token,
+            u1_0.confirmation_token_expires_at,
+            u1_0.confirmed,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_customer_id,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.reset_token,
+            u1_0.reset_token_expires_at,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+Hibernate: 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.confirmation_token,
+            u1_0.confirmation_token_expires_at,
+            u1_0.confirmed,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_customer_id,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.reset_token,
+            u1_0.reset_token_expires_at,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+2026-02-02T16:15:05.129-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-02-02T16:15:05.146-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
     select
-        u1_0.id,
-        a1_0.user_id,
-        a1_0.id,
-        a1_0.city_id,
-        a1_0.complement,
-        a1_0.created_at,
-        a1_0.is_default,
-        a1_0.latitude,
-        a1_0.longitude,
-        a1_0.neighborhood,
-        a1_0.number,
-        a1_0.reference_point,
-        a1_0.street,
-        a1_0.updated_at,
-        a1_0.zip_code,
         ba1_0.id,
         ba1_0.account_digit,
         ba1_0.account_number,
@@ -227,53 +570,13 @@ Hibernate:
         ba1_0.transfer_interval,
         ba1_0.updated_at,
         ba1_0.user_id,
-        ba1_0.validated_at,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
+        ba1_0.validated_at 
     from
-        users u1_0 
-    left join
-        addresses a1_0 
-            on u1_0.id=a1_0.user_id 
-    left join
         bank_accounts ba1_0 
-            on u1_0.id=ba1_0.user_id 
     where
-        u1_0.id=?
+        ba1_0.user_id=?
 Hibernate: 
     select
-        u1_0.id,
-        a1_0.user_id,
-        a1_0.id,
-        a1_0.city_id,
-        a1_0.complement,
-        a1_0.created_at,
-        a1_0.is_default,
-        a1_0.latitude,
-        a1_0.longitude,
-        a1_0.neighborhood,
-        a1_0.number,
-        a1_0.reference_point,
-        a1_0.street,
-        a1_0.updated_at,
-        a1_0.zip_code,
         ba1_0.id,
         ba1_0.account_digit,
         ba1_0.account_number,
@@ -293,7 +596,22 @@ Hibernate:
         ba1_0.transfer_interval,
         ba1_0.updated_at,
         ba1_0.user_id,
-        ba1_0.validated_at,
+        ba1_0.validated_at 
+    from
+        bank_accounts ba1_0 
+    where
+        ba1_0.user_id=?
+2026-02-02T16:15:05.147-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:15:05.155-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-3] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Request: POST /api/customer-cards
+2026-02-02T16:15:05.155-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-3] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Authentication: UsernamePasswordAuthenticationToken
+2026-02-02T16:15:05.156-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-3] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Principal type: com.mvt.mvt_events.jpa.User
+2026-02-02T16:15:05.156-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-3] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Principal instanceof User: true
+2026-02-02T16:15:05.156-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-3] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - User: fabio.barros@prf.gov.br
+2026-02-02T16:15:05.156-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-3] com.mvt.mvt_events.tenant.TenantFilter   : ✅ TenantFilter - Tenant ID set to: 565
+2026-02-02T16:15:05.335-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-3] c.m.m.service.CustomerCardService        : Adicionando cartão para customer: f2919116-27e4-41b3-b74d-c7be10be66a6 | Token: token_7XapwJhMvtjDoP6g
+2026-02-02T16:15:05.360-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
         u1_0.confirmation_token,
         u1_0.confirmation_token_expires_at,
         u1_0.confirmed,
@@ -305,84 +623,242 @@ Hibernate:
         u1_0.gps_latitude,
         u1_0.gps_longitude,
         u1_0.name,
+        u1_0.pagarme_customer_id,
         u1_0.pagarme_recipient_id,
         u1_0.pagarme_status,
         u1_0.password,
         u1_0.phone_ddd,
         u1_0.phone_number,
+        u1_0.reset_token,
+        u1_0.reset_token_expires_at,
         u1_0.role,
         u1_0.updated_at,
         u1_0.username 
     from
         users u1_0 
-    left join
-        addresses a1_0 
-            on u1_0.id=a1_0.user_id 
-    left join
-        bank_accounts ba1_0 
-            on u1_0.id=ba1_0.user_id 
     where
         u1_0.id=?
-2026-01-27T08:23:59.854-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
-2026-01-27T08:23:59.869-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.SQL                        : 
-    select
-        ec1_0.courier_id,
-        ec1_0.id,
-        ec1_0.created_at,
-        ec1_0.is_active,
-        ec1_0.linked_at,
-        ec1_0.organization_id,
-        ec1_0.updated_at 
-    from
-        employment_contracts ec1_0 
-    where
-        ec1_0.courier_id=?
 Hibernate: 
     select
-        ec1_0.courier_id,
-        ec1_0.id,
-        ec1_0.created_at,
-        ec1_0.is_active,
-        ec1_0.linked_at,
-        ec1_0.organization_id,
-        ec1_0.updated_at 
+        u1_0.id,
+        u1_0.confirmation_token,
+        u1_0.confirmation_token_expires_at,
+        u1_0.confirmed,
+        u1_0.created_at,
+        u1_0.date_of_birth,
+        u1_0.document_number,
+        u1_0.enabled,
+        u1_0.gender,
+        u1_0.gps_latitude,
+        u1_0.gps_longitude,
+        u1_0.name,
+        u1_0.pagarme_customer_id,
+        u1_0.pagarme_recipient_id,
+        u1_0.pagarme_status,
+        u1_0.password,
+        u1_0.phone_ddd,
+        u1_0.phone_number,
+        u1_0.reset_token,
+        u1_0.reset_token_expires_at,
+        u1_0.role,
+        u1_0.updated_at,
+        u1_0.username 
     from
-        employment_contracts ec1_0 
+        users u1_0 
     where
-        ec1_0.courier_id=?
-2026-01-27T08:23:59.869-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
-2026-01-27T08:23:59.873-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.SQL                        : 
+        u1_0.id=?
+2026-02-02T16:15:05.361-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:15:05.366-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
     select
-        cc1_0.client_id,
-        cc1_0.id,
-        cc1_0.created_at,
-        cc1_0.end_date,
-        cc1_0.is_primary,
-        cc1_0.organization_id,
-        cc1_0.start_date,
-        cc1_0.status,
-        cc1_0.updated_at 
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.transfer_day,
+        ba1_0.transfer_interval,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
     from
-        client_contracts cc1_0 
+        bank_accounts ba1_0 
     where
-        cc1_0.client_id=?
+        ba1_0.user_id=?
 Hibernate: 
     select
-        cc1_0.client_id,
-        cc1_0.id,
-        cc1_0.created_at,
-        cc1_0.end_date,
-        cc1_0.is_primary,
-        cc1_0.organization_id,
-        cc1_0.start_date,
-        cc1_0.status,
-        cc1_0.updated_at 
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.transfer_day,
+        ba1_0.transfer_interval,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
     from
-        client_contracts cc1_0 
+        bank_accounts ba1_0 
     where
-        cc1_0.client_id=?
-2026-01-27T08:23:59.874-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
-2026-01-27T08:23:59.930-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.SQL                        : 
+        ba1_0.user_id=?
+2026-02-02T16:15:05.367-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:15:05.371-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-3] c.m.m.payment.service.PagarMeService     : 💳 Criando customer no Pagar.me para user: Fabio Barros PRF (fabio.barros@prf.gov.br)
+2026-02-02T16:15:05.374-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-3] c.m.m.payment.service.PagarMeService     : 📤 Payload enviado ao Pagar.me: {document=39776425020, name=Fabio Barros PRF, phones={mobile_phone={country_code=55, number=997572919, area_code=85}}, type=individual, email=fabio.barros@prf.gov.br}
+2026-02-02T16:15:06.374-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-3] c.m.m.payment.service.PagarMeService     :    └─ ✅ Customer criado: cus_g5jvxDEHBYfYnvae
+2026-02-02T16:15:06.388-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-3] c.m.m.service.CustomerCardService        :    └─ Customer Pagar.me criado: cus_g5jvxDEHBYfYnvae
+2026-02-02T16:15:06.388-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-3] c.m.m.payment.service.PagarMeService     : 💳 Criando cartão no Pagar.me para customer: cus_g5jvxDEHBYfYnvae
+2026-02-02T16:15:07.291-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-3] c.m.m.payment.service.PagarMeService     :    └─ ✅ Cartão criado: card_WZxNj74S7tRwDvE7
+2026-02-02T16:15:07.435-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
+    /* <criteria> */ select
+        cc1_0.id,
+        cc1_0.brand,
+        cc1_0.created_at,
+        cc1_0.customer_id,
+        cc1_0.deleted_at,
+        cc1_0.exp_month,
+        cc1_0.exp_year,
+        cc1_0.holder_name,
+        cc1_0.is_active,
+        cc1_0.is_default,
+        cc1_0.is_verified,
+        cc1_0.last_four_digits,
+        cc1_0.last_used_at,
+        cc1_0.pagarme_card_id,
+        cc1_0.updated_at,
+        cc1_0.verified_at 
+    from
+        customer_cards cc1_0 
+    where
+        cc1_0.pagarme_card_id=?
+Hibernate: 
+    /* <criteria> */ select
+        cc1_0.id,
+        cc1_0.brand,
+        cc1_0.created_at,
+        cc1_0.customer_id,
+        cc1_0.deleted_at,
+        cc1_0.exp_month,
+        cc1_0.exp_year,
+        cc1_0.holder_name,
+        cc1_0.is_active,
+        cc1_0.is_default,
+        cc1_0.is_verified,
+        cc1_0.last_four_digits,
+        cc1_0.last_used_at,
+        cc1_0.pagarme_card_id,
+        cc1_0.updated_at,
+        cc1_0.verified_at 
+    from
+        customer_cards cc1_0 
+    where
+        cc1_0.pagarme_card_id=?
+2026-02-02T16:15:07.435-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [card_WZxNj74S7tRwDvE7]
+2026-02-02T16:15:07.460-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
+    /* SELECT
+        COUNT(c) 
+    FROM
+        CustomerCard c 
+    WHERE
+        c.customer.id = :customerId 
+        AND c.deletedAt IS NULL 
+        AND c.isActive = TRUE */ select
+            count(cc1_0.id) 
+        from
+            customer_cards cc1_0 
+        where
+            cc1_0.customer_id=? 
+            and cc1_0.deleted_at is null 
+            and cc1_0.is_active=true
+Hibernate: 
+    /* SELECT
+        COUNT(c) 
+    FROM
+        CustomerCard c 
+    WHERE
+        c.customer.id = :customerId 
+        AND c.deletedAt IS NULL 
+        AND c.isActive = TRUE */ select
+            count(cc1_0.id) 
+        from
+            customer_cards cc1_0 
+        where
+            cc1_0.customer_id=? 
+            and cc1_0.deleted_at is null 
+            and cc1_0.is_active=true
+2026-02-02T16:15:07.460-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:15:07.490-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
+    /* UPDATE
+        CustomerCard c 
+    SET
+        c.isDefault = FALSE 
+    WHERE
+        c.customer.id = :customerId */ update customer_cards cc1_0 
+    set
+        is_default=false 
+    where
+        cc1_0.customer_id=?
+Hibernate: 
+    /* UPDATE
+        CustomerCard c 
+    SET
+        c.isDefault = FALSE 
+    WHERE
+        c.customer.id = :customerId */ update customer_cards cc1_0 
+    set
+        is_default=false 
+    where
+        cc1_0.customer_id=?
+2026-02-02T16:15:07.490-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:15:07.523-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
+    /* insert for
+        com.mvt.mvt_events.jpa.CustomerCard */insert 
+    into
+        customer_cards (brand, created_at, customer_id, deleted_at, exp_month, exp_year, holder_name, is_active, is_default, is_verified, last_four_digits, last_used_at, pagarme_card_id, updated_at, verified_at) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+Hibernate: 
+    /* insert for
+        com.mvt.mvt_events.jpa.CustomerCard */insert 
+    into
+        customer_cards (brand, created_at, customer_id, deleted_at, exp_month, exp_year, holder_name, is_active, is_default, is_verified, last_four_digits, last_used_at, pagarme_card_id, updated_at, verified_at) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+2026-02-02T16:15:07.525-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [VISA]
+2026-02-02T16:15:07.525-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (2:TIMESTAMP) <- [2026-02-02T16:15:07.512728]
+2026-02-02T16:15:07.526-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (3:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:15:07.526-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (4:TIMESTAMP) <- [null]
+2026-02-02T16:15:07.527-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (5:INTEGER) <- [12]
+2026-02-02T16:15:07.527-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (6:INTEGER) <- [2028]
+2026-02-02T16:15:07.527-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (7:VARCHAR) <- [TESTE DA SILVA]
+2026-02-02T16:15:07.528-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (8:BOOLEAN) <- [true]
+2026-02-02T16:15:07.528-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (9:BOOLEAN) <- [true]
+2026-02-02T16:15:07.528-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (10:BOOLEAN) <- [true]
+2026-02-02T16:15:07.528-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (11:VARCHAR) <- [1111]
+2026-02-02T16:15:07.528-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (12:TIMESTAMP) <- [null]
+2026-02-02T16:15:07.528-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (13:VARCHAR) <- [card_WZxNj74S7tRwDvE7]
+2026-02-02T16:15:07.528-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (14:TIMESTAMP) <- [2026-02-02T16:15:07.512749]
+2026-02-02T16:15:07.528-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (15:TIMESTAMP) <- [null]
+2026-02-02T16:15:07.557-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-3] c.m.m.service.CustomerCardService        : Cartão adicionado com sucesso: 2 | Default: true
+2026-02-02T16:15:07.567-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
     /* update
         for com.mvt.mvt_events.jpa.User */update users 
     set
@@ -396,11 +872,14 @@ Hibernate:
         gps_latitude=?,
         gps_longitude=?,
         name=?,
+        pagarme_customer_id=?,
         pagarme_recipient_id=?,
         pagarme_status=?,
         password=?,
         phone_ddd=?,
         phone_number=?,
+        reset_token=?,
+        reset_token_expires_at=?,
         role=?,
         updated_at=?,
         username=? 
@@ -420,90 +899,208 @@ Hibernate:
         gps_latitude=?,
         gps_longitude=?,
         name=?,
+        pagarme_customer_id=?,
         pagarme_recipient_id=?,
         pagarme_status=?,
         password=?,
         phone_ddd=?,
         phone_number=?,
+        reset_token=?,
+        reset_token_expires_at=?,
         role=?,
         updated_at=?,
         username=? 
     where
         id=?
-2026-01-27T08:23:59.931-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [cd3b0138-749a-4a48-8739-eeac5508fac7]
-2026-01-27T08:23:59.931-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (2:TIMESTAMP) <- [2026-01-28T08:23:59.839077]
-2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (3:BOOLEAN) <- [false]
-2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (4:DATE) <- [null]
-2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (5:VARCHAR) <- [39776425020]
-2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (6:BOOLEAN) <- [true]
-2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (7:VARCHAR) <- [null]
-2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (8:DOUBLE) <- [null]
-2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (9:DOUBLE) <- [null]
-2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (10:VARCHAR) <- [Fabio Barros]
-2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (11:VARCHAR) <- [null]
-2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (12:VARCHAR) <- [null]
-2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (13:VARCHAR) <- [$2a$10$xtAvjODID8H7M7jb/UMjReAuF1d2UvwaAaJ9Ods94Lz55vZZ36lBq]
-2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (14:VARCHAR) <- [null]
-2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (15:VARCHAR) <- [null]
-2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (16:VARCHAR) <- [CUSTOMER]
-2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (17:TIMESTAMP) <- [2026-01-27T08:23:59.905924]
-2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (18:VARCHAR) <- [fabio.barros@prf.gov.br]
-2026-01-27T08:23:59.932-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (19:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
-2026-01-27T08:24:04.289-03:00  INFO 88519 --- [mvt-events] [        async-1] c.mvt.mvt_events.service.EmailService    : ✅ Email de confirmação enviado para: fabio.barros@prf.gov.br
-2026-01-27T12:36:20.427-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.SQL                        : 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [null]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (2:TIMESTAMP) <- [null]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (3:BOOLEAN) <- [true]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (4:DATE) <- [1974-09-04]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (5:VARCHAR) <- [39776425020]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (6:BOOLEAN) <- [true]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (7:VARCHAR) <- [MALE]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (8:DOUBLE) <- [null]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (9:DOUBLE) <- [null]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (10:VARCHAR) <- [Fabio Barros PRF]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (11:VARCHAR) <- [cus_g5jvxDEHBYfYnvae]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (12:VARCHAR) <- [null]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (13:VARCHAR) <- [null]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (14:VARCHAR) <- [$2a$10$RYksWKv6pLvx2JbngJXeJOP0bR3Tm.kPVM0RNxN3hDWJk2Gin0ESu]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (15:VARCHAR) <- [85]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (16:VARCHAR) <- [997572919]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (17:VARCHAR) <- [null]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (18:TIMESTAMP) <- [null]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (19:VARCHAR) <- [CUSTOMER]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (20:TIMESTAMP) <- [2026-02-02T16:15:07.557913]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (21:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-02-02T16:15:07.567-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (22:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:15:07.627-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-3] com.mvt.mvt_events.tenant.TenantFilter   : 🔚 TenantFilter - Request completed
+2026-02-02T16:15:09.839-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.confirmation_token,
+            u1_0.confirmation_token_expires_at,
+            u1_0.confirmed,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_customer_id,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.reset_token,
+            u1_0.reset_token_expires_at,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
 Hibernate: 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
-2026-01-27T12:36:20.482-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
-2026-01-27T12:36:20.592-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.confirmation_token,
+            u1_0.confirmation_token_expires_at,
+            u1_0.confirmed,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_customer_id,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.reset_token,
+            u1_0.reset_token_expires_at,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+2026-02-02T16:15:09.844-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-02-02T16:15:09.851-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.SQL                        : 
     select
         ba1_0.id,
         ba1_0.account_digit,
@@ -555,62 +1152,255 @@ Hibernate:
         bank_accounts ba1_0 
     where
         ba1_0.user_id=?
-2026-01-27T12:36:20.593-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
-2026-01-27T12:36:20.726-03:00  WARN 88519 --- [mvt-events] [0.0-8080-exec-5] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [com.mvt.mvt_events.exception.EmailAlreadyExistsException: Email 'fabio.barros@prf.gov.br' já está cadastrado no sistema]
-2026-01-27T12:43:07.581-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-2] org.hibernate.SQL                        : 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
+2026-02-02T16:15:09.851-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:15:09.857-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-4] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Request: GET /api/customer-cards
+2026-02-02T16:15:09.858-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-4] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Authentication: UsernamePasswordAuthenticationToken
+2026-02-02T16:15:09.858-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-4] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Principal type: com.mvt.mvt_events.jpa.User
+2026-02-02T16:15:09.858-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-4] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Principal instanceof User: true
+2026-02-02T16:15:09.859-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-4] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - User: fabio.barros@prf.gov.br
+2026-02-02T16:15:09.859-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-4] com.mvt.mvt_events.tenant.TenantFilter   : ✅ TenantFilter - Tenant ID set to: 565
+2026-02-02T16:15:09.866-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.SQL                        : 
+    /* SELECT
+        c 
+    FROM
+        CustomerCard c 
+    WHERE
+        c.customer.id = :customerId 
+        AND c.deletedAt IS NULL 
+    ORDER BY
+        c.isDefault DESC,
+        c.lastUsedAt DESC NULLS LAST,
+        c.createdAt DESC */ select
+            cc1_0.id,
+            cc1_0.brand,
+            cc1_0.created_at,
+            cc1_0.customer_id,
+            cc1_0.deleted_at,
+            cc1_0.exp_month,
+            cc1_0.exp_year,
+            cc1_0.holder_name,
+            cc1_0.is_active,
+            cc1_0.is_default,
+            cc1_0.is_verified,
+            cc1_0.last_four_digits,
+            cc1_0.last_used_at,
+            cc1_0.pagarme_card_id,
+            cc1_0.updated_at,
+            cc1_0.verified_at 
+        from
+            customer_cards cc1_0 
+        where
+            cc1_0.customer_id=? 
+            and cc1_0.deleted_at is null 
+        order by
+            cc1_0.is_default desc,
+            cc1_0.last_used_at desc nulls last,
+            cc1_0.created_at desc
 Hibernate: 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
-2026-01-27T12:43:07.629-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
-2026-01-27T12:43:07.806-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-2] org.hibernate.SQL                        : 
+    /* SELECT
+        c 
+    FROM
+        CustomerCard c 
+    WHERE
+        c.customer.id = :customerId 
+        AND c.deletedAt IS NULL 
+    ORDER BY
+        c.isDefault DESC,
+        c.lastUsedAt DESC NULLS LAST,
+        c.createdAt DESC */ select
+            cc1_0.id,
+            cc1_0.brand,
+            cc1_0.created_at,
+            cc1_0.customer_id,
+            cc1_0.deleted_at,
+            cc1_0.exp_month,
+            cc1_0.exp_year,
+            cc1_0.holder_name,
+            cc1_0.is_active,
+            cc1_0.is_default,
+            cc1_0.is_verified,
+            cc1_0.last_four_digits,
+            cc1_0.last_used_at,
+            cc1_0.pagarme_card_id,
+            cc1_0.updated_at,
+            cc1_0.verified_at 
+        from
+            customer_cards cc1_0 
+        where
+            cc1_0.customer_id=? 
+            and cc1_0.deleted_at is null 
+        order by
+            cc1_0.is_default desc,
+            cc1_0.last_used_at desc nulls last,
+            cc1_0.created_at desc
+2026-02-02T16:15:09.867-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:15:09.893-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-4] com.mvt.mvt_events.tenant.TenantFilter   : 🔚 TenantFilter - Request completed
+2026-02-02T16:15:46.077-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.confirmation_token,
+            u1_0.confirmation_token_expires_at,
+            u1_0.confirmed,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_customer_id,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.reset_token,
+            u1_0.reset_token_expires_at,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+Hibernate: 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.confirmation_token,
+            u1_0.confirmation_token_expires_at,
+            u1_0.confirmed,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_customer_id,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.reset_token,
+            u1_0.reset_token_expires_at,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+2026-02-02T16:15:46.104-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-02-02T16:15:46.128-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.SQL                        : 
     select
         ba1_0.id,
         ba1_0.account_digit,
@@ -662,9 +1452,14 @@ Hibernate:
         bank_accounts ba1_0 
     where
         ba1_0.user_id=?
-2026-01-27T12:43:07.807-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
-2026-01-27T12:43:07.993-03:00  WARN 88519 --- [mvt-events] [0.0-8080-exec-2] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [com.mvt.mvt_events.exception.EmailAlreadyExistsException: Email 'fabio.barros@prf.gov.br' já está cadastrado no sistema]
-2026-01-27T12:48:01.931-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.SQL                        : 
+2026-02-02T16:15:46.128-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:15:46.140-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-5] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Request: GET /api/deliveries/courier/active
+2026-02-02T16:15:46.140-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-5] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Authentication: UsernamePasswordAuthenticationToken
+2026-02-02T16:15:46.140-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-5] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Principal type: com.mvt.mvt_events.jpa.User
+2026-02-02T16:15:46.140-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-5] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Principal instanceof User: true
+2026-02-02T16:15:46.140-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-5] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - User: fabio.barros@prf.gov.br
+2026-02-02T16:15:46.140-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-5] com.mvt.mvt_events.tenant.TenantFilter   : ✅ TenantFilter - Tenant ID set to: 565
+2026-02-02T16:15:46.197-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.SQL                        : 
     /* <criteria> */ select
         u1_0.id,
         u1_0.confirmation_token,
@@ -678,11 +1473,14 @@ Hibernate:
         u1_0.gps_latitude,
         u1_0.gps_longitude,
         u1_0.name,
+        u1_0.pagarme_customer_id,
         u1_0.pagarme_recipient_id,
         u1_0.pagarme_status,
         u1_0.password,
         u1_0.phone_ddd,
         u1_0.phone_number,
+        u1_0.reset_token,
+        u1_0.reset_token_expires_at,
         u1_0.role,
         u1_0.updated_at,
         u1_0.username 
@@ -704,11 +1502,14 @@ Hibernate:
         u1_0.gps_latitude,
         u1_0.gps_longitude,
         u1_0.name,
+        u1_0.pagarme_customer_id,
         u1_0.pagarme_recipient_id,
         u1_0.pagarme_status,
         u1_0.password,
         u1_0.phone_ddd,
         u1_0.phone_number,
+        u1_0.reset_token,
+        u1_0.reset_token_expires_at,
         u1_0.role,
         u1_0.updated_at,
         u1_0.username 
@@ -716,8 +1517,8 @@ Hibernate:
         users u1_0 
     where
         u1_0.username=?
-2026-01-27T12:48:01.946-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
-2026-01-27T12:48:01.993-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.SQL                        : 
+2026-02-02T16:15:46.199-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-02-02T16:15:46.233-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.SQL                        : 
     select
         ba1_0.id,
         ba1_0.account_digit,
@@ -769,62 +1570,263 @@ Hibernate:
         bank_accounts ba1_0 
     where
         ba1_0.user_id=?
-2026-01-27T12:48:01.993-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
-2026-01-27T12:48:02.025-03:00  WARN 88519 --- [mvt-events] [0.0-8080-exec-6] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [com.mvt.mvt_events.exception.EmailAlreadyExistsException: Email 'fabio.barros@prf.gov.br' já está cadastrado no sistema]
-2026-01-27T12:51:27.226-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
+2026-02-02T16:15:46.235-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:15:46.435-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.SQL                        : 
+    /* SELECT
+        d 
+    FROM
+        Delivery d 
+    WHERE
+        d.courier.id = :courierId 
+        AND d.status IN ('ACCEPTED', 'PICKED_UP', 'IN_TRANSIT') 
+    ORDER BY
+        d.updatedAt DESC */ select
+            d1_0.id,
+            d1_0.accepted_at,
+            d1_0.cancellation_reason,
+            d1_0.cancelled_at,
+            d1_0.client_id,
+            d1_0.completed_at,
+            d1_0.courier_id,
+            d1_0.created_at,
+            d1_0.distance_km,
+            d1_0.estimated_time_minutes,
+            d1_0.from_address,
+            d1_0.from_lat,
+            d1_0.from_lng,
+            d1_0.in_transit_at,
+            d1_0.item_description,
+            d1_0.organizer_id,
+            d1_0.picked_up_at,
+            d1_0.recipient_name,
+            d1_0.recipient_phone,
+            d1_0.scheduled_pickup_at,
+            d1_0.shipping_fee,
+            d1_0.status,
+            d1_0.to_address,
+            d1_0.to_lat,
+            d1_0.to_lng,
+            d1_0.total_amount,
+            d1_0.updated_at 
+        from
+            deliveries d1_0 
+        where
+            d1_0.courier_id=? 
+            and d1_0.status in ('ACCEPTED', 'PICKED_UP', 'IN_TRANSIT') 
+        order by
+            d1_0.updated_at desc
 Hibernate: 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
-2026-01-27T12:51:27.261-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
-2026-01-27T12:51:27.330-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
+    /* SELECT
+        d 
+    FROM
+        Delivery d 
+    WHERE
+        d.courier.id = :courierId 
+        AND d.status IN ('ACCEPTED', 'PICKED_UP', 'IN_TRANSIT') 
+    ORDER BY
+        d.updatedAt DESC */ select
+            d1_0.id,
+            d1_0.accepted_at,
+            d1_0.cancellation_reason,
+            d1_0.cancelled_at,
+            d1_0.client_id,
+            d1_0.completed_at,
+            d1_0.courier_id,
+            d1_0.created_at,
+            d1_0.distance_km,
+            d1_0.estimated_time_minutes,
+            d1_0.from_address,
+            d1_0.from_lat,
+            d1_0.from_lng,
+            d1_0.in_transit_at,
+            d1_0.item_description,
+            d1_0.organizer_id,
+            d1_0.picked_up_at,
+            d1_0.recipient_name,
+            d1_0.recipient_phone,
+            d1_0.scheduled_pickup_at,
+            d1_0.shipping_fee,
+            d1_0.status,
+            d1_0.to_address,
+            d1_0.to_lat,
+            d1_0.to_lng,
+            d1_0.total_amount,
+            d1_0.updated_at 
+        from
+            deliveries d1_0 
+        where
+            d1_0.courier_id=? 
+            and d1_0.status in ('ACCEPTED', 'PICKED_UP', 'IN_TRANSIT') 
+        order by
+            d1_0.updated_at desc
+2026-02-02T16:15:46.435-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:15:46.514-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-5] com.mvt.mvt_events.tenant.TenantFilter   : 🔚 TenantFilter - Request completed
+2026-02-02T16:15:52.132-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.confirmation_token,
+            u1_0.confirmation_token_expires_at,
+            u1_0.confirmed,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_customer_id,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.reset_token,
+            u1_0.reset_token_expires_at,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+Hibernate: 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.confirmation_token,
+            u1_0.confirmation_token_expires_at,
+            u1_0.confirmed,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_customer_id,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.reset_token,
+            u1_0.reset_token_expires_at,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+2026-02-02T16:15:52.142-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-02-02T16:15:52.154-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.SQL                        : 
     select
         ba1_0.id,
         ba1_0.account_digit,
@@ -876,24 +1878,256 @@ Hibernate:
         bank_accounts ba1_0 
     where
         ba1_0.user_id=?
-2026-01-27T12:51:27.332-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
-2026-01-27T12:51:27.491-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
+2026-02-02T16:15:52.155-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:15:52.166-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-6] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Request: GET /api/customer-cards
+2026-02-02T16:15:52.167-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-6] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Authentication: UsernamePasswordAuthenticationToken
+2026-02-02T16:15:52.167-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-6] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Principal type: com.mvt.mvt_events.jpa.User
+2026-02-02T16:15:52.167-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-6] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Principal instanceof User: true
+2026-02-02T16:15:52.167-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-6] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - User: fabio.barros@prf.gov.br
+2026-02-02T16:15:52.167-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-6] com.mvt.mvt_events.tenant.TenantFilter   : ✅ TenantFilter - Tenant ID set to: 565
+2026-02-02T16:15:52.171-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.SQL                        : 
+    /* SELECT
+        c 
+    FROM
+        CustomerCard c 
+    WHERE
+        c.customer.id = :customerId 
+        AND c.deletedAt IS NULL 
+    ORDER BY
+        c.isDefault DESC,
+        c.lastUsedAt DESC NULLS LAST,
+        c.createdAt DESC */ select
+            cc1_0.id,
+            cc1_0.brand,
+            cc1_0.created_at,
+            cc1_0.customer_id,
+            cc1_0.deleted_at,
+            cc1_0.exp_month,
+            cc1_0.exp_year,
+            cc1_0.holder_name,
+            cc1_0.is_active,
+            cc1_0.is_default,
+            cc1_0.is_verified,
+            cc1_0.last_four_digits,
+            cc1_0.last_used_at,
+            cc1_0.pagarme_card_id,
+            cc1_0.updated_at,
+            cc1_0.verified_at 
+        from
+            customer_cards cc1_0 
+        where
+            cc1_0.customer_id=? 
+            and cc1_0.deleted_at is null 
+        order by
+            cc1_0.is_default desc,
+            cc1_0.last_used_at desc nulls last,
+            cc1_0.created_at desc
+Hibernate: 
+    /* SELECT
+        c 
+    FROM
+        CustomerCard c 
+    WHERE
+        c.customer.id = :customerId 
+        AND c.deletedAt IS NULL 
+    ORDER BY
+        c.isDefault DESC,
+        c.lastUsedAt DESC NULLS LAST,
+        c.createdAt DESC */ select
+            cc1_0.id,
+            cc1_0.brand,
+            cc1_0.created_at,
+            cc1_0.customer_id,
+            cc1_0.deleted_at,
+            cc1_0.exp_month,
+            cc1_0.exp_year,
+            cc1_0.holder_name,
+            cc1_0.is_active,
+            cc1_0.is_default,
+            cc1_0.is_verified,
+            cc1_0.last_four_digits,
+            cc1_0.last_used_at,
+            cc1_0.pagarme_card_id,
+            cc1_0.updated_at,
+            cc1_0.verified_at 
+        from
+            customer_cards cc1_0 
+        where
+            cc1_0.customer_id=? 
+            and cc1_0.deleted_at is null 
+        order by
+            cc1_0.is_default desc,
+            cc1_0.last_used_at desc nulls last,
+            cc1_0.created_at desc
+2026-02-02T16:15:52.171-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:15:52.203-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-6] com.mvt.mvt_events.tenant.TenantFilter   : 🔚 TenantFilter - Request completed
+2026-02-02T16:16:23.060-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.confirmation_token,
+            u1_0.confirmation_token_expires_at,
+            u1_0.confirmed,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_customer_id,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.reset_token,
+            u1_0.reset_token_expires_at,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+Hibernate: 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.confirmation_token,
+            u1_0.confirmation_token_expires_at,
+            u1_0.confirmed,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_customer_id,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.reset_token,
+            u1_0.reset_token_expires_at,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+2026-02-02T16:16:23.068-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-02-02T16:16:23.078-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.SQL                        : 
     select
-        u1_0.id,
-        a1_0.user_id,
-        a1_0.id,
-        a1_0.city_id,
-        a1_0.complement,
-        a1_0.created_at,
-        a1_0.is_default,
-        a1_0.latitude,
-        a1_0.longitude,
-        a1_0.neighborhood,
-        a1_0.number,
-        a1_0.reference_point,
-        a1_0.street,
-        a1_0.updated_at,
-        a1_0.zip_code,
         ba1_0.id,
         ba1_0.account_digit,
         ba1_0.account_number,
@@ -913,53 +2147,13 @@ Hibernate:
         ba1_0.transfer_interval,
         ba1_0.updated_at,
         ba1_0.user_id,
-        ba1_0.validated_at,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
+        ba1_0.validated_at 
     from
-        users u1_0 
-    left join
-        addresses a1_0 
-            on u1_0.id=a1_0.user_id 
-    left join
         bank_accounts ba1_0 
-            on u1_0.id=ba1_0.user_id 
     where
-        u1_0.id=?
+        ba1_0.user_id=?
 Hibernate: 
     select
-        u1_0.id,
-        a1_0.user_id,
-        a1_0.id,
-        a1_0.city_id,
-        a1_0.complement,
-        a1_0.created_at,
-        a1_0.is_default,
-        a1_0.latitude,
-        a1_0.longitude,
-        a1_0.neighborhood,
-        a1_0.number,
-        a1_0.reference_point,
-        a1_0.street,
-        a1_0.updated_at,
-        a1_0.zip_code,
         ba1_0.id,
         ba1_0.account_digit,
         ba1_0.account_number,
@@ -979,7 +2173,321 @@ Hibernate:
         ba1_0.transfer_interval,
         ba1_0.updated_at,
         ba1_0.user_id,
-        ba1_0.validated_at,
+        ba1_0.validated_at 
+    from
+        bank_accounts ba1_0 
+    where
+        ba1_0.user_id=?
+2026-02-02T16:16:23.078-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:16:23.111-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-7] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Request: GET /api/customer-cards
+2026-02-02T16:16:23.111-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-7] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Authentication: UsernamePasswordAuthenticationToken
+2026-02-02T16:16:23.111-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-7] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Principal type: com.mvt.mvt_events.jpa.User
+2026-02-02T16:16:23.111-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-7] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Principal instanceof User: true
+2026-02-02T16:16:23.111-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-7] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - User: fabio.barros@prf.gov.br
+2026-02-02T16:16:23.112-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-7] com.mvt.mvt_events.tenant.TenantFilter   : ✅ TenantFilter - Tenant ID set to: 565
+2026-02-02T16:16:23.116-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.SQL                        : 
+    /* SELECT
+        c 
+    FROM
+        CustomerCard c 
+    WHERE
+        c.customer.id = :customerId 
+        AND c.deletedAt IS NULL 
+    ORDER BY
+        c.isDefault DESC,
+        c.lastUsedAt DESC NULLS LAST,
+        c.createdAt DESC */ select
+            cc1_0.id,
+            cc1_0.brand,
+            cc1_0.created_at,
+            cc1_0.customer_id,
+            cc1_0.deleted_at,
+            cc1_0.exp_month,
+            cc1_0.exp_year,
+            cc1_0.holder_name,
+            cc1_0.is_active,
+            cc1_0.is_default,
+            cc1_0.is_verified,
+            cc1_0.last_four_digits,
+            cc1_0.last_used_at,
+            cc1_0.pagarme_card_id,
+            cc1_0.updated_at,
+            cc1_0.verified_at 
+        from
+            customer_cards cc1_0 
+        where
+            cc1_0.customer_id=? 
+            and cc1_0.deleted_at is null 
+        order by
+            cc1_0.is_default desc,
+            cc1_0.last_used_at desc nulls last,
+            cc1_0.created_at desc
+Hibernate: 
+    /* SELECT
+        c 
+    FROM
+        CustomerCard c 
+    WHERE
+        c.customer.id = :customerId 
+        AND c.deletedAt IS NULL 
+    ORDER BY
+        c.isDefault DESC,
+        c.lastUsedAt DESC NULLS LAST,
+        c.createdAt DESC */ select
+            cc1_0.id,
+            cc1_0.brand,
+            cc1_0.created_at,
+            cc1_0.customer_id,
+            cc1_0.deleted_at,
+            cc1_0.exp_month,
+            cc1_0.exp_year,
+            cc1_0.holder_name,
+            cc1_0.is_active,
+            cc1_0.is_default,
+            cc1_0.is_verified,
+            cc1_0.last_four_digits,
+            cc1_0.last_used_at,
+            cc1_0.pagarme_card_id,
+            cc1_0.updated_at,
+            cc1_0.verified_at 
+        from
+            customer_cards cc1_0 
+        where
+            cc1_0.customer_id=? 
+            and cc1_0.deleted_at is null 
+        order by
+            cc1_0.is_default desc,
+            cc1_0.last_used_at desc nulls last,
+            cc1_0.created_at desc
+2026-02-02T16:16:23.117-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:16:23.129-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-7] com.mvt.mvt_events.tenant.TenantFilter   : 🔚 TenantFilter - Request completed
+2026-02-02T16:16:41.565-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.confirmation_token,
+            u1_0.confirmation_token_expires_at,
+            u1_0.confirmed,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_customer_id,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.reset_token,
+            u1_0.reset_token_expires_at,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+Hibernate: 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.confirmation_token,
+            u1_0.confirmation_token_expires_at,
+            u1_0.confirmed,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_customer_id,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.reset_token,
+            u1_0.reset_token_expires_at,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+2026-02-02T16:16:41.570-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-02-02T16:16:41.589-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.SQL                        : 
+    select
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.transfer_day,
+        ba1_0.transfer_interval,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
+    from
+        bank_accounts ba1_0 
+    where
+        ba1_0.user_id=?
+Hibernate: 
+    select
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.transfer_day,
+        ba1_0.transfer_interval,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
+    from
+        bank_accounts ba1_0 
+    where
+        ba1_0.user_id=?
+2026-02-02T16:16:41.589-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:16:41.608-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-8] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Request: DELETE /api/customer-cards/2
+2026-02-02T16:16:41.610-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-8] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Authentication: UsernamePasswordAuthenticationToken
+2026-02-02T16:16:41.610-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-8] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Principal type: com.mvt.mvt_events.jpa.User
+2026-02-02T16:16:41.610-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-8] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Principal instanceof User: true
+2026-02-02T16:16:41.611-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-8] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - User: fabio.barros@prf.gov.br
+2026-02-02T16:16:41.611-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-8] com.mvt.mvt_events.tenant.TenantFilter   : ✅ TenantFilter - Tenant ID set to: 565
+2026-02-02T16:16:41.658-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.SQL                        : 
+    /* <criteria> */ select
+        u1_0.id,
         u1_0.confirmation_token,
         u1_0.confirmation_token_expires_at,
         u1_0.confirmed,
@@ -991,205 +2499,391 @@ Hibernate:
         u1_0.gps_latitude,
         u1_0.gps_longitude,
         u1_0.name,
+        u1_0.pagarme_customer_id,
         u1_0.pagarme_recipient_id,
         u1_0.pagarme_status,
         u1_0.password,
         u1_0.phone_ddd,
         u1_0.phone_number,
+        u1_0.reset_token,
+        u1_0.reset_token_expires_at,
         u1_0.role,
         u1_0.updated_at,
         u1_0.username 
     from
         users u1_0 
-    left join
-        addresses a1_0 
-            on u1_0.id=a1_0.user_id 
-    left join
+    where
+        u1_0.username=?
+Hibernate: 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.confirmation_token,
+        u1_0.confirmation_token_expires_at,
+        u1_0.confirmed,
+        u1_0.created_at,
+        u1_0.date_of_birth,
+        u1_0.document_number,
+        u1_0.enabled,
+        u1_0.gender,
+        u1_0.gps_latitude,
+        u1_0.gps_longitude,
+        u1_0.name,
+        u1_0.pagarme_customer_id,
+        u1_0.pagarme_recipient_id,
+        u1_0.pagarme_status,
+        u1_0.password,
+        u1_0.phone_ddd,
+        u1_0.phone_number,
+        u1_0.reset_token,
+        u1_0.reset_token_expires_at,
+        u1_0.role,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2026-02-02T16:16:41.658-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-02-02T16:16:41.662-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.SQL                        : 
+    select
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.transfer_day,
+        ba1_0.transfer_interval,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
+    from
         bank_accounts ba1_0 
-            on u1_0.id=ba1_0.user_id 
     where
-        u1_0.id=?
-2026-01-27T12:51:27.492-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
-2026-01-27T12:51:27.561-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
-    select
-        ec1_0.courier_id,
-        ec1_0.id,
-        ec1_0.created_at,
-        ec1_0.is_active,
-        ec1_0.linked_at,
-        ec1_0.organization_id,
-        ec1_0.updated_at 
-    from
-        employment_contracts ec1_0 
-    where
-        ec1_0.courier_id=?
+        ba1_0.user_id=?
 Hibernate: 
     select
-        ec1_0.courier_id,
-        ec1_0.id,
-        ec1_0.created_at,
-        ec1_0.is_active,
-        ec1_0.linked_at,
-        ec1_0.organization_id,
-        ec1_0.updated_at 
+        ba1_0.id,
+        ba1_0.account_digit,
+        ba1_0.account_number,
+        ba1_0.account_type,
+        ba1_0.agency,
+        ba1_0.agency_digit,
+        ba1_0.automatic_transfer,
+        ba1_0.bank_code,
+        ba1_0.bank_name,
+        ba1_0.created_at,
+        ba1_0.monthly_income,
+        ba1_0.mother_name,
+        ba1_0.notes,
+        ba1_0.professional_occupation,
+        ba1_0.status,
+        ba1_0.transfer_day,
+        ba1_0.transfer_interval,
+        ba1_0.updated_at,
+        ba1_0.user_id,
+        ba1_0.validated_at 
     from
-        employment_contracts ec1_0 
+        bank_accounts ba1_0 
     where
-        ec1_0.courier_id=?
-2026-01-27T12:51:27.563-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
-2026-01-27T12:51:27.585-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
-    select
-        cc1_0.client_id,
-        cc1_0.id,
-        cc1_0.created_at,
-        cc1_0.end_date,
-        cc1_0.is_primary,
-        cc1_0.organization_id,
-        cc1_0.start_date,
-        cc1_0.status,
-        cc1_0.updated_at 
-    from
-        client_contracts cc1_0 
-    where
-        cc1_0.client_id=?
+        ba1_0.user_id=?
+2026-02-02T16:16:41.662-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:16:41.686-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.SQL                        : 
+    /* SELECT
+        c 
+    FROM
+        CustomerCard c 
+    WHERE
+        c.id = :cardId 
+        AND c.customer.id = :customerId 
+        AND c.deletedAt IS NULL */ select
+            cc1_0.id,
+            cc1_0.brand,
+            cc1_0.created_at,
+            cc1_0.customer_id,
+            cc1_0.deleted_at,
+            cc1_0.exp_month,
+            cc1_0.exp_year,
+            cc1_0.holder_name,
+            cc1_0.is_active,
+            cc1_0.is_default,
+            cc1_0.is_verified,
+            cc1_0.last_four_digits,
+            cc1_0.last_used_at,
+            cc1_0.pagarme_card_id,
+            cc1_0.updated_at,
+            cc1_0.verified_at 
+        from
+            customer_cards cc1_0 
+        where
+            cc1_0.id=? 
+            and cc1_0.customer_id=? 
+            and cc1_0.deleted_at is null
 Hibernate: 
-    select
-        cc1_0.client_id,
-        cc1_0.id,
-        cc1_0.created_at,
-        cc1_0.end_date,
-        cc1_0.is_primary,
-        cc1_0.organization_id,
-        cc1_0.start_date,
-        cc1_0.status,
-        cc1_0.updated_at 
-    from
-        client_contracts cc1_0 
-    where
-        cc1_0.client_id=?
-2026-01-27T12:51:27.585-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
-2026-01-27T12:51:27.703-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.SQL                        : 
+    /* SELECT
+        c 
+    FROM
+        CustomerCard c 
+    WHERE
+        c.id = :cardId 
+        AND c.customer.id = :customerId 
+        AND c.deletedAt IS NULL */ select
+            cc1_0.id,
+            cc1_0.brand,
+            cc1_0.created_at,
+            cc1_0.customer_id,
+            cc1_0.deleted_at,
+            cc1_0.exp_month,
+            cc1_0.exp_year,
+            cc1_0.holder_name,
+            cc1_0.is_active,
+            cc1_0.is_default,
+            cc1_0.is_verified,
+            cc1_0.last_four_digits,
+            cc1_0.last_used_at,
+            cc1_0.pagarme_card_id,
+            cc1_0.updated_at,
+            cc1_0.verified_at 
+        from
+            customer_cards cc1_0 
+        where
+            cc1_0.id=? 
+            and cc1_0.customer_id=? 
+            and cc1_0.deleted_at is null
+2026-02-02T16:16:41.686-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (1:BIGINT) <- [2]
+2026-02-02T16:16:41.686-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (2:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:16:41.696-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-8] c.m.m.service.CustomerCardService        : Cartão 2 deletado (soft) para customer f2919116-27e4-41b3-b74d-c7be10be66a6
+2026-02-02T16:16:41.734-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.SQL                        : 
     /* update
-        for com.mvt.mvt_events.jpa.User */update users 
+        for com.mvt.mvt_events.jpa.CustomerCard */update customer_cards 
     set
-        confirmation_token=?,
-        confirmation_token_expires_at=?,
-        confirmed=?,
-        date_of_birth=?,
-        document_number=?,
-        enabled=?,
-        gender=?,
-        gps_latitude=?,
-        gps_longitude=?,
-        name=?,
-        pagarme_recipient_id=?,
-        pagarme_status=?,
-        password=?,
-        phone_ddd=?,
-        phone_number=?,
-        role=?,
+        brand=?,
+        customer_id=?,
+        deleted_at=?,
+        exp_month=?,
+        exp_year=?,
+        holder_name=?,
+        is_active=?,
+        is_default=?,
+        is_verified=?,
+        last_four_digits=?,
+        last_used_at=?,
+        pagarme_card_id=?,
         updated_at=?,
-        username=? 
+        verified_at=? 
     where
         id=?
 Hibernate: 
     /* update
-        for com.mvt.mvt_events.jpa.User */update users 
+        for com.mvt.mvt_events.jpa.CustomerCard */update customer_cards 
     set
-        confirmation_token=?,
-        confirmation_token_expires_at=?,
-        confirmed=?,
-        date_of_birth=?,
-        document_number=?,
-        enabled=?,
-        gender=?,
-        gps_latitude=?,
-        gps_longitude=?,
-        name=?,
-        pagarme_recipient_id=?,
-        pagarme_status=?,
-        password=?,
-        phone_ddd=?,
-        phone_number=?,
-        role=?,
+        brand=?,
+        customer_id=?,
+        deleted_at=?,
+        exp_month=?,
+        exp_year=?,
+        holder_name=?,
+        is_active=?,
+        is_default=?,
+        is_verified=?,
+        last_four_digits=?,
+        last_used_at=?,
+        pagarme_card_id=?,
         updated_at=?,
-        username=? 
+        verified_at=? 
     where
         id=?
-2026-01-27T12:51:27.704-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [9b014694-389f-431b-aeac-99d0ef7d9fef]
-2026-01-27T12:51:27.705-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (2:TIMESTAMP) <- [2026-01-28T12:51:27.368582]
-2026-01-27T12:51:27.705-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (3:BOOLEAN) <- [false]
-2026-01-27T12:51:27.706-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (4:DATE) <- [null]
-2026-01-27T12:51:27.706-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (5:VARCHAR) <- [39776425020]
-2026-01-27T12:51:27.706-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (6:BOOLEAN) <- [true]
-2026-01-27T12:51:27.706-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (7:VARCHAR) <- [null]
-2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (8:DOUBLE) <- [null]
-2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (9:DOUBLE) <- [null]
-2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (10:VARCHAR) <- [Fabio Barros]
-2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (11:VARCHAR) <- [null]
-2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (12:VARCHAR) <- [null]
-2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (13:VARCHAR) <- [$2a$10$xtAvjODID8H7M7jb/UMjReAuF1d2UvwaAaJ9Ods94Lz55vZZ36lBq]
-2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (14:VARCHAR) <- [null]
-2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (15:VARCHAR) <- [null]
-2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (16:VARCHAR) <- [CUSTOMER]
-2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (17:TIMESTAMP) <- [2026-01-27T12:51:27.658832]
-2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (18:VARCHAR) <- [fabio.barros@prf.gov.br]
-2026-01-27T12:51:27.707-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (19:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
-2026-01-27T12:51:32.923-03:00  INFO 88519 --- [mvt-events] [        async-2] c.mvt.mvt_events.service.EmailService    : ✅ Email de confirmação enviado para: fabio.barros@prf.gov.br
-2026-01-27T12:55:34.589-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.SQL                        : 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
+2026-02-02T16:16:41.735-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [VISA]
+2026-02-02T16:16:41.735-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (2:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:16:41.735-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (3:TIMESTAMP) <- [2026-02-02T16:16:41.691200]
+2026-02-02T16:16:41.736-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (4:INTEGER) <- [12]
+2026-02-02T16:16:41.736-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (5:INTEGER) <- [2028]
+2026-02-02T16:16:41.736-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (6:VARCHAR) <- [TESTE DA SILVA]
+2026-02-02T16:16:41.736-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (7:BOOLEAN) <- [false]
+2026-02-02T16:16:41.737-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (8:BOOLEAN) <- [false]
+2026-02-02T16:16:41.737-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (9:BOOLEAN) <- [true]
+2026-02-02T16:16:41.737-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (10:VARCHAR) <- [1111]
+2026-02-02T16:16:41.737-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (11:TIMESTAMP) <- [null]
+2026-02-02T16:16:41.737-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (12:VARCHAR) <- [card_WZxNj74S7tRwDvE7]
+2026-02-02T16:16:41.737-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (13:TIMESTAMP) <- [2026-02-02T16:16:41.722917]
+2026-02-02T16:16:41.737-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (14:TIMESTAMP) <- [null]
+2026-02-02T16:16:41.738-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (15:BIGINT) <- [2]
+2026-02-02T16:16:41.778-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-8] com.mvt.mvt_events.tenant.TenantFilter   : 🔚 TenantFilter - Request completed
+2026-02-02T16:17:16.169-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.confirmation_token,
+            u1_0.confirmation_token_expires_at,
+            u1_0.confirmed,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_customer_id,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.reset_token,
+            u1_0.reset_token_expires_at,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
 Hibernate: 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
-2026-01-27T12:55:34.603-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
-2026-01-27T12:55:34.729-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.SQL                        : 
+    /* SELECT
+        u 
+    FROM
+        User u 
+    WHERE
+        u.username = :username */ select
+            u1_0.id,
+            a1_0.user_id,
+            a1_0.id,
+            c1_0.id,
+            c1_0.created_at,
+            c1_0.ibge_code,
+            c1_0.name,
+            c1_0.state,
+            c1_0.state_code,
+            c1_0.updated_at,
+            a1_0.complement,
+            a1_0.created_at,
+            a1_0.is_default,
+            a1_0.latitude,
+            a1_0.longitude,
+            a1_0.neighborhood,
+            a1_0.number,
+            a1_0.reference_point,
+            a1_0.street,
+            a1_0.updated_at,
+            a1_0.zip_code,
+            cc1_0.client_id,
+            cc1_0.id,
+            cc1_0.created_at,
+            cc1_0.end_date,
+            cc1_0.is_primary,
+            cc1_0.organization_id,
+            cc1_0.start_date,
+            cc1_0.status,
+            cc1_0.updated_at,
+            u1_0.confirmation_token,
+            u1_0.confirmation_token_expires_at,
+            u1_0.confirmed,
+            u1_0.created_at,
+            u1_0.date_of_birth,
+            u1_0.document_number,
+            ec1_0.courier_id,
+            ec1_0.id,
+            ec1_0.created_at,
+            ec1_0.is_active,
+            ec1_0.linked_at,
+            ec1_0.organization_id,
+            ec1_0.updated_at,
+            u1_0.enabled,
+            u1_0.gender,
+            u1_0.gps_latitude,
+            u1_0.gps_longitude,
+            u1_0.name,
+            u1_0.pagarme_customer_id,
+            u1_0.pagarme_recipient_id,
+            u1_0.pagarme_status,
+            u1_0.password,
+            u1_0.phone_ddd,
+            u1_0.phone_number,
+            u1_0.reset_token,
+            u1_0.reset_token_expires_at,
+            u1_0.role,
+            u1_0.updated_at,
+            u1_0.username 
+        from
+            users u1_0 
+        left join
+            addresses a1_0 
+                on u1_0.id=a1_0.user_id 
+        left join
+            cities c1_0 
+                on c1_0.id=a1_0.city_id 
+        left join
+            client_contracts cc1_0 
+                on u1_0.id=cc1_0.client_id 
+        left join
+            employment_contracts ec1_0 
+                on u1_0.id=ec1_0.courier_id 
+        where
+            u1_0.username=?
+2026-02-02T16:17:16.175-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
+2026-02-02T16:17:16.194-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.SQL                        : 
     select
         ba1_0.id,
         ba1_0.account_digit,
@@ -1241,110 +2935,86 @@ Hibernate:
         bank_accounts ba1_0 
     where
         ba1_0.user_id=?
-2026-01-27T12:55:34.730-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
-2026-01-27T12:58:54.245-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.SQL                        : 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
+2026-02-02T16:17:16.195-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:17:16.209-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-9] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Request: GET /api/customer-cards
+2026-02-02T16:17:16.210-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-9] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Authentication: UsernamePasswordAuthenticationToken
+2026-02-02T16:17:16.211-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-9] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Principal type: com.mvt.mvt_events.jpa.User
+2026-02-02T16:17:16.211-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-9] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - Principal instanceof User: true
+2026-02-02T16:17:16.212-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-9] com.mvt.mvt_events.tenant.TenantFilter   : 🔍 TenantFilter - User: fabio.barros@prf.gov.br
+2026-02-02T16:17:16.212-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-9] com.mvt.mvt_events.tenant.TenantFilter   : ✅ TenantFilter - Tenant ID set to: 565
+2026-02-02T16:17:16.223-03:00 DEBUG 36430 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.SQL                        : 
+    /* SELECT
+        c 
+    FROM
+        CustomerCard c 
+    WHERE
+        c.customer.id = :customerId 
+        AND c.deletedAt IS NULL 
+    ORDER BY
+        c.isDefault DESC,
+        c.lastUsedAt DESC NULLS LAST,
+        c.createdAt DESC */ select
+            cc1_0.id,
+            cc1_0.brand,
+            cc1_0.created_at,
+            cc1_0.customer_id,
+            cc1_0.deleted_at,
+            cc1_0.exp_month,
+            cc1_0.exp_year,
+            cc1_0.holder_name,
+            cc1_0.is_active,
+            cc1_0.is_default,
+            cc1_0.is_verified,
+            cc1_0.last_four_digits,
+            cc1_0.last_used_at,
+            cc1_0.pagarme_card_id,
+            cc1_0.updated_at,
+            cc1_0.verified_at 
+        from
+            customer_cards cc1_0 
+        where
+            cc1_0.customer_id=? 
+            and cc1_0.deleted_at is null 
+        order by
+            cc1_0.is_default desc,
+            cc1_0.last_used_at desc nulls last,
+            cc1_0.created_at desc
 Hibernate: 
-    /* <criteria> */ select
-        u1_0.id,
-        u1_0.confirmation_token,
-        u1_0.confirmation_token_expires_at,
-        u1_0.confirmed,
-        u1_0.created_at,
-        u1_0.date_of_birth,
-        u1_0.document_number,
-        u1_0.enabled,
-        u1_0.gender,
-        u1_0.gps_latitude,
-        u1_0.gps_longitude,
-        u1_0.name,
-        u1_0.pagarme_recipient_id,
-        u1_0.pagarme_status,
-        u1_0.password,
-        u1_0.phone_ddd,
-        u1_0.phone_number,
-        u1_0.role,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
-2026-01-27T12:58:54.291-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [fabio.barros@prf.gov.br]
-2026-01-27T12:58:54.410-03:00 DEBUG 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.SQL                        : 
-    select
-        ba1_0.id,
-        ba1_0.account_digit,
-        ba1_0.account_number,
-        ba1_0.account_type,
-        ba1_0.agency,
-        ba1_0.agency_digit,
-        ba1_0.automatic_transfer,
-        ba1_0.bank_code,
-        ba1_0.bank_name,
-        ba1_0.created_at,
-        ba1_0.monthly_income,
-        ba1_0.mother_name,
-        ba1_0.notes,
-        ba1_0.professional_occupation,
-        ba1_0.status,
-        ba1_0.transfer_day,
-        ba1_0.transfer_interval,
-        ba1_0.updated_at,
-        ba1_0.user_id,
-        ba1_0.validated_at 
-    from
-        bank_accounts ba1_0 
-    where
-        ba1_0.user_id=?
-Hibernate: 
-    select
-        ba1_0.id,
-        ba1_0.account_digit,
-        ba1_0.account_number,
-        ba1_0.account_type,
-        ba1_0.agency,
-        ba1_0.agency_digit,
-        ba1_0.automatic_transfer,
-        ba1_0.bank_code,
-        ba1_0.bank_name,
-        ba1_0.created_at,
-        ba1_0.monthly_income,
-        ba1_0.mother_name,
-        ba1_0.notes,
-        ba1_0.professional_occupation,
-        ba1_0.status,
-        ba1_0.transfer_day,
-        ba1_0.transfer_interval,
-        ba1_0.updated_at,
-        ba1_0.user_id,
-        ba1_0.validated_at 
-    from
-        bank_accounts ba1_0 
-    where
-        ba1_0.user_id=?
-2026-01-27T12:58:54.410-03:00 TRACE 88519 --- [mvt-events] [0.0-8080-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+    /* SELECT
+        c 
+    FROM
+        CustomerCard c 
+    WHERE
+        c.customer.id = :customerId 
+        AND c.deletedAt IS NULL 
+    ORDER BY
+        c.isDefault DESC,
+        c.lastUsedAt DESC NULLS LAST,
+        c.createdAt DESC */ select
+            cc1_0.id,
+            cc1_0.brand,
+            cc1_0.created_at,
+            cc1_0.customer_id,
+            cc1_0.deleted_at,
+            cc1_0.exp_month,
+            cc1_0.exp_year,
+            cc1_0.holder_name,
+            cc1_0.is_active,
+            cc1_0.is_default,
+            cc1_0.is_verified,
+            cc1_0.last_four_digits,
+            cc1_0.last_used_at,
+            cc1_0.pagarme_card_id,
+            cc1_0.updated_at,
+            cc1_0.verified_at 
+        from
+            customer_cards cc1_0 
+        where
+            cc1_0.customer_id=? 
+            and cc1_0.deleted_at is null 
+        order by
+            cc1_0.is_default desc,
+            cc1_0.last_used_at desc nulls last,
+            cc1_0.created_at desc
+2026-02-02T16:17:16.224-03:00 TRACE 36430 --- [mvt-events] [0.0-8080-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [f2919116-27e4-41b3-b74d-c7be10be66a6]
+2026-02-02T16:17:16.235-03:00  INFO 36430 --- [mvt-events] [0.0-8080-exec-9] com.mvt.mvt_events.tenant.TenantFilter   : 🔚 TenantFilter - Request completed

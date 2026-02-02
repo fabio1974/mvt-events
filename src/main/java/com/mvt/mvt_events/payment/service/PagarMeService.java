@@ -125,6 +125,33 @@ public class PagarMeService {
     }
 
     /**
+     * Verifica se já existe um recipient cadastrado no Pagar.me com o mesmo CPF/CNPJ
+     * (independente dos dados bancários).
+     * 
+     * Esta verificação é mais restritiva e impede que o mesmo CPF/CNPJ tenha múltiplos
+     * recipients, mesmo com contas bancárias diferentes.
+     * 
+     * @param document CPF/CNPJ sem pontuação
+     * @return RecipientResponse se encontrado, null caso contrário
+     */
+    public RecipientResponse findRecipientByDocument(String document) {
+        log.info("🔍 Verificando se existe recipient com CPF/CNPJ: {}", document);
+
+        List<RecipientResponse> recipients = listRecipients();
+
+        for (RecipientResponse recipient : recipients) {
+            if (document.equals(recipient.getDocument())) {
+                log.warn("   └─ ⚠️ ENCONTRADO! Recipient existente: {} (CPF: {}, Email: {})", 
+                    recipient.getId(), recipient.getDocument(), recipient.getEmail());
+                return recipient;
+            }
+        }
+
+        log.info("   └─ ✅ Nenhum recipient encontrado com este CPF/CNPJ");
+        return null;
+    }
+
+    /**
      * Cria um recipient (subconta) no Pagar.me
      * 
      * Envia dados mínimos obrigatórios + dados opcionais do User (se disponíveis)
@@ -151,8 +178,17 @@ public class PagarMeService {
         if (transferDay == null) {
             transferDay = 0;
         }
-        if ("Weekly".equalsIgnoreCase(transferInterval) && (transferDay < 0 || transferDay > 6)) {
-            transferDay = 1; // Default: segunda-feira
+        // Weekly: Pagar.me aceita apenas 1-5 (segunda a sexta-feira)
+        // 0=Domingo → 1=Segunda, 6=Sábado → 5=Sexta
+        if ("Weekly".equalsIgnoreCase(transferInterval)) {
+            if (transferDay == 0 || transferDay == 6) {
+                // Fim de semana não é aceito, usar segunda-feira
+                transferDay = 1;
+                log.warn("   ⚠️ Dia {} não permitido para Weekly (Pagar.me aceita 1-5). Usando 1 (segunda-feira)", transferDay);
+            } else if (transferDay < 1 || transferDay > 5) {
+                transferDay = 1; // Default: segunda-feira
+                log.warn("   ⚠️ Dia inválido para Weekly. Usando 1 (segunda-feira)");
+            }
         }
         if ("Monthly".equalsIgnoreCase(transferInterval) && (transferDay < 1 || transferDay > 31)) {
             transferDay = 1; // Default: dia 1
@@ -787,7 +823,25 @@ public class PagarMeService {
     public void updateTransferSettings(String recipientId, String transferInterval, Integer transferDay) {
         log.info("💰 Atualizando transfer settings do recipient: {}", recipientId);
         log.info("   ├─ Transfer interval: {}", transferInterval);
-        log.info("   ├─ Transfer day: {}", transferDay);
+        log.info("   ├─ Transfer day (original): {}", transferDay);
+        
+        // Validar transferDay conforme o intervalo
+        if (transferDay == null) {
+            transferDay = 0;
+        }
+        // Weekly: Pagar.me aceita apenas 1-5 (segunda a sexta-feira)
+        if ("Weekly".equalsIgnoreCase(transferInterval)) {
+            if (transferDay == 0 || transferDay == 6) {
+                // Fim de semana não é aceito, usar segunda-feira
+                log.warn("   ⚠️ Dia {} não permitido para Weekly (Pagar.me aceita 1-5). Usando 1 (segunda-feira)", transferDay);
+                transferDay = 1;
+            } else if (transferDay < 1 || transferDay > 5) {
+                log.warn("   ⚠️ Dia inválido para Weekly. Usando 1 (segunda-feira)");
+                transferDay = 1;
+            }
+        }
+        
+        log.info("   ├─ Transfer day (validado): {}", transferDay);
         
         try {
             String url = config.getApi().getUrl() + "/recipients/" + recipientId + "/transfer-settings";
@@ -796,7 +850,7 @@ public class PagarMeService {
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("transfer_enabled", true); // Sempre habilitado
             requestBody.put("transfer_interval", transferInterval);
-            requestBody.put("transfer_day", transferDay != null ? transferDay : 0);
+            requestBody.put("transfer_day", transferDay);
             
             HttpHeaders headers = createHeaders();
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
@@ -834,6 +888,257 @@ public class PagarMeService {
         } catch (Exception e) {
             log.error("   └─ ❌ Erro ao atualizar transfer settings no Pagar.me", e);
             throw new RuntimeException("Erro ao atualizar transfer settings no Pagar.me: " + e.getMessage(), e);
+        }
+    }
+
+    // ============================================================================
+    // CUSTOMER MANAGEMENT (para CUSTOMER/CLIENT pagar com cartão)
+    // ============================================================================
+
+    /**
+     * Cria um customer no Pagar.me para poder gerenciar cartões.
+     * 
+     * @param user Usuário (CUSTOMER/CLIENT)
+     * @return ID do customer criado (cus_xxxxx)
+     */
+    public String createCustomer(User user) {
+        log.info("💳 Criando customer no Pagar.me para user: {} ({})", user.getName(), user.getUsername());
+
+        try {
+            HttpHeaders headers = createHeaders();
+            
+            // Preparar payload
+            Map<String, Object> customerData = new HashMap<>();
+            customerData.put("name", user.getName());
+            customerData.put("email", user.getUsername());
+            
+            // Documento (sem formatação - apenas números)
+            String documentClean = user.getDocumentClean();
+            if (documentClean == null || documentClean.isEmpty()) {
+                throw new RuntimeException("Usuário sem documento cadastrado");
+            }
+            
+            customerData.put("type", documentClean.length() == 11 ? "individual" : "company");
+            customerData.put("document", documentClean); // Documento diretamente como string
+            
+            // Telefone (se disponível)
+            if (user.getPhoneDdd() != null && user.getPhoneNumber() != null) {
+                Map<String, Object> phones = new HashMap<>();
+                Map<String, String> mobilePhone = new HashMap<>();
+                mobilePhone.put("country_code", "55");
+                mobilePhone.put("area_code", user.getPhoneDdd());
+                mobilePhone.put("number", user.getPhoneNumber());
+                phones.put("mobile_phone", mobilePhone);
+                customerData.put("phones", phones);
+            }
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(customerData, headers);
+            String url = config.getApi().getUrl() + "/customers";
+
+            log.info("📤 Payload enviado ao Pagar.me: {}", customerData);
+
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    Map.class
+            );
+
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("id")) {
+                String customerId = (String) responseBody.get("id");
+                log.info("   └─ ✅ Customer criado: {}", customerId);
+                return customerId;
+            }
+
+            throw new RuntimeException("Resposta do Pagar.me não contém ID do customer");
+
+        } catch (HttpClientErrorException | HttpServerErrorException e) {
+            log.error("   └─ ❌ Erro HTTP {} ao criar customer: {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException("Erro ao criar customer no Pagar.me: " + e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("   └─ ❌ Erro ao criar customer no Pagar.me", e);
+            throw new RuntimeException("Erro ao criar customer no Pagar.me: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Busca um customer existente no Pagar.me pelo ID.
+     * 
+     * @param customerId ID do customer (cus_xxxxx)
+     * @return Map com dados do customer
+     */
+    public Map<String, Object> getCustomer(String customerId) {
+        log.info("🔍 Buscando customer no Pagar.me: {}", customerId);
+
+        try {
+            HttpHeaders headers = createHeaders();
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            String url = config.getApi().getUrl() + "/customers/" + customerId;
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    Map.class
+            );
+
+            log.info("   └─ ✅ Customer encontrado");
+            return response.getBody();
+
+        } catch (HttpClientErrorException.NotFound e) {
+            log.warn("   └─ ⚠️ Customer não encontrado no Pagar.me: {}", customerId);
+            return null;
+        } catch (Exception e) {
+            log.error("   └─ ❌ Erro ao buscar customer no Pagar.me", e);
+            throw new RuntimeException("Erro ao buscar customer: " + e.getMessage(), e);
+        }
+    }
+
+    // ============================================================================
+    // CARD MANAGEMENT (gerenciar cartões do customer)
+    // ============================================================================
+
+    /**
+     * Cria um cartão no Pagar.me a partir de um token.
+     * 
+     * @param customerId ID do customer no Pagar.me (cus_xxxxx)
+     * @param cardToken Token do cartão (card_xxxxx ou token gerado no frontend)
+     * @return Map com dados do cartão criado
+     */
+    public Map<String, Object> createCard(String customerId, String cardToken) {
+        log.info("💳 Criando cartão no Pagar.me para customer: {}", customerId);
+
+        try {
+            HttpHeaders headers = createHeaders();
+            
+            // Payload
+            Map<String, Object> cardData = new HashMap<>();
+            cardData.put("token", cardToken);
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(cardData, headers);
+            String url = config.getApi().getUrl() + "/customers/" + customerId + "/cards";
+
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    Map.class
+            );
+
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null) {
+                log.info("   └─ ✅ Cartão criado: {}", responseBody.get("id"));
+                return responseBody;
+            }
+
+            throw new RuntimeException("Resposta do Pagar.me não contém dados do cartão");
+
+        } catch (HttpClientErrorException | HttpServerErrorException e) {
+            log.error("   └─ ❌ Erro HTTP {} ao criar cartão: {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException("Erro ao criar cartão no Pagar.me: " + e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("   └─ ❌ Erro ao criar cartão no Pagar.me", e);
+            throw new RuntimeException("Erro ao criar cartão: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Lista todos os cartões de um customer.
+     * 
+     * @param customerId ID do customer (cus_xxxxx)
+     * @return Lista de cartões
+     */
+    public List<Map<String, Object>> listCustomerCards(String customerId) {
+        log.info("🔍 Listando cartões do customer: {}", customerId);
+
+        try {
+            HttpHeaders headers = createHeaders();
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            String url = config.getApi().getUrl() + "/customers/" + customerId + "/cards";
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    Map.class
+            );
+
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("data")) {
+                List<Map<String, Object>> cards = (List<Map<String, Object>>) responseBody.get("data");
+                log.info("   └─ ✅ {} cartões encontrados", cards.size());
+                return cards;
+            }
+
+            return List.of();
+
+        } catch (Exception e) {
+            log.error("   └─ ❌ Erro ao listar cartões do customer", e);
+            throw new RuntimeException("Erro ao listar cartões: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Busca um cartão específico do customer.
+     * 
+     * @param customerId ID do customer (cus_xxxxx)
+     * @param cardId ID do cartão (card_xxxxx)
+     * @return Map com dados do cartão
+     */
+    public Map<String, Object> getCard(String customerId, String cardId) {
+        log.info("🔍 Buscando cartão: {} do customer: {}", cardId, customerId);
+
+        try {
+            HttpHeaders headers = createHeaders();
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            String url = config.getApi().getUrl() + "/customers/" + customerId + "/cards/" + cardId;
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    Map.class
+            );
+
+            log.info("   └─ ✅ Cartão encontrado");
+            return response.getBody();
+
+        } catch (HttpClientErrorException.NotFound e) {
+            log.warn("   └─ ⚠️ Cartão não encontrado: {}", cardId);
+            return null;
+        } catch (Exception e) {
+            log.error("   └─ ❌ Erro ao buscar cartão", e);
+            throw new RuntimeException("Erro ao buscar cartão: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Deleta um cartão do customer no Pagar.me.
+     * 
+     * @param customerId ID do customer (cus_xxxxx)
+     * @param cardId ID do cartão (card_xxxxx)
+     */
+    public void deleteCard(String customerId, String cardId) {
+        log.info("🗑️ Deletando cartão: {} do customer: {}", cardId, customerId);
+
+        try {
+            HttpHeaders headers = createHeaders();
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            String url = config.getApi().getUrl() + "/customers/" + customerId + "/cards/" + cardId;
+            restTemplate.exchange(
+                    url,
+                    HttpMethod.DELETE,
+                    entity,
+                    Void.class
+            );
+
+            log.info("   └─ ✅ Cartão deletado com sucesso");
+
+        } catch (Exception e) {
+            log.error("   └─ ❌ Erro ao deletar cartão", e);
+            throw new RuntimeException("Erro ao deletar cartão: " + e.getMessage(), e);
         }
     }
 }

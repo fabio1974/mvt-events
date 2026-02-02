@@ -102,8 +102,39 @@ public class BankAccountService {
         bankAccount = bankAccountRepository.save(bankAccount);
         log.debug("   ├─ ✅ BankAccount local salvo com ID: {}", bankAccount.getId());
         
-        // 5. Verificar duplicidade no Pagar.me ANTES de criar recipient
-        // IMPORTANTE: Verificamos CPF + dados bancários (banco, agência, conta)
+        // 5. Verificar se já existe recipient com o mesmo CPF/CNPJ no Pagar.me
+        // Esta verificação impede que o mesmo CPF tenha múltiplos recipients
+        try {
+            RecipientResponse existingRecipient = pagarMeService.findRecipientByDocument(user.getDocumentClean());
+            
+            if (existingRecipient != null) {
+                log.warn("   ├─ ⚠️ CPF/CNPJ já possui recipient cadastrado: {}", existingRecipient.getId());
+                
+                // Marcar como bloqueada
+                bankAccount.markAsBlocked("CPF/CNPJ já possui recipient no Pagar.me: " + existingRecipient.getId());
+                bankAccountRepository.save(bankAccount);
+                
+                throw new IllegalStateException(
+                    "Este CPF/CNPJ já possui um recipient cadastrado no Pagar.me. " +
+                    "Cada CPF/CNPJ só pode ter um recipient. " +
+                    "Recipient ID: " + existingRecipient.getId() + 
+                    " | Email: " + existingRecipient.getEmail()
+                );
+            }
+            
+            log.info("   ├─ ✅ CPF/CNPJ disponível para criar recipient");
+            
+        } catch (IllegalStateException e) {
+            // Repassa a exceção de duplicidade
+            throw e;
+        } catch (Exception e) {
+            log.warn("   ├─ ⚠️ Erro ao verificar CPF/CNPJ (continuando criação): {}", e.getMessage());
+            // Continua a criação mesmo se a verificação falhar
+        }
+        
+        // 6. Verificar duplicidade de dados bancários específicos no Pagar.me
+        // Esta verificação permite que CPFs diferentes usem a mesma conta bancária
+        // mas impede que o mesmo CPF cadastre a mesma conta duas vezes
         try {
             RecipientResponse duplicateRecipient = pagarMeService.findDuplicateRecipient(
                 user.getDocumentClean(), // CPF do usuário
@@ -135,16 +166,16 @@ public class BankAccountService {
             // Continua a criação mesmo se a verificação falhar
         }
         
-        // 6. Criar recipient no Pagar.me
+        // 7. Criar recipient no Pagar.me
         try {
             // Usar as configurações de transferência já salvas na entidade
             String recipientId = pagarMeService.createRecipient(user, bankAccount, bankAccount.getTransferInterval(), bankAccount.getTransferDay());
             
-            // 7. Atualizar user com recipient ID
+            // 8. Atualizar user com recipient ID
             user.markRecipientAsActive(recipientId);
             userRepository.save(user);
             
-            // 8. Atualizar status da conta
+            // 9. Atualizar status da conta
             bankAccount.setStatus(BankAccountStatus.ACTIVE);
             bankAccount = bankAccountRepository.save(bankAccount);
             

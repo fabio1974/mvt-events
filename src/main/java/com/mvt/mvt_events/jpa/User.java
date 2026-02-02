@@ -103,6 +103,7 @@ public class User implements UserDetails {
 
     @Column(name = "date_of_birth")
     @Visible(table = false, form = true, filter = false)
+    @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate dateOfBirth;
 
     @com.mvt.mvt_events.validation.Document(message = "CPF ou CNPJ inválido")
@@ -197,6 +198,15 @@ public class User implements UserDetails {
     @Column(name = "pagarme_recipient_id", length = 100)
     @Visible(table = false, form = false, filter = false)
     private String pagarmeRecipientId;
+
+    /**
+     * ID do customer Pagar.me criado para este usuário (customer/client).
+     * Usado para gerenciar cartões e processar pagamentos.
+     * Diferente de pagarmeRecipientId (usado para receber pagamentos).
+     */
+    @Column(name = "pagarme_customer_id", length = 100)
+    @Visible(table = false, form = false, filter = false)
+    private String pagarmeCustomerId;
 
     /**
      * Status da conta no Pagar.me

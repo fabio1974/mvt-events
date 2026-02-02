@@ -34,13 +34,14 @@ public record BankAccountRequest(
     String bankName,
     
     @NotBlank(message = "Agência é obrigatória")
-    @Pattern(regexp = "^\\d+$", message = "Agência deve conter apenas números")
+    @Pattern(regexp = "^\\d{1,4}$", message = "Agência deve ter no máximo 4 dígitos")
     String agency,
     
+    @Pattern(regexp = "^\\d?$", message = "Dígito da agência deve ter no máximo 1 dígito")
     String agencyDigit, // Opcional
     
     @NotBlank(message = "Número da conta é obrigatório")
-    @Pattern(regexp = "^\\d+$", message = "Número da conta deve conter apenas números")
+    @Pattern(regexp = "^\\d{1,13}$", message = "Número da conta deve ter no máximo 13 dígitos")
     String accountNumber,
     
     @NotBlank(message = "Dígito da conta é obrigatório")

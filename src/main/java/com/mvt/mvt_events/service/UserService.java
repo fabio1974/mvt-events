@@ -171,15 +171,15 @@ public class UserService {
         // Data de nascimento
         if (request.getDateOfBirth() != null && !request.getDateOfBirth().trim().isEmpty()) {
             try {
-                // Tenta parsear como ISO 8601 com timezone (ex: "2025-10-20T03:00:00.000Z")
-                if (request.getDateOfBirth().contains("T")) {
-                    ZonedDateTime zdt = ZonedDateTime.parse(request.getDateOfBirth());
-                    user.setDateOfBirth(zdt.toLocalDate());
-                } else {
-                    // Formato simples: YYYY-MM-DD
-                    LocalDate birthDate = LocalDate.parse(request.getDateOfBirth(), DateTimeFormatter.ISO_LOCAL_DATE);
-                    user.setDateOfBirth(birthDate);
-                }
+                String dateStr = request.getDateOfBirth().trim();
+                
+                // Extrai apenas a parte da data (YYYY-MM-DD) ignorando timezone
+                // Se formato: "1974-09-02T00:00:00.000Z" -> extrai "1974-09-02"
+                // Se formato: "1974-09-02" -> usa direto
+                String datePart = dateStr.substring(0, Math.min(10, dateStr.length()));
+                
+                LocalDate birthDate = LocalDate.parse(datePart, DateTimeFormatter.ISO_LOCAL_DATE);
+                user.setDateOfBirth(birthDate);
             } catch (Exception e) {
                 throw new RuntimeException("Data de nascimento inválida. Use o formato YYYY-MM-DD ou ISO 8601");
             }
@@ -249,10 +249,17 @@ public class UserService {
         // Atualizar data de nascimento
         if (request.getDateOfBirth() != null && !request.getDateOfBirth().trim().isEmpty()) {
             try {
-                LocalDate birthDate = LocalDate.parse(request.getDateOfBirth(), DateTimeFormatter.ISO_LOCAL_DATE);
+                String dateStr = request.getDateOfBirth().trim();
+                
+                // Extrai apenas a parte da data (YYYY-MM-DD) ignorando timezone
+                // Se formato: "1974-09-02T00:00:00.000Z" -> extrai "1974-09-02"
+                // Se formato: "1974-09-02" -> usa direto
+                String datePart = dateStr.substring(0, Math.min(10, dateStr.length()));
+                
+                LocalDate birthDate = LocalDate.parse(datePart, DateTimeFormatter.ISO_LOCAL_DATE);
                 user.setDateOfBirth(birthDate);
             } catch (Exception e) {
-                throw new RuntimeException("Data de nascimento inválida. Use o formato YYYY-MM-DD");
+                throw new RuntimeException("Data de nascimento inválida. Use o formato YYYY-MM-DD ou YYYY-MM-DDTHH:mm:ss.sssZ");
             }
         }
 
