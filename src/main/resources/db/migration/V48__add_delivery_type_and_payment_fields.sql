@@ -2,9 +2,9 @@
 -- V48: Adicionar delivery_type e campos de controle de pagamento
 -- ============================================================================
 
--- 1. Adicionar coluna delivery_type (se não existir)
+-- 1. Adicionar coluna delivery_type sem constraint ainda
 ALTER TABLE deliveries 
-ADD COLUMN IF NOT EXISTS delivery_type VARCHAR(20) NOT NULL DEFAULT 'DELIVERY';
+ADD COLUMN IF NOT EXISTS delivery_type VARCHAR(20);
 
 -- 2. Adicionar coluna payment_completed (se não existir)
 ALTER TABLE deliveries 
@@ -14,7 +14,7 @@ ADD COLUMN IF NOT EXISTS payment_completed BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE deliveries 
 ADD COLUMN IF NOT EXISTS payment_captured BOOLEAN NOT NULL DEFAULT false;
 
--- 4. Atualizar entregas existentes
+-- 4. Atualizar entregas existentes ANTES de adicionar constraint
 -- Entregas já aceitas/completadas são marcadas como DELIVERY e pagas
 UPDATE deliveries 
 SET delivery_type = 'DELIVERY',
@@ -29,7 +29,19 @@ SET delivery_type = 'DELIVERY',
     payment_captured = false
 WHERE status = 'PENDING';
 
--- 5. Adicionar constraint CHECK para delivery_type (se não existir)
+-- Garantir que nenhum registro ficou sem delivery_type
+UPDATE deliveries 
+SET delivery_type = 'DELIVERY'
+WHERE delivery_type IS NULL;
+
+-- 5. Agora sim, definir NOT NULL e DEFAULT
+ALTER TABLE deliveries 
+ALTER COLUMN delivery_type SET NOT NULL;
+
+ALTER TABLE deliveries 
+ALTER COLUMN delivery_type SET DEFAULT 'DELIVERY';
+
+-- 6. Adicionar constraint CHECK para delivery_type (se não existir)
 -- Valores: DELIVERY (entrega), RIDE (viagem), CONTRACT (contrato/organizer)
 DO $$ 
 BEGIN
@@ -42,7 +54,7 @@ BEGIN
     END IF;
 END $$;
 
--- 6. Criar índice para queries por tipo e status (se não existir)
+-- 7. Criar índice para queries por tipo e status (se não existir)
 CREATE INDEX IF NOT EXISTS idx_deliveries_type_status 
 ON deliveries(delivery_type, status);
 
