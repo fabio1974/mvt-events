@@ -106,7 +106,7 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
               "AND u.gpsLongitude IS NOT NULL " +
               "AND NOT EXISTS (" +
               "  SELECT 1 FROM Delivery d WHERE d.courier.id = u.id " +
-              "  AND d.status IN ('PENDING', 'ACCEPTED', 'PICKED_UP', 'IN_TRANSIT')" +
+              "  AND d.status IN ('PENDING', 'ACCEPTED', 'IN_TRANSIT')" +
               ") " +
               "AND (6371 * acos(cos(radians(:latitude)) * cos(radians(u.gpsLatitude)) * " +
               "cos(radians(u.gpsLongitude) - radians(:longitude)) + " +

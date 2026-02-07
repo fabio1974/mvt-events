@@ -44,6 +44,9 @@ public class DeliveryService {
     private ClientContractRepository clientContractRepository;
 
     @Autowired
+    private VehicleRepository vehicleRepository;
+
+    @Autowired
     private SiteConfigurationService siteConfigurationService;
 
     @Autowired
@@ -435,6 +438,10 @@ public class DeliveryService {
         delivery.setStatus(Delivery.DeliveryStatus.ACCEPTED);
         delivery.setAcceptedAt(LocalDateTime.now());
 
+        // Setar o veículo ativo do courier no momento do aceite
+        vehicleRepository.findActiveVehicleByOwnerId(courierUser.getId())
+                .ifPresent(delivery::setVehicle);
+
         Delivery saved = deliveryRepository.save(delivery);
         
         // Recarregar a delivery com todos os relacionamentos para evitar lazy loading
@@ -454,11 +461,12 @@ public class DeliveryService {
         }
 
         if (delivery.getStatus() != Delivery.DeliveryStatus.ACCEPTED) {
-            throw new RuntimeException("Status inválido para coleta");
+            throw new RuntimeException("Status inválido para iniciar transporte");
         }
 
-        delivery.setStatus(Delivery.DeliveryStatus.PICKED_UP);
+        delivery.setStatus(Delivery.DeliveryStatus.IN_TRANSIT);
         delivery.setPickedUpAt(LocalDateTime.now());
+        delivery.setInTransitAt(LocalDateTime.now());
 
         Delivery saved = deliveryRepository.save(delivery);
         
@@ -469,27 +477,13 @@ public class DeliveryService {
 
     /**
      * Courier inicia transporte
+     * @deprecated Usar confirmPickup() que já coloca em IN_TRANSIT
      */
+    @Deprecated
     public Delivery startTransit(Long deliveryId, UUID courierId) {
-        Delivery delivery = deliveryRepository.findByIdWithJoins(deliveryId)
-                .orElseThrow(() -> new RuntimeException("Delivery não encontrada"));
-
-        if (!delivery.getCourier().getId().equals(courierId)) {
-            throw new RuntimeException("Delivery não pertence a este courier");
-        }
-
-        if (delivery.getStatus() != Delivery.DeliveryStatus.PICKED_UP) {
-            throw new RuntimeException("Status inválido para iniciar transporte");
-        }
-
-        delivery.setStatus(Delivery.DeliveryStatus.IN_TRANSIT);
-        delivery.setInTransitAt(LocalDateTime.now());
-
-        Delivery saved = deliveryRepository.save(delivery);
-        
-        // Recarregar com joins
-        return deliveryRepository.findByIdWithJoins(saved.getId())
-                .orElse(saved);
+        // Agora confirmPickup já coloca em IN_TRANSIT, este método não é mais necessário
+        // Mantido por compatibilidade, mas redireciona para confirmPickup
+        return confirmPickup(deliveryId, courierId);
     }
 
     /**
@@ -581,20 +575,11 @@ public class DeliveryService {
                 delivery.setCompletedAt(null);
                 break;
 
-            case PICKED_UP:
-                if (delivery.getAcceptedAt() == null) {
-                    delivery.setAcceptedAt(now);
-                }
-                delivery.setPickedUpAt(now);
-                // Limpar timestamps posteriores
-                delivery.setInTransitAt(null);
-                delivery.setCompletedAt(null);
-                break;
-
             case IN_TRANSIT:
                 if (delivery.getAcceptedAt() == null) {
                     delivery.setAcceptedAt(now);
                 }
+                // Coleta e início de transporte são simultâneos agora
                 if (delivery.getPickedUpAt() == null) {
                     delivery.setPickedUpAt(now);
                 }
@@ -658,21 +643,16 @@ public class DeliveryService {
             return;
         }
 
-        // Validar fluxo normal: PENDING -> ACCEPTED -> PICKED_UP -> IN_TRANSIT -> COMPLETED
+        // Validar fluxo normal: PENDING -> ACCEPTED -> IN_TRANSIT -> COMPLETED
         switch (current) {
             case PENDING:
-                if (target != Delivery.DeliveryStatus.ACCEPTED) {
-                    throw new RuntimeException("De PENDING só pode ir para ACCEPTED");
+                if (target != Delivery.DeliveryStatus.ACCEPTED && target != Delivery.DeliveryStatus.CANCELLED) {
+                    throw new RuntimeException("De PENDING só pode ir para ACCEPTED ou CANCELLED");
                 }
                 break;
             case ACCEPTED:
-                if (target != Delivery.DeliveryStatus.PICKED_UP) {
-                    throw new RuntimeException("De ACCEPTED só pode ir para PICKED_UP");
-                }
-                break;
-            case PICKED_UP:
                 if (target != Delivery.DeliveryStatus.IN_TRANSIT) {
-                    throw new RuntimeException("De PICKED_UP só pode ir para IN_TRANSIT");
+                    throw new RuntimeException("De ACCEPTED só pode ir para IN_TRANSIT (coletar e iniciar transporte)");
                 }
                 break;
             case IN_TRANSIT:

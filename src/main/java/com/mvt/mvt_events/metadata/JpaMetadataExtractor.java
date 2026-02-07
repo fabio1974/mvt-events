@@ -179,7 +179,7 @@ public class JpaMetadataExtractor {
 
         // ==================== ZAPI10 - DELIVERY ====================
         FIELD_TRANSLATIONS.put("client", "Cliente");
-        FIELD_TRANSLATIONS.put("courier", "Motoboy");
+        FIELD_TRANSLATIONS.put("courier", "Motorista");
         FIELD_TRANSLATIONS.put("organizer", "Gerente");
         FIELD_TRANSLATIONS.put("adm", "Gerente");
         FIELD_TRANSLATIONS.put("fromAddress", "Endereço de Origem");
@@ -201,6 +201,7 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("completedAt", "Concluída em");
         FIELD_TRANSLATIONS.put("cancelledAt", "Cancelada em");
         FIELD_TRANSLATIONS.put("cancellationReason", "Motivo do Cancelamento");
+        FIELD_TRANSLATIONS.put("vehicle", "Veículo");
         FIELD_TRANSLATIONS.put("partnership", "Parceria Municipal");
 
         // ==================== ZAPI10 - COURIER PROFILE ====================
@@ -231,6 +232,20 @@ public class JpaMetadataExtractor {
 
         FIELD_TRANSLATIONS.put("client", "Cliente");
         FIELD_TRANSLATIONS.put("organization", "Grupo");
+
+        // ==================== ZAPI10 - VEHICLE ====================
+        FIELD_TRANSLATIONS.put("owner", "Proprietário");
+        FIELD_TRANSLATIONS.put("type", "Tipo de Veículo");
+        FIELD_TRANSLATIONS.put("plate", "Placa");
+        FIELD_TRANSLATIONS.put("brand", "Marca");
+        FIELD_TRANSLATIONS.put("model", "Modelo");
+        FIELD_TRANSLATIONS.put("color", "Cor");
+        FIELD_TRANSLATIONS.put("year", "Ano");
+        FIELD_TRANSLATIONS.put("vehicles", "Veículos");
+        FIELD_TRANSLATIONS.put("isActiveVehicle", "Veículo em Uso");
+
+        // ==================== ZAPI10 - SERVICE TYPE ====================
+        FIELD_TRANSLATIONS.put("serviceType", "Tipo de Serviço");
 
         // ==================== ZAPI10 - EVALUATION ====================
         FIELD_TRANSLATIONS.put("delivery", "Entrega");
@@ -339,7 +354,7 @@ public class JpaMetadataExtractor {
         ENUM_TRANSLATIONS.put("ORGANIZER", "Gerente ADM");
         ENUM_TRANSLATIONS.put("ADMIN", "Administrador");
         ENUM_TRANSLATIONS.put("CLIENT", "Cliente");
-        ENUM_TRANSLATIONS.put("COURIER", "Motoboy");
+        ENUM_TRANSLATIONS.put("COURIER", "Motorista");
         ENUM_TRANSLATIONS.put("CUSTOMER", "Cliente Avulso");
 
         // ==================== ORGANIZATION STATUS ====================
@@ -350,7 +365,6 @@ public class JpaMetadataExtractor {
         // ==================== ZAPI10 - DELIVERY STATUS (feminino: "Entrega")
         // ====================
         ENUM_TRANSLATIONS.put("ACCEPTED", "Aceita");
-        ENUM_TRANSLATIONS.put("PICKED_UP", "Coletada");
         ENUM_TRANSLATIONS.put("IN_TRANSIT", "Em Trânsito");
         // Nota: PENDING, COMPLETED e CANCELLED já estão definidos na seção STATUS genérica
         // Para Delivery: COMPLETED = "Pago" (compartilhado com Payment)
@@ -359,9 +373,33 @@ public class JpaMetadataExtractor {
         // ==================== ZAPI10 - VEHICLE TYPE ====================
         ENUM_TRANSLATIONS.put("MOTORCYCLE", "Moto");
         ENUM_TRANSLATIONS.put("BICYCLE", "Bicicleta");
-        ENUM_TRANSLATIONS.put("CAR", "Carro");
+        ENUM_TRANSLATIONS.put("CAR", "Automóvel");
         ENUM_TRANSLATIONS.put("SCOOTER", "Patinete/Scooter");
         ENUM_TRANSLATIONS.put("ON_FOOT", "A Pé");
+
+        // ==================== ZAPI10 - VEHICLE COLOR ====================
+        ENUM_TRANSLATIONS.put("BRANCO", "Branco");
+        ENUM_TRANSLATIONS.put("PRETO", "Preto");
+        ENUM_TRANSLATIONS.put("PRATA", "Prata");
+        ENUM_TRANSLATIONS.put("CINZA", "Cinza");
+        ENUM_TRANSLATIONS.put("VERMELHO", "Vermelho");
+        ENUM_TRANSLATIONS.put("AZUL", "Azul");
+        ENUM_TRANSLATIONS.put("VERDE", "Verde");
+        ENUM_TRANSLATIONS.put("AMARELO", "Amarelo");
+        ENUM_TRANSLATIONS.put("LARANJA", "Laranja");
+        ENUM_TRANSLATIONS.put("MARROM", "Marrom");
+        ENUM_TRANSLATIONS.put("BEGE", "Bege");
+        ENUM_TRANSLATIONS.put("DOURADO", "Dourado");
+        ENUM_TRANSLATIONS.put("ROSA", "Rosa");
+        ENUM_TRANSLATIONS.put("ROXO", "Roxo");
+        ENUM_TRANSLATIONS.put("VINHO", "Vinho");
+        ENUM_TRANSLATIONS.put("FANTASIA", "Fantasia");
+        ENUM_TRANSLATIONS.put("OUTROS", "Outros");
+
+        // ==================== ZAPI10 - SERVICE TYPE ====================
+        ENUM_TRANSLATIONS.put("DELIVERY", "Entrega");
+        ENUM_TRANSLATIONS.put("PASSENGER_TRANSPORT", "Transporte de Passageiro");
+        ENUM_TRANSLATIONS.put("BOTH", "Ambos");
 
         // ==================== SPECIAL ZONE TYPE ====================
         ENUM_TRANSLATIONS.put("DANGER", "Zona Perigosa");

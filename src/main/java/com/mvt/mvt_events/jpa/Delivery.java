@@ -146,12 +146,45 @@ public class Delivery extends BaseEntity {
     @Visible(table = true, form = true, filter = true, readonly = true)
     private DeliveryStatus status = DeliveryStatus.PENDING;
 
+    /**
+     * Tipo de entrega: DELIVERY (objeto) ou RIDE (passageiro)
+     */
+    @NotNull(message = "Tipo de entrega é obrigatório")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "delivery_type", nullable = false, length = 20)
+    @Visible(table = true, form = true, filter = true)
+    private DeliveryType deliveryType = DeliveryType.DELIVERY;
+
+    /**
+     * Indica se o pagamento já foi realizado.
+     * - Para DELIVERY: true após pagamento quando motoboy aceita
+     * - Para RIDE: true após pagamento quando inicia viagem
+     */
+    @NotNull(message = "Status de pagamento é obrigatório")
+    @Column(name = "payment_completed", nullable = false)
+    @Visible(table = true, form = false, filter = true)
+    private Boolean paymentCompleted = false;
+
+    /**
+     * Indica se o pagamento foi capturado/confirmado pelo gateway.
+     * Para cartão: muda de false para true quando captura é confirmada.
+     */
+    @NotNull(message = "Status de captura é obrigatório")
+    @Column(name = "payment_captured", nullable = false)
+    @Visible(table = false, form = false, filter = true)
+    private Boolean paymentCaptured = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "courier_id")
     @com.fasterxml.jackson.annotation.JsonIgnore
     @Visible(table = true, form = true, filter = true, readonly = true)
     private User courier;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehicle_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @Visible(table = true, form = true, filter = true, readonly = true)
+    private Vehicle vehicle;
 
     @Column(name = "accepted_at")
     @Visible(table = false, form = false, filter = false)
@@ -219,9 +252,35 @@ public class Delivery extends BaseEntity {
     public enum DeliveryStatus {
         PENDING, // Aguardando aceitação
         ACCEPTED, // Aceita pelo motoboy
-        PICKED_UP, // Item coletado
-        IN_TRANSIT, // Em trânsito
+        IN_TRANSIT, // Em trânsito (coletou e está transportando)
         COMPLETED, // Entregue com sucesso
         CANCELLED // Cancelada
+    }
+
+    /**
+     * Tipo de entrega:
+     * - DELIVERY: Entrega de objeto (ex: comida, pacote) - paga quando motoboy aceita
+     * - RIDE: Viagem de passageiro (ex: Uber) - paga quando motoboy inicia viagem
+     */
+    public enum DeliveryType {
+        DELIVERY, // Entrega de objeto
+        RIDE // Viagem de passageiro
+    }
+
+    /**
+     * Define quando o pagamento deve ser cobrado
+     */
+    public enum PaymentTiming {
+        ON_ACCEPT, // Paga quando motoboy aceita (DELIVERY)
+        ON_TRANSIT_START // Paga quando motoboy inicia viagem (RIDE)
+    }
+
+    /**
+     * Retorna quando o pagamento deve ser feito baseado no tipo
+     */
+    public PaymentTiming getPaymentTiming() {
+        return deliveryType == DeliveryType.DELIVERY 
+            ? PaymentTiming.ON_ACCEPT 
+            : PaymentTiming.ON_TRANSIT_START;
     }
 }

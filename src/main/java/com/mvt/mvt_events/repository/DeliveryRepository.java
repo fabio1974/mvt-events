@@ -97,7 +97,7 @@ public interface DeliveryRepository
          */
         @Query("SELECT d FROM Delivery d " +
                         "WHERE d.courier.id = :courierId " +
-                        "AND d.status IN ('ACCEPTED', 'PICKED_UP', 'IN_TRANSIT') " +
+                        "AND d.status IN ('ACCEPTED', 'IN_TRANSIT') " +
                         "ORDER BY d.updatedAt DESC")
         List<Delivery> findActiveByCourierId(@Param("courierId") UUID courierId);
 
@@ -166,13 +166,13 @@ public interface DeliveryRepository
         /**
          * Conta entregas ativas de um motoboy
          */
-        @Query("SELECT COUNT(d) FROM Delivery d WHERE d.courier.id = :courierId AND d.status IN ('ACCEPTED', 'PICKED_UP', 'IN_TRANSIT')")
+        @Query("SELECT COUNT(d) FROM Delivery d WHERE d.courier.id = :courierId AND d.status IN ('ACCEPTED', 'IN_TRANSIT')")
         long countActiveDeliveriesByCourier(@Param("courierId") UUID courierId);
 
         /**
          * Verifica se cliente tem entregas ativas
          */
-        @Query("SELECT COUNT(d) > 0 FROM Delivery d WHERE d.client.id = :clientId AND d.status IN ('PENDING', 'ACCEPTED', 'PICKED_UP', 'IN_TRANSIT')")
+        @Query("SELECT COUNT(d) > 0 FROM Delivery d WHERE d.client.id = :clientId AND d.status IN ('PENDING', 'ACCEPTED', 'IN_TRANSIT')")
         boolean hasActiveDeliveries(@Param("clientId") UUID clientId);
 
         /**

@@ -398,9 +398,13 @@ public class UserService {
                     address.setLongitude(addressDTO.getLongitude());
                 }
                 
-                // Definir como padrão
-                if (addressDTO.getIsDefault() != null) {
-                    address.setIsDefault(addressDTO.getIsDefault());
+                // Definir como padrão (e desmarcar outros se necessário)
+                if (addressDTO.getIsDefault() != null && addressDTO.getIsDefault()) {
+                    // Desmarcar todos os outros endereços do usuário como não-default
+                    currentAddresses.forEach(addr -> addr.setIsDefault(false));
+                    address.setIsDefault(true);
+                } else if (addressDTO.getIsDefault() != null) {
+                    address.setIsDefault(false);
                 }
                 
                 // Adicionar à coleção APÓS preencher todos os campos (para novos endereços)

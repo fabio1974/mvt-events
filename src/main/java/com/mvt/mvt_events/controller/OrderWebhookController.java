@@ -2,9 +2,12 @@ package com.mvt.mvt_events.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mvt.mvt_events.jpa.Delivery;
 import com.mvt.mvt_events.jpa.Payment;
+import com.mvt.mvt_events.jpa.PaymentMethod;
 import com.mvt.mvt_events.jpa.PaymentStatus;
 import com.mvt.mvt_events.payment.service.PagarMeService;
+import com.mvt.mvt_events.repository.DeliveryRepository;
 import com.mvt.mvt_events.repository.PaymentRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,12 +28,16 @@ import java.util.Map;
  * Produção: https://seu-dominio.com/api/webhooks/order
  * </pre>
  * 
- * <p><strong>Eventos suportados:</strong></p>
+ * <p><strong>Eventos suportados (PIX e Cartão):</strong></p>
  * <ul>
- *   <li>order.paid - Pagamento confirmado → COMPLETED</li>
+ *   <li>order.paid - Pagamento confirmado (PIX pago ou Cartão capturado) → PAID</li>
  *   <li>order.payment_failed - Pagamento falhou → FAILED</li>
  *   <li>order.canceled - Pedido cancelado → CANCELLED</li>
  *   <li>order.pending - Aguardando pagamento → PENDING</li>
+ *   <li>charge.created - Cobrança criada → PROCESSING</li>
+ *   <li>charge.updated - Status da cobrança atualizado → depende do status</li>
+ *   <li>charge.paid - Cobrança paga (cartão capturado) → PAID</li>
+ *   <li>charge.refunded - Cobrança reembolsada → REFUNDED</li>
  * </ul>
  * 
  * <p><strong>Segurança:</strong></p>
@@ -50,6 +57,7 @@ import java.util.Map;
 public class OrderWebhookController {
 
     private final PaymentRepository paymentRepository;
+    private final DeliveryRepository deliveryRepository;
     private final PagarMeService pagarMeService;
     private final ObjectMapper objectMapper;
 
@@ -146,6 +154,11 @@ log.info("🔔 Webhook recebido em /api/webhooks/order");
                 log.info("💰 Data de pagamento registrada: {}", payment.getPaymentDate());
             }
             
+            // 7. Se o pagamento foi confirmado, marcar paymentCaptured = true nas deliveries
+            if (newStatus == PaymentStatus.PAID) {
+                updateDeliveriesPaymentCaptured(payment, true);
+            }
+            
             // Salvar alterações
             paymentRepository.save(payment);
             
@@ -190,16 +203,25 @@ log.info("🔔 Webhook recebido em /api/webhooks/order");
         if (eventType != null) {
             switch (eventType.toLowerCase()) {
                 case "order.paid":
+                case "charge.paid":
                     return PaymentStatus.PAID;
                 case "order.payment_failed":
+                case "charge.payment_failed":
+                case "charge.underpaid":
                     return PaymentStatus.FAILED;
                 case "order.canceled":
                 case "order.cancelled":
+                case "charge.chargedback":
                     return PaymentStatus.CANCELLED;
                 case "order.pending":
+                case "charge.pending":
                     return PaymentStatus.PENDING;
                 case "order.created":
+                case "charge.created":
                     return PaymentStatus.PENDING;
+                case "charge.refunded":
+                case "charge.partial_refunded":
+                    return PaymentStatus.REFUNDED;
             }
         }
         
@@ -222,6 +244,34 @@ log.info("🔔 Webhook recebido em /api/webhooks/order");
         
         log.warn("⚠️ Status desconhecido: eventType={}, orderStatus={}", eventType, orderStatus);
         return PaymentStatus.PENDING;
+    }
+    
+    /**
+     * Atualiza o campo paymentCaptured nas deliveries associadas ao pagamento.
+     * 
+     * Este método é chamado quando o pagamento é confirmado (order.paid ou charge.paid)
+     * para marcar todas as deliveries como tendo pagamento capturado.
+     * 
+     * @param payment Payment com as deliveries associadas
+     * @param captured true se o pagamento foi capturado, false caso contrário
+     */
+    private void updateDeliveriesPaymentCaptured(Payment payment, boolean captured) {
+        if (payment.getDeliveries() == null || payment.getDeliveries().isEmpty()) {
+            log.warn("⚠️ Payment {} não possui deliveries associadas", payment.getId());
+            return;
+        }
+        
+        for (Delivery delivery : payment.getDeliveries()) {
+            Boolean previousStatus = delivery.getPaymentCaptured();
+            delivery.setPaymentCaptured(captured);
+            deliveryRepository.save(delivery);
+            
+            log.info("✅ Delivery #{} - paymentCaptured: {} → {}", 
+                    delivery.getId(), previousStatus, captured);
+        }
+        
+        log.info("💳 {} deliveries atualizadas com paymentCaptured = {}", 
+                payment.getDeliveries().size(), captured);
     }
     
     /**

@@ -38,7 +38,14 @@ public class UserPushTokenService {
 
             try {
                 platform = UserPushToken.Platform.valueOf(request.getPlatform().toUpperCase());
-                deviceType = UserPushToken.DeviceType.valueOf(request.getDeviceType().toUpperCase());
+                
+                // Converter fcm/expo para mobile (mobile client envia tokenType ao invés de deviceType)
+                String deviceTypeValue = request.getDeviceType().toLowerCase();
+                if ("fcm".equals(deviceTypeValue) || "expo".equals(deviceTypeValue)) {
+                    deviceTypeValue = "mobile";
+                }
+                
+                deviceType = UserPushToken.DeviceType.valueOf(deviceTypeValue.toUpperCase());
             } catch (IllegalArgumentException e) {
                 log.error("Plataforma ou tipo de dispositivo inválido: platform={}, deviceType={}",
                         request.getPlatform(), request.getDeviceType());

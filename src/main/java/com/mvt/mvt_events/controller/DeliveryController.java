@@ -3,12 +3,18 @@ package com.mvt.mvt_events.controller;
 import com.mvt.mvt_events.common.JwtUtil;
 import com.mvt.mvt_events.dto.*;
 import com.mvt.mvt_events.jpa.Delivery;
+import com.mvt.mvt_events.jpa.SiteConfiguration;
+import com.mvt.mvt_events.jpa.SpecialZone;
 import com.mvt.mvt_events.repository.DeliveryRepository;
 import com.mvt.mvt_events.service.DeliveryService;
+import com.mvt.mvt_events.service.SiteConfigurationService;
+import com.mvt.mvt_events.service.SpecialZoneService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.Builder;
+import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +24,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -50,6 +58,12 @@ public class DeliveryController {
 
     @Autowired
     private com.mvt.mvt_events.repository.EmploymentContractRepository employmentContractRepository;
+
+    @Autowired
+    private SiteConfigurationService siteConfigurationService;
+
+    @Autowired
+    private SpecialZoneService specialZoneService;
 
     @PostMapping
     @Operation(summary = "Criar nova delivery", description = "Requer autenticação. A delivery é criada com status PENDING.")
@@ -275,7 +289,7 @@ public class DeliveryController {
     }
 
     @PatchMapping("/{id}/pickup")
-    @Operation(summary = "Confirmar coleta", description = "Courier confirma que coletou o item. Status: ACCEPTED → PICKED_UP")
+    @Operation(summary = "Confirmar coleta e iniciar transporte", description = "Courier confirma que coletou o item e inicia o transporte. Status: ACCEPTED → IN_TRANSIT")
     public ResponseEntity<DeliveryResponse> confirmPickup(
             @PathVariable Long id,
             Authentication authentication) {
@@ -287,7 +301,8 @@ public class DeliveryController {
     }
 
     @PatchMapping("/{id}/transit")
-    @Operation(summary = "Iniciar transporte", description = "Courier inicia o transporte. Status: PICKED_UP → IN_TRANSIT")
+    @Deprecated
+    @Operation(summary = "[DEPRECATED] Iniciar transporte", description = "DEPRECATED: Use /pickup que já coloca em IN_TRANSIT. Mantido por compatibilidade.")
     public ResponseEntity<DeliveryResponse> startTransit(
             @PathVariable Long id,
             Authentication authentication) {
@@ -577,6 +592,144 @@ public class DeliveryController {
         // Buscar deliveries de todas as organizações do courier
         return deliveryService.findAllByOrganizationIds(organizationIds, clientId, courierId,
                 status, startDate, endDate, pageable);
+    }
+
+    // ==================== SIMULAÇÃO DE FRETE ====================
+
+    /**
+     * DTO para request de simulação de frete
+     */
+    @Data
+    public static class FreightSimulationRequest {
+        private Double fromLatitude;
+        private Double fromLongitude;
+        private String fromAddress;
+        private Double toLatitude;
+        private Double toLongitude;
+        private String toAddress;
+        private BigDecimal distanceKm;
+    }
+
+    /**
+     * DTO para resposta da simulação de frete
+     */
+    @Data
+    @Builder
+    public static class FreightSimulationResponse {
+        private BigDecimal distanceKm;
+        private BigDecimal pricePerKm;
+        private BigDecimal baseFee;
+        private BigDecimal minimumFee;
+        private Boolean minimumApplied;
+        private BigDecimal feeBeforeZone;
+        private String zoneName;
+        private String zoneType;
+        private BigDecimal zoneFeePercentage;
+        private BigDecimal zoneSurcharge;
+        private BigDecimal totalShippingFee;
+        private String fromAddress;
+        private String toAddress;
+    }
+
+    /**
+     * Simula o preço do frete dado origem e destino
+     * 
+     * Endpoint: POST /api/deliveries/simulate-freight
+     * 
+     * Calcula o frete usando a mesma lógica da criação de delivery:
+     * 1. distanceKm × pricePerKm = baseFee
+     * 2. Se baseFee < minimumShippingFee → usa minimumShippingFee
+     * 3. Verifica zona especial no destino (DANGER / HIGH_INCOME)
+     * 4. Aplica sobretaxa da zona sobre o frete
+     * 
+     * @param request Dados de origem, destino e distância (km)
+     * @return Detalhamento completo do cálculo do frete
+     */
+    @PostMapping("/simulate-freight")
+    @Operation(summary = "Simular preço do frete", 
+               description = "Calcula o frete baseado em distância, preço/km, valor mínimo e zonas geográficas. " +
+                             "Usa a mesma lógica da criação de delivery.")
+    public ResponseEntity<?> simulateFreight(@RequestBody @Valid FreightSimulationRequest request) {
+        
+        // Validar distância
+        if (request.getDistanceKm() == null || request.getDistanceKm().compareTo(BigDecimal.ZERO) <= 0) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "distanceKm é obrigatório e deve ser maior que zero"
+            ));
+        }
+
+        // Validar coordenadas do destino (necessárias para zona)
+        if (request.getToLatitude() == null || request.getToLongitude() == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "toLatitude e toLongitude são obrigatórios para cálculo de zona geográfica"
+            ));
+        }
+
+        // Buscar configuração ativa
+        SiteConfiguration config = siteConfigurationService.getActiveConfiguration();
+
+        // 1. Calcular frete base: distância × preço/km
+        BigDecimal baseFee = request.getDistanceKm().multiply(config.getPricePerKm());
+
+        // 2. Aplicar valor mínimo
+        boolean minimumApplied = false;
+        BigDecimal feeBeforeZone = baseFee;
+        if (baseFee.compareTo(config.getMinimumShippingFee()) < 0) {
+            feeBeforeZone = config.getMinimumShippingFee();
+            minimumApplied = true;
+        }
+
+        // 3. Verificar zona especial do destino
+        String zoneName = null;
+        String zoneType = null;
+        BigDecimal zoneFeePercentage = BigDecimal.ZERO;
+        BigDecimal zoneSurcharge = BigDecimal.ZERO;
+        BigDecimal totalFee = feeBeforeZone;
+
+        var nearestZone = specialZoneService.findNearestZone(
+            request.getToLatitude(), 
+            request.getToLongitude()
+        );
+
+        if (nearestZone.isPresent()) {
+            SpecialZone zone = nearestZone.get();
+            zoneName = zone.getAddress();
+            zoneType = zone.getZoneType().name();
+
+            if (zone.getZoneType() == SpecialZone.ZoneType.DANGER) {
+                zoneFeePercentage = config.getDangerFeePercentage();
+            } else if (zone.getZoneType() == SpecialZone.ZoneType.HIGH_INCOME) {
+                zoneFeePercentage = config.getHighIncomeFeePercentage();
+            }
+
+            if (zoneFeePercentage.compareTo(BigDecimal.ZERO) > 0) {
+                zoneSurcharge = feeBeforeZone
+                    .multiply(zoneFeePercentage)
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                totalFee = feeBeforeZone.add(zoneSurcharge);
+            }
+        }
+
+        // 4. Arredondar
+        totalFee = totalFee.setScale(2, RoundingMode.HALF_UP);
+
+        FreightSimulationResponse response = FreightSimulationResponse.builder()
+                .distanceKm(request.getDistanceKm().setScale(2, RoundingMode.HALF_UP))
+                .pricePerKm(config.getPricePerKm())
+                .baseFee(baseFee.setScale(2, RoundingMode.HALF_UP))
+                .minimumFee(config.getMinimumShippingFee())
+                .minimumApplied(minimumApplied)
+                .feeBeforeZone(feeBeforeZone.setScale(2, RoundingMode.HALF_UP))
+                .zoneName(zoneName)
+                .zoneType(zoneType)
+                .zoneFeePercentage(zoneFeePercentage)
+                .zoneSurcharge(zoneSurcharge)
+                .totalShippingFee(totalFee)
+                .fromAddress(request.getFromAddress())
+                .toAddress(request.getToAddress())
+                .build();
+
+        return ResponseEntity.ok(response);
     }
 
     /**

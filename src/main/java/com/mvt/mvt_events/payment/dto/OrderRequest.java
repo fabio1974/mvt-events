@@ -109,10 +109,67 @@ public class OrderRequest {
     @AllArgsConstructor
     public static class PaymentRequest {
         @JsonProperty("payment_method")
-        private String paymentMethod; // "pix"
+        private String paymentMethod; // "pix" ou "credit_card"
         
         private PixRequest pix; // Configurações PIX
+        @JsonProperty("credit_card")
+        private CreditCardRequest creditCard; // Configurações Cartão de Crédito
         private List<SplitRequest> split; // Split de valores
+    }
+    
+    /**
+     * Request para pagamento via Cartão de Crédito
+     * 
+     * @see <a href="https://docs.pagar.me/reference/criar-pedido">Documentação Pagar.me</a>
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CreditCardRequest {
+        @JsonProperty("operation_type")
+        private String operationType; // "auth_and_capture" ou "auth_only"
+        
+        private Integer installments; // Número de parcelas (1-12)
+        
+        @JsonProperty("statement_descriptor")
+        private String statementDescriptor; // Nome na fatura (máx 13 caracteres)
+        
+        @JsonProperty("card_token")
+        private String cardToken; // Token do cartão gerado via Pagar.me
+        
+        private CardRequest card; // Dados do cartão (billing address)
+    }
+    
+    /**
+     * Dados do cartão com billing address
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CardRequest {
+        @JsonProperty("billing_address")
+        private BillingAddressRequest billingAddress;
+    }
+    
+    /**
+     * Endereço de cobrança do cartão
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class BillingAddressRequest {
+        @JsonProperty("line_1")
+        private String line1; // "Número, Rua, Bairro"
+        
+        @JsonProperty("zip_code")
+        private String zipCode; // CEP (ex: 05425070)
+        
+        private String city; // Cidade
+        private String state; // Estado (UF)
+        private String country; // País (BR)
     }
     
     @Data

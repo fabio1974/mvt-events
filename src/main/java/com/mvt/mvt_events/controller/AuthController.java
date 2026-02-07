@@ -19,6 +19,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -40,6 +41,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping({"/api/auth", "/auth"})
 @Tag(name = "Autenticação", description = "Login, registro e gerenciamento de usuários")
+@Slf4j
 public class AuthController {
 
     @Autowired
@@ -105,6 +107,20 @@ public class AuthController {
         } catch (BadCredentialsException e) {
             return ResponseEntity.badRequest().body(Map.of("error", "INVALID_CREDENTIALS", "message", "Email/CPF ou senha inválidos"));
         }
+    }
+
+    @PostMapping("/logout")
+    @Operation(summary = "Logout do usuário", description = "Invalida a sessão do usuário. Como usamos JWT stateless, o logout é feito no cliente removendo o token.")
+    public ResponseEntity<?> logout(Authentication authentication) {
+        // JWT é stateless - o logout é feito no cliente removendo o token
+        // Aqui apenas retornamos sucesso para manter compatibilidade com apps mobile
+        String userId = authentication != null ? authentication.getName() : "unknown";
+        log.info("👋 Logout realizado para usuário: {}", userId);
+        
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "message", "Logout realizado com sucesso"
+        ));
     }
 
     @PostMapping("/register")

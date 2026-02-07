@@ -64,6 +64,17 @@ public class User implements UserDetails {
     @Visible(readonly = false, table = false, form = true, filter = true)
     private Role role = Role.ORGANIZER;
 
+    /**
+     * Tipo de serviço prestado (apenas para COURIER)
+     * DELIVERY = Entrega de mercadorias
+     * PASSENGER_TRANSPORT = Transporte de passageiros
+     * BOTH = Ambos os serviços
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "service_type", length = 30)
+    @Visible(readonly = false, table = true, form = true, filter = true)
+    private ServiceType serviceType;
+
     // ============================================================================
     // ADDRESS RELATIONSHIP (1:N)
     // ============================================================================
@@ -76,6 +87,19 @@ public class User implements UserDetails {
     @JsonIgnore
     @Visible(table = false, form = false, filter = false)
     private Set<Address> addresses = new HashSet<>();
+
+    // ============================================================================
+    // VEHICLE RELATIONSHIP (1:N)
+    // ============================================================================
+
+    /**
+     * Relacionamento 1:N com Vehicle.
+     * Cada usuário (COURIER) pode possuir múltiplos veículos.
+     */
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnore
+    @Visible(table = false, form = false, filter = false)
+    private Set<Vehicle> vehicles = new HashSet<>();
 
     // ============================================================================
     // GPS TRACKING FIELDS (Real-time location)

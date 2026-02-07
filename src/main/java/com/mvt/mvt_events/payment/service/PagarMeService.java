@@ -509,6 +509,198 @@ public class PagarMeService {
     }
 
     /**
+     * Cria uma order com Cartão de Crédito e split automático
+     * 
+     * SPLIT DE VALORES:
+     * - Com Organizer: 87% courier, 5% organizer, 8% plataforma
+     * - Sem Organizer (delivery criada por CUSTOMER): 87% courier, 13% plataforma
+     * 
+     * A plataforma (conta master) absorve automaticamente o percentual restante.
+     * 
+     * @param amount Valor total em BRL
+     * @param description Descrição do pagamento
+     * @param cardToken Token do cartão gerado via Pagar.me
+     * @param customerName Nome do cliente
+     * @param customerEmail Email do cliente
+     * @param customerDocument CPF do cliente
+     * @param customerAddress Endereço do cliente (para billing)
+     * @param courierRecipientId ID do recipient do courier (obrigatório)
+     * @param organizerRecipientId ID do recipient do organizer (null se não houver)
+     * @param statementDescriptor Nome na fatura do cartão (máx 13 chars)
+     * @return Response com detalhes do pagamento
+     */
+    public OrderResponse createOrderWithCreditCardSplit(
+            BigDecimal amount,
+            String description,
+            String cardToken,
+            String customerName,
+            String customerEmail,
+            String customerDocument,
+            OrderRequest.BillingAddressRequest customerAddress,
+            String courierRecipientId,
+            String organizerRecipientId,
+            String statementDescriptor
+    ) {
+        log.info("💳 Criando order com Cartão de Crédito e split: R$ {}", amount);
+        
+        boolean hasOrganizer = organizerRecipientId != null && !organizerRecipientId.isBlank();
+        
+        // Converter para centavos
+        int amountInCents = amount.multiply(new BigDecimal(100)).intValue();
+
+        // Calcular splits
+        // Courier sempre recebe 87%
+        int courierAmount = (amountInCents * config.getSplit().getCourierPercentage()) / 10000;
+        
+        // Organizer recebe 5% apenas se existir
+        int organizerAmount = 0;
+        if (hasOrganizer) {
+            organizerAmount = (amountInCents * config.getSplit().getManagerPercentage()) / 10000;
+        }
+        
+        // Plataforma recebe o resto (8% ou 13% se não houver organizer)
+        int platformAmount = amountInCents - courierAmount - organizerAmount;
+
+        log.info("   ├─ Total: {} centavos", amountInCents);
+        log.info("   ├─ Courier (87%): {} centavos", courierAmount);
+        if (hasOrganizer) {
+            log.info("   ├─ Organizer (5%): {} centavos", organizerAmount);
+            log.info("   └─ Plataforma (8%): {} centavos (automático)", platformAmount);
+        } else {
+            log.info("   └─ Plataforma (13%): {} centavos (incorporou 5% do organizer ausente)", platformAmount);
+        }
+
+        // Configurar splits
+        List<OrderRequest.SplitRequest> orderSplits = new ArrayList<>();
+
+        // Split do courier (87%) - sempre presente
+        orderSplits.add(OrderRequest.SplitRequest.builder()
+                .amount(courierAmount)
+                .type("flat")
+                .recipientId(courierRecipientId)
+                .options(OrderRequest.SplitOptionsRequest.builder()
+                        .liable(false) // Plataforma é liable
+                        .chargeProcessingFee(false) // Plataforma paga taxas
+                        .chargeRemainderFee(false)
+                        .build())
+                .build());
+
+        // Split do organizer (5%) - apenas se existir
+        if (hasOrganizer) {
+            orderSplits.add(OrderRequest.SplitRequest.builder()
+                    .amount(organizerAmount)
+                    .type("flat")
+                    .recipientId(organizerRecipientId)
+                    .options(OrderRequest.SplitOptionsRequest.builder()
+                            .liable(false) // Plataforma é liable
+                            .chargeProcessingFee(false) // Plataforma paga taxas
+                            .chargeRemainderFee(false)
+                            .build())
+                    .build());
+        }
+
+        // Plataforma recebe o resto automaticamente (não precisa ir no array)
+        // O Pagar.me calcula automaticamente o remainder para a conta master
+
+        // Validar statement descriptor (máximo 13 caracteres)
+        if (statementDescriptor == null || statementDescriptor.isBlank()) {
+            statementDescriptor = "ZAPI10";
+        }
+        if (statementDescriptor.length() > 13) {
+            statementDescriptor = statementDescriptor.substring(0, 13);
+        }
+        
+        // Parcela única - pagamentos de delivery não permitem parcelamento
+        final int installments = 1;
+
+        // Criar request
+        OrderRequest request = OrderRequest.builder()
+                .closed(true) // Encerrar order imediatamente
+                .items(List.of(OrderRequest.ItemRequest.builder()
+                        .amount((long) amountInCents)
+                        .description(description)
+                        .quantity(1L)
+                        .code("DELIVERY")
+                        .build()))
+                .customer(OrderRequest.CustomerRequest.builder()
+                        .name(customerName)
+                        .email(customerEmail)
+                        .document(customerDocument)
+                        .type("individual")
+                        .build())
+                .payments(List.of(OrderRequest.PaymentRequest.builder()
+                        .paymentMethod("credit_card")
+                        .creditCard(OrderRequest.CreditCardRequest.builder()
+                                .operationType("auth_and_capture")
+                                .installments(installments)
+                                .statementDescriptor(statementDescriptor)
+                                .cardToken(cardToken)
+                                .card(OrderRequest.CardRequest.builder()
+                                        .billingAddress(customerAddress)
+                                        .build())
+                                .build())
+                        .split(orderSplits)
+                        .build()))
+                .build();
+
+        try {
+            HttpHeaders headers = createHeaders();
+            HttpEntity<OrderRequest> entity = new HttpEntity<>(request, headers);
+
+            String url = config.getApi().getUrl() + "/orders";
+            
+            log.debug("📤 Enviando request para Pagar.me: {}", url);
+            
+            ResponseEntity<OrderResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    OrderResponse.class
+            );
+
+            OrderResponse order = response.getBody();
+            if (order != null) {
+                log.info("✅ Order com cartão criada: {} (status: {})", order.getId(), order.getStatus());
+                return order;
+            }
+
+            throw new RuntimeException("Resposta vazia do Pagar.me");
+
+        } catch (HttpClientErrorException e) {
+            log.error("❌ Erro 4xx ao criar order com cartão no Pagar.me: {} - {}", 
+                e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException("Falha ao processar cartão: " + extractErrorMessage(e), e);
+        } catch (HttpServerErrorException e) {
+            log.error("❌ Erro 5xx do Pagar.me: {} - {}", 
+                e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException("Erro no servidor de pagamento. Tente novamente.", e);
+        } catch (Exception e) {
+            log.error("❌ Erro ao criar order com cartão no Pagar.me", e);
+            throw new RuntimeException("Falha ao criar order: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Extrai mensagem de erro amigável da resposta do Pagar.me
+     */
+    private String extractErrorMessage(HttpClientErrorException e) {
+        try {
+            String body = e.getResponseBodyAsString();
+            if (body != null && body.contains("message")) {
+                // Tenta extrair a mensagem do JSON
+                int start = body.indexOf("\"message\":\"") + 11;
+                int end = body.indexOf("\"", start);
+                if (start > 10 && end > start) {
+                    return body.substring(start, end);
+                }
+            }
+            return e.getMessage();
+        } catch (Exception ex) {
+            return e.getMessage();
+        }
+    }
+
+    /**
      * Valida assinatura de webhook usando HMAC SHA256
      * 
      * @param payload Payload recebido do webhook

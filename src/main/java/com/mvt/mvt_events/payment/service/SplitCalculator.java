@@ -71,12 +71,21 @@ public class SplitCalculator {
             throw new IllegalArgumentException("Delivery cannot be null");
         }
 
+        // Verificar se há organizer válido
+        boolean hasOrganizer = delivery.getOrganizer() != null && 
+                              delivery.getOrganizer().getPagarmeRecipientId() != null &&
+                              !delivery.getOrganizer().getPagarmeRecipientId().isEmpty();
+
+        // Calcular percentuais
+        // Se não há organizer, plataforma incorpora os 5% dele (total 13%)
+        int effectiveManagerPercentage = hasOrganizer ? managerPercentage : 0;
+        
         // Validação: soma dos splits não pode ultrapassar 100%
-        int totalPercentage = courierPercentage + managerPercentage;
+        int totalPercentage = courierPercentage + effectiveManagerPercentage;
         if (totalPercentage > 10000) {
             throw new IllegalStateException(
                 String.format("Split percentages exceed 100%%. Courier: %d%%, Manager: %d%%, Total: %d%%",
-                    courierPercentage / 100, managerPercentage / 100, totalPercentage / 100)
+                    courierPercentage / 100, effectiveManagerPercentage / 100, totalPercentage / 100)
             );
         }
 
@@ -106,15 +115,11 @@ public class SplitCalculator {
             throw new IllegalStateException("Courier is missing");
         }
 
-        // 2. Split do MANAGER (5%)
-        if (delivery.getOrganizer() != null) {
+        // 2. Split do MANAGER (5%) - APENAS SE EXISTIR
+        // Quando não há organizer (delivery criada por CUSTOMER direto), 
+        // a plataforma incorpora os 5% automaticamente (fica com 13%)
+        if (hasOrganizer) {
             String managerRecipientId = delivery.getOrganizer().getPagarmeRecipientId();
-            
-            if (managerRecipientId == null || managerRecipientId.isEmpty()) {
-                throw new IllegalStateException(
-                    "Manager does not have a recipient ID. Bank account must be registered first."
-                );
-            }
 
             PagarMeSplitRequest managerSplit = PagarMeSplitRequest.builder()
                 .amount(managerPercentage) // 500 = 5%
@@ -128,13 +133,63 @@ public class SplitCalculator {
                 .build();
 
             splits.add(managerSplit);
-        } else {
-            throw new IllegalStateException("Manager (organizer) is missing");
+        }
+        // Se não há organizer, NÃO adiciona split para manager
+        // O Pagar.me calcula automaticamente como remainder (8% ou 13%)
+
+        // 3. PLATAFORMA - NÃO vai no array
+        // O Pagar.me calcula automaticamente como remainder:
+        // - Com organizer: 100% - 87% - 5% = 8%
+        // - Sem organizer: 100% - 87% = 13%
+
+        return splits;
+    }
+    
+    /**
+     * Calcula o split de pagamento para Pagar.me (versão sem organizer)
+     * 
+     * Usado quando a delivery foi criada por um CUSTOMER direto (sem organizer).
+     * O split é apenas entre courier (87%) e plataforma (13%).
+     * 
+     * @param delivery Entrega com informações do motoboy
+     * @return Lista de splits para o Pagar.me (1 item: apenas courier)
+     */
+    public List<PagarMeSplitRequest> calculatePagarmeSplitWithoutOrganizer(Delivery delivery) {
+        List<PagarMeSplitRequest> splits = new ArrayList<>();
+
+        // Validação básica
+        if (delivery == null) {
+            throw new IllegalArgumentException("Delivery cannot be null");
         }
 
-        // 3. PLATAFORMA (8%) - NÃO vai no array
-        // O Pagar.me calcula automaticamente como remainder
-        // 100% - 87% - 5% = 8% (automático para a conta principal)
+        // 1. Split do MOTOBOY (87%)
+        if (delivery.getCourier() != null) {
+            String courierRecipientId = delivery.getCourier().getPagarmeRecipientId();
+            
+            if (courierRecipientId == null || courierRecipientId.isEmpty()) {
+                throw new IllegalStateException(
+                    "Courier does not have a recipient ID. Bank account must be registered first."
+                );
+            }
+
+            PagarMeSplitRequest courierSplit = PagarMeSplitRequest.builder()
+                .amount(courierPercentage) // 8700 = 87%
+                .recipientId(courierRecipientId)
+                .type("percentage")
+                .options(PagarMeSplitRequest.SplitOptions.builder()
+                    .liable(courierLiable) // false - plataforma é liable
+                    .chargeProcessingFee(courierChargeFee) // false - plataforma paga
+                    .chargeRemainderFee(false)
+                    .build())
+                .build();
+
+            splits.add(courierSplit);
+        } else {
+            throw new IllegalStateException("Courier is missing");
+        }
+
+        // 2. PLATAFORMA fica com o resto (13%)
+        // NÃO vai no array - Pagar.me calcula automaticamente
 
         return splits;
     }
@@ -142,31 +197,49 @@ public class SplitCalculator {
     /**
      * Valida se uma entrega está pronta para split de pagamento
      * 
+     * NOTA: Organizer é OPCIONAL. Deliveries criadas por CUSTOMER direto
+     * não possuem organizer, e o split é feito apenas entre courier e plataforma.
+     * 
      * @param delivery Entrega a validar
-     * @return true se a entrega tem todos os recipient IDs necessários
+     * @return true se a entrega tem o courier com recipient ID configurado
      */
     public boolean isReadyForSplit(Delivery delivery) {
         if (delivery == null) {
             return false;
         }
 
-        // Valida courier
+        // Valida courier (obrigatório)
         if (delivery.getCourier() == null || 
-            delivery.getCourier().getPagarmeRecipientId() == null) {
+            delivery.getCourier().getPagarmeRecipientId() == null ||
+            delivery.getCourier().getPagarmeRecipientId().isEmpty()) {
             return false;
         }
 
-        // Valida manager (organizer)
-        if (delivery.getOrganizer() == null || 
-            delivery.getOrganizer().getPagarmeRecipientId() == null) {
-            return false;
-        }
+        // Organizer é OPCIONAL - não valida mais
+        // Se não houver organizer, a plataforma incorpora os 5% automaticamente
 
         return true;
+    }
+    
+    /**
+     * Verifica se a delivery tem um organizer válido para split
+     * 
+     * @param delivery Entrega a verificar
+     * @return true se há organizer com recipient ID configurado
+     */
+    public boolean hasValidOrganizer(Delivery delivery) {
+        return delivery != null && 
+               delivery.getOrganizer() != null && 
+               delivery.getOrganizer().getPagarmeRecipientId() != null &&
+               !delivery.getOrganizer().getPagarmeRecipientId().isEmpty();
     }
 
     /**
      * Calcula o valor que cada parte receberá (para exibição/log)
+     * 
+     * Considera se há organizer ou não:
+     * - Com organizer: 87% courier, 5% organizer, 8% plataforma
+     * - Sem organizer: 87% courier, 13% plataforma
      * 
      * @param totalAmount Valor total em centavos (ex: 10000 = R$ 100,00)
      * @param delivery Entrega com informações de split
@@ -177,10 +250,16 @@ public class SplitCalculator {
             throw new IllegalArgumentException("Total amount must be positive");
         }
 
+        boolean hasOrganizer = hasValidOrganizer(delivery);
+
         // Calcula valores em centavos
         long courierAmount = (totalAmount * courierPercentage) / 10000;
-        long managerAmount = (totalAmount * managerPercentage) / 10000;
-        long platformAmount = totalAmount - courierAmount - managerAmount; // Resto = 8%
+        long managerAmount = hasOrganizer ? (totalAmount * managerPercentage) / 10000 : 0;
+        long platformAmount = totalAmount - courierAmount - managerAmount; // Resto = 8% ou 13%
+
+        int effectivePlatformPercentage = hasOrganizer 
+            ? (10000 - courierPercentage - managerPercentage) 
+            : (10000 - courierPercentage);
 
         return SplitBreakdown.builder()
             .totalAmount(totalAmount)
@@ -188,8 +267,9 @@ public class SplitCalculator {
             .managerAmount(managerAmount)
             .platformAmount(platformAmount)
             .courierPercentage(new BigDecimal(courierPercentage).divide(new BigDecimal(100)))
-            .managerPercentage(new BigDecimal(managerPercentage).divide(new BigDecimal(100)))
-            .platformPercentage(new BigDecimal(10000 - courierPercentage - managerPercentage).divide(new BigDecimal(100)))
+            .managerPercentage(hasOrganizer ? new BigDecimal(managerPercentage).divide(new BigDecimal(100)) : BigDecimal.ZERO)
+            .platformPercentage(new BigDecimal(effectivePlatformPercentage).divide(new BigDecimal(100)))
+            .hasOrganizer(hasOrganizer)
             .build();
     }
 
@@ -206,5 +286,6 @@ public class SplitCalculator {
         private BigDecimal courierPercentage;
         private BigDecimal managerPercentage;
         private BigDecimal platformPercentage;
+        private Boolean hasOrganizer;
     }
 }

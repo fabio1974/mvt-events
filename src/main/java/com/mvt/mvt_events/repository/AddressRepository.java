@@ -39,6 +39,12 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
     Optional<Address> findByUserIdWithCity(@Param("userId") UUID userId);
 
     /**
+     * Busca endereço por ID com City carregada (evita lazy loading)
+     */
+    @Query("SELECT a FROM Address a LEFT JOIN FETCH a.city WHERE a.id = :id")
+    Optional<Address> findByIdWithCity(@Param("id") Long id);
+
+    /**
      * Busca endereços por cidade
      */
     List<Address> findByCityId(Long cityId);
