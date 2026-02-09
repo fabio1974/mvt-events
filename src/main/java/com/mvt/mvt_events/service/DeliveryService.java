@@ -1,6 +1,10 @@
 package com.mvt.mvt_events.service;
 
 import com.mvt.mvt_events.jpa.*;
+import com.mvt.mvt_events.jpa.CustomerPaymentPreference.PreferredPaymentType;
+import com.mvt.mvt_events.payment.dto.OrderRequest;
+import com.mvt.mvt_events.payment.dto.OrderResponse;
+import com.mvt.mvt_events.payment.service.PagarMeService;
 import com.mvt.mvt_events.repository.*;
 import com.mvt.mvt_events.specification.DeliverySpecification;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +20,8 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Service para Delivery - ENTIDADE CORE DO ZAPI10
@@ -24,6 +30,8 @@ import java.util.UUID;
 @Service
 @Transactional
 public class DeliveryService {
+
+    private static final Logger log = LoggerFactory.getLogger(DeliveryService.class);
 
     @Autowired
     private DeliveryRepository deliveryRepository;
@@ -54,6 +62,18 @@ public class DeliveryService {
 
     @Autowired
     private PaymentRepository paymentRepository;
+
+    @Autowired
+    private CustomerPaymentPreferenceService preferenceService;
+
+    @Autowired
+    private CustomerCardService cardService;
+
+    @Autowired
+    private PagarMeService pagarMeService;
+
+    @Autowired
+    private PaymentService paymentService;
 
     // TODO: ADMProfileRepository não mais usado após remoção de CourierADMLink
     // @Autowired
@@ -403,6 +423,14 @@ public class DeliveryService {
     /**
      * Atribui delivery a um courier
      * VALIDA: Courier existe, está ativo, pertence ao ADM
+     * 
+     * VALIDAÇÃO DE PAGAMENTO:
+     * - Para CLIENT (estabelecimento): Pode aceitar SEM aguardar confirmação de pagamento
+     *   → Pagamento automático por cartão criado no aceite (se preferência CREDIT_CARD)
+     * - Para CUSTOMER (app mobile) + DELIVERY ou RIDE type:
+     *   → PIX: pagamento criado no aceite (imediato)
+     *   → CREDIT_CARD: pagamento criado ao entrar em trânsito (confirmPickup)
+     *   → Split sem ORGANIZER (87% courier, 13% plataforma)
      */
     public Delivery assignToCourier(Long deliveryId, UUID courierId, Long organizationId) {
         Delivery delivery = findById(deliveryId, organizationId);
@@ -420,21 +448,8 @@ public class DeliveryService {
             throw new RuntimeException("Usuário não é um courier");
         }
 
-        // Buscar a organização comum entre courier (employment) e client (client contract)
-        Organization commonOrganization = findCommonOrganization(courierUser, delivery.getClient());
-        if (commonOrganization == null) {
-            throw new RuntimeException("Courier e Client não compartilham uma organização comum através de contratos ativos");
-        }
-
-        // Buscar o organizer (owner da organização)
-        User organizer = commonOrganization.getOwner();
-        if (organizer == null) {
-            throw new RuntimeException("Organização não possui um owner definido");
-        }
-
-        // Atribuir
+        // Atribuir courier
         delivery.setCourier(courierUser);
-        delivery.setOrganizer(organizer);
         delivery.setStatus(Delivery.DeliveryStatus.ACCEPTED);
         delivery.setAcceptedAt(LocalDateTime.now());
 
@@ -442,15 +457,74 @@ public class DeliveryService {
         vehicleRepository.findActiveVehicleByOwnerId(courierUser.getId())
                 .ifPresent(delivery::setVehicle);
 
-        Delivery saved = deliveryRepository.save(delivery);
-        
-        // Recarregar a delivery com todos os relacionamentos para evitar lazy loading
-        return deliveryRepository.findByIdWithJoins(saved.getId())
-                .orElse(saved);
+        if (delivery.isFromTrustedClient()) {
+            // ─── FLUXO CLIENT (estabelecimento): buscar organização comum ───
+            Organization commonOrganization = findCommonOrganization(courierUser, delivery.getClient());
+            if (commonOrganization == null) {
+                throw new RuntimeException("Courier e Client não compartilham uma organização comum através de contratos ativos");
+            }
+
+            User organizer = commonOrganization.getOwner();
+            if (organizer == null) {
+                throw new RuntimeException("Organização não possui um owner definido");
+            }
+
+            delivery.setOrganizer(organizer);
+
+            Delivery saved = deliveryRepository.save(delivery);
+
+            // 💳 PAGAMENTO AUTOMÁTICO CLIENT: Se tem preferência CREDIT_CARD
+            try {
+                createAutomaticCreditCardPayment(saved, delivery.getClient());
+            } catch (Exception e) {
+                log.warn("⚠️ Falha ao criar pagamento automático por cartão para delivery #{}: {}", 
+                    saved.getId(), e.getMessage());
+            }
+
+            return deliveryRepository.findByIdWithJoins(saved.getId()).orElse(saved);
+
+        } else {
+            // ─── FLUXO CUSTOMER (app mobile): sem organização, pagamento no aceite (PIX) ou trânsito (cartão) ───
+            // CUSTOMER não tem organizer (entrega direta, sem estabelecimento)
+            delivery.setOrganizer(null);
+
+            Delivery saved = deliveryRepository.save(delivery);
+
+            // 💳 PAGAMENTO CUSTOMER PIX: Criar pagamento PIX no aceite (DELIVERY e RIDE)
+            // Cartão de crédito será cobrado quando entrar em trânsito (confirmPickup)
+            if (delivery.getDeliveryType() == Delivery.DeliveryType.DELIVERY 
+                    || delivery.getDeliveryType() == Delivery.DeliveryType.RIDE) {
+                CustomerPaymentPreference pref = preferenceService.getPreference(delivery.getClient().getId());
+                if (pref.getPreferredPaymentType() == PreferredPaymentType.PIX) {
+                    try {
+                        createPixPaymentForCustomer(saved, delivery.getClient());
+                    } catch (Exception e) {
+                        log.error("❌ Falha ao criar pagamento PIX para CUSTOMER na delivery #{}: {}", 
+                            saved.getId(), e.getMessage(), e);
+                        // Reverter aceite se pagamento PIX falhar
+                        saved.setStatus(Delivery.DeliveryStatus.PENDING);
+                        saved.setCourier(null);
+                        saved.setAcceptedAt(null);
+                        saved.setVehicle(null);
+                        deliveryRepository.save(saved);
+                        throw new RuntimeException("Não foi possível processar o pagamento PIX: " + e.getMessage());
+                    }
+                } else {
+                    log.info("💳 CUSTOMER com preferência CARTÃO na delivery #{} — cobrança será feita ao entrar em trânsito", saved.getId());
+                }
+            }
+
+            return deliveryRepository.findByIdWithJoins(saved.getId()).orElse(saved);
+        }
     }
 
     /**
      * Courier confirma coleta
+     * 
+     * VALIDAÇÃO DE PAGAMENTO:
+     * - Para CLIENT (estabelecimento): Pode iniciar SEM aguardar confirmação de pagamento
+     * - Para CUSTOMER (app mobile) + DELIVERY ou RIDE + CREDIT_CARD: cria pagamento ao entrar em trânsito
+     * - Para CUSTOMER (app mobile) + DELIVERY ou RIDE + PIX: Pagamento já foi criado no accept
      */
     public Delivery confirmPickup(Long deliveryId, UUID courierId) {
         Delivery delivery = deliveryRepository.findByIdWithJoins(deliveryId)
@@ -469,6 +543,27 @@ public class DeliveryService {
         delivery.setInTransitAt(LocalDateTime.now());
 
         Delivery saved = deliveryRepository.save(delivery);
+
+        // 💳 PAGAMENTO CUSTOMER CARTÃO: Criar pagamento por cartão ao entrar em trânsito (DELIVERY e RIDE)
+        if (!delivery.isFromTrustedClient() 
+                && (delivery.getDeliveryType() == Delivery.DeliveryType.DELIVERY 
+                    || delivery.getDeliveryType() == Delivery.DeliveryType.RIDE)) {
+            CustomerPaymentPreference pref = preferenceService.getPreference(delivery.getClient().getId());
+            if (pref.getPreferredPaymentType() == PreferredPaymentType.CREDIT_CARD) {
+                try {
+                    createCreditCardPaymentForCustomer(saved, delivery.getClient());
+                } catch (Exception e) {
+                    log.error("❌ Falha ao criar pagamento por cartão para CUSTOMER na delivery #{}: {}", 
+                        saved.getId(), e.getMessage(), e);
+                    // Reverter para ACCEPTED se pagamento falhar
+                    saved.setStatus(Delivery.DeliveryStatus.ACCEPTED);
+                    saved.setPickedUpAt(null);
+                    saved.setInTransitAt(null);
+                    deliveryRepository.save(saved);
+                    throw new RuntimeException("Não foi possível processar o pagamento por cartão: " + e.getMessage());
+                }
+            }
+        }
         
         // Recarregar com joins
         return deliveryRepository.findByIdWithJoins(saved.getId())
@@ -908,5 +1003,301 @@ public class DeliveryService {
         }
         
         return null; // Não há organização em comum
+    }
+
+    /**
+     * Cria pagamento automático por cartão de crédito quando CLIENT com preferência CREDIT_CARD cria delivery.
+     * 
+     * FLUXO:
+     * 1. Verifica se CLIENT tem preferência CREDIT_CARD
+     * 2. Busca cartão padrão
+     * 3. Encontra courier e organizer (se houver) da delivery
+     * 4. Cria order no Pagar.me com split (87% courier, 5% organizer, 8% plataforma)
+     * 5. Salva Payment no banco
+     * 6. Marca paymentCompleted=true e paymentCaptured=true na delivery
+     * 
+     * @param delivery Delivery recém-criada
+     * @param client CLIENT que criou a delivery
+     */
+    private void createAutomaticCreditCardPayment(Delivery delivery, User client) {
+        log.info("💳 Verificando criação automática de pagamento por cartão para delivery #{}", delivery.getId());
+        
+        // 1. Verificar preferência de pagamento
+        CustomerPaymentPreference preference = preferenceService.getPreference(client.getId());
+        if (preference.getPreferredPaymentType() != PreferredPaymentType.CREDIT_CARD) {
+            log.info("   ├─ Cliente prefere PIX, não criar pagamento automático");
+            return;
+        }
+        
+        // 2. Buscar cartão padrão
+        CustomerCard card;
+        try {
+            card = cardService.getDefaultCard(client.getId());
+        } catch (Exception e) {
+            log.warn("   ├─ ⚠️ Cliente não tem cartão padrão cadastrado: {}", e.getMessage());
+            return;
+        }
+        
+        if (!card.getIsActive() || card.isExpired()) {
+            log.warn("   ├─ ⚠️ Cartão padrão inativo ou expirado");
+            return;
+        }
+        
+        log.info("   ├─ Cartão encontrado: {} **** {}", card.getBrand(), card.getLastFourDigits());
+        
+        // 3. Buscar courier e organizer (já definidos após assignToCourier)
+        User courier = delivery.getCourier();
+        User organizer = delivery.getOrganizer();
+        
+        String courierRecipientId = courier.getPagarmeRecipientId();
+        if (courierRecipientId == null || courierRecipientId.isBlank()) {
+            log.warn("   ├─ ⚠️ Courier não tem recipientId configurado no Pagar.me");
+            return;
+        }
+        
+        String organizerRecipientId = null;
+        if (organizer != null) {
+            organizerRecipientId = organizer.getPagarmeRecipientId();
+        }
+        
+        // 4. Preparar dados do endereço de cobrança
+        OrderRequest.BillingAddressRequest billingAddress = OrderRequest.BillingAddressRequest.builder()
+                .line1(delivery.getFromAddress() != null ? delivery.getFromAddress() : "Endereço não informado")
+                .zipCode("00000000")
+                .city("São Paulo")
+                .state("SP")
+                .country("BR")
+                .build();
+        
+        // 5. Criar order no Pagar.me com split
+        try {
+            log.info("   ├─ Criando order no Pagar.me com split...");
+
+            // Buscar recipientId da plataforma
+            SiteConfiguration config = siteConfigurationService.getActiveConfiguration();
+            String platformRecipientId = config.getPagarmeRecipientId();
+            
+            OrderResponse orderResponse = pagarMeService.createOrderWithCreditCardSplit(
+                    delivery.getShippingFee(),
+                    "Entrega #" + delivery.getId(),
+                    card.getPagarmeCardId(),
+                    client.getName() != null ? client.getName() : client.getUsername(),
+                    client.getUsername(), // Usando username como email
+                    "00000000000", // Document padrão
+                    billingAddress,
+                    courierRecipientId,
+                    organizerRecipientId,
+                    "ZAPI10",
+                    platformRecipientId
+            );
+            
+            log.info("   ├─ ✅ Order criada: {}", orderResponse.getId());
+            
+            // 6. Criar Payment no banco
+            Payment payment = new Payment();
+            payment.setProviderPaymentId(orderResponse.getId());
+            payment.setAmount(delivery.getShippingFee());
+            payment.setCurrency(Currency.BRL);
+            payment.setPaymentMethod(PaymentMethod.CREDIT_CARD);
+            payment.setProvider(PaymentProvider.PAGARME);
+            payment.setPayer(client);
+            payment.setStatus(PaymentStatus.PENDING);
+            payment.addDelivery(delivery);
+            
+            Payment savedPayment = paymentRepository.save(payment);
+            log.info("   ├─ ✅ Payment #{} salvo no banco", savedPayment.getId());
+            
+            // 7. Marcar delivery como paga (aguardar webhook para confirmar)
+            // paymentCompleted = false (aguarda webhook)
+            // paymentCaptured será atualizado pelo webhook
+            delivery.setPaymentCompleted(false);
+            delivery.setPaymentCaptured(false);
+            deliveryRepository.save(delivery);
+            
+            log.info("   └─ ✅ Pagamento automático criado com sucesso para delivery #{}", delivery.getId());
+            
+        } catch (Exception e) {
+            log.error("   └─ ❌ Erro ao criar pagamento automático: {}", e.getMessage(), e);
+            throw new RuntimeException("Falha ao criar pagamento automático: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Cria pagamento PIX para CUSTOMER no momento do aceite da delivery.
+     * 
+     * Chamado durante assignToCourier quando CUSTOMER tem preferência PIX.
+     * Split SEM ORGANIZER: 87% courier, 13% plataforma.
+     * 
+     * @param delivery Delivery recém-aceita
+     * @param customer CUSTOMER que criou a delivery
+     */
+    private void createPixPaymentForCustomer(Delivery delivery, User customer) {
+        log.info("💳 Criando pagamento PIX para CUSTOMER na delivery #{}", delivery.getId());
+
+        // Buscar recipientId do courier
+        User courier = delivery.getCourier();
+        String courierRecipientId = courier.getPagarmeRecipientId();
+        if (courierRecipientId == null || courierRecipientId.isBlank()) {
+            throw new RuntimeException("Courier não tem recipientId configurado no Pagar.me");
+        }
+
+        // CUSTOMER não tem organizer → split sem organizer (87% courier, 13% plataforma)
+        log.info("   ├─ Criando order PIX no Pagar.me (sem organizer)...");
+
+        // Buscar recipientId da plataforma
+        SiteConfiguration config = siteConfigurationService.getActiveConfiguration();
+        String platformRecipientId = config.getPagarmeRecipientId();
+
+        OrderResponse orderResponse;
+        try {
+            orderResponse = pagarMeService.createOrderWithSplit(
+                    delivery.getShippingFee(),
+                    "Entrega #" + delivery.getId(),
+                    customer.getName() != null ? customer.getName() : customer.getUsername(),
+                    customer.getUsername(),
+                    "00000000000",
+                    courierRecipientId,
+                    null, // organizerRecipientId — CUSTOMER não tem organizer
+                    platformRecipientId
+            );
+        } catch (Exception e) {
+            log.error("   ├─ ❌ PIX recusado pelo gateway: {}", e.getMessage());
+
+            // Salvar Payment com status FAILED em transação independente (não sofre rollback)
+            paymentService.saveFailedPayment(
+                    delivery.getShippingFee(),
+                    PaymentMethod.PIX,
+                    customer,
+                    delivery,
+                    "PIX recusado: " + e.getMessage()
+            );
+
+            throw e;
+        }
+
+        log.info("   ├─ ✅ Order PIX criada: {}", orderResponse.getId());
+
+        // Criar Payment no banco
+        Payment payment = new Payment();
+        payment.setProviderPaymentId(orderResponse.getId());
+        payment.setAmount(delivery.getShippingFee());
+        payment.setCurrency(Currency.BRL);
+        payment.setPaymentMethod(PaymentMethod.PIX);
+        payment.setProvider(PaymentProvider.PAGARME);
+        payment.setPayer(customer);
+        payment.setStatus(PaymentStatus.PENDING);
+        payment.addDelivery(delivery);
+
+        Payment savedPayment = paymentRepository.save(payment);
+        log.info("   ├─ ✅ Payment #{} salvo no banco", savedPayment.getId());
+
+        // Marcar delivery (aguarda webhook para confirmar pagamento)
+        delivery.setPaymentCompleted(false);
+        delivery.setPaymentCaptured(false);
+        deliveryRepository.save(delivery);
+
+        log.info("   └─ ✅ Pagamento PIX CUSTOMER criado com sucesso para delivery #{}", delivery.getId());
+    }
+
+    /**
+     * Cria pagamento por CARTÃO DE CRÉDITO para CUSTOMER ao entrar em trânsito.
+     * 
+     * Chamado durante confirmPickup quando CUSTOMER tem preferência CREDIT_CARD.
+     * Split SEM ORGANIZER: 87% courier, 13% plataforma.
+     * 
+     * @param delivery Delivery entrando em trânsito
+     * @param customer CUSTOMER que criou a delivery
+     */
+    private void createCreditCardPaymentForCustomer(Delivery delivery, User customer) {
+        log.info("💳 Criando pagamento por CARTÃO para CUSTOMER na delivery #{}", delivery.getId());
+
+        // Buscar recipientId do courier
+        User courier = delivery.getCourier();
+        String courierRecipientId = courier.getPagarmeRecipientId();
+        if (courierRecipientId == null || courierRecipientId.isBlank()) {
+            throw new RuntimeException("Courier não tem recipientId configurado no Pagar.me");
+        }
+
+        // Buscar cartão padrão do CUSTOMER
+        CustomerCard card;
+        try {
+            card = cardService.getDefaultCard(customer.getId());
+        } catch (Exception e) {
+            throw new RuntimeException("Cliente CUSTOMER não tem cartão padrão cadastrado: " + e.getMessage());
+        }
+
+        if (!card.getIsActive() || card.isExpired()) {
+            throw new RuntimeException("Cartão padrão do CUSTOMER está inativo ou expirado");
+        }
+
+        log.info("   ├─ Cartão: {} **** {}", card.getBrand(), card.getLastFourDigits());
+
+        OrderRequest.BillingAddressRequest billingAddress = OrderRequest.BillingAddressRequest.builder()
+                .line1(delivery.getFromAddress() != null ? delivery.getFromAddress() : "Endereço não informado")
+                .zipCode("00000000")
+                .city("São Paulo")
+                .state("SP")
+                .country("BR")
+                .build();
+
+        // CUSTOMER não tem organizer → split sem organizer (87% courier, 13% plataforma)
+        log.info("   ├─ Criando order Cartão no Pagar.me (sem organizer)...");
+
+        // Buscar recipientId da plataforma
+        SiteConfiguration config = siteConfigurationService.getActiveConfiguration();
+        String platformRecipientId = config.getPagarmeRecipientId();
+
+        OrderResponse orderResponse;
+        try {
+            orderResponse = pagarMeService.createOrderWithCreditCardSplit(
+                    delivery.getShippingFee(),
+                    "Entrega #" + delivery.getId(),
+                    card.getPagarmeCardId(),
+                    customer.getName() != null ? customer.getName() : customer.getUsername(),
+                    customer.getUsername(),
+                    "00000000000",
+                    billingAddress,
+                    courierRecipientId,
+                    null, // organizerRecipientId — CUSTOMER não tem organizer
+                    "ZAPI10",
+                    platformRecipientId
+            );
+        } catch (Exception e) {
+            log.error("   ├─ ❌ Cartão recusado pelo gateway: {}", e.getMessage());
+
+            // Salvar Payment com status FAILED em transação independente (não sofre rollback)
+            paymentService.saveFailedPayment(
+                    delivery.getShippingFee(),
+                    PaymentMethod.CREDIT_CARD,
+                    customer,
+                    delivery,
+                    "Cartão recusado: " + e.getMessage()
+            );
+
+            throw e;
+        }
+
+        log.info("   ├─ ✅ Order Cartão criada: {}", orderResponse.getId());
+
+        // Criar Payment no banco
+        Payment payment = new Payment();
+        payment.setProviderPaymentId(orderResponse.getId());
+        payment.setAmount(delivery.getShippingFee());
+        payment.setCurrency(Currency.BRL);
+        payment.setPaymentMethod(PaymentMethod.CREDIT_CARD);
+        payment.setProvider(PaymentProvider.PAGARME);
+        payment.setPayer(customer);
+        payment.setStatus(PaymentStatus.PENDING);
+        payment.addDelivery(delivery);
+
+        Payment savedPayment = paymentRepository.save(payment);
+        log.info("   ├─ ✅ Payment #{} salvo no banco", savedPayment.getId());
+
+        // Marcar delivery (aguarda webhook para confirmar pagamento)
+        delivery.setPaymentCompleted(false);
+        delivery.setPaymentCaptured(false);
+        deliveryRepository.save(delivery);
+
+        log.info("   └─ ✅ Pagamento CARTÃO CUSTOMER criado com sucesso para delivery #{}", delivery.getId());
     }
 }

@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -358,5 +359,25 @@ public class PaymentService {
                 deliveryItems.size(), consolidatedSplitsMap.size());
         
         return report;
+    }
+
+    /**
+     * Salva um Payment com status FAILED em transação independente (REQUIRES_NEW).
+     * Garante que o registro persiste mesmo que a transação principal faça rollback.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Payment saveFailedPayment(BigDecimal amount, PaymentMethod paymentMethod, User payer, Delivery delivery, String errorMessage) {
+        Payment failedPayment = new Payment();
+        failedPayment.setAmount(amount);
+        failedPayment.setCurrency(com.mvt.mvt_events.jpa.Currency.BRL);
+        failedPayment.setPaymentMethod(paymentMethod);
+        failedPayment.setProvider(PaymentProvider.PAGARME);
+        failedPayment.setPayer(payer);
+        failedPayment.setStatus(PaymentStatus.FAILED);
+        failedPayment.setNotes(errorMessage);
+        failedPayment.addDelivery(delivery);
+        Payment saved = paymentRepository.save(failedPayment);
+        log.info("💾 Payment FAILED #{} salvo (transação independente) para delivery #{}", saved.getId(), delivery.getId());
+        return saved;
     }
 }

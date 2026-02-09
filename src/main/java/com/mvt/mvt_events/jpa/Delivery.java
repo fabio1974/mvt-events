@@ -1,7 +1,6 @@
 package com.mvt.mvt_events.jpa;
 
 import com.mvt.mvt_events.metadata.Visible;
-import com.mvt.mvt_events.metadata.Computed;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -121,9 +120,8 @@ public class Delivery extends BaseEntity {
     // PRICING
     // ============================================================================
 
-    @NotNull(message = "Valor total é obrigatório")
-    @DecimalMin(value = "0.01", message = "Valor mínimo é R$ 0,01")
-    @Column(name = "total_amount", precision = 10, scale = 2, nullable = false)
+    @DecimalMin(value = "0.0", message = "Valor total não pode ser negativo")
+    @Column(name = "total_amount", precision = 10, scale = 2)
     @Visible(table = true, form = true, filter = false)
     private BigDecimal totalAmount;
     
@@ -282,5 +280,18 @@ public class Delivery extends BaseEntity {
         return deliveryType == DeliveryType.DELIVERY 
             ? PaymentTiming.ON_ACCEPT 
             : PaymentTiming.ON_TRANSIT_START;
+    }
+
+    /**
+     * Verifica se a delivery foi criada por um CLIENT confiável (estabelecimento).
+     * CLIENTs são estabelecimentos com contratos ativos e podem ter regras de pagamento mais flexíveis.
+     * 
+     * @return true se o cliente é um CLIENT (Role.CLIENT), false caso contrário (CUSTOMER)
+     */
+    public boolean isFromTrustedClient() {
+        if (client == null) {
+            return false;
+        }
+        return client.getRole() == User.Role.CLIENT;
     }
 }

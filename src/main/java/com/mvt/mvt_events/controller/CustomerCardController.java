@@ -119,6 +119,21 @@ public class CustomerCardController {
         return ResponseEntity.ok(Map.of("hasCards", hasCards));
     }
 
+    @PostMapping("/retry-unpaid-deliveries")
+    @Operation(summary = "Retry pagamento de entregas não pagas", 
+               description = "Busca todas as entregas do cliente logado com status IN_TRANSIT ou COMPLETED " +
+                             "que ainda não foram pagas, e cria um pagamento para cada uma usando o cartão padrão atual. " +
+                             "Evita duplicatas verificando pagamentos já existentes.")
+    public ResponseEntity<Map<String, Object>> retryUnpaidDeliveries(Authentication authentication) {
+        try {
+            UUID customerId = extractCustomerId(authentication);
+            Map<String, Object> result = cardService.retryUnpaidDeliveries(customerId);
+            return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     // ============================================================================
     // DTOs
     // ============================================================================

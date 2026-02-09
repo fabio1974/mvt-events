@@ -51,11 +51,9 @@ public class DeliveryCreateRequest {
     @NotBlank(message = "Nome do destinatário é obrigatório")
     private String recipientName;
 
-    @NotBlank(message = "Telefone do destinatário é obrigatório")
     private String recipientPhone;
 
-    @NotNull(message = "Valor total é obrigatório")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Valor deve ser maior que zero")
+    @DecimalMin(value = "0.0", message = "Valor total não pode ser negativo")
     private BigDecimal totalAmount;
 
     @DecimalMin(value = "0.0", message = "Distância não pode ser negativa")

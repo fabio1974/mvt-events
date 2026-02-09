@@ -393,7 +393,7 @@ public class PagarMeService {
      * @param customerEmail Email do cliente
      * @param customerDocument CPF do cliente
      * @param courierRecipientId ID do recipient do courier
-     * @param managerRecipientId ID do recipient do manager
+     * @param managerRecipientId ID do recipient do manager (null se não houver)
      * @return Response com QR Code PIX e detalhes
      */
     public OrderResponse createOrderWithSplit(
@@ -403,62 +403,81 @@ public class PagarMeService {
             String customerEmail,
             String customerDocument,
             String courierRecipientId,
-            String managerRecipientId
+            String managerRecipientId,
+            String platformRecipientId
     ) {
         log.info("💳 Criando order com PIX e split: R$ {}", amount);
+
+        boolean hasManager = managerRecipientId != null && !managerRecipientId.isBlank();
 
         // Converter para centavos
         int amountInCents = amount.multiply(new BigDecimal(100)).intValue();
 
-        // Calcular splits (87% courier, 5% manager, 8% plataforma automático)
+        // Calcular splits
+        // Courier sempre recebe 87%
         int courierAmount = (amountInCents * config.getSplit().getCourierPercentage()) / 10000;
-        int managerAmount = (amountInCents * config.getSplit().getManagerPercentage()) / 10000;
+        
+        // Manager recebe 5% apenas se existir
+        int managerAmount = 0;
+        if (hasManager) {
+            managerAmount = (amountInCents * config.getSplit().getManagerPercentage()) / 10000;
+        }
+        
+        // Plataforma recebe o resto (8% ou 13% se não houver manager)
+        int platformAmount = amountInCents - courierAmount - managerAmount;
 
         log.info("   ├─ Total: {} centavos", amountInCents);
         log.info("   ├─ Courier (87%): {} centavos", courierAmount);
-        log.info("   ├─ Manager (5%): {} centavos", managerAmount);
-        log.info("   └─ Plataforma (8%): {} centavos (automático)", amountInCents - courierAmount - managerAmount);
+        if (hasManager) {
+            log.info("   ├─ Manager (5%): {} centavos", managerAmount);
+            log.info("   └─ Plataforma (8%): {} centavos (automático)", platformAmount);
+        } else {
+            log.info("   └─ Plataforma (13%): {} centavos (incorporou 5% do manager ausente)", platformAmount);
+        }
 
         // Configurar splits
-        List<PagarMeSplitRequest> splits = new ArrayList<>();
+        List<OrderRequest.SplitRequest> orderSplits = new ArrayList<>();
 
-        // Split do courier (87%)
-        splits.add(PagarMeSplitRequest.builder()
+        // Split do courier (87%) - sempre presente
+        orderSplits.add(OrderRequest.SplitRequest.builder()
                 .amount(courierAmount)
                 .type("flat")
                 .recipientId(courierRecipientId)
-                .options(PagarMeSplitRequest.SplitOptions.builder()
+                .options(OrderRequest.SplitOptionsRequest.builder()
                         .liable(config.getSplit().getCourierLiable())
                         .chargeProcessingFee(config.getSplit().getCourierChargeProcessingFee())
                         .chargeRemainderFee(false)
                         .build())
                 .build());
 
-        // Split do manager (5%)
-        splits.add(PagarMeSplitRequest.builder()
-                .amount(managerAmount)
-                .type("flat")
-                .recipientId(managerRecipientId)
-                .options(PagarMeSplitRequest.SplitOptions.builder()
-                        .liable(false)
-                        .chargeProcessingFee(config.getSplit().getManagerChargeProcessingFee())
-                        .chargeRemainderFee(false)
-                        .build())
-                .build());
+        // Split do manager (5%) - apenas se existir
+        if (hasManager) {
+            orderSplits.add(OrderRequest.SplitRequest.builder()
+                    .amount(managerAmount)
+                    .type("flat")
+                    .recipientId(managerRecipientId)
+                    .options(OrderRequest.SplitOptionsRequest.builder()
+                            .liable(false)
+                            .chargeProcessingFee(config.getSplit().getManagerChargeProcessingFee())
+                            .chargeRemainderFee(false)
+                            .build())
+                    .build());
+        }
 
-        // Converter splits para OrderRequest.SplitRequest
-        List<OrderRequest.SplitRequest> orderSplits = splits.stream()
-                .map(s -> OrderRequest.SplitRequest.builder()
-                        .amount(s.getAmount().intValue())
-                        .type(s.getType())
-                        .recipientId(s.getRecipientId())
-                        .options(OrderRequest.SplitOptionsRequest.builder()
-                                .chargeProcessingFee(s.getOptions().getChargeProcessingFee())
-                                .chargeRemainderFee(s.getOptions().getChargeRemainderFee())
-                                .liable(s.getOptions().getLiable())
-                                .build())
-                        .build())
-                .toList();
+        // Split da plataforma (calculado por DIFERENÇA para garantir integridade)
+        if (platformRecipientId != null && !platformRecipientId.isBlank()) {
+            orderSplits.add(OrderRequest.SplitRequest.builder()
+                    .amount(platformAmount)
+                    .type("flat")
+                    .recipientId(platformRecipientId)
+                    .options(OrderRequest.SplitOptionsRequest.builder()
+                            .liable(true)
+                            .chargeProcessingFee(true)
+                            .chargeRemainderFee(true)
+                            .build())
+                    .build());
+            log.info("   ├─ ✅ Split da plataforma incluído explicitamente: {} centavos", platformAmount);
+        }
 
         // Criar request
         OrderRequest request = OrderRequest.builder()
@@ -539,7 +558,8 @@ public class PagarMeService {
             OrderRequest.BillingAddressRequest customerAddress,
             String courierRecipientId,
             String organizerRecipientId,
-            String statementDescriptor
+            String statementDescriptor,
+            String platformRecipientId
     ) {
         log.info("💳 Criando order com Cartão de Crédito e split: R$ {}", amount);
         
@@ -599,8 +619,20 @@ public class PagarMeService {
                     .build());
         }
 
-        // Plataforma recebe o resto automaticamente (não precisa ir no array)
-        // O Pagar.me calcula automaticamente o remainder para a conta master
+        // Split da plataforma (calculado por DIFERENÇA para garantir integridade)
+        if (platformRecipientId != null && !platformRecipientId.isBlank()) {
+            orderSplits.add(OrderRequest.SplitRequest.builder()
+                    .amount(platformAmount)
+                    .type("flat")
+                    .recipientId(platformRecipientId)
+                    .options(OrderRequest.SplitOptionsRequest.builder()
+                            .liable(true)
+                            .chargeProcessingFee(true)
+                            .chargeRemainderFee(true)
+                            .build())
+                    .build());
+            log.info("   ├─ ✅ Split da plataforma incluído explicitamente: {} centavos", platformAmount);
+        }
 
         // Validar statement descriptor (máximo 13 caracteres)
         if (statementDescriptor == null || statementDescriptor.isBlank()) {
@@ -630,11 +662,15 @@ public class PagarMeService {
                         .build())
                 .payments(List.of(OrderRequest.PaymentRequest.builder()
                         .paymentMethod("credit_card")
+                        .amount((long) amountInCents)
                         .creditCard(OrderRequest.CreditCardRequest.builder()
                                 .operationType("auth_and_capture")
                                 .installments(installments)
                                 .statementDescriptor(statementDescriptor)
-                                .cardToken(cardToken)
+                                // Se cardToken começa com "card_", é um ID de cartão salvo
+                                .cardId(cardToken.startsWith("card_") ? cardToken : null)
+                                // Se não começa com "card_", é um token descartável
+                                .cardToken(cardToken.startsWith("card_") ? null : cardToken)
                                 .card(OrderRequest.CardRequest.builder()
                                         .billingAddress(customerAddress)
                                         .build())
@@ -661,6 +697,22 @@ public class PagarMeService {
             OrderResponse order = response.getBody();
             if (order != null) {
                 log.info("✅ Order com cartão criada: {} (status: {})", order.getId(), order.getStatus());
+                
+                // Log detalhado se a order falhou — mostrar motivo da recusa
+                if ("failed".equalsIgnoreCase(order.getStatus()) && order.getCharges() != null) {
+                    for (var charge : order.getCharges()) {
+                        log.warn("   ├─ ⚠️ Charge {}: status={}", charge.getId(), charge.getStatus());
+                        if (charge.getLastTransaction() != null) {
+                            var tx = charge.getLastTransaction();
+                            log.warn("   ├─ ⚠️ Transaction: status={}, success={}", tx.getStatus(), tx.getSuccess());
+                            if (tx.getGatewayResponse() != null) {
+                                log.warn("   ├─ ⚠️ Gateway code={}, errors={}", 
+                                        tx.getGatewayResponse().getCode(), tx.getGatewayResponse().getErrors());
+                            }
+                        }
+                    }
+                }
+                
                 return order;
             }
 

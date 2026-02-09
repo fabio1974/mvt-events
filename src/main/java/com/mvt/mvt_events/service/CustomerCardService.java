@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,6 +40,10 @@ public class CustomerCardService {
     private final CustomerCardRepository cardRepository;
     private final UserRepository userRepository;
     private final PagarMeService pagarMeService;
+    private final com.mvt.mvt_events.repository.DeliveryRepository deliveryRepository;
+    private final com.mvt.mvt_events.repository.PaymentRepository paymentRepository;
+    private final com.mvt.mvt_events.service.SiteConfigurationService siteConfigurationService;
+    private final TransactionTemplate transactionTemplate;
 
     /**
      * Adiciona um novo cartão para o cliente.
@@ -106,7 +111,291 @@ public class CustomerCardService {
         CustomerCard saved = cardRepository.save(card);
         log.info("Cartão adicionado com sucesso: {} | Default: {}", saved.getId(), saved.getIsDefault());
         
+        // Se foi marcado como padrão, verificar deliveries ativas não pagas
+        if (saved.getIsDefault()) {
+            processUnpaidDeliveries(customer, saved);
+        }
+        
         return saved;
+    }
+    
+    /**
+     * Retry de pagamento para TODAS as deliveries não pagas do customer logado.
+     * Busca o cartão padrão atual e cria pagamento para cada delivery IN_TRANSIT ou COMPLETED sem pagamento.
+     * 
+     * @param customerId ID do customer logado
+     * @return Mapa com resultado: total encontradas, sucesso, falhas e detalhes
+     */
+    public Map<String, Object> retryUnpaidDeliveries(UUID customerId) {
+        log.info("🔄 Retry de pagamentos não pagos para customer: {}", customerId);
+        
+        // 1. Buscar customer
+        User customer = userRepository.findById(customerId)
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+        
+        // 2. Buscar cartão padrão
+        CustomerCard defaultCard = cardRepository.findDefaultCardByCustomerId(customerId)
+                .orElseThrow(() -> new RuntimeException("Nenhum cartão padrão cadastrado. Cadastre um cartão primeiro."));
+        
+        // 3. Verificar se cartão está ativo e não expirado
+        if (!defaultCard.getIsActive()) {
+            throw new RuntimeException("Cartão padrão está inativo. Defina outro cartão como padrão.");
+        }
+        if (defaultCard.isExpired()) {
+            throw new RuntimeException("Cartão padrão está expirado. Defina outro cartão como padrão.");
+        }
+        
+        // 4. Buscar deliveries não pagas (IN_TRANSIT ou COMPLETED)
+        var unpaidDeliveries = deliveryRepository.findAll().stream()
+                .filter(d -> d.getClient() != null && d.getClient().getId().equals(customerId))
+                .filter(d -> d.getStatus() == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.IN_TRANSIT
+                          || d.getStatus() == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.COMPLETED)
+                .filter(d -> !d.getPaymentCompleted() || !d.getPaymentCaptured())
+                .toList();
+        
+        if (unpaidDeliveries.isEmpty()) {
+            log.info("   └─ Nenhuma delivery não paga encontrada");
+            return Map.of(
+                "message", "Nenhuma entrega pendente de pagamento",
+                "total", 0,
+                "success", 0,
+                "failed", 0
+            );
+        }
+        
+        // 5. Filtrar deliveries que JÁ possuem pagamento PENDING ou PAID (evitar duplicata)
+        var deliveryIds = unpaidDeliveries.stream()
+                .map(d -> d.getId())
+                .toList();
+        
+        var existingPayments = paymentRepository.findPendingOrCompletedPaymentsForDeliveries(deliveryIds);
+        
+        // Coletar IDs de deliveries que já têm pagamento ativo
+        var deliveriesWithPayment = new java.util.HashSet<Long>();
+        for (var payment : existingPayments) {
+            for (var d : payment.getDeliveries()) {
+                deliveriesWithPayment.add(d.getId());
+            }
+        }
+        
+        var deliveriesToProcess = unpaidDeliveries.stream()
+                .filter(d -> !deliveriesWithPayment.contains(d.getId()))
+                .toList();
+        
+        if (deliveriesToProcess.isEmpty()) {
+            log.info("   └─ Todas as deliveries já possuem pagamento pendente/pago");
+            return Map.of(
+                "message", "Todas as entregas já possuem pagamento em processamento",
+                "total", unpaidDeliveries.size(),
+                "success", 0,
+                "failed", 0,
+                "skipped", unpaidDeliveries.size()
+            );
+        }
+        
+        log.info("   ├─ {} deliveries não pagas, {} a processar (excluindo duplicatas)", 
+                unpaidDeliveries.size(), deliveriesToProcess.size());
+        
+        // 6. Processar cada delivery em transação independente
+        //    Se uma falhar, as outras não são afetadas
+        int[] counters = {0, 0}; // [success, failed]
+        var details = new java.util.ArrayList<Map<String, Object>>();
+        
+        for (var delivery : deliveriesToProcess) {
+            try {
+                transactionTemplate.executeWithoutResult(status -> {
+                    // Re-carregar delivery dentro desta transação para evitar LazyInitializationException
+                    var freshDelivery = deliveryRepository.findByIdWithJoins(delivery.getId())
+                            .orElseThrow(() -> new RuntimeException("Delivery #" + delivery.getId() + " não encontrada"));
+                    createPaymentForDelivery(freshDelivery, customer, defaultCard);
+                });
+                counters[0]++;
+                details.add(Map.of(
+                    "deliveryId", delivery.getId().toString(),
+                    "status", "success",
+                    "amount", delivery.getShippingFee().toString()
+                ));
+            } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                // Constraint violation = já existe pagamento ativo (race condition)
+                log.warn("   ├─ ⚠️ Delivery #{} já possui pagamento ativo (constraint)", delivery.getId());
+                details.add(Map.of(
+                    "deliveryId", delivery.getId().toString(),
+                    "status", "skipped",
+                    "error", "Já existe pagamento em processamento para esta entrega"
+                ));
+            } catch (Exception e) {
+                counters[1]++;
+                details.add(Map.of(
+                    "deliveryId", delivery.getId().toString(),
+                    "status", "failed",
+                    "error", e.getMessage() != null ? e.getMessage() : "Erro desconhecido"
+                ));
+                log.error("   ├─ ❌ Falha delivery #{}: {}", delivery.getId(), e.getMessage());
+            }
+        }
+        
+        int success = counters[0];
+        int failed = counters[1];
+        
+        String message = success > 0 
+            ? String.format("Pagamento criado para %d entrega(s) com cartão **** %s", success, defaultCard.getLastFourDigits())
+            : "Não foi possível criar pagamentos";
+        
+        log.info("   └─ ✅ Retry concluído: {} sucesso, {} falhas de {} total", success, failed, deliveriesToProcess.size());
+        
+        return Map.of(
+            "message", message,
+            "total", deliveriesToProcess.size(),
+            "success", success,
+            "failed", failed,
+            "card", Map.of(
+                "lastFourDigits", defaultCard.getLastFourDigits(),
+                "brand", defaultCard.getBrand().getDisplayName()
+            ),
+            "details", details
+        );
+    }
+
+    /**
+     * Processa deliveries ativas não pagas após troca de cartão padrão.
+     * Cria pagamentos automáticos com o novo cartão.
+     * 
+     * Nota: ACCEPTED não é incluído pois em RIDE o pagamento só ocorre ao entrar em trânsito.
+     */
+    private void processUnpaidDeliveries(User customer, CustomerCard newCard) {
+        log.info("🔍 Verificando deliveries ativas não pagas para customer: {}", customer.getId());
+        
+        // Buscar deliveries não pagas (IN_TRANSIT ou COMPLETED)
+        // ACCEPTED fica de fora: em RIDE, pagamento só ocorre ao iniciar viagem
+        var unpaidDeliveries = deliveryRepository.findAll().stream()
+                .filter(d -> d.getClient() != null && d.getClient().getId().equals(customer.getId()))
+                .filter(d -> d.getStatus() == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.IN_TRANSIT 
+                          || d.getStatus() == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.COMPLETED)
+                .filter(d -> !d.getPaymentCompleted() || !d.getPaymentCaptured())
+                .toList();
+        
+        if (unpaidDeliveries.isEmpty()) {
+            log.info("   └─ Nenhuma delivery não paga encontrada");
+            return;
+        }
+        
+        log.info("   ├─ Encontradas {} deliveries não pagas", unpaidDeliveries.size());
+        
+        // Para cada delivery, tentar criar pagamento
+        for (var delivery : unpaidDeliveries) {
+            try {
+                log.info("   ├─ Processando delivery #{}", delivery.getId());
+                createPaymentForDelivery(delivery, customer, newCard);
+            } catch (Exception e) {
+                log.error("   ├─ ❌ Erro ao criar pagamento para delivery #{}: {}", 
+                        delivery.getId(), e.getMessage());
+            }
+        }
+        
+        log.info("   └─ ✅ Processamento de deliveries não pagas concluído");
+    }
+    
+    /**
+     * Cria pagamento automático para uma delivery usando o novo cartão.
+     */
+    private void createPaymentForDelivery(
+            com.mvt.mvt_events.jpa.Delivery delivery, 
+            User customer, 
+            CustomerCard card) {
+        
+        log.info("      ├─ Criando pagamento para delivery #{} com cartão **** {}", 
+                delivery.getId(), card.getLastFourDigits());
+        
+        // Buscar courier e organizer
+        User courier = delivery.getCourier();
+        if (courier == null) {
+            log.warn("      └─ ⚠️ Delivery sem courier, pulando");
+            return;
+        }
+        
+        String courierRecipientId = courier.getPagarmeRecipientId();
+        if (courierRecipientId == null || courierRecipientId.isBlank()) {
+            log.warn("      └─ ⚠️ Courier sem recipientId, pulando");
+            return;
+        }
+        
+        String organizerRecipientId = null;
+        if (delivery.getOrganizer() != null) {
+            organizerRecipientId = delivery.getOrganizer().getPagarmeRecipientId();
+        }
+        
+        // Buscar recipientId da plataforma
+        var config = siteConfigurationService.getActiveConfiguration();
+        String platformRecipientId = config.getPagarmeRecipientId();
+        
+        // Preparar billing address
+        var billingAddress = com.mvt.mvt_events.payment.dto.OrderRequest.BillingAddressRequest.builder()
+                .line1(delivery.getFromAddress() != null ? delivery.getFromAddress() : "Endereço não informado")
+                .zipCode("00000000")
+                .city("São Paulo")
+                .state("SP")
+                .country("BR")
+                .build();
+        
+        // Criar order no Pagar.me
+        try {
+            var orderResponse = pagarMeService.createOrderWithCreditCardSplit(
+                    delivery.getShippingFee(),
+                    "Entrega #" + delivery.getId() + " (Retry com novo cartão)",
+                    card.getPagarmeCardId(),
+                    customer.getName() != null ? customer.getName() : customer.getUsername(),
+                    customer.getUsername(),
+                    "00000000000",
+                    billingAddress,
+                    courierRecipientId,
+                    organizerRecipientId,
+                    "ZAPI10",
+                    platformRecipientId
+            );
+            
+            log.info("      ├─ ✅ Order criada: {} (status: {})", orderResponse.getId(), orderResponse.getStatus());
+            
+            // Verificar se a order foi recusada pelo Pagar.me
+            String orderStatus = orderResponse.getStatus();
+            if ("failed".equalsIgnoreCase(orderStatus) || "canceled".equalsIgnoreCase(orderStatus)) {
+                log.warn("      └─ ⚠️ Order recusada pelo Pagar.me (status: {}). Não salvando payment.", orderStatus);
+                throw new RuntimeException("Pagamento recusado pela operadora do cartão (status: " + orderStatus + ")");
+            }
+            
+            // Determinar status do payment com base na resposta do Pagar.me
+            // Se já veio "paid", salvar direto como COMPLETED (sandbox não envia webhook para localhost)
+            boolean isPaid = "paid".equalsIgnoreCase(orderStatus);
+            var paymentStatus = isPaid 
+                    ? com.mvt.mvt_events.jpa.PaymentStatus.PAID 
+                    : com.mvt.mvt_events.jpa.PaymentStatus.PENDING;
+            
+            // Criar Payment no banco
+            var payment = new com.mvt.mvt_events.jpa.Payment();
+            payment.setProviderPaymentId(orderResponse.getId());
+            payment.setAmount(delivery.getShippingFee());
+            payment.setCurrency(com.mvt.mvt_events.jpa.Currency.BRL);
+            payment.setPaymentMethod(com.mvt.mvt_events.jpa.PaymentMethod.CREDIT_CARD);
+            payment.setProvider(com.mvt.mvt_events.jpa.PaymentProvider.PAGARME);
+            payment.setPayer(customer);
+            payment.setStatus(paymentStatus);
+            payment.addDelivery(delivery);
+            
+            if (isPaid) {
+                // Marcar delivery como paga
+                delivery.setPaymentCaptured(true);
+                delivery.setPaymentCompleted(true);
+                deliveryRepository.save(delivery);
+            }
+            
+            paymentRepository.saveAndFlush(payment);
+            
+            log.info("      └─ ✅ Payment criado com status {} {}", paymentStatus, 
+                    isPaid ? "(pago direto)" : "(aguardando webhook)");
+            
+        } catch (Exception e) {
+            log.error("      └─ ❌ Erro ao criar order: {}", e.getMessage());
+            throw e;
+        }
     }
 
     /**

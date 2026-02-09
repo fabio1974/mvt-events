@@ -884,4 +884,246 @@ public class DebugController {
                 log.info("✅ Web Push REAL enviado com sucesso!");
                 return true;
         }
+
+        /**
+         * Testa pagamento com cartão para debug
+         */
+        @GetMapping("/test-card-payment")
+        public ResponseEntity<?> testCardPayment(@RequestParam Long deliveryId) {
+                try {
+                        log.info("🧪 DEBUG: Testando pagamento com cartão para delivery #{}", deliveryId);
+                        
+                        // Buscar delivery
+                        Optional<Delivery> deliveryOpt = deliveryRepository.findById(deliveryId);
+                        if (deliveryOpt.isEmpty()) {
+                                return ResponseEntity.ok(Map.of("error", "Delivery não encontrada"));
+                        }
+                        
+                        Delivery delivery = deliveryOpt.get();
+                        User client = delivery.getClient();
+                        
+                        if (client == null) {
+                                return ResponseEntity.ok(Map.of("error", "Cliente não encontrado na delivery"));
+                        }
+                        
+                        log.info("   ├─ Cliente: {} ({})", client.getName(), client.getUsername());
+                        log.info("   ├─ Pagar.me Customer ID: {}", client.getPagarmeCustomerId());
+                        
+                        // Buscar cartão padrão
+                        var cardService = ((org.springframework.context.ApplicationContext) 
+                                org.springframework.beans.factory.BeanFactoryUtils.beanOfTypeIncludingAncestors(
+                                        ((org.springframework.web.context.support.GenericWebApplicationContext) 
+                                                org.springframework.web.context.ContextLoader.getCurrentWebApplicationContext())
+                                                .getBeanFactory(), 
+                                        com.mvt.mvt_events.service.CustomerCardService.class))
+                                        .getBean(com.mvt.mvt_events.service.CustomerCardService.class);
+                        
+                        // Usar injeção via ApplicationContext
+                        return ResponseEntity.ok(Map.of(
+                                "deliveryId", deliveryId,
+                                "clientName", client.getName(),
+                                "clientId", client.getId().toString(),
+                                "pagarmeCustomerId", client.getPagarmeCustomerId() != null ? client.getPagarmeCustomerId() : "NULL",
+                                "message", "Use endpoint /api/debug/force-payment para forçar pagamento"
+                        ));
+                        
+                } catch (Exception e) {
+                        log.error("❌ Erro ao testar pagamento: {}", e.getMessage(), e);
+                        return ResponseEntity.ok(Map.of(
+                                "error", e.getMessage(),
+                                "trace", e.toString()
+                        ));
+                }
+        }
+
+        @Autowired
+        private com.mvt.mvt_events.service.CustomerCardService cardService;
+
+        @Autowired
+        private com.mvt.mvt_events.payment.service.PagarMeService pagarMeService;
+
+        @Autowired
+        private com.mvt.mvt_events.repository.PaymentRepository paymentRepository;
+
+        /**
+         * Simula webhook do Pagar.me para confirmar pagamento (DEV ONLY)
+         * 
+         * Regras de cartões de teste:
+         * - Cartão final 4444: FALHA (pagamento recusado)
+         * - Cartão final 1111: SUCESSO (pagamento aprovado)
+         */
+        @PostMapping("/simulate-webhook")
+        @org.springframework.transaction.annotation.Transactional
+        public ResponseEntity<?> simulateWebhook(@RequestParam String orderId) {
+                try {
+                        log.info("🧪 DEBUG: Simulando webhook para order: {}", orderId);
+                        
+                        // Buscar payment
+                        var payment = paymentRepository.findByProviderPaymentId(orderId)
+                                .orElse(null);
+                        
+                        if (payment == null) {
+                                return ResponseEntity.ok(Map.of("error", "Payment não encontrado com orderId: " + orderId));
+                        }
+                        
+                        log.info("   ├─ Payment atual: ID={}, Status={}", payment.getId(), payment.getStatus());
+                        
+                        // Buscar qual cartão foi usado (verificar delivery)
+                        String cardLastDigits = null;
+                        for (var delivery : payment.getDeliveries()) {
+                                var client = delivery.getClient();
+                                if (client != null) {
+                                        try {
+                                                var defaultCard = cardService.getDefaultCard(client.getId());
+                                                cardLastDigits = defaultCard.getLastFourDigits();
+                                                log.info("   ├─ Cartão usado: **** {}", cardLastDigits);
+                                                break;
+                                        } catch (Exception e) {
+                                                log.warn("   ├─ Não foi possível buscar cartão do cliente");
+                                        }
+                                }
+                        }
+                        
+                        // Aplicar regras de cartões de teste
+                        boolean isApproved = true;
+                        String statusMessage = "Pagamento aprovado";
+                        
+                        if ("4444".equals(cardLastDigits)) {
+                                // Cartão 4444 = RECUSADO
+                                isApproved = false;
+                                statusMessage = "Cartão recusado - saldo insuficiente";
+                                log.info("   ├─ 🔴 Cartão 4444 detectado → Simular FALHA");
+                        } else if ("1111".equals(cardLastDigits)) {
+                                // Cartão 1111 = APROVADO
+                                isApproved = true;
+                                statusMessage = "Pagamento aprovado com sucesso";
+                                log.info("   ├─ ✅ Cartão 1111 detectado → Simular SUCESSO");
+                        } else {
+                                // Outros cartões = APROVADO por padrão
+                                log.info("   ├─ ✅ Cartão desconhecido → Simular SUCESSO (padrão)");
+                        }
+                        
+                        if (isApproved) {
+                                // SUCESSO: Atualizar para PAID
+                                payment.setStatus(com.mvt.mvt_events.jpa.PaymentStatus.PAID);
+                                paymentRepository.save(payment);
+                                
+                                // Atualizar deliveries
+                                for (var delivery : payment.getDeliveries()) {
+                                        delivery.setPaymentCaptured(true);
+                                        delivery.setPaymentCompleted(true);
+                                        deliveryRepository.save(delivery);
+                                        log.info("   ├─ Delivery #{} atualizada: paymentCaptured=true, paymentCompleted=true", 
+                                                delivery.getId());
+                                }
+                                
+                                log.info("   └─ ✅ Payment #{} APROVADO", payment.getId());
+                                
+                                return ResponseEntity.ok(Map.of(
+                                        "success", true,
+                                        "paymentId", payment.getId(),
+                                        "orderId", orderId,
+                                        "status", "PAID",
+                                        "cardLastDigits", cardLastDigits != null ? cardLastDigits : "unknown",
+                                        "message", statusMessage
+                                ));
+                                
+                        } else {
+                                // FALHA: Atualizar para FAILED
+                                payment.setStatus(com.mvt.mvt_events.jpa.PaymentStatus.FAILED);
+                                paymentRepository.save(payment);
+                                
+                                // Deliveries permanecem com paymentCaptured=false
+                                for (var delivery : payment.getDeliveries()) {
+                                        delivery.setPaymentCaptured(false);
+                                        delivery.setPaymentCompleted(false);
+                                        deliveryRepository.save(delivery);
+                                        log.info("   ├─ Delivery #{} permanece sem pagamento capturado", delivery.getId());
+                                }
+                                
+                                log.info("   └─ ❌ Payment #{} RECUSADO", payment.getId());
+                                
+                                return ResponseEntity.ok(Map.of(
+                                        "success", false,
+                                        "paymentId", payment.getId(),
+                                        "orderId", orderId,
+                                        "status", "FAILED",
+                                        "cardLastDigits", cardLastDigits != null ? cardLastDigits : "unknown",
+                                        "message", statusMessage
+                                ));
+                        }
+                        
+                } catch (Exception e) {
+                        log.error("❌ Erro ao simular webhook: {}", e.getMessage(), e);
+                        return ResponseEntity.ok(Map.of(
+                                "error", e.getMessage(),
+                                "trace", e.toString()
+                        ));
+                }
+        }
+
+        /**
+         * Força criação de pagamento para debug
+         */
+        @PostMapping("/force-payment")
+        @org.springframework.transaction.annotation.Transactional
+        public ResponseEntity<?> forcePayment(@RequestParam Long deliveryId) {
+                try {
+                        log.info("🧪 DEBUG: Forçando pagamento para delivery #{}", deliveryId);
+                        
+                        // Buscar delivery
+                        Optional<Delivery> deliveryOpt = deliveryRepository.findById(deliveryId);
+                        if (deliveryOpt.isEmpty()) {
+                                return ResponseEntity.ok(Map.of("error", "Delivery não encontrada"));
+                        }
+                        
+                        Delivery delivery = deliveryOpt.get();
+                        User client = delivery.getClient();
+                        
+                        // Buscar cartão padrão
+                        var card = cardService.getDefaultCard(client.getId());
+                        
+                        log.info("   ├─ Cartão: {} **** {} ({})", 
+                                card.getBrand(), card.getLastFourDigits(), card.getPagarmeCardId());
+                        
+                        // Criar pagamento de teste
+                        var billingAddress = com.mvt.mvt_events.payment.dto.OrderRequest.BillingAddressRequest.builder()
+                                .line1("Rua Teste, 123")
+                                .zipCode("00000000")
+                                .city("São Paulo")
+                                .state("SP")
+                                .country("BR")
+                                .build();
+                        
+                        var orderResponse = pagarMeService.createOrderWithCreditCardSplit(
+                                new BigDecimal("10.00"),
+                                "TESTE - Delivery #" + deliveryId,
+                                card.getPagarmeCardId(),
+                                client.getName() != null ? client.getName() : "Cliente Teste",
+                                client.getUsername(),
+                                "00000000000",
+                                billingAddress,
+                                delivery.getCourier().getPagarmeRecipientId(),
+                                delivery.getOrganizer() != null ? delivery.getOrganizer().getPagarmeRecipientId() : null,
+                                "ZAPI10",
+                                "rp_9QdgbAETpSyKW71X" // ID da plataforma (pode estar errado)
+                        );
+                        
+                        return ResponseEntity.ok(Map.of(
+                                "success", true,
+                                "orderId", orderResponse.getId(),
+                                "status", orderResponse.getStatus(),
+                                "message", "Pagamento criado com sucesso!"
+                        ));
+                        
+                } catch (Exception e) {
+                        log.error("❌ Erro ao forçar pagamento: {}", e.getMessage(), e);
+                        return ResponseEntity.ok(Map.of(
+                                "error", e.getMessage(),
+                                "errorType", e.getClass().getSimpleName(),
+                                "stackTrace", java.util.Arrays.toString(e.getStackTrace()).substring(0, 
+                                        Math.min(500, java.util.Arrays.toString(e.getStackTrace()).length()))
+                        ));
+                }
+        }
 }

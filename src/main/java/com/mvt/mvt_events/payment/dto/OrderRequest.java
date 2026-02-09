@@ -111,6 +111,8 @@ public class OrderRequest {
         @JsonProperty("payment_method")
         private String paymentMethod; // "pix" ou "credit_card"
         
+        private Long amount; // Valor em centavos (obrigatório quando usa split)
+        
         private PixRequest pix; // Configurações PIX
         @JsonProperty("credit_card")
         private CreditCardRequest creditCard; // Configurações Cartão de Crédito
@@ -136,7 +138,10 @@ public class OrderRequest {
         private String statementDescriptor; // Nome na fatura (máx 13 caracteres)
         
         @JsonProperty("card_token")
-        private String cardToken; // Token do cartão gerado via Pagar.me
+        private String cardToken; // Token do cartão gerado via Pagar.me (descartável)
+        
+        @JsonProperty("card_id")
+        private String cardId; // ID de cartão salvo no Pagar.me (reutilizável)
         
         private CardRequest card; // Dados do cartão (billing address)
     }
