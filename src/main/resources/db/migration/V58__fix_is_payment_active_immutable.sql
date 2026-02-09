@@ -12,9 +12,9 @@
 -- =====================================================================
 
 -- 1. Dropar o índice problemático
-DROP INDEX IF EXISTS idx_unique_active_payment_per_delivery;??
+DROP INDEX IF EXISTS idx_unique_active_payment_per_delivery;
 
--- 2. Dropar a função problemática  
+-- 2. Dropar a função problemática
 DROP FUNCTION IF EXISTS is_payment_active(BIGINT);
 
 -- 3. Adicionar coluna de status na tabela de junção
