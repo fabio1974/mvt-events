@@ -2,13 +2,13 @@ package com.mvt.mvt_events.controller;
 
 import com.mvt.mvt_events.jpa.CustomerCard;
 import com.mvt.mvt_events.jpa.User;
+import com.mvt.mvt_events.payment.dto.BillingAddressDTO;
 import com.mvt.mvt_events.service.CustomerCardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -46,8 +46,13 @@ public class CustomerCardController {
             // Extrair customerId do token JWT
             UUID customerId = extractCustomerId(authentication);
 
-            // Versão simplificada: apenas token
-            CustomerCard card = cardService.addCard(customerId, request.getCardToken(), request.getSetAsDefault());
+            // Adicionar cartão com billing address (se fornecido)
+            CustomerCard card = cardService.addCard(
+                customerId, 
+                request.getCardToken(), 
+                request.getSetAsDefault(),
+                request.getBillingAddress()
+            );
 
             return ResponseEntity.ok(new CardResponse(card));
         } catch (RuntimeException e) {
@@ -144,6 +149,14 @@ public class CustomerCardController {
         private String cardToken;
 
         private Boolean setAsDefault = false;
+        
+        /**
+         * Endereço de cobrança (opcional).
+         * Se fornecido, será enviado ao Pagar.me ao criar o cartão.
+         * NÃO é persistido no banco - apenas passthrough para o Pagar.me.
+         */
+        @Valid
+        private BillingAddressDTO billingAddress;
     }
 
     @Data

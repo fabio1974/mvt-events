@@ -158,8 +158,7 @@ public class PaymentResponse {
                 .paymentDate(payment.getPaymentDate())
                 .expired(payment.isExpired())
                 .request(payment.getRequest())
-                .response(payment.getResponse())
-                .gatewayResponse(payment.getGatewayResponse());
+                .response(payment.getResponse());
 
         // Adicionar payer (apenas id e nome para evitar referências circulares)
         if (payment.getPayer() != null) {

@@ -34,6 +34,10 @@ public class OrderResponse {
     private Object customer; // Pode ser mapeado completo se necessário
     private List<Object> items; // Pode ser mapeado completo se necessário
     
+    // Campos para auditoria (não vêm do JSON do Pagar.me)
+    private transient String requestPayload; // Request enviado ao Pagar.me (para salvar no DB)
+    private transient String responsePayload; // Response recebido do Pagar.me (para salvar no DB)
+    
     @Data
     @Builder
     @NoArgsConstructor
@@ -81,6 +85,18 @@ public class OrderResponse {
         
         @JsonProperty("gateway_response")
         private GatewayResponse gatewayResponse; // Gateway response com códigos de erro
+        
+        @JsonProperty("acquirer_message")
+        private String acquirerMessage; // Mensagem da adquirente/bandeira
+        
+        @JsonProperty("acquirer_name")
+        private String acquirerName; // Nome da adquirente
+        
+        @JsonProperty("acquirer_return_code")
+        private String acquirerReturnCode; // Código de retorno da adquirente
+        
+        @JsonProperty("antifraud_response")
+        private Object antifraudResponse; // Resposta completa do antifraude
         
         @JsonProperty("created_at")
         private String createdAt;

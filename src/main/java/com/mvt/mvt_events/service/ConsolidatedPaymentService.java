@@ -534,17 +534,6 @@ public class ConsolidatedPaymentService {
                         payment.setPixQrCodeUrl(transaction.getQrCodeUrl());
                         log.info("✅ PIX QR Code URL salvo no payment: {}", transaction.getQrCodeUrl());
                     }
-                    
-                    // Verificar se existe gateway_response na transação
-                    if (transaction.getGatewayResponse() != null) {
-                        String gatewayResponseJson = objectMapper.writeValueAsString(transaction.getGatewayResponse());
-                        payment.setGatewayResponse(gatewayResponseJson);
-                        log.info("✅ Gateway response salvo no payment (tamanho: {} bytes, code: {})", 
-                            gatewayResponseJson.length(),
-                            transaction.getGatewayResponse().getCode());
-                    } else {
-                        log.warn("⚠️ gateway_response é NULL na transação (provavelmente sucesso)");
-                    }
                 } else {
                     log.warn("⚠️ lastTransaction é NULL no charge");
                 }

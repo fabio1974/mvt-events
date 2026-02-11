@@ -135,18 +135,6 @@ public class Payment extends BaseEntity {
     private String pixQrCodeUrl;
 
     /**
-     * Extrato específico do gateway_response retornado pelo Pagar.me
-     * Contém apenas a parte "gateway_response" do response completo,
-     * que inclui códigos de erro e mensagens de validação.
-     * Exemplo: {"code": "400", "errors": [{"message": "At least one customer phone is required."}]}
-     * Deixar vazio se a chave "gateway_response" não existir no response.
-     */
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
-    @Column(name = "gateway_response", columnDefinition = "JSONB")
-    @Visible(table = false, form = false, filter = false)
-    private String gatewayResponse;
-
-    /**
      * Request completo enviado para criar o pagamento no gateway (Pagar.me, Iugu, etc.)
      * Armazena o payload completo da requisição enviada ao gateway de pagamento
      * para fins de auditoria e debugging.

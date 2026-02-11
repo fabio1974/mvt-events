@@ -6,6 +6,7 @@ import com.mvt.mvt_events.jpa.BankAccount;
 import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.payment.config.PagarMeConfig;
 import com.mvt.mvt_events.payment.dto.*;
+import com.mvt.mvt_events.payment.exception.PaymentProcessingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
@@ -671,21 +672,27 @@ public class PagarMeService {
                                 .cardId(cardToken.startsWith("card_") ? cardToken : null)
                                 // Se não começa com "card_", é um token descartável
                                 .cardToken(cardToken.startsWith("card_") ? null : cardToken)
-                                .card(OrderRequest.CardRequest.builder()
-                                        .billingAddress(customerAddress)
-                                        .build())
                                 .build())
                         .split(orderSplits)
                         .build()))
                 .build();
 
+        String requestPayload = null;
+        String responsePayload = null;
+        
         try {
             HttpHeaders headers = createHeaders();
             HttpEntity<OrderRequest> entity = new HttpEntity<>(request, headers);
 
             String url = config.getApi().getUrl() + "/orders";
             
-            log.debug("📤 Enviando request para Pagar.me: {}", url);
+            // Serializar request para auditoria
+            try {
+                requestPayload = objectMapper.writeValueAsString(request);
+                log.info("📤 Enviando request para Pagar.me: {}", url);
+            } catch (Exception e) {
+                log.warn("⚠️ Não foi possível serializar request para auditoria: {}", e.getMessage());
+            }
             
             ResponseEntity<OrderResponse> response = restTemplate.exchange(
                     url,
@@ -695,7 +702,19 @@ public class PagarMeService {
             );
 
             OrderResponse order = response.getBody();
+            
+            // Serializar response para auditoria
+            try {
+                responsePayload = objectMapper.writeValueAsString(order);
+            } catch (Exception e) {
+                log.warn("⚠️ Não foi possível serializar response para auditoria: {}", e.getMessage());
+            }
+            
+            // Adicionar request/response ao objeto de retorno para persistência
             if (order != null) {
+                order.setRequestPayload(requestPayload);
+                order.setResponsePayload(responsePayload);
+                
                 log.info("✅ Order com cartão criada: {} (status: {})", order.getId(), order.getStatus());
                 
                 // Log detalhado se a order falhou — mostrar motivo da recusa
@@ -705,6 +724,27 @@ public class PagarMeService {
                         if (charge.getLastTransaction() != null) {
                             var tx = charge.getLastTransaction();
                             log.warn("   ├─ ⚠️ Transaction: status={}, success={}", tx.getStatus(), tx.getSuccess());
+                            
+                            // Informações da adquirente
+                            if (tx.getAcquirerName() != null || tx.getAcquirerReturnCode() != null || tx.getAcquirerMessage() != null) {
+                                log.warn("   ├─ 🏦 Acquirer: name={}, code={}, message={}", 
+                                        tx.getAcquirerName(), 
+                                        tx.getAcquirerReturnCode(), 
+                                        tx.getAcquirerMessage());
+                            }
+                            
+                            // Informações do antifraude
+                            if (tx.getAntifraudResponse() != null) {
+                                try {
+                                    String antifraudJson = objectMapper.writerWithDefaultPrettyPrinter()
+                                            .writeValueAsString(tx.getAntifraudResponse());
+                                    log.warn("   ├─ 🛡️ Antifraud Response:\n{}", antifraudJson);
+                                } catch (Exception e) {
+                                    log.warn("   ├─ 🛡️ Antifraud Response: {}", tx.getAntifraudResponse());
+                                }
+                            }
+                            
+                            // Gateway Response
                             if (tx.getGatewayResponse() != null) {
                                 log.warn("   ├─ ⚠️ Gateway code={}, errors={}", 
                                         tx.getGatewayResponse().getCode(), tx.getGatewayResponse().getErrors());
@@ -719,16 +759,46 @@ public class PagarMeService {
             throw new RuntimeException("Resposta vazia do Pagar.me");
 
         } catch (HttpClientErrorException e) {
+            // Capturar response de erro
+            responsePayload = e.getResponseBodyAsString();
+            
             log.error("❌ Erro 4xx ao criar order com cartão no Pagar.me: {} - {}", 
-                e.getStatusCode(), e.getResponseBodyAsString());
-            throw new RuntimeException("Falha ao processar cartão: " + extractErrorMessage(e), e);
+                e.getStatusCode(), responsePayload);
+            
+            throw new PaymentProcessingException(
+                "Falha ao processar cartão: " + extractErrorMessage(e),
+                requestPayload,
+                responsePayload,
+                e.getStatusCode().toString(),
+                e
+            );
         } catch (HttpServerErrorException e) {
+            // Capturar response de erro
+            responsePayload = e.getResponseBodyAsString();
+            
             log.error("❌ Erro 5xx do Pagar.me: {} - {}", 
-                e.getStatusCode(), e.getResponseBodyAsString());
-            throw new RuntimeException("Erro no servidor de pagamento. Tente novamente.", e);
+                e.getStatusCode(), responsePayload);
+            
+            throw new PaymentProcessingException(
+                "Erro no servidor de pagamento. Tente novamente.",
+                requestPayload,
+                responsePayload,
+                e.getStatusCode().toString(),
+                e
+            );
+        } catch (PaymentProcessingException e) {
+            // Re-lançar exceção customizada
+            throw e;
         } catch (Exception e) {
             log.error("❌ Erro ao criar order com cartão no Pagar.me", e);
-            throw new RuntimeException("Falha ao criar order: " + e.getMessage(), e);
+            
+            throw new PaymentProcessingException(
+                "Falha ao criar order: " + e.getMessage(),
+                requestPayload,
+                responsePayload,
+                "UNKNOWN",
+                e
+            );
         }
     }
     
@@ -856,13 +926,6 @@ public class PagarMeService {
 
             com.mvt.mvt_events.payment.dto.OrderResponse body = response.getBody();
             
-            // Log da response
-            try {
-                log.info("📥 JSON Response Body:\n{}", objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(body));
-            } catch (Exception e) {
-                log.debug("Erro ao serializar response para log", e);
-            }
-            
             if (body != null && body.getId() != null) {
                 log.info("✅ Order criada com sucesso: {}", body.getId());
                 return body.getId();
@@ -916,13 +979,6 @@ public class PagarMeService {
             );
 
             com.mvt.mvt_events.payment.dto.OrderResponse body = response.getBody();
-            
-            // Log da response
-            try {
-                log.info("📥 JSON Response Body:\n{}", objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(body));
-            } catch (Exception e) {
-                log.debug("Erro ao serializar response para log", e);
-            }
             
             if (body != null && body.getId() != null) {
                 log.info("✅ Order criada com sucesso: {}", body.getId());
@@ -1248,9 +1304,10 @@ public class PagarMeService {
      * 
      * @param customerId ID do customer no Pagar.me (cus_xxxxx)
      * @param cardToken Token do cartão (card_xxxxx ou token gerado no frontend)
+     * @param billingAddress Endereço de cobrança (opcional)
      * @return Map com dados do cartão criado
      */
-    public Map<String, Object> createCard(String customerId, String cardToken) {
+    public Map<String, Object> createCard(String customerId, String cardToken, com.mvt.mvt_events.payment.dto.BillingAddressDTO billingAddress) {
         log.info("💳 Criando cartão no Pagar.me para customer: {}", customerId);
 
         try {
@@ -1259,6 +1316,26 @@ public class PagarMeService {
             // Payload
             Map<String, Object> cardData = new HashMap<>();
             cardData.put("token", cardToken);
+
+            // Adicionar billing_address se fornecido
+            if (billingAddress != null) {
+                Map<String, String> address = new HashMap<>();
+                address.put("line_1", billingAddress.getLine1());
+                
+                // line_2 é opcional
+                if (billingAddress.getLine2() != null && !billingAddress.getLine2().isEmpty()) {
+                    address.put("line_2", billingAddress.getLine2());
+                }
+                
+                address.put("zip_code", billingAddress.getZipCode());
+                address.put("city", billingAddress.getCity());
+                address.put("state", billingAddress.getState());
+                address.put("country", billingAddress.getCountry());
+                
+                cardData.put("billing_address", address);
+                log.info("   └─ 📍 Billing address incluído: {}, {} - {}", 
+                    billingAddress.getCity(), billingAddress.getState(), billingAddress.getZipCode());
+            }
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(cardData, headers);
             String url = config.getApi().getUrl() + "/customers/" + customerId + "/cards";

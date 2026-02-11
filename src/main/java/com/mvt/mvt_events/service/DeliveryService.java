@@ -1022,8 +1022,12 @@ public class DeliveryService {
     private void createAutomaticCreditCardPayment(Delivery delivery, User client) {
         log.info("💳 Verificando criação automática de pagamento por cartão para delivery #{}", delivery.getId());
         
+        // Forçar carregamento completo do client do banco para garantir que documentNumber esteja disponível
+        User fullClient = userRepository.findById(client.getId())
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+        
         // 1. Verificar preferência de pagamento
-        CustomerPaymentPreference preference = preferenceService.getPreference(client.getId());
+        CustomerPaymentPreference preference = preferenceService.getPreference(fullClient.getId());
         if (preference.getPreferredPaymentType() != PreferredPaymentType.CREDIT_CARD) {
             log.info("   ├─ Cliente prefere PIX, não criar pagamento automático");
             return;
@@ -1032,7 +1036,7 @@ public class DeliveryService {
         // 2. Buscar cartão padrão
         CustomerCard card;
         try {
-            card = cardService.getDefaultCard(client.getId());
+            card = cardService.getDefaultCard(fullClient.getId());
         } catch (Exception e) {
             log.warn("   ├─ ⚠️ Cliente não tem cartão padrão cadastrado: {}", e.getMessage());
             return;
@@ -1070,6 +1074,14 @@ public class DeliveryService {
                 .build();
         
         // 5. Criar order no Pagar.me com split
+        Payment payment = new Payment();
+        payment.setCurrency(Currency.BRL);
+        payment.setPaymentMethod(PaymentMethod.CREDIT_CARD);
+        payment.setProvider(PaymentProvider.PAGARME);
+        payment.setPayer(fullClient);
+        payment.setStatus(PaymentStatus.PENDING);
+        payment.addDelivery(delivery);
+        
         try {
             log.info("   ├─ Criando order no Pagar.me com split...");
 
@@ -1081,9 +1093,9 @@ public class DeliveryService {
                     delivery.getShippingFee(),
                     "Entrega #" + delivery.getId(),
                     card.getPagarmeCardId(),
-                    client.getName() != null ? client.getName() : client.getUsername(),
-                    client.getUsername(), // Usando username como email
-                    "00000000000", // Document padrão
+                    fullClient.getName() != null ? fullClient.getName() : fullClient.getUsername(),
+                    fullClient.getUsername(), // Usando username como email
+                    fullClient.getDocumentNumber() != null ? fullClient.getDocumentNumber() : "00000000000",
                     billingAddress,
                     courierRecipientId,
                     organizerRecipientId,
@@ -1093,31 +1105,61 @@ public class DeliveryService {
             
             log.info("   ├─ ✅ Order criada: {}", orderResponse.getId());
             
-            // 6. Criar Payment no banco
-            Payment payment = new Payment();
+            // Atualizar Payment com dados de sucesso
             payment.setProviderPaymentId(orderResponse.getId());
             payment.setAmount(delivery.getShippingFee());
-            payment.setCurrency(Currency.BRL);
-            payment.setPaymentMethod(PaymentMethod.CREDIT_CARD);
-            payment.setProvider(PaymentProvider.PAGARME);
-            payment.setPayer(client);
-            payment.setStatus(PaymentStatus.PENDING);
-            payment.addDelivery(delivery);
+            payment.setRequest(orderResponse.getRequestPayload());
+            payment.setResponse(orderResponse.getResponsePayload());
+            
+            // Verificar se o pagamento falhou (status do Pagar.me)
+            if ("failed".equalsIgnoreCase(orderResponse.getStatus())) {
+                payment.setStatus(PaymentStatus.FAILED);
+                log.warn("   ├─ ⚠️ Pagamento criado mas com status FAILED no Pagar.me");
+            } else {
+                payment.setStatus(PaymentStatus.PENDING);
+            }
             
             Payment savedPayment = paymentRepository.save(payment);
-            log.info("   ├─ ✅ Payment #{} salvo no banco", savedPayment.getId());
+            log.info("   ├─ ✅ Payment #{} salvo no banco (status: {})", savedPayment.getId(), savedPayment.getStatus());
             
-            // 7. Marcar delivery como paga (aguardar webhook para confirmar)
-            // paymentCompleted = false (aguarda webhook)
-            // paymentCaptured será atualizado pelo webhook
-            delivery.setPaymentCompleted(false);
-            delivery.setPaymentCaptured(false);
-            deliveryRepository.save(delivery);
+            // 7. Marcar delivery apenas se o pagamento não falhou
+            if (!"failed".equalsIgnoreCase(orderResponse.getStatus())) {
+                delivery.setPaymentCompleted(false);
+                delivery.setPaymentCaptured(false);
+                deliveryRepository.save(delivery);
+                log.info("   └─ ✅ Pagamento automático criado com sucesso para delivery #{}", delivery.getId());
+            } else {
+                log.error("   └─ ❌ Pagamento falhou no Pagar.me - delivery não será marcada como paga");
+                throw new RuntimeException("Pagamento recusado pelo gateway");
+            }
             
-            log.info("   └─ ✅ Pagamento automático criado com sucesso para delivery #{}", delivery.getId());
+        } catch (com.mvt.mvt_events.payment.exception.PaymentProcessingException e) {
+            log.error("   ├─ ❌ Erro ao criar pagamento automático: {}", e.getMessage(), e);
             
+            // Salvar Payment mesmo em caso de falha, com os dados capturados
+            payment.setStatus(PaymentStatus.FAILED);
+            payment.setRequest(e.getRequestPayload());
+            payment.setResponse(e.getResponsePayload());
+            payment.setAmount(delivery.getShippingFee());
+            payment.setNotes("Erro: " + e.getMessage() + " | Code: " + e.getErrorCode());
+            
+            Payment savedPayment = paymentRepository.save(payment);
+            log.info("   ├─ 💾 Payment #{} salvo com status FAILED para auditoria", savedPayment.getId());
+            log.error("   └─ ❌ Falha ao criar pagamento automático: {}", e.getMessage());
+            
+            throw new RuntimeException("Falha ao criar pagamento automático: " + e.getMessage(), e);
         } catch (Exception e) {
-            log.error("   └─ ❌ Erro ao criar pagamento automático: {}", e.getMessage(), e);
+            log.error("   ├─ ❌ Erro inesperado ao criar pagamento automático: {}", e.getMessage(), e);
+            
+            // Salvar Payment mesmo em caso de erro inesperado
+            payment.setStatus(PaymentStatus.FAILED);
+            payment.setAmount(delivery.getShippingFee());
+            payment.setNotes("Erro inesperado: " + e.getMessage());
+            
+            Payment savedPayment = paymentRepository.save(payment);
+            log.info("   ├─ 💾 Payment #{} salvo com status FAILED para auditoria", savedPayment.getId());
+            log.error("   └─ ❌ Falha ao criar pagamento automático: {}", e.getMessage());
+            
             throw new RuntimeException("Falha ao criar pagamento automático: " + e.getMessage(), e);
         }
     }

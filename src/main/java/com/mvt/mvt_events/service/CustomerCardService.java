@@ -2,6 +2,7 @@ package com.mvt.mvt_events.service;
 
 import com.mvt.mvt_events.jpa.CustomerCard;
 import com.mvt.mvt_events.jpa.User;
+import com.mvt.mvt_events.payment.dto.BillingAddressDTO;
 import com.mvt.mvt_events.payment.service.PagarMeService;
 import com.mvt.mvt_events.repository.CustomerCardRepository;
 import com.mvt.mvt_events.repository.UserRepository;
@@ -51,10 +52,11 @@ public class CustomerCardService {
      * @param customerId ID do cliente
      * @param cardToken Token do cartão (gerado no frontend com Pagar.me JS)
      * @param setAsDefault Se deve marcar como cartão padrão
+     * @param billingAddress Endereço de cobrança (opcional, repassado ao Pagar.me)
      * @return Cartão salvo
      */
     @Transactional
-    public CustomerCard addCard(UUID customerId, String cardToken, Boolean setAsDefault) {
+    public CustomerCard addCard(UUID customerId, String cardToken, Boolean setAsDefault, BillingAddressDTO billingAddress) {
         log.info("Adicionando cartão para customer: {} | Token: {}", customerId, cardToken);
 
         // Validar cliente
@@ -71,8 +73,8 @@ public class CustomerCardService {
             log.info("   └─ Customer Pagar.me criado: {}", pagarmeCustomerId);
         }
 
-        // Criar cartão no Pagar.me
-        Map<String, Object> cardData = pagarMeService.createCard(pagarmeCustomerId, cardToken);
+        // Criar cartão no Pagar.me (com billing address se fornecido)
+        Map<String, Object> cardData = pagarMeService.createCard(pagarmeCustomerId, cardToken, billingAddress);
         
         // Extrair dados do cartão
         String pagarmeCardId = (String) cardData.get("id");
@@ -345,7 +347,7 @@ public class CustomerCardService {
                     card.getPagarmeCardId(),
                     customer.getName() != null ? customer.getName() : customer.getUsername(),
                     customer.getUsername(),
-                    "00000000000",
+                    customer.getDocumentNumber() != null ? customer.getDocumentNumber() : "00000000000",
                     billingAddress,
                     courierRecipientId,
                     organizerRecipientId,
@@ -503,6 +505,9 @@ public class CustomerCardService {
     /**
      * Deleta um cartão (soft delete).
      * Mantém no banco para auditoria e histórico de transações.
+     * 
+     * Deleta PRIMEIRO no Pagar.me e depois localmente.
+     * Se falhar no Pagar.me, a exclusão local não acontece (consistência).
      */
     @Transactional
     public void deleteCard(UUID customerId, Long cardId, Authentication authentication) {
@@ -513,7 +518,25 @@ public class CustomerCardService {
         CustomerCard card = cardRepository.findByIdAndCustomerId(cardId, customerId)
                 .orElseThrow(() -> new RuntimeException("Cartão não encontrado"));
 
-        // Soft delete
+        // Buscar customer para obter pagarmeCustomerId
+        User customer = userRepository.findById(customerId)
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+
+        // 1️⃣ DELETAR NO PAGAR.ME PRIMEIRO
+        //    Se falhar aqui, a exceção impede a exclusão local (rollback automático)
+        if (customer.getPagarmeCustomerId() != null && card.getPagarmeCardId() != null) {
+            try {
+                pagarMeService.deleteCard(customer.getPagarmeCustomerId(), card.getPagarmeCardId());
+                log.info("   └─ ✅ Cartão deletado no Pagar.me: {}", card.getPagarmeCardId());
+            } catch (Exception e) {
+                log.error("   └─ ❌ Falha ao deletar no Pagar.me, abortando exclusão local", e);
+                throw new RuntimeException("Não foi possível deletar o cartão no Pagar.me: " + e.getMessage(), e);
+            }
+        } else {
+            log.warn("   └─ ⚠️ Cartão sem ID do Pagar.me, deletando apenas localmente");
+        }
+
+        // 2️⃣ SE CHEGOU AQUI, Pagar.me deletou com sucesso → deletar localmente
         card.softDelete();
         cardRepository.save(card);
 
