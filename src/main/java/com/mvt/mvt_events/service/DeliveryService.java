@@ -136,11 +136,22 @@ public class DeliveryService {
         // Calcular o frete automaticamente baseado na distância e configuração ativa
         if (delivery.getDistanceKm() != null && delivery.getDistanceKm().compareTo(BigDecimal.ZERO) > 0) {
             SiteConfiguration activeConfig = siteConfigurationService.getActiveConfiguration();
-            BigDecimal calculatedFee = delivery.getDistanceKm().multiply(activeConfig.getPricePerKm());
             
-            // Aplicar valor mínimo do frete
-            if (calculatedFee.compareTo(activeConfig.getMinimumShippingFee()) < 0) {
-                calculatedFee = activeConfig.getMinimumShippingFee();
+            // Selecionar preço por km baseado na preferência de veículo
+            BigDecimal pricePerKm = activeConfig.getPricePerKm(); // default: moto
+            BigDecimal minimumFee = activeConfig.getMinimumShippingFee(); // default: moto
+            if (delivery.getPreferredVehicleType() == Delivery.PreferredVehicleType.CAR) {
+                pricePerKm = activeConfig.getCarPricePerKm() != null 
+                    ? activeConfig.getCarPricePerKm() : activeConfig.getPricePerKm();
+                minimumFee = activeConfig.getCarMinimumShippingFee() != null
+                    ? activeConfig.getCarMinimumShippingFee() : activeConfig.getMinimumShippingFee();
+            }
+            
+            BigDecimal calculatedFee = delivery.getDistanceKm().multiply(pricePerKm);
+            
+            // Aplicar valor mínimo do frete (por tipo de veículo)
+            if (calculatedFee.compareTo(minimumFee) < 0) {
+                calculatedFee = minimumFee;
             }
             
             // Verificar se o destino está em uma zona especial

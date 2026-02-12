@@ -160,12 +160,15 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("owner", "Proprietário");
 
         // ==================== SITE CONFIGURATION ====================
-        FIELD_TRANSLATIONS.put("pricePerKm", "Preço por Km (R$)");
-        FIELD_TRANSLATIONS.put("minimumShippingFee", "Valor Mínimo do Frete (R$)");
+        FIELD_TRANSLATIONS.put("pricePerKm", "Preço por Km - Moto (R$)");
+        FIELD_TRANSLATIONS.put("carPricePerKm", "Preço por Km - Automóvel (R$)");
+        FIELD_TRANSLATIONS.put("minimumShippingFee", "Frete Mínimo - Moto (R$)");
+        FIELD_TRANSLATIONS.put("carMinimumShippingFee", "Frete Mínimo - Automóvel (R$)");
         FIELD_TRANSLATIONS.put("organizerPercentage", "Comissão do Gerente (%)");
         FIELD_TRANSLATIONS.put("platformPercentage", "Comissão da Plataforma (%)");
         FIELD_TRANSLATIONS.put("dangerFeePercentage", "Taxa de Periculosidade (%)");
         FIELD_TRANSLATIONS.put("highIncomeFeePercentage", "Taxa de Renda Alta (%)");
+        FIELD_TRANSLATIONS.put("creditCardFeePercentage", "Taxa de Cartão de Crédito (%)");
         FIELD_TRANSLATIONS.put("isActive", "Ativo");
         FIELD_TRANSLATIONS.put("updatedBy", "Atualizado por");
         FIELD_TRANSLATIONS.put("notes", "Observações");
@@ -201,6 +204,7 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("completedAt", "Concluída em");
         FIELD_TRANSLATIONS.put("cancelledAt", "Cancelada em");
         FIELD_TRANSLATIONS.put("cancellationReason", "Motivo do Cancelamento");
+        FIELD_TRANSLATIONS.put("preferredVehicleType", "Preferência de Veículo");
         FIELD_TRANSLATIONS.put("vehicle", "Veículo");
         FIELD_TRANSLATIONS.put("partnership", "Parceria Municipal");
 
@@ -418,6 +422,7 @@ public class JpaMetadataExtractor {
 
         // ==================== GENERIC ====================
         ENUM_TRANSLATIONS.put("OTHER", "Outro");
+        ENUM_TRANSLATIONS.put("ANY", "Qualquer");
     }
 
     /**

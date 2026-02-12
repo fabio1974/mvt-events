@@ -57,6 +57,7 @@ public class DeliveryResponse {
 
     // Status
     private String status;
+    private String preferredVehicleType;
     private LocalDateTime scheduledPickupAt;
     private LocalDateTime acceptedAt;
     private LocalDateTime pickedUpAt;

@@ -28,10 +28,10 @@ import java.math.BigDecimal;
 public class SiteConfiguration extends BaseEntity {
 
     /**
-     * Preço por km para cálculo do frete (em Reais)
+     * Preço por km para MOTO (motorcycle) - cálculo do frete (em Reais)
      * Ex: 1.50 = R$ 1,50 por km
      */
-    @NotNull(message = "Preço por km é obrigatório")
+    @NotNull(message = "Preço por km (moto) é obrigatório")
     @DecimalMin(value = "0.01", message = "Preço por km deve ser maior que zero")
     @DecimalMax(value = "100.00", message = "Preço por km não pode exceder R$ 100,00")
     @Column(name = "price_per_km", precision = 10, scale = 2, nullable = false)
@@ -39,15 +39,37 @@ public class SiteConfiguration extends BaseEntity {
     private BigDecimal pricePerKm;
 
     /**
-     * Valor mínimo do frete (em Reais)
+     * Preço por km para AUTOMÓVEL (car) - cálculo do frete (em Reais)
+     * Ex: 2.50 = R$ 2,50 por km
+     */
+    @NotNull(message = "Preço por km (automóvel) é obrigatório")
+    @DecimalMin(value = "0.01", message = "Preço por km (automóvel) deve ser maior que zero")
+    @DecimalMax(value = "100.00", message = "Preço por km (automóvel) não pode exceder R$ 100,00")
+    @Column(name = "car_price_per_km", precision = 10, scale = 2, nullable = false)
+    @Visible(table = true, form = true, filter = false)
+    private BigDecimal carPricePerKm;
+
+    /**
+     * Valor mínimo do frete para MOTO (em Reais)
      * Ex: 5.00 = R$ 5,00 mínimo
      */
-    @NotNull(message = "Valor mínimo do frete é obrigatório")
+    @NotNull(message = "Valor mínimo do frete (moto) é obrigatório")
     @DecimalMin(value = "0.00", message = "Valor mínimo do frete não pode ser negativo")
     @DecimalMax(value = "1000.00", message = "Valor mínimo do frete não pode exceder R$ 1.000,00")
     @Column(name = "minimum_shipping_fee", precision = 10, scale = 2, nullable = false)
     @Visible(table = true, form = true, filter = false)
     private BigDecimal minimumShippingFee;
+
+    /**
+     * Valor mínimo do frete para AUTOMÓVEL (em Reais)
+     * Ex: 8.00 = R$ 8,00 mínimo
+     */
+    @NotNull(message = "Valor mínimo do frete (automóvel) é obrigatório")
+    @DecimalMin(value = "0.00", message = "Valor mínimo do frete (automóvel) não pode ser negativo")
+    @DecimalMax(value = "1000.00", message = "Valor mínimo do frete (automóvel) não pode exceder R$ 1.000,00")
+    @Column(name = "car_minimum_shipping_fee", precision = 10, scale = 2, nullable = false)
+    @Visible(table = true, form = true, filter = false)
+    private BigDecimal carMinimumShippingFee;
 
     /**
      * Percentual de comissão para o gerente/organizador (0-100)
@@ -102,6 +124,17 @@ public class SiteConfiguration extends BaseEntity {
     @Column(name = "high_income_fee_percentage", precision = 5, scale = 2, nullable = false)
     @Visible(table = true, form = true, filter = false)
     private BigDecimal highIncomeFeePercentage;
+
+    /**
+     * Taxa percentual cobrada quando pagamento é via cartão de crédito (0-100)
+     * Ex: 3.50 = 3,50% de acréscimo no valor final
+     */
+    @NotNull(message = "Taxa de cartão de crédito é obrigatória")
+    @DecimalMin(value = "0.00", message = "Taxa de cartão de crédito não pode ser negativa")
+    @DecimalMax(value = "100.00", message = "Taxa de cartão de crédito não pode exceder 100%")
+    @Column(name = "credit_card_fee_percentage", precision = 5, scale = 2, nullable = false)
+    @Visible(table = true, form = true, filter = false)
+    private BigDecimal creditCardFeePercentage;
 
     /**
      * Indica se esta configuração está ativa

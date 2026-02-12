@@ -35,12 +35,15 @@ public class SiteConfigurationService {
     @Transactional
     private SiteConfiguration createDefaultConfiguration() {
         SiteConfiguration defaultConfig = SiteConfiguration.builder()
-                .pricePerKm(BigDecimal.valueOf(1.00))            // R$ 1,00 por km
-                .minimumShippingFee(BigDecimal.valueOf(5.00))    // R$ 5,00 mínimo
+                .pricePerKm(BigDecimal.valueOf(1.00))            // R$ 1,00 por km (moto)
+                .carPricePerKm(BigDecimal.valueOf(2.00))         // R$ 2,00 por km (automóvel)
+                .minimumShippingFee(BigDecimal.valueOf(5.00))    // R$ 5,00 mínimo (moto)
+                .carMinimumShippingFee(BigDecimal.valueOf(8.00)) // R$ 8,00 mínimo (automóvel)
                 .organizerPercentage(BigDecimal.valueOf(5.00))   // 5% para o gerente
                 .platformPercentage(BigDecimal.valueOf(10.00))   // 10% para a plataforma
                 .dangerFeePercentage(BigDecimal.valueOf(0.00))   // 0% taxa de periculosidade
                 .highIncomeFeePercentage(BigDecimal.valueOf(0.00)) // 0% taxa de renda alta
+                .creditCardFeePercentage(BigDecimal.valueOf(0.00)) // 0% taxa de cartão de crédito
                 .isActive(true)
                 .notes("Configuração padrão criada automaticamente")
                 .updatedBy("SYSTEM")

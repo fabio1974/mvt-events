@@ -154,6 +154,16 @@ public class Delivery extends BaseEntity {
     private DeliveryType deliveryType = DeliveryType.DELIVERY;
 
     /**
+     * Preferência de veículo do cliente:
+     * MOTORCYCLE (moto), CAR (automóvel) ou ANY (sem preferência)
+     */
+    @NotNull(message = "Preferência de veículo é obrigatória")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "preferred_vehicle_type", nullable = false, length = 20)
+    @Visible(table = true, form = true, filter = true)
+    private PreferredVehicleType preferredVehicleType = PreferredVehicleType.ANY;
+
+    /**
      * Indica se o pagamento já foi realizado.
      * - Para DELIVERY: true após pagamento quando motoboy aceita
      * - Para RIDE: true após pagamento quando inicia viagem
@@ -263,6 +273,18 @@ public class Delivery extends BaseEntity {
     public enum DeliveryType {
         DELIVERY, // Entrega de objeto
         RIDE // Viagem de passageiro
+    }
+
+    /**
+     * Preferência de veículo para a entrega/viagem:
+     * - MOTORCYCLE: Apenas moto
+     * - CAR: Apenas automóvel
+     * - ANY: Qualquer veículo (sem preferência)
+     */
+    public enum PreferredVehicleType {
+        MOTORCYCLE, // Moto
+        CAR,        // Automóvel
+        ANY         // Sem preferência
     }
 
     /**

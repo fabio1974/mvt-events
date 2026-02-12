@@ -64,6 +64,11 @@ public class DeliveryCreateRequest {
     private String scheduledPickupAt; // ISO DateTime string
 
     /**
+     * Preferência de veículo: MOTORCYCLE, CAR ou ANY (padrão: ANY)
+     */
+    private String preferredVehicleType;
+
+    /**
      * DTO interno para referenciar entidades por ID
      */
     @Data

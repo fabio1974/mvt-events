@@ -440,6 +440,19 @@ public class DeliveryController {
         delivery.setItemDescription(request.getItemDescription());
         delivery.setDistanceKm(request.getDistanceKm());
 
+        // Mapear preferência de veículo
+        if (request.getPreferredVehicleType() != null) {
+            try {
+                delivery.setPreferredVehicleType(
+                    Delivery.PreferredVehicleType.valueOf(request.getPreferredVehicleType().toUpperCase())
+                );
+            } catch (IllegalArgumentException e) {
+                delivery.setPreferredVehicleType(Delivery.PreferredVehicleType.ANY);
+            }
+        } else {
+            delivery.setPreferredVehicleType(Delivery.PreferredVehicleType.ANY);
+        }
+
         // Client e Partnership serão setados no service
         return delivery;
     }
@@ -489,6 +502,7 @@ public class DeliveryController {
                 .shippingFee(delivery.getShippingFee())
                 .distanceKm(delivery.getDistanceKm())
                 .status(delivery.getStatus().name())
+                .preferredVehicleType(delivery.getPreferredVehicleType() != null ? delivery.getPreferredVehicleType().name() : "ANY")
                 .scheduledPickupAt(delivery.getScheduledPickupAt())
                 .acceptedAt(delivery.getAcceptedAt())
                 .pickedUpAt(delivery.getPickedUpAt())
@@ -611,24 +625,43 @@ public class DeliveryController {
     }
 
     /**
-     * DTO para resposta da simulação de frete
+     * Detalhamento do cálculo de frete para um tipo de veículo
      */
     @Data
     @Builder
-    public static class FreightSimulationResponse {
-        private BigDecimal distanceKm;
+    public static class VehicleFreightDetail {
+        private String vehicleType;        // "MOTORCYCLE" ou "CAR"
+        private String vehicleLabel;       // "Moto" ou "Automóvel"
         private BigDecimal pricePerKm;
         private BigDecimal baseFee;
         private BigDecimal minimumFee;
         private Boolean minimumApplied;
         private BigDecimal feeBeforeZone;
+        private BigDecimal zoneSurcharge;
+        private BigDecimal totalShippingFee;
+        private BigDecimal creditCardFeePercentage;
+        private BigDecimal creditCardFeeAmount;
+        private BigDecimal totalWithCreditCardFee;
+    }
+
+    /**
+     * DTO para resposta da simulação de frete (retorna ambos os veículos)
+     */
+    @Data
+    @Builder
+    public static class FreightSimulationResponse {
+        private BigDecimal distanceKm;
+        private String fromAddress;
+        private String toAddress;
+        // Zona geográfica (comum a ambos os veículos)
         private String zoneName;
         private String zoneType;
         private BigDecimal zoneFeePercentage;
-        private BigDecimal zoneSurcharge;
-        private BigDecimal totalShippingFee;
-        private String fromAddress;
-        private String toAddress;
+        // Detalhamento por tipo de veículo
+        private VehicleFreightDetail motorcycle;
+        private VehicleFreightDetail car;
+        // Taxa do cartão de crédito (informativo)
+        private BigDecimal creditCardFeePercentage;
     }
 
     /**
@@ -636,19 +669,23 @@ public class DeliveryController {
      * 
      * Endpoint: POST /api/deliveries/simulate-freight
      * 
-     * Calcula o frete usando a mesma lógica da criação de delivery:
-     * 1. distanceKm × pricePerKm = baseFee
+     * Retorna os preços para MOTO e AUTOMÓVEL em um único objeto,
+     * incluindo a taxa de cartão de crédito caso o pagamento seja por cartão.
+     * 
+     * Cálculo por veículo:
+     * 1. distanceKm × pricePerKm (moto) ou carPricePerKm (automóvel) = baseFee
      * 2. Se baseFee < minimumShippingFee → usa minimumShippingFee
      * 3. Verifica zona especial no destino (DANGER / HIGH_INCOME)
      * 4. Aplica sobretaxa da zona sobre o frete
+     * 5. Calcula acréscimo da taxa de cartão de crédito (informativo)
      * 
      * @param request Dados de origem, destino e distância (km)
-     * @return Detalhamento completo do cálculo do frete
+     * @return Detalhamento completo do cálculo do frete para cada veículo
      */
     @PostMapping("/simulate-freight")
     @Operation(summary = "Simular preço do frete", 
-               description = "Calcula o frete baseado em distância, preço/km, valor mínimo e zonas geográficas. " +
-                             "Usa a mesma lógica da criação de delivery.")
+               description = "Calcula o frete para MOTO e AUTOMÓVEL, baseado em distância, preço/km, " +
+                             "valor mínimo, zonas geográficas e taxa de cartão de crédito.")
     public ResponseEntity<?> simulateFreight(@RequestBody @Valid FreightSimulationRequest request) {
         
         // Validar distância
@@ -668,23 +705,10 @@ public class DeliveryController {
         // Buscar configuração ativa
         SiteConfiguration config = siteConfigurationService.getActiveConfiguration();
 
-        // 1. Calcular frete base: distância × preço/km
-        BigDecimal baseFee = request.getDistanceKm().multiply(config.getPricePerKm());
-
-        // 2. Aplicar valor mínimo
-        boolean minimumApplied = false;
-        BigDecimal feeBeforeZone = baseFee;
-        if (baseFee.compareTo(config.getMinimumShippingFee()) < 0) {
-            feeBeforeZone = config.getMinimumShippingFee();
-            minimumApplied = true;
-        }
-
-        // 3. Verificar zona especial do destino
+        // ---- Verificar zona especial do destino (comum a ambos os veículos) ----
         String zoneName = null;
         String zoneType = null;
         BigDecimal zoneFeePercentage = BigDecimal.ZERO;
-        BigDecimal zoneSurcharge = BigDecimal.ZERO;
-        BigDecimal totalFee = feeBeforeZone;
 
         var nearestZone = specialZoneService.findNearestZone(
             request.getToLatitude(), 
@@ -701,35 +725,98 @@ public class DeliveryController {
             } else if (zone.getZoneType() == SpecialZone.ZoneType.HIGH_INCOME) {
                 zoneFeePercentage = config.getHighIncomeFeePercentage();
             }
-
-            if (zoneFeePercentage.compareTo(BigDecimal.ZERO) > 0) {
-                zoneSurcharge = feeBeforeZone
-                    .multiply(zoneFeePercentage)
-                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-                totalFee = feeBeforeZone.add(zoneSurcharge);
-            }
         }
 
-        // 4. Arredondar
-        totalFee = totalFee.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal distanceKm = request.getDistanceKm().setScale(2, RoundingMode.HALF_UP);
+        BigDecimal creditCardFeePercentage = config.getCreditCardFeePercentage() != null 
+            ? config.getCreditCardFeePercentage() : BigDecimal.ZERO;
+
+        // ---- Calcular frete para MOTO ----
+        VehicleFreightDetail motorcycleDetail = calculateFreightForVehicle(
+            "MOTORCYCLE", "Moto", distanceKm, config.getPricePerKm(),
+            config.getMinimumShippingFee(), zoneFeePercentage, creditCardFeePercentage
+        );
+
+        // ---- Calcular frete para AUTOMÓVEL ----
+        BigDecimal carPricePerKm = config.getCarPricePerKm() != null 
+            ? config.getCarPricePerKm() : config.getPricePerKm();
+        BigDecimal carMinimumFee = config.getCarMinimumShippingFee() != null
+            ? config.getCarMinimumShippingFee() : config.getMinimumShippingFee();
+        VehicleFreightDetail carDetail = calculateFreightForVehicle(
+            "CAR", "Automóvel", distanceKm, carPricePerKm,
+            carMinimumFee, zoneFeePercentage, creditCardFeePercentage
+        );
 
         FreightSimulationResponse response = FreightSimulationResponse.builder()
-                .distanceKm(request.getDistanceKm().setScale(2, RoundingMode.HALF_UP))
-                .pricePerKm(config.getPricePerKm())
-                .baseFee(baseFee.setScale(2, RoundingMode.HALF_UP))
-                .minimumFee(config.getMinimumShippingFee())
-                .minimumApplied(minimumApplied)
-                .feeBeforeZone(feeBeforeZone.setScale(2, RoundingMode.HALF_UP))
+                .distanceKm(distanceKm)
+                .fromAddress(request.getFromAddress())
+                .toAddress(request.getToAddress())
                 .zoneName(zoneName)
                 .zoneType(zoneType)
                 .zoneFeePercentage(zoneFeePercentage)
-                .zoneSurcharge(zoneSurcharge)
-                .totalShippingFee(totalFee)
-                .fromAddress(request.getFromAddress())
-                .toAddress(request.getToAddress())
+                .motorcycle(motorcycleDetail)
+                .car(carDetail)
+                .creditCardFeePercentage(creditCardFeePercentage)
                 .build();
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Calcula o frete para um tipo específico de veículo
+     */
+    private VehicleFreightDetail calculateFreightForVehicle(
+            String vehicleType, String vehicleLabel,
+            BigDecimal distanceKm, BigDecimal pricePerKm,
+            BigDecimal minimumShippingFee, BigDecimal zoneFeePercentage,
+            BigDecimal creditCardFeePercentage) {
+
+        // 1. Frete base
+        BigDecimal baseFee = distanceKm.multiply(pricePerKm);
+
+        // 2. Aplicar mínimo
+        boolean minimumApplied = false;
+        BigDecimal feeBeforeZone = baseFee;
+        if (baseFee.compareTo(minimumShippingFee) < 0) {
+            feeBeforeZone = minimumShippingFee;
+            minimumApplied = true;
+        }
+
+        // 3. Aplicar zona
+        BigDecimal zoneSurcharge = BigDecimal.ZERO;
+        BigDecimal totalFee = feeBeforeZone;
+        if (zoneFeePercentage.compareTo(BigDecimal.ZERO) > 0) {
+            zoneSurcharge = feeBeforeZone
+                .multiply(zoneFeePercentage)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            totalFee = feeBeforeZone.add(zoneSurcharge);
+        }
+        totalFee = totalFee.setScale(2, RoundingMode.HALF_UP);
+
+        // 4. Calcular taxa de cartão de crédito (informativo)
+        BigDecimal creditCardFeeAmount = BigDecimal.ZERO;
+        BigDecimal totalWithCreditCardFee = totalFee;
+        if (creditCardFeePercentage.compareTo(BigDecimal.ZERO) > 0) {
+            creditCardFeeAmount = totalFee
+                .multiply(creditCardFeePercentage)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            totalWithCreditCardFee = totalFee.add(creditCardFeeAmount);
+        }
+
+        return VehicleFreightDetail.builder()
+                .vehicleType(vehicleType)
+                .vehicleLabel(vehicleLabel)
+                .pricePerKm(pricePerKm)
+                .baseFee(baseFee.setScale(2, RoundingMode.HALF_UP))
+                .minimumFee(minimumShippingFee)
+                .minimumApplied(minimumApplied)
+                .feeBeforeZone(feeBeforeZone.setScale(2, RoundingMode.HALF_UP))
+                .zoneSurcharge(zoneSurcharge)
+                .totalShippingFee(totalFee)
+                .creditCardFeePercentage(creditCardFeePercentage)
+                .creditCardFeeAmount(creditCardFeeAmount)
+                .totalWithCreditCardFee(totalWithCreditCardFee.setScale(2, RoundingMode.HALF_UP))
+                .build();
     }
 
     /**
