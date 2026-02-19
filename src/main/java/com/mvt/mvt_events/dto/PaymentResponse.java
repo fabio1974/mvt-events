@@ -86,6 +86,21 @@ public class PaymentResponse {
     private PaymentStatus status;
 
     /**
+     * Método de pagamento (PIX ou CREDIT_CARD)
+     */
+    private String paymentMethod;
+
+    /**
+     * Últimos 4 dígitos do cartão (apenas para CREDIT_CARD)
+     */
+    private String cardLastFour;
+
+    /**
+     * Bandeira do cartão (apenas para CREDIT_CARD)
+     */
+    private String cardBrand;
+
+    /**
      * Data/hora de expiração da fatura
      */
     private LocalDateTime expiresAt;
@@ -153,6 +168,7 @@ public class PaymentResponse {
                 .pixQrCodeUrl(payment.getPixQrCodeUrl())
                 .amount(payment.getAmount())
                 .status(payment.getStatus())
+                .paymentMethod(payment.getPaymentMethod() != null ? payment.getPaymentMethod().name() : null)
                 .expiresAt(payment.getExpiresAt())
                 .createdAt(payment.getCreatedAt())
                 .paymentDate(payment.getPaymentDate())

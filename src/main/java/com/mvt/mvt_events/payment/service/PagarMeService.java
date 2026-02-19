@@ -405,7 +405,8 @@ public class PagarMeService {
             String customerDocument,
             String courierRecipientId,
             String managerRecipientId,
-            String platformRecipientId
+            String platformRecipientId,
+            int expiresInSeconds
     ) {
         log.info("💳 Criando order com PIX e split: R$ {}", amount);
 
@@ -480,12 +481,17 @@ public class PagarMeService {
             log.info("   ├─ ✅ Split da plataforma incluído explicitamente: {} centavos", platformAmount);
         }
 
+        // Extrair código da delivery da description ("Entrega #45" → "45")
+        String itemCode = description.replaceAll("[^0-9]", "");
+
         // Criar request
         OrderRequest request = OrderRequest.builder()
+                .closed(true)
                 .items(List.of(OrderRequest.ItemRequest.builder()
                         .amount((long) amountInCents)
                         .description(description)
                         .quantity(1L)
+                        .code(itemCode)
                         .build()))
                 .customer(OrderRequest.CustomerRequest.builder()
                         .name(customerName)
@@ -495,8 +501,15 @@ public class PagarMeService {
                         .build())
                 .payments(List.of(OrderRequest.PaymentRequest.builder()
                         .paymentMethod("pix")
+                        .amount((long) amountInCents)
                         .pix(OrderRequest.PixRequest.builder()
-                                .expiresIn("86400")
+                                .expiresIn(String.valueOf(expiresInSeconds))
+                                .additionalInformation(List.of(
+                                        OrderRequest.AdditionalInfoRequest.builder()
+                                                .name("Entregas")
+                                                .value("#" + itemCode)
+                                                .build()
+                                ))
                                 .build())
                         .split(orderSplits)
                         .build()))
@@ -507,23 +520,73 @@ public class PagarMeService {
             HttpEntity<OrderRequest> entity = new HttpEntity<>(request, headers);
 
             String url = config.getApi().getUrl() + "/orders";
-            ResponseEntity<OrderResponse> response = restTemplate.exchange(
+            
+            // Serializar request para auditoria
+            String requestJson = null;
+            try {
+                requestJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(request);
+                log.info("📤 PIX Order Request:\n{}", requestJson);
+            } catch (Exception e) {
+                log.debug("Erro ao serializar request para log", e);
+            }
+            
+            // Receber resposta como String para preservar raw JSON e logar
+            ResponseEntity<String> response = restTemplate.exchange(
                     url,
                     HttpMethod.POST,
                     entity,
-                    OrderResponse.class
+                    String.class
             );
 
-            OrderResponse order = response.getBody();
-            if (order != null) {
-                log.info("✅ Order criada: {} (status: {})", order.getId(), order.getStatus());
+            String responseJson = response.getBody();
+            if (responseJson == null || responseJson.isBlank()) {
+                throw new RuntimeException("Resposta vazia do Pagar.me");
+            }
+            
+            log.info("📥 PIX Order Response (raw):\n{}", responseJson);
+            
+            // Desserializar manualmente para ter controle
+            OrderResponse order = objectMapper.readValue(responseJson, OrderResponse.class);
+            
+            // Popular campos de auditoria (transient — não vêm do JSON)
+            order.setRequestPayload(requestJson);
+            order.setResponsePayload(responseJson);
+            
+            if (order.getId() != null) {
+                log.info("✅ Order PIX criada: {} (status: {})", order.getId(), order.getStatus());
+                
+                // Log de debug para QR Code
+                if (order.getCharges() != null && !order.getCharges().isEmpty()) {
+                    OrderResponse.Charge charge = order.getCharges().get(0);
+                    if (charge.getLastTransaction() != null) {
+                        OrderResponse.LastTransaction tx = charge.getLastTransaction();
+                        log.info("   ├─ 🔍 QR Code presente: {}", tx.getQrCode() != null ? "✅ (" + tx.getQrCode().length() + " chars)" : "❌");
+                        log.info("   ├─ 🔍 QR Code URL presente: {}", tx.getQrCodeUrl() != null ? "✅" : "❌");
+                        log.info("   ├─ 🔍 ExpiresAt: {}", tx.getExpiresAt());
+                        log.info("   ├─ 🔍 Status transação: {}", tx.getStatus());
+                        log.info("   ├─ 🔍 Success: {}", tx.getSuccess());
+                    } else {
+                        log.warn("   ├─ ⚠️ lastTransaction é NULL na charge");
+                    }
+                } else {
+                    log.warn("   ├─ ⚠️ charges é NULL ou vazio na order");
+                }
+                
                 return order;
             }
 
-            throw new RuntimeException("Resposta vazia do Pagar.me");
+            throw new RuntimeException("Order criada mas sem ID na resposta");
 
+        } catch (HttpClientErrorException e) {
+            log.error("❌ Erro HTTP ao criar order PIX: {} - Body: {}", 
+                e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException("Falha ao criar order PIX: " + e.getStatusCode() + " " + e.getResponseBodyAsString(), e);
+        } catch (HttpServerErrorException e) {
+            log.error("❌ Erro do servidor Pagar.me ao criar order PIX: {} - Body: {}", 
+                e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException("Falha ao criar order PIX: " + e.getStatusCode() + " " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
-            log.error("❌ Erro ao criar order no Pagar.me", e);
+            log.error("❌ Erro ao criar order PIX no Pagar.me", e);
             throw new RuntimeException("Falha ao criar order: " + e.getMessage(), e);
         }
     }
@@ -714,6 +777,10 @@ public class PagarMeService {
             if (order != null) {
                 order.setRequestPayload(requestPayload);
                 order.setResponsePayload(responsePayload);
+                
+                // Debug: Confirmar que estamos setando os valores
+                log.info("   ├─ 🔍 DEBUG Setou request payload: {} chars", requestPayload != null ? requestPayload.length() : "NULL");
+                log.info("   ├─ 🔍 DEBUG Setou response payload: {} chars", responsePayload != null ? responsePayload.length() : "NULL");
                 
                 log.info("✅ Order com cartão criada: {} (status: {})", order.getId(), order.getStatus());
                 

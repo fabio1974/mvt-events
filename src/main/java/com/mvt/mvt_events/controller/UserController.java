@@ -45,6 +45,17 @@ public class UserController {
         return users.map(UserResponse::new);
     }
 
+    @GetMapping("/me/activation-status")
+    @Operation(summary = "Verificar status de ativação do usuário logado", 
+               description = "Retorna o status de ativação em tempo real, detalhando exatamente o que está faltando " +
+                           "para o usuário estar completamente habilitado no sistema. " +
+                           "COURIER precisa: veículo, conta bancária, telefone. " +
+                           "CUSTOMER precisa: meio de pagamento, telefone.")
+    @Transactional(readOnly = true)
+    public com.mvt.mvt_events.dto.ActivationStatusResponse getActivationStatus(Authentication authentication) {
+        return userService.getActivationStatus(authentication);
+    }
+
     @GetMapping("/search/couriers")
     @Operation(summary = "Buscar motoboys para typeahead", 
                description = "Busca motoboys por parte do nome ou email para adicionar ao grupo. " +

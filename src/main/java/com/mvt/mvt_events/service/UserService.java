@@ -51,6 +51,15 @@ public class UserService {
 
     @Autowired
     private com.mvt.mvt_events.repository.ClientContractRepository clientContractRepository;
+    
+    @Autowired
+    private com.mvt.mvt_events.repository.VehicleRepository vehicleRepository;
+    
+    @Autowired
+    private com.mvt.mvt_events.repository.BankAccountRepository bankAccountRepository;
+    
+    @Autowired
+    private com.mvt.mvt_events.repository.CustomerCardRepository customerCardRepository;
 
     public List<User> findAll() {
         return userRepository.findAll();
@@ -908,5 +917,74 @@ public class UserService {
         
         // Deletar contrato do banco
         clientContractRepository.delete(contract);
+    }
+
+    /**
+     * Retorna o status de ativação do usuário, detalhando o que está faltando
+     * para ele estar completamente habilitado no sistema.
+     * 
+     * Requisitos por role:
+     * - COURIER: veículo, conta bancária, telefone
+     * - CUSTOMER: meio de pagamento, telefone
+     * - Ambos: endereço padrão (sugerido)
+     * 
+     * @param authentication Autenticação do usuário logado
+     * @return ActivationStatusResponse com status detalhado
+     */
+    @Transactional(readOnly = true)
+    public com.mvt.mvt_events.dto.ActivationStatusResponse getActivationStatus(Authentication authentication) {
+        String currentUsername = authentication.getName();
+        User user = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+        
+        java.util.List<String> missing = new java.util.ArrayList<>();
+        java.util.Map<String, String> messages = new java.util.HashMap<>();
+        java.util.List<String> suggested = new java.util.ArrayList<>();
+        
+        // Verificar telefone (obrigatório para todos)
+        if (user.getPhone() == null || user.getPhone().trim().isEmpty()) {
+            missing.add("phone");
+            messages.put("phone", "Preencha seu telefone nas informações pessoais");
+        }
+        
+        // Verificações específicas por role
+        if (user.getRole() == User.Role.COURIER) {
+            // Verificar veículo
+            List<com.mvt.mvt_events.jpa.Vehicle> vehicles = vehicleRepository.findByOwnerId(user.getId());
+            if (vehicles.isEmpty()) {
+                missing.add("vehicle");
+                messages.put("vehicle", "Cadastre um veículo");
+            }
+            
+            // Verificar conta bancária
+            boolean hasBankAccount = bankAccountRepository.existsByUserId(user.getId());
+            if (!hasBankAccount) {
+                missing.add("bankAccount");
+                messages.put("bankAccount", "Cadastre sua conta bancária");
+            }
+            
+        } else if (user.getRole() == User.Role.CUSTOMER) {
+            // Verificar meio de pagamento (cartão)
+            long activeCards = customerCardRepository.countActiveCardsByCustomerId(user.getId());
+            if (activeCards == 0) {
+                missing.add("paymentMethod");
+                messages.put("paymentMethod", "Cadastre um meio de pagamento");
+            }
+        }
+        
+        // Verificar endereço padrão (sugerido para todos)
+        if (user.getAddress() == null) {
+            suggested.add("defaultAddress");
+        }
+        
+        boolean enabled = missing.isEmpty();
+        
+        return com.mvt.mvt_events.dto.ActivationStatusResponse.builder()
+                .enabled(enabled)
+                .role(user.getRole())
+                .missing(missing)
+                .messages(messages)
+                .suggested(suggested)
+                .build();
     }
 }

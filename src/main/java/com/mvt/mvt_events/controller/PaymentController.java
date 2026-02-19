@@ -19,6 +19,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -208,6 +209,38 @@ public class PaymentController {
     }
 
     /**
+     * Verificar status do pagamento (polling)
+     * 
+     * Endpoint otimizado para polling do mobile enquanto aguarda pagamento PIX.
+     * Retorna status atualizado do pagamento.
+     * 
+     * Mobile deve chamar este endpoint a cada 10 segundos enquanto status != PAID
+     */
+    @GetMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER', 'CLIENT', 'CUSTOMER')")
+    @Transactional(readOnly = true)
+    @Operation(
+            summary = "Verificar status do pagamento (polling)",
+            description = "Endpoint otimizado para polling. Mobile chama a cada 10s até status=PAID"
+    )
+    public ResponseEntity<PaymentResponse> checkPaymentStatus(@PathVariable Long id) {
+        log.debug("🔄 Polling status - Payment ID: {}", id);
+        
+        return paymentRepository.findById(id)
+                .map(payment -> {
+                    PaymentResponse response = PaymentResponse.from(payment);
+                    
+                    // Log apenas quando houver mudança de status (não logar todos os polls)
+                    if (payment.getStatus() != PaymentStatus.PENDING) {
+                        log.info("✅ Payment ID {} - Status: {} (polling)", id, payment.getStatus());
+                    }
+                    
+                    return ResponseEntity.ok(response);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
      * Atualizar status de um pagamento (somente ADMIN)
      */
     @PutMapping("/{id}/status")
@@ -359,5 +392,92 @@ public class PaymentController {
                 "service", "PaymentController",
                 "message", "✅ Controller de pagamentos operacional"
         ));
+    }
+
+    /**
+     * Processa pagamento automaticamente baseado na preferência do cliente.
+     * 
+     * <p><strong>Fluxo automático:</strong></p>
+     * <ol>
+     *   <li>Busca a preferência de pagamento do cliente (PIX ou Cartão)</li>
+     *   <li>Se PIX: Gera QR Code para pagamento</li>
+     *   <li>Se Cartão: Processa cobrança imediata com cartão padrão</li>
+     * </ol>
+     * 
+     * <p><strong>Resposta PIX:</strong></p>
+     * <pre>
+     * {
+     *   "paymentMethod": "PIX",
+     *   "pixQrCode": "00020126360014BR.GOV.BCB.PIX...",
+     *   "pixQrCodeUrl": "https://api.pagar.me/qr/123.png",
+     *   "status": "PENDING",
+     *   "expiresAt": "2026-02-13T19:50:00"
+     * }
+     * </pre>
+     * 
+     * <p><strong>Resposta Cartão:</strong></p>
+     * <pre>
+     * {
+     *   "paymentMethod": "CREDIT_CARD",
+     *   "cardLastFour": "1234",
+     *   "cardBrand": "VISA",
+     *   "status": "PAID",
+     *   "paymentDate": "2026-02-12T19:50:00"
+     * }
+     * </pre>
+     * 
+     * @param deliveryId ID da entrega a pagar
+     * @param authentication Autenticação do cliente
+     * @param request Request HTTP para extrair token
+     * @return PaymentResponse com QR Code (PIX) ou confirmação (Cartão)
+     */
+    @PostMapping("/pay-delivery/{deliveryId}")
+    @PreAuthorize("hasAnyRole('CLIENT', 'CUSTOMER')")
+    @Operation(
+            summary = "Pagar delivery automaticamente",
+            description = "Processa pagamento baseado na preferência do cliente. " +
+                         "PIX: retorna QR Code. Cartão: processa pagamento imediato com cartão padrão."
+    )
+    public ResponseEntity<?> payDelivery(
+            @PathVariable Long deliveryId,
+            Authentication authentication,
+            jakarta.servlet.http.HttpServletRequest request) {
+        
+        log.info("📥 Requisição de pagamento automático - Delivery: {}", deliveryId);
+        
+        try {
+            // Extrair cliente do token
+            String token = extractTokenFromRequest(request);
+            UUID clientId = UUID.fromString(jwtUtil.getUserIdFromToken(token));
+            
+            // Processar pagamento
+            PaymentResponse response = paymentService.processAutoPayment(deliveryId, clientId);
+            
+            log.info("📤 Pagamento processado - Tipo: {}, Status: {}", 
+                    response.getPaymentMethod(), response.getStatus());
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("⚠️ Dados inválidos: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "INVALID_DATA",
+                    "message", e.getMessage()
+            ));
+            
+        } catch (IllegalStateException e) {
+            log.warn("⚠️ Conflito de estado: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "error", "CONFLICT",
+                    "message", e.getMessage()
+            ));
+            
+        } catch (Exception e) {
+            log.error("❌ Erro ao processar pagamento", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "error", "INTERNAL_ERROR",
+                    "message", "Erro ao processar pagamento: " + e.getMessage()
+            ));
+        }
     }
 }

@@ -77,6 +77,12 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
         boolean existsByDeliveryIdLong(@Param("deliveryId") Long deliveryId);
 
         /**
+         * Busca todos os pagamentos que incluem uma entrega por ID Long (N:M via payment_deliveries)
+         */
+        @Query("SELECT p FROM Payment p JOIN p.deliveries d WHERE d.id = :deliveryId ORDER BY p.createdAt DESC")
+        List<Payment> findByDeliveryIdLong(@Param("deliveryId") Long deliveryId);
+
+        /**
          * Busca pagamentos que incluem uma entrega com status específico (N:M via payment_deliveries)
          */
         @Query("SELECT p FROM Payment p JOIN p.deliveries d WHERE d = :delivery AND p.status = :status")
@@ -94,4 +100,26 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
                 "AND p.status IN ('PENDING', 'COMPLETED') " +
                 "ORDER BY p.createdAt DESC")
         List<Payment> findPendingOrCompletedPaymentsForDeliveries(@Param("deliveryIds") List<Long> deliveryIds);
+
+        /**
+         * Verifica se existe um pagamento PENDING para uma delivery específica.
+         * Usado para prevenir duplicação de tentativas de pagamento.
+         * 
+         * @param deliveryId ID da delivery
+         * @return true se existe pagamento PENDING, false caso contrário
+         */
+        @Query("SELECT COUNT(p) > 0 FROM Payment p JOIN p.deliveries d " +
+                "WHERE d.id = :deliveryId AND p.status = 'PENDING'")
+        boolean existsPendingPaymentForDelivery(@Param("deliveryId") Long deliveryId);
+
+        /**
+         * Busca pagamentos PIX PENDING cujo QR Code expirou (expiresAt < now).
+         * Usado pelo cron de expiração PIX (PixExpirationService).
+         */
+        @Query("SELECT p FROM Payment p " +
+                "WHERE p.status = 'PENDING' " +
+                "AND p.paymentMethod = 'PIX' " +
+                "AND p.expiresAt IS NOT NULL " +
+                "AND p.expiresAt < :now")
+        List<Payment> findExpiredPendingPixPayments(@Param("now") LocalDateTime now);
 }

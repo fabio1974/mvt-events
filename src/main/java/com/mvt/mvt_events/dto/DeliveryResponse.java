@@ -79,6 +79,12 @@ public class DeliveryResponse {
     private List<PaymentSummary> payments;
 
     /**
+     * Status consolidado do pagamento (derivado de payments)
+     * Valores: PAID, PENDING, UNPAID, EXPIRED, FAILED
+     */
+    private String paymentStatus;
+
+    /**
      * DTO simplificado para User (evitar lazy loading)
      */
     @Data
@@ -118,7 +124,7 @@ public class DeliveryResponse {
     }
 
     /**
-     * DTO simplificado para Payment (apenas ID e status)
+     * DTO simplificado para Payment (ID, status e dados PIX quando aplicável)
      */
     @Data
     @Builder
@@ -127,5 +133,10 @@ public class DeliveryResponse {
     public static class PaymentSummary {
         private Long id;
         private String status;
+        private String paymentMethod;
+        private BigDecimal amount;
+        private String pixQrCode;
+        private String pixQrCodeUrl;
+        private LocalDateTime expiresAt;
     }
 }

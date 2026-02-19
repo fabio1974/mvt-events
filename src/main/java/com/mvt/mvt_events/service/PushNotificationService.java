@@ -172,7 +172,7 @@ public class PushNotificationService {
     /**
      * Envia notificação genérica para um usuário
      */
-    public void sendNotificationToUser(UUID userId, String title, String body, Object data) {
+    public boolean sendNotificationToUser(UUID userId, String title, String body, Object data) {
         try {
             log.info("Enviando notificação para usuário {}: {}", userId, title);
 
@@ -180,7 +180,7 @@ public class PushNotificationService {
 
             if (tokens.isEmpty()) {
                 log.warn("Nenhum token push ativo encontrado para usuário {}", userId);
-                return;
+                return false;
             }
 
             List<String> expoTokens = tokens.stream()
@@ -190,7 +190,7 @@ public class PushNotificationService {
 
             if (expoTokens.isEmpty()) {
                 log.warn("Nenhum token Expo válido encontrado para usuário {}", userId);
-                return;
+                return false;
             }
 
             ExpoPushMessage pushMessage = ExpoPushMessage.builder()
@@ -203,9 +203,11 @@ public class PushNotificationService {
                     .build();
 
             sendExpoPushNotification(Collections.singletonList(pushMessage));
+            return true;
 
         } catch (Exception e) {
             log.error("Erro ao enviar notificação para usuário {}: {}", userId, e.getMessage(), e);
+            return false;
         }
     }
 
@@ -411,7 +413,7 @@ public class PushNotificationService {
     /**
      * Envia notificação híbrida para um usuário (Expo + Web Push)
      */
-    public void sendHybridNotificationToUser(UUID userId, String title, String body, Map<String, Object> data) {
+    public boolean sendHybridNotificationToUser(UUID userId, String title, String body, Map<String, Object> data) {
         try {
             log.info("Enviando notificação híbrida para usuário: {}", userId);
 
@@ -420,7 +422,7 @@ public class PushNotificationService {
 
             if (tokens.isEmpty()) {
                 log.warn("Nenhum token push ativo encontrado para usuário {}", userId);
-                return;
+                return false;
             }
 
             int totalSent = 0;
@@ -469,10 +471,17 @@ public class PushNotificationService {
                 log.info("Notificação Web Push enviada para {} dispositivos web", webSent);
             }
 
-            log.info("Notificação híbrida enviada para {} dispositivos do usuário {}", totalSent, userId);
+            if (totalSent > 0) {
+                log.info("Notificação híbrida enviada para {} dispositivos do usuário {}", totalSent, userId);
+                return true;
+            } else {
+                log.warn("Notificação híbrida não pôde ser enviada - sem tokens válidos para usuário {}", userId);
+                return false;
+            }
 
         } catch (Exception e) {
             log.error("Erro ao enviar notificação híbrida para usuário {}: {}", userId, e.getMessage(), e);
+            return false;
         }
     }
 
@@ -495,9 +504,9 @@ public class PushNotificationService {
     /**
      * Método atualizado para usar envio híbrido
      */
-    public void sendNotificationToUser(UUID userId, String title, String body, Map<String, Object> data) {
+    public boolean sendNotificationToUser(UUID userId, String title, String body, Map<String, Object> data) {
         // Usar o novo método híbrido por padrão
-        sendHybridNotificationToUser(userId, title, body, data);
+        return sendHybridNotificationToUser(userId, title, body, data);
     }
 
     /**

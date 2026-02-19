@@ -211,6 +211,17 @@ public interface DeliveryRepository
         List<Delivery> findPendingInPrimaryOrganizations(@Param("organizationIds") List<Long> organizationIds);
 
         /**
+         * Busca deliveries PENDING (sem courier) e WAITING_PAYMENT (aguardando PIX) de clientes CUSTOMER.
+         * PENDING: sem courier atribuído (disponíveis para aceite)
+         * WAITING_PAYMENT: aguardando confirmação de pagamento PIX (já podem ter courier)
+         * Ordenadas por updatedAt DESC.
+         */
+        @Query("SELECT d FROM Delivery d WHERE " +
+               "((d.status = 'PENDING' AND d.courier IS NULL) OR d.status = 'WAITING_PAYMENT') " +
+               "AND d.client.role = 'CUSTOMER' ORDER BY d.updatedAt DESC")
+        List<Delivery> findPendingForCustomerClients();
+
+        /**
          * Busca deliveries com fetch joins usando contratos ativos (nova arquitetura)
          * Para COURIERs que acessam organizações via employment_contracts
          * Ordenado por updatedAt DESC
@@ -282,6 +293,19 @@ public interface DeliveryRepository
                         @Param("status") Delivery.DeliveryStatus status);
 
         /**
+         * Busca deliveries por clientId e lista de statuses com fetch joins.
+         * Usado quando PENDING é expandido para incluir WAITING_PAYMENT (PIX).
+         */
+        @Query("SELECT DISTINCT d FROM Delivery d " +
+                        "LEFT JOIN FETCH d.client c " +
+                        "LEFT JOIN FETCH d.courier " +
+                        "LEFT JOIN FETCH d.organizer " +
+                        "WHERE c.id = :clientId AND d.status IN :statuses " +
+                        "ORDER BY d.updatedAt DESC")
+        List<Delivery> findByClientIdAndStatusesWithJoins(@Param("clientId") UUID clientId,
+                        @Param("statuses") List<Delivery.DeliveryStatus> statuses);
+
+        /**
          * Busca deliveries por organizerId com todos os relacionamentos carregados (fetch join)
          */
         @Query("SELECT DISTINCT d FROM Delivery d " +
@@ -303,6 +327,19 @@ public interface DeliveryRepository
                         "ORDER BY d.updatedAt DESC")
         List<Delivery> findByOrganizerIdAndStatusWithJoins(@Param("organizerId") UUID organizerId,
                         @Param("status") Delivery.DeliveryStatus status);
+
+        /**
+         * Busca deliveries por organizerId e lista de statuses com fetch joins.
+         * Usado quando PENDING é expandido para incluir WAITING_PAYMENT (PIX).
+         */
+        @Query("SELECT DISTINCT d FROM Delivery d " +
+                        "LEFT JOIN FETCH d.client c " +
+                        "LEFT JOIN FETCH d.courier " +
+                        "LEFT JOIN FETCH d.organizer o " +
+                        "WHERE o.id = :organizerId AND d.status IN :statuses " +
+                        "ORDER BY d.updatedAt DESC")
+        List<Delivery> findByOrganizerIdAndStatusesWithJoins(@Param("organizerId") UUID organizerId,
+                        @Param("statuses") List<Delivery.DeliveryStatus> statuses);
 
         /**
          * Busca payments (id e status) de múltiplas deliveries

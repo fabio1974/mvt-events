@@ -26,7 +26,9 @@ import java.util.Map;
  * <ul>
  *   <li>order.paid - Pagamento confirmado</li>
  *   <li>order.payment_failed - Pagamento falhou</li>
- *   <li>order.canceled - Pedido cancelado</li>
+ *   <li>order.canceled - Pedido cancelado → expira PIX, reverte delivery para PENDING</li>
+ *   <li>charge.expired - QR Code PIX expirou → expira PIX, reverte delivery para PENDING</li>
+ *   <li>charge.underpaid - PIX com valor insuficiente → trata como expirado</li>
  * </ul>
  * 
  * <p><strong>Fluxo de webhook:</strong></p>
@@ -87,11 +89,25 @@ public class WebhookController {
             // Processar evento
             pagarMeService.processWebhookEvent(event);
 
-            // Se for pagamento confirmado, atualizar no banco
-            if ("order.paid".equals(event.getType())) {
-                String orderId = event.getData().getId();
-                log.info("💰 Pagamento confirmado para order: {}", orderId);
-                paymentService.processPaymentConfirmation(orderId);
+            String orderId = event.getData().getId();
+
+            // Processar evento por tipo
+            switch (event.getType()) {
+                case "order.paid":
+                    log.info("💰 Pagamento confirmado para order: {}", orderId);
+                    paymentService.processPaymentConfirmation(orderId);
+                    break;
+
+                case "charge.underpaid":
+                case "charge.expired":
+                case "order.canceled":
+                    log.info("⏰ PIX expirado/cancelado para order: {} (evento: {})", orderId, event.getType());
+                    paymentService.processPaymentExpiration(orderId);
+                    break;
+
+                default:
+                    log.info("ℹ️ Evento não tratado: {} (order: {})", event.getType(), orderId);
+                    break;
             }
 
             return ResponseEntity.ok(Map.of(

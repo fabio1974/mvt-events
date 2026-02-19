@@ -259,6 +259,7 @@ public class Delivery extends BaseEntity {
 
     public enum DeliveryStatus {
         PENDING, // Aguardando aceitação
+        WAITING_PAYMENT, // Aguardando pagamento PIX do customer
         ACCEPTED, // Aceita pelo motoboy
         IN_TRANSIT, // Em trânsito (coletou e está transportando)
         COMPLETED, // Entregue com sucesso

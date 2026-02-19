@@ -56,6 +56,8 @@ public class ConsolidatedPaymentService {
     private final ConsolidatedPaymentTaskTracker taskTracker;
     private final ObjectMapper objectMapper;
     private final PaymentSplitCalculator splitCalculator;
+    private final PushNotificationService pushNotificationService;
+    private final PaymentService paymentService;
 
     /**
      * Processa consolidação de pagamentos para TODOS os clientes
@@ -391,6 +393,35 @@ public class ConsolidatedPaymentService {
             
             savedPayment.setStatus(PaymentStatus.FAILED);
             paymentRepository.save(savedPayment);
+            
+            // Enviar notificação push de falha ao cliente
+            try {
+                String notificationBody = String.format("Pagamento consolidado de R$ %.2f não foi aprovado. %s Por favor, escolha outro método de pagamento.", 
+                    totalAmount, e.getMessage());
+                
+                Map<String, Object> notificationData = new java.util.HashMap<>();
+                notificationData.put("type", "consolidated_payment_failed");
+                notificationData.put("paymentId", savedPayment.getId());
+                notificationData.put("amount", totalAmount.toString());
+                notificationData.put("deliveryCount", deliveries.size());
+                notificationData.put("failureReason", e.getMessage());
+                
+                boolean sent = pushNotificationService.sendNotificationToUser(
+                    client.getId(),
+                    "❌ Pagamento não aprovado",
+                    notificationBody,
+                    notificationData
+                );
+                
+                if (sent) {
+                    log.info("✅ Notificação de falha enviada ao cliente #{}", client.getId());
+                } else {
+                    log.warn("⚠️ Não foi possível enviar notificação - cliente #{} sem token push ativo", client.getId());
+                }
+            } catch (Exception notifError) {
+                log.error("❌ Erro ao enviar notificação de falha: {}", notifError.getMessage());
+            }
+            
             throw new RuntimeException("Erro ao criar order Pagar.me", e);
         }
 

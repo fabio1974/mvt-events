@@ -138,9 +138,9 @@ public class Payment extends BaseEntity {
      * Request completo enviado para criar o pagamento no gateway (Pagar.me, Iugu, etc.)
      * Armazena o payload completo da requisição enviada ao gateway de pagamento
      * para fins de auditoria e debugging.
+     * IMPORTANTE: Já é uma String JSON serializada, não precisa de @JdbcTypeCode
      */
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
-    @Column(name = "request", columnDefinition = "JSONB")
+    @Column(name = "request", columnDefinition = "TEXT")
     @Visible(table = false, form = false, filter = false)
     private String request;
 
@@ -148,9 +148,9 @@ public class Payment extends BaseEntity {
      * Response completo retornado pelo gateway de pagamento (Pagar.me, Iugu, etc.)
      * Armazena o payload completo da resposta recebida do gateway após criar o pagamento.
      * Inclui todos os dados: order ID, status, charges, PIX data, timestamps, etc.
+     * IMPORTANTE: Já é uma String JSON serializada, não precisa de @JdbcTypeCode
      */
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
-    @Column(name = "response", columnDefinition = "JSONB")
+    @Column(name = "response", columnDefinition = "TEXT")
     @Visible(table = false, form = false, filter = false)
     private String response;
 

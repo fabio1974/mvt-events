@@ -60,6 +60,7 @@ public class OrderWebhookController {
     private final DeliveryRepository deliveryRepository;
     private final PagarMeService pagarMeService;
     private final ObjectMapper objectMapper;
+    private final com.mvt.mvt_events.service.PushNotificationService pushNotificationService;
 
     /**
      * Recebe webhooks do Pagar.me sobre mudanças de status de orders (payments).
@@ -158,6 +159,11 @@ log.info("🔔 Webhook recebido em /api/webhooks/order");
             if (newStatus == PaymentStatus.PAID) {
                 updateDeliveriesPaymentCaptured(payment, true);
             }
+            
+            // TODO: 8. Se o pagamento falhou, enviar notificação push para o cliente
+            // if (newStatus == PaymentStatus.FAILED) {
+            //     sendPaymentFailedNotification(payment, dataNode);
+            // }
             
             // Salvar alterações
             paymentRepository.save(payment);

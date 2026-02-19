@@ -102,7 +102,10 @@ public class GlobalExceptionHandler {
         if (ex.getRootCause() != null) {
             String rootMessage = ex.getRootCause().getMessage();
             if (rootMessage != null) {
-                if (rootMessage.contains("document_number")) {
+                // Check for duplicate PENDING payment constraint
+                if (rootMessage.contains("Já existe um pagamento PENDENTE")) {
+                    message = rootMessage;
+                } else if (rootMessage.contains("document_number")) {
                     message = "CPF já cadastrado no sistema";
                 } else if (rootMessage.contains("username")) {
                     message = "Email já cadastrado no sistema";
@@ -122,6 +125,38 @@ public class GlobalExceptionHandler {
         errorResponse.put("status", 409);
 
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    /**
+     * Handle payment-related IllegalStateException (duplicate pending payments, etc)
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalStateException(
+            IllegalStateException ex, WebRequest request) {
+
+        String message = ex.getMessage();
+        
+        // Check if it's a duplicate pending payment error
+        if (message != null && message.contains("pagamento pendente")) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Conflict");
+            errorResponse.put("message", message);
+            errorResponse.put("timestamp", LocalDateTime.now());
+            errorResponse.put("path", request.getDescription(false).replace("uri=", ""));
+            errorResponse.put("status", 409);
+
+            return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+        }
+
+        // For other IllegalStateExceptions, return 500
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Internal Server Error");
+        errorResponse.put("message", message != null ? message : "Invalid state");
+        errorResponse.put("timestamp", LocalDateTime.now());
+        errorResponse.put("path", request.getDescription(false).replace("uri=", ""));
+        errorResponse.put("status", 500);
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     /**

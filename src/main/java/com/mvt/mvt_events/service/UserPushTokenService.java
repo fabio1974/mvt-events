@@ -70,55 +70,11 @@ public class UserPushTokenService {
                 log.warn("Falha ao verificar/desativar token existente para outros usuários: {}", ex.getMessage());
             }
 
-            // Verificar se o token já existe para este usuário (ativo ou não)
+            // TENTATIVA 1: Verificar se o token já existe para este usuário (ativo ou não)
             Optional<UserPushToken> existingToken = pushTokenRepository.findByUserIdAndToken(userId, request.getToken());
             
             if (existingToken.isPresent()) {
-                UserPushToken token = existingToken.get();
-                
-                // Se o token existe e já está ativo, apenas retornar sucesso
-                if (token.getIsActive()) {
-                    log.info("Token já existe e está ativo para usuário {}", userId);
-                    return PushTokenResponse.builder()
-                            .success(true)
-                            .message("Token já está registrado")
-                            .build();
-                }
-                
-                // Se o token existe mas está inativo, reativá-lo
-                token.setIsActive(true);
-                token.setPlatform(platform);
-                token.setDeviceType(deviceType);
-                
-                // Se for Web Push, atualizar dados da subscription
-                if (platform == UserPushToken.Platform.WEB &&
-                        deviceType == UserPushToken.DeviceType.WEB &&
-                        request.getSubscriptionData() != null) {
-
-                    var subscriptionData = request.getSubscriptionData();
-                    if (subscriptionData.getEndpoint() != null &&
-                            subscriptionData.getKeys() != null &&
-                            subscriptionData.getKeys().getP256dh() != null &&
-                            subscriptionData.getKeys().getAuth() != null) {
-
-                        token.setWebPushData(
-                                subscriptionData.getEndpoint(),
-                                subscriptionData.getKeys().getP256dh(),
-                                subscriptionData.getKeys().getAuth());
-
-                        log.info("Dados Web Push atualizados para usuário {}", userId);
-                    }
-                }
-                
-                UserPushToken savedToken = pushTokenRepository.save(token);
-                log.info("Token push reativado com sucesso: id={}, userId={}, platform={}",
-                        savedToken.getId(), userId, platform);
-                
-                return PushTokenResponse.builder()
-                        .success(true)
-                        .message("Token reativado com sucesso")
-                        .data(savedToken.getId())
-                        .build();
+                return handleExistingToken(existingToken.get(), platform, deviceType, request, userId);
             }
 
             // Desativar tokens antigos para o mesmo usuário/plataforma/dispositivo
@@ -129,56 +85,130 @@ public class UserPushTokenService {
             }
 
             // Criar novo token
-            UserPushToken newToken = UserPushToken.builder()
-                    .token(request.getToken())
-                    .platform(platform)
-                    .deviceType(deviceType)
-                    .isActive(true)
-                    .build();
-
-            // Definir o ID do usuário usando o método helper
-            newToken.setUserId(userId);
-
-            // Se for Web Push, adicionar dados da subscription
-            if (platform == UserPushToken.Platform.WEB &&
-                    deviceType == UserPushToken.DeviceType.WEB &&
-                    request.getSubscriptionData() != null) {
-
-                var subscriptionData = request.getSubscriptionData();
-                if (subscriptionData.getEndpoint() != null &&
-                        subscriptionData.getKeys() != null &&
-                        subscriptionData.getKeys().getP256dh() != null &&
-                        subscriptionData.getKeys().getAuth() != null) {
-
-                    newToken.setWebPushData(
-                            subscriptionData.getEndpoint(),
-                            subscriptionData.getKeys().getP256dh(),
-                            subscriptionData.getKeys().getAuth());
-
-                    log.info("Dados Web Push adicionados para usuário {}", userId);
-                } else {
-                    log.warn("Dados Web Push incompletos para usuário {}", userId);
+            try {
+                return createNewToken(userId, request, platform, deviceType);
+            } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                // TENTATIVA 2: Race condition detectada - token foi inserido entre nossa verificação e INSERT
+                // Tentar buscar novamente e reativar
+                log.warn("Violação de constraint ao inserir token - tentando buscar e reativar: {}", e.getMessage());
+                
+                existingToken = pushTokenRepository.findByUserIdAndToken(userId, request.getToken());
+                if (existingToken.isPresent()) {
+                    log.info("Token encontrado na segunda tentativa - reativando");
+                    return handleExistingToken(existingToken.get(), platform, deviceType, request, userId);
                 }
+                
+                // Se ainda assim não encontrou, relançar exceção
+                throw e;
             }
 
-            UserPushToken savedToken = pushTokenRepository.save(newToken);
-
-            log.info("Token push registrado com sucesso: id={}, userId={}, platform={}",
-                    savedToken.getId(), userId, platform);
-
-            return PushTokenResponse.builder()
-                    .success(true)
-                    .message("Token registrado com sucesso")
-                    .data(savedToken.getId())
-                    .build();
-
         } catch (Exception e) {
-            log.error("Erro ao registrar token push para usuário {}: {}", userId, e.getMessage(), e);
+            log.error("Erro ao registrar token push: {}", e.getMessage(), e);
             return PushTokenResponse.builder()
                     .success(false)
-                    .message("Erro interno do servidor")
+                    .message("Erro ao registrar token: " + e.getMessage())
                     .build();
         }
+    }
+    
+    /**
+     * Trata caso onde token já existe (reativa ou retorna sucesso)
+     */
+    private PushTokenResponse handleExistingToken(UserPushToken token, UserPushToken.Platform platform, 
+                                                   UserPushToken.DeviceType deviceType, 
+                                                   RegisterPushTokenRequest request, UUID userId) {
+        // Se o token existe e já está ativo, apenas retornar sucesso
+        if (token.getIsActive()) {
+            log.info("Token já existe e está ativo para usuário {}", userId);
+            return PushTokenResponse.builder()
+                    .success(true)
+                    .message("Token já está registrado")
+                    .build();
+        }
+        
+        // Se o token existe mas está inativo, reativá-lo
+        token.setIsActive(true);
+        token.setPlatform(platform);
+        token.setDeviceType(deviceType);
+        
+        // Se for Web Push, atualizar dados da subscription
+        if (platform == UserPushToken.Platform.WEB &&
+                deviceType == UserPushToken.DeviceType.WEB &&
+                request.getSubscriptionData() != null) {
+
+            var subscriptionData = request.getSubscriptionData();
+            if (subscriptionData.getEndpoint() != null &&
+                    subscriptionData.getKeys() != null &&
+                    subscriptionData.getKeys().getP256dh() != null &&
+                    subscriptionData.getKeys().getAuth() != null) {
+
+                token.setWebPushData(
+                        subscriptionData.getEndpoint(),
+                        subscriptionData.getKeys().getP256dh(),
+                        subscriptionData.getKeys().getAuth());
+
+                log.info("Dados Web Push atualizados para usuário {}", userId);
+            }
+        }
+        
+        UserPushToken savedToken = pushTokenRepository.save(token);
+        log.info("Token push reativado com sucesso: id={}, userId={}, platform={}",
+                savedToken.getId(), userId, platform);
+        
+        return PushTokenResponse.builder()
+                .success(true)
+                .message("Token reativado com sucesso")
+                .data(savedToken.getId())
+                .build();
+    }
+    
+    /**
+     * Cria novo token push
+     */
+    private PushTokenResponse createNewToken(UUID userId, RegisterPushTokenRequest request,
+                                             UserPushToken.Platform platform, UserPushToken.DeviceType deviceType) {
+        UserPushToken newToken = UserPushToken.builder()
+                .token(request.getToken())
+                .platform(platform)
+                .deviceType(deviceType)
+                .isActive(true)
+                .build();
+
+        // Definir o ID do usuário usando o método helper
+        newToken.setUserId(userId);
+
+        // Se for Web Push, adicionar dados da subscription
+        if (platform == UserPushToken.Platform.WEB &&
+                deviceType == UserPushToken.DeviceType.WEB &&
+                request.getSubscriptionData() != null) {
+
+            var subscriptionData = request.getSubscriptionData();
+            if (subscriptionData.getEndpoint() != null &&
+                    subscriptionData.getKeys() != null &&
+                    subscriptionData.getKeys().getP256dh() != null &&
+                    subscriptionData.getKeys().getAuth() != null) {
+
+                newToken.setWebPushData(
+                        subscriptionData.getEndpoint(),
+                        subscriptionData.getKeys().getP256dh(),
+                        subscriptionData.getKeys().getAuth());
+
+                log.info("Dados Web Push adicionados para usuário {}", userId);
+            } else {
+                log.warn("Dados Web Push incompletos para usuário {}", userId);
+            }
+        }
+
+        UserPushToken savedToken = pushTokenRepository.save(newToken);
+
+        log.info("Token push registrado com sucesso: id={}, userId={}, platform={}",
+                savedToken.getId(), userId, platform);
+
+        return PushTokenResponse.builder()
+                .success(true)
+                .message("Token registrado com sucesso")
+                .data(savedToken.getId())
+                .build();
     }
 
     /**

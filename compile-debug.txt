@@ -1,0 +1,55 @@
+
+> Task :compileJava
+/Users/fabio2barros/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/service/DeliveryService.java:1116: error: cannot find symbol
+                    card.getCardBrand() != null ? card.getCardBrand() : "?",
+                        ^
+  symbol:   method getCardBrand()
+  location: variable card of type CustomerCard
+/Users/fabio2barros/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/service/DeliveryService.java:1116: error: cannot find symbol
+                    card.getCardBrand() != null ? card.getCardBrand() : "?",
+                                                      ^
+  symbol:   method getCardBrand()
+  location: variable card of type CustomerCard
+/Users/fabio2barros/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/service/DeliveryService.java:1117: error: cannot find symbol
+                    card.getLastFour());
+                        ^
+  symbol:   method getLastFour()
+  location: variable card of type CustomerCard
+Note: /Users/fabio2barros/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/service/PagarMeService.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+3 errors
+
+> Task :compileJava FAILED
+
+[Incubating] Problems report is available at: file:///Users/fabio2barros/Documents/projects/mvt-events/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Compilation failed; see the compiler output below.
+  Note: /Users/fabio2barros/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/service/PagarMeService.java uses unchecked or unsafe operations.
+  Note: Recompile with -Xlint:unchecked for details.
+  /Users/fabio2barros/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/service/DeliveryService.java:1116: error: cannot find symbol
+                      card.getCardBrand() != null ? card.getCardBrand() : "?",
+                          ^
+    symbol:   method getCardBrand()
+    location: variable card of type CustomerCard
+  /Users/fabio2barros/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/service/DeliveryService.java:1116: error: cannot find symbol
+                      card.getCardBrand() != null ? card.getCardBrand() : "?",
+                                                        ^
+    symbol:   method getCardBrand()
+    location: variable card of type CustomerCard
+  /Users/fabio2barros/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/service/DeliveryService.java:1117: error: cannot find symbol
+                      card.getLastFour());
+                          ^
+    symbol:   method getLastFour()
+    location: variable card of type CustomerCard
+  3 errors
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights.
+
+BUILD FAILED in 16s
+1 actionable task: 1 executed

@@ -18,7 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,6 +76,9 @@ public class DeliveryService {
 
     @Autowired
     private PaymentService paymentService;
+    
+    @Autowired
+    private PushNotificationService pushNotificationService;
 
     // TODO: ADMProfileRepository não mais usado após remoção de CourierADMLink
     // @Autowired
@@ -312,6 +317,18 @@ public class DeliveryService {
     }
 
     /**
+     * Expande status PENDING para incluir WAITING_PAYMENT.
+     * Deliveries PIX ficam em WAITING_PAYMENT até confirmação de pagamento,
+     * e devem aparecer junto com as PENDING nas listagens.
+     */
+    private List<Delivery.DeliveryStatus> expandPendingStatus(Delivery.DeliveryStatus status) {
+        if (status == Delivery.DeliveryStatus.PENDING) {
+            return List.of(Delivery.DeliveryStatus.PENDING, Delivery.DeliveryStatus.WAITING_PAYMENT);
+        }
+        return List.of(status);
+    }
+
+    /**
      * Lista deliveries com filtros e tenant
      */
     public Page<Delivery> findAll(Long organizationId, UUID clientId, UUID courierId, UUID organizerId,
@@ -327,8 +344,9 @@ public class DeliveryService {
             List<Delivery> deliveries;
             
             if (status != null) {
-                // Com filtro de status
-                deliveries = deliveryRepository.findByClientIdAndStatusWithJoins(clientId, status);
+                // Com filtro de status - expandir PENDING para incluir WAITING_PAYMENT (PIX)
+                List<Delivery.DeliveryStatus> statuses = expandPendingStatus(status);
+                deliveries = deliveryRepository.findByClientIdAndStatusesWithJoins(clientId, statuses);
             } else {
                 // Sem filtro de status
                 deliveries = deliveryRepository.findByClientIdWithJoins(clientId);
@@ -348,8 +366,9 @@ public class DeliveryService {
             List<Delivery> deliveries;
             
             if (status != null) {
-                // Com filtro de status
-                deliveries = deliveryRepository.findByOrganizerIdAndStatusWithJoins(organizerId, status);
+                // Com filtro de status - expandir PENDING para incluir WAITING_PAYMENT (PIX)
+                List<Delivery.DeliveryStatus> statuses = expandPendingStatus(status);
+                deliveries = deliveryRepository.findByOrganizerIdAndStatusesWithJoins(organizerId, statuses);
             } else {
                 // Sem filtro de status
                 deliveries = deliveryRepository.findByOrganizerIdWithJoins(organizerId);
@@ -384,11 +403,13 @@ public class DeliveryService {
         }
 
         // Caso complexo - usar specifications (pode ter lazy loading)
+        // Expandir PENDING para incluir WAITING_PAYMENT (PIX)
+        List<Delivery.DeliveryStatus> expandedStatuses = status != null ? expandPendingStatus(status) : null;
         Specification<Delivery> spec = DeliverySpecification.hasClientOrganizationId(organizationId)
                 .and(DeliverySpecification.hasClientId(clientId))
                 .and(DeliverySpecification.hasCourierId(courierId))
                 .and(DeliverySpecification.hasOrganizerId(organizerId))
-                .and(DeliverySpecification.hasStatus(status))
+                .and(DeliverySpecification.hasStatusIn(expandedStatuses))
                 .and(DeliverySpecification.createdBetween(startDate, endDate))
                 .and(DeliverySpecification.hasPayment(hasPayment))
                 .and(DeliverySpecification.completedBetween(completedAfter, completedBefore));
@@ -446,7 +467,8 @@ public class DeliveryService {
     public Delivery assignToCourier(Long deliveryId, UUID courierId, Long organizationId) {
         Delivery delivery = findById(deliveryId, organizationId);
 
-        if (delivery.getStatus() != Delivery.DeliveryStatus.PENDING) {
+        if (delivery.getStatus() != Delivery.DeliveryStatus.PENDING 
+                && delivery.getStatus() != Delivery.DeliveryStatus.WAITING_PAYMENT) {
             throw new RuntimeException("Esta Delivery já foi aceita por outro motoboy");
         }
 
@@ -499,29 +521,38 @@ public class DeliveryService {
             // CUSTOMER não tem organizer (entrega direta, sem estabelecimento)
             delivery.setOrganizer(null);
 
-            Delivery saved = deliveryRepository.save(delivery);
-
-            // 💳 PAGAMENTO CUSTOMER PIX: Criar pagamento PIX no aceite (DELIVERY e RIDE)
-            // Cartão de crédito será cobrado quando entrar em trânsito (confirmPickup)
+            // Verificar preferência de pagamento ANTES de salvar
+            boolean isCustomerPix = false;
             if (delivery.getDeliveryType() == Delivery.DeliveryType.DELIVERY 
                     || delivery.getDeliveryType() == Delivery.DeliveryType.RIDE) {
                 CustomerPaymentPreference pref = preferenceService.getPreference(delivery.getClient().getId());
                 if (pref.getPreferredPaymentType() == PreferredPaymentType.PIX) {
-                    try {
-                        createPixPaymentForCustomer(saved, delivery.getClient());
-                    } catch (Exception e) {
-                        log.error("❌ Falha ao criar pagamento PIX para CUSTOMER na delivery #{}: {}", 
-                            saved.getId(), e.getMessage(), e);
-                        // Reverter aceite se pagamento PIX falhar
-                        saved.setStatus(Delivery.DeliveryStatus.PENDING);
-                        saved.setCourier(null);
-                        saved.setAcceptedAt(null);
-                        saved.setVehicle(null);
-                        deliveryRepository.save(saved);
-                        throw new RuntimeException("Não foi possível processar o pagamento PIX: " + e.getMessage());
-                    }
+                    isCustomerPix = true;
+                    // CUSTOMER + PIX → WAITING_PAYMENT (não ACCEPTED)
+                    delivery.setStatus(Delivery.DeliveryStatus.WAITING_PAYMENT);
+                    log.info("📱 CUSTOMER + PIX na delivery #{} — status → WAITING_PAYMENT", delivery.getId());
                 } else {
-                    log.info("💳 CUSTOMER com preferência CARTÃO na delivery #{} — cobrança será feita ao entrar em trânsito", saved.getId());
+                    log.info("💳 CUSTOMER com preferência CARTÃO na delivery #{} — cobrança será feita ao entrar em trânsito", delivery.getId());
+                }
+            }
+
+            Delivery saved = deliveryRepository.save(delivery);
+
+            // 💳 PAGAMENTO CUSTOMER PIX: Criar pagamento PIX no aceite (DELIVERY e RIDE)
+            // Cartão de crédito será cobrado quando entrar em trânsito (confirmPickup)
+            if (isCustomerPix) {
+                try {
+                    createPixPaymentForCustomer(saved, delivery.getClient());
+                } catch (Exception e) {
+                    log.error("❌ Falha ao criar pagamento PIX para CUSTOMER na delivery #{}: {}", 
+                        saved.getId(), e.getMessage(), e);
+                    // Reverter aceite se pagamento PIX falhar
+                    saved.setStatus(Delivery.DeliveryStatus.PENDING);
+                    saved.setCourier(null);
+                    saved.setAcceptedAt(null);
+                    saved.setVehicle(null);
+                    deliveryRepository.save(saved);
+                    throw new RuntimeException("Não foi possível processar o pagamento PIX: " + e.getMessage());
                 }
             }
 
@@ -749,11 +780,20 @@ public class DeliveryService {
             return;
         }
 
-        // Validar fluxo normal: PENDING -> ACCEPTED -> IN_TRANSIT -> COMPLETED
+        // Validar fluxo normal: PENDING -> WAITING_PAYMENT/ACCEPTED -> ACCEPTED -> IN_TRANSIT -> COMPLETED
         switch (current) {
             case PENDING:
-                if (target != Delivery.DeliveryStatus.ACCEPTED && target != Delivery.DeliveryStatus.CANCELLED) {
-                    throw new RuntimeException("De PENDING só pode ir para ACCEPTED ou CANCELLED");
+                if (target != Delivery.DeliveryStatus.ACCEPTED 
+                        && target != Delivery.DeliveryStatus.WAITING_PAYMENT 
+                        && target != Delivery.DeliveryStatus.CANCELLED) {
+                    throw new RuntimeException("De PENDING só pode ir para ACCEPTED, WAITING_PAYMENT ou CANCELLED");
+                }
+                break;
+            case WAITING_PAYMENT:
+                if (target != Delivery.DeliveryStatus.ACCEPTED 
+                        && target != Delivery.DeliveryStatus.PENDING 
+                        && target != Delivery.DeliveryStatus.CANCELLED) {
+                    throw new RuntimeException("De WAITING_PAYMENT só pode ir para ACCEPTED, PENDING ou CANCELLED");
                 }
                 break;
             case ACCEPTED:
@@ -835,9 +875,9 @@ public class DeliveryService {
     }
 
     /**
-     * Lista deliveries PENDING e sem courier das organizações PRIMÁRIAS do cliente
-     * onde o courier possui contratos ativos, aplicando filtro de proximidade
-     * (<= radiusKm) em relação ao pickup OU destino.
+     * Lista deliveries PENDING e sem courier de clientes CUSTOMER,
+     * aplicando filtro de proximidade (<= radiusKm) em relação ao pickup OU destino.
+     * NÃO exige contratos - qualquer delivery de cliente CUSTOMER é elegível.
      */
     @Transactional(readOnly = true)
     public List<Delivery> findPendingNearbyInPrimaryOrgs(UUID courierId, double radiusKm) {
@@ -869,30 +909,9 @@ public class DeliveryService {
             return java.util.Collections.emptyList();
         }
 
-        // Organizações onde o courier tem contrato ativo
-        List<EmploymentContract> activeContracts = employmentContractRepository.findActiveByCourierId(courierId);
-        log.info("📋 [COURIER PENDINGS] Contratos ativos encontrados: {}", activeContracts.size());
-        
-        if (activeContracts == null || activeContracts.isEmpty()) {
-            log.warn("⚠️ [COURIER PENDINGS] Nenhum contrato ativo encontrado");
-            return java.util.Collections.emptyList();
-        }
-
-        List<Long> organizationIds = activeContracts.stream()
-                .map(ec -> ec.getOrganization().getId())
-                .filter(java.util.Objects::nonNull)
-                .distinct()
-                .toList();
-        
-        log.info("🏢 [COURIER PENDINGS] Organization IDs: {}", organizationIds);
-
-        if (organizationIds.isEmpty()) {
-            return java.util.Collections.emptyList();
-        }
-
-        // Buscar deliveries pendentes nas organizações PRIMÁRIAS dos clientes
-        List<Delivery> candidates = deliveryRepository.findPendingInPrimaryOrganizations(organizationIds);
-        log.info("📦 [COURIER PENDINGS] Candidatas (org primária): {}", candidates.size());
+        // Buscar TODAS as deliveries pendentes de clientes CUSTOMER (sem exigir contratos)
+        List<Delivery> candidates = deliveryRepository.findPendingForCustomerClients();
+        log.info("📦 [COURIER PENDINGS] Candidatas (clientes CUSTOMER): {}", candidates.size());
 
         // Log detalhado de cada candidata
         for (Delivery d : candidates) {
@@ -1084,7 +1103,17 @@ public class DeliveryService {
                 .country("BR")
                 .build();
         
-        // 5. Criar order no Pagar.me com split
+        // 5. Verificar se já existe pagamento PENDING para esta delivery
+        if (paymentRepository.existsPendingPaymentForDelivery(delivery.getId())) {
+            log.warn("   ├─ ❌ Já existe um pagamento PENDING para esta entrega (ID: {})", delivery.getId());
+            log.warn("   └─ Abortando criação de novo pagamento para evitar duplicação");
+            throw new IllegalStateException(
+                String.format("Já existe um pagamento pendente para a entrega #%d. " +
+                             "Aguarde a conclusão ou cancele o pagamento anterior.", delivery.getId())
+            );
+        }
+        
+        // 6. Criar order no Pagar.me com split
         Payment payment = new Payment();
         payment.setCurrency(Currency.BRL);
         payment.setPaymentMethod(PaymentMethod.CREDIT_CARD);
@@ -1119,29 +1148,93 @@ public class DeliveryService {
             // Atualizar Payment com dados de sucesso
             payment.setProviderPaymentId(orderResponse.getId());
             payment.setAmount(delivery.getShippingFee());
-            payment.setRequest(orderResponse.getRequestPayload());
-            payment.setResponse(orderResponse.getResponsePayload());
+            payment.setPaymentDate(java.time.LocalDateTime.now());
             
-            // Verificar se o pagamento falhou (status do Pagar.me)
-            if ("failed".equalsIgnoreCase(orderResponse.getStatus())) {
-                payment.setStatus(PaymentStatus.FAILED);
-                log.warn("   ├─ ⚠️ Pagamento criado mas com status FAILED no Pagar.me");
+            // CRÍTICO: Capturar request/response do OrderResponse
+            String req = orderResponse.getRequestPayload();
+            String resp = orderResponse.getResponsePayload();
+            
+            log.info("   ├─ 🔍 Request payload: {} caracteres", req != null ? req.length() : "NULL");
+            log.info("   ├─ 🔍 Response payload: {} caracteres", resp != null ? resp.length() : "NULL");
+            
+            // Garantir que SEMPRE salvamos request/response
+            if (req != null && !req.isEmpty()) {
+                payment.setRequest(req);
+                log.info("   ├─ ✅ Request setado no Payment");
             } else {
-                payment.setStatus(PaymentStatus.PENDING);
+                log.error("   ├─ ❌ Request está NULL ou vazio! Isso não deveria acontecer.");
+            }
+            
+            if (resp != null && !resp.isEmpty()) {
+                payment.setResponse(resp);
+                log.info("   ├─ ✅ Response setado no Payment");
+            } else {
+                log.error("   ├─ ❌ Response está NULL ou vazio! Isso não deveria acontecer.");
+            }
+            
+            // Adicionar notes com informações do pagamento
+            String notes = String.format("Pagamento %s - Order ID: %s - Cartão: %s****%s",
+                    orderResponse.getStatus(),
+                    orderResponse.getId(),
+                    card.getBrand() != null ? card.getBrand() : "?",
+                    card.getLastFourDigits());
+            payment.setNotes(notes);
+            log.info("   ├─ 📝 Notes setado: {}", notes);
+            
+            // Determinar status real do pagamento (verificando order + charges + transactions)
+            PaymentStatus finalStatus = determinePaymentStatus(orderResponse);
+            payment.setStatus(finalStatus);
+            
+            if (finalStatus == PaymentStatus.FAILED) {
+                log.warn("   ├─ ⚠️ Pagamento FAILED - Order Status: {}", orderResponse.getStatus());
+            } else if (finalStatus == PaymentStatus.PAID) {
+                log.info("   ├─ ✅ Pagamento PAID imediatamente");
+            } else {
+                log.info("   ├─ ⏳ Pagamento PENDING");
             }
             
             Payment savedPayment = paymentRepository.save(payment);
             log.info("   ├─ ✅ Payment #{} salvo no banco (status: {})", savedPayment.getId(), savedPayment.getStatus());
             
+            // Enviar notificação push se o pagamento falhou
+            if (finalStatus == PaymentStatus.FAILED) {
+                try {
+                    String failureMessage = paymentService.extractPaymentFailureMessage(orderResponse);
+                    String notificationBody = String.format("Pagamento de R$ %.2f não foi aprovado. %s Por favor, escolha outro método de pagamento.", 
+                        delivery.getShippingFee(), failureMessage);
+                    
+                    Map<String, Object> notificationData = new HashMap<>();
+                    notificationData.put("type", "payment_failed");
+                    notificationData.put("deliveryId", delivery.getId());
+                    notificationData.put("paymentId", savedPayment.getId());
+                    notificationData.put("amount", delivery.getShippingFee().toString());
+                    notificationData.put("failureReason", failureMessage);
+                    
+                    boolean sent = pushNotificationService.sendNotificationToUser(
+                        fullClient.getId(),
+                        "❌ Pagamento não aprovado",
+                        notificationBody,
+                        notificationData
+                    );
+                    
+                    if (sent) {
+                        log.info("   ├─ ✅ Notificação de falha enviada ao cliente #{}", fullClient.getId());
+                    } else {
+                        log.warn("   ├─ ⚠️ Não foi possível enviar notificação - cliente #{} sem token push ativo", fullClient.getId());
+                    }
+                } catch (Exception e) {
+                    log.error("   ├─ ❌ Erro ao enviar notificação de falha: {}", e.getMessage());
+                }
+            }
+            
             // 7. Marcar delivery apenas se o pagamento não falhou
-            if (!"failed".equalsIgnoreCase(orderResponse.getStatus())) {
+            if (finalStatus != PaymentStatus.FAILED) {
                 delivery.setPaymentCompleted(false);
                 delivery.setPaymentCaptured(false);
                 deliveryRepository.save(delivery);
                 log.info("   └─ ✅ Pagamento automático criado com sucesso para delivery #{}", delivery.getId());
             } else {
-                log.error("   └─ ❌ Pagamento falhou no Pagar.me - delivery não será marcada como paga");
-                throw new RuntimeException("Pagamento recusado pelo gateway");
+                log.error("   └─ ❌ Pagamento FAILED - Delivery não marcada como paga");
             }
             
         } catch (com.mvt.mvt_events.payment.exception.PaymentProcessingException e) {
@@ -1156,6 +1249,35 @@ public class DeliveryService {
             
             Payment savedPayment = paymentRepository.save(payment);
             log.info("   ├─ 💾 Payment #{} salvo com status FAILED para auditoria", savedPayment.getId());
+            
+            // Enviar notificação push de falha
+            try {
+                String notificationBody = String.format("Pagamento de R$ %.2f não foi aprovado. %s Por favor, escolha outro método de pagamento.", 
+                    delivery.getShippingFee(), e.getMessage());
+                
+                Map<String, Object> notificationData = new HashMap<>();
+                notificationData.put("type", "payment_failed");
+                notificationData.put("deliveryId", delivery.getId());
+                notificationData.put("paymentId", savedPayment.getId());
+                notificationData.put("amount", delivery.getShippingFee().toString());
+                notificationData.put("failureReason", e.getMessage());
+                
+                boolean sent = pushNotificationService.sendNotificationToUser(
+                    fullClient.getId(),
+                    "❌ Pagamento não aprovado",
+                    notificationBody,
+                    notificationData
+                );
+                
+                if (sent) {
+                    log.info("   ├─ ✅ Notificação de falha enviada ao cliente #{}", fullClient.getId());
+                } else {
+                    log.warn("   ├─ ⚠️ Não foi possível enviar notificação - cliente #{} sem token push ativo", fullClient.getId());
+                }
+            } catch (Exception notifError) {
+                log.error("   ├─ ❌ Erro ao enviar notificação de falha: {}", notifError.getMessage());
+            }
+            
             log.error("   └─ ❌ Falha ao criar pagamento automático: {}", e.getMessage());
             
             throw new RuntimeException("Falha ao criar pagamento automático: " + e.getMessage(), e);
@@ -1169,6 +1291,35 @@ public class DeliveryService {
             
             Payment savedPayment = paymentRepository.save(payment);
             log.info("   ├─ 💾 Payment #{} salvo com status FAILED para auditoria", savedPayment.getId());
+            
+            // Enviar notificação push de falha
+            try {
+                String notificationBody = String.format("Pagamento de R$ %.2f não foi aprovado. Erro: %s Por favor, escolha outro método de pagamento.", 
+                    delivery.getShippingFee(), e.getMessage());
+                
+                Map<String, Object> notificationData = new HashMap<>();
+                notificationData.put("type", "payment_failed");
+                notificationData.put("deliveryId", delivery.getId());
+                notificationData.put("paymentId", savedPayment.getId());
+                notificationData.put("amount", delivery.getShippingFee().toString());
+                notificationData.put("failureReason", e.getMessage());
+                
+                boolean sent = pushNotificationService.sendNotificationToUser(
+                    fullClient.getId(),
+                    "❌ Pagamento não aprovado",
+                    notificationBody,
+                    notificationData
+                );
+                
+                if (sent) {
+                    log.info("   ├─ ✅ Notificação de falha enviada ao cliente #{}", fullClient.getId());
+                } else {
+                    log.warn("   ├─ ⚠️ Não foi possível enviar notificação - cliente #{} sem token push ativo", fullClient.getId());
+                }
+            } catch (Exception notifError) {
+                log.error("   ├─ ❌ Erro ao enviar notificação de falha: {}", notifError.getMessage());
+            }
+            
             log.error("   └─ ❌ Falha ao criar pagamento automático: {}", e.getMessage());
             
             throw new RuntimeException("Falha ao criar pagamento automático: " + e.getMessage(), e);
@@ -1185,7 +1336,7 @@ public class DeliveryService {
      * @param customer CUSTOMER que criou a delivery
      */
     private void createPixPaymentForCustomer(Delivery delivery, User customer) {
-        log.info("💳 Criando pagamento PIX para CUSTOMER na delivery #{}", delivery.getId());
+        log.info("💳 Criando pagamento PIX para CUSTOMER na delivery #{} (5 min expiração)", delivery.getId());
 
         // Buscar recipientId do courier
         User courier = delivery.getCourier();
@@ -1195,7 +1346,7 @@ public class DeliveryService {
         }
 
         // CUSTOMER não tem organizer → split sem organizer (87% courier, 13% plataforma)
-        log.info("   ├─ Criando order PIX no Pagar.me (sem organizer)...");
+        log.info("   ├─ Criando order PIX no Pagar.me (sem organizer, 300s expiração)...");
 
         // Buscar recipientId da plataforma
         SiteConfiguration config = siteConfigurationService.getActiveConfiguration();
@@ -1203,15 +1354,23 @@ public class DeliveryService {
 
         OrderResponse orderResponse;
         try {
+            // Usar CPF real do customer (documentNumber)
+            String customerDocument = customer.getDocumentClean();
+            if (customerDocument == null || customerDocument.isBlank()) {
+                log.warn("   ├─ ⚠️ Customer sem CPF cadastrado, usando placeholder");
+                customerDocument = "00000000000";
+            }
+
             orderResponse = pagarMeService.createOrderWithSplit(
                     delivery.getShippingFee(),
                     "Entrega #" + delivery.getId(),
                     customer.getName() != null ? customer.getName() : customer.getUsername(),
                     customer.getUsername(),
-                    "00000000000",
+                    customerDocument,
                     courierRecipientId,
                     null, // organizerRecipientId — CUSTOMER não tem organizer
-                    platformRecipientId
+                    platformRecipientId,
+                    300 // 5 minutos para CUSTOMER PIX
             );
         } catch (Exception e) {
             log.error("   ├─ ❌ PIX recusado pelo gateway: {}", e.getMessage());
@@ -1241,15 +1400,88 @@ public class DeliveryService {
         payment.setStatus(PaymentStatus.PENDING);
         payment.addDelivery(delivery);
 
+        // Extrair QR Code e expiresAt da resposta Pagar.me
+        if (orderResponse.getCharges() != null && !orderResponse.getCharges().isEmpty()) {
+            OrderResponse.Charge charge = orderResponse.getCharges().get(0);
+            if (charge.getLastTransaction() != null) {
+                OrderResponse.LastTransaction tx = charge.getLastTransaction();
+                
+                // QR Code PIX
+                if (tx.getQrCode() != null) {
+                    payment.setPixQrCode(tx.getQrCode());
+                    log.info("   ├─ ✅ PIX QR Code extraído ({} chars)", tx.getQrCode().length());
+                }
+                if (tx.getQrCodeUrl() != null) {
+                    payment.setPixQrCodeUrl(tx.getQrCodeUrl());
+                    log.info("   ├─ ✅ PIX QR Code URL extraída");
+                }
+                
+                // Expiração do QR Code
+                if (tx.getExpiresAt() != null) {
+                    try {
+                        java.time.OffsetDateTime offsetDateTime = java.time.OffsetDateTime.parse(tx.getExpiresAt());
+                        LocalDateTime expiresAt = offsetDateTime
+                                .atZoneSameInstant(java.time.ZoneId.systemDefault())
+                                .toLocalDateTime();
+                        payment.setExpiresAt(expiresAt);
+                        log.info("   ├─ ⏰ Expiração PIX: {} (UTC: {}, Timezone: {})", 
+                                expiresAt, tx.getExpiresAt(), java.time.ZoneId.systemDefault());
+                    } catch (Exception e) {
+                        log.warn("   ├─ ⚠️ Falha ao parsear expiresAt: {} — usando fallback now+300s", tx.getExpiresAt());
+                        payment.setExpiresAt(LocalDateTime.now().plusSeconds(300));
+                    }
+                } else {
+                    log.warn("   ├─ ⚠️ expiresAt ausente na resposta Pagar.me — usando fallback now+300s");
+                    payment.setExpiresAt(LocalDateTime.now().plusSeconds(300));
+                }
+            }
+        }
+
+        // Garantir que expiresAt NUNCA é null (spec: expiresAt NEVER null)
+        if (payment.getExpiresAt() == null) {
+            log.warn("   ├─ ⚠️ expiresAt ainda null após extração — usando fallback now+300s");
+            payment.setExpiresAt(LocalDateTime.now().plusSeconds(300));
+        }
+
+        // CRÍTICO: Capturar request/response do OrderResponse
+        String req = orderResponse.getRequestPayload();
+        String resp = orderResponse.getResponsePayload();
+        
+        log.info("   ├─ 🔍 Request payload: {} caracteres", req != null ? req.length() : "NULL");
+        log.info("   ├─ 🔍 Response payload: {} caracteres", resp != null ? resp.length() : "NULL");
+        
+        if (req != null && !req.isEmpty()) {
+            payment.setRequest(req);
+        }
+        if (resp != null && !resp.isEmpty()) {
+            payment.setResponse(resp);
+        }
+        
+        // Adicionar notes com informações do pagamento PIX
+        String notes = String.format("Pagamento PIX CUSTOMER (5min) %s - Order ID: %s - Delivery #%d",
+                orderResponse.getStatus(),
+                orderResponse.getId(),
+                delivery.getId());
+        payment.setNotes(notes);
+
         Payment savedPayment = paymentRepository.save(payment);
-        log.info("   ├─ ✅ Payment #{} salvo no banco", savedPayment.getId());
+        log.info("   ├─ ✅ Payment #{} salvo (QR: {}, URL: {}, ExpiresAt: {})", 
+            savedPayment.getId(),
+            savedPayment.getPixQrCode() != null ? "✅" : "❌",
+            savedPayment.getPixQrCodeUrl() != null ? "✅" : "❌",
+            savedPayment.getExpiresAt() != null ? savedPayment.getExpiresAt().toString() : "❌");
+
+        // PIX é assíncrono: SEMPRE começa PENDING, status atualizado via webhook (order.paid)
+        // NÃO usar determinePaymentStatus aqui — PIX retorna success=false e waiting_payment na criação,
+        // o que é comportamento normal (customer ainda não pagou o QR Code)
+        log.info("   ├─ ⏳ PIX criado com status PENDING (aguardando customer pagar QR Code)");
 
         // Marcar delivery (aguarda webhook para confirmar pagamento)
         delivery.setPaymentCompleted(false);
         delivery.setPaymentCaptured(false);
         deliveryRepository.save(delivery);
 
-        log.info("   └─ ✅ Pagamento PIX CUSTOMER criado com sucesso para delivery #{}", delivery.getId());
+        log.info("   └─ ✅ Pagamento PIX CUSTOMER criado para delivery #{} — Status: WAITING_PAYMENT (5 min)", delivery.getId());
     }
 
     /**
@@ -1343,14 +1575,186 @@ public class DeliveryService {
         payment.setStatus(PaymentStatus.PENDING);
         payment.addDelivery(delivery);
 
+        // CRÍTICO: Capturar request/response do OrderResponse
+        String req = orderResponse.getRequestPayload();
+        String resp = orderResponse.getResponsePayload();
+        
+        log.info("   ├─ 🔍 Request payload: {} caracteres", req != null ? req.length() : "NULL");
+        log.info("   ├─ 🔍 Response payload: {} caracteres", resp != null ? resp.length() : "NULL");
+        
+        if (req != null && !req.isEmpty()) {
+            payment.setRequest(req);
+            log.info("   ├─ ✅ Request setado no Payment");
+        } else {
+            log.error("   ├─ ❌ Request está NULL ou vazio!");
+        }
+        
+        if (resp != null && !resp.isEmpty()) {
+            payment.setResponse(resp);
+            log.info("   ├─ ✅ Response setado no Payment");
+        } else {
+            log.error("   ├─ ❌ Response está NULL ou vazio!");
+        }
+        
+        // Adicionar notes com informações do pagamento
+        String notes = String.format("Pagamento %s - Order ID: %s - Cartão: %s****%s",
+                orderResponse.getStatus(),
+                orderResponse.getId(),
+                card.getBrand(),
+                card.getLastFourDigits());
+        payment.setNotes(notes);
+        log.info("   ├─ 📝 Notes setado: {}", notes);
+        
+        // Determinar status real do pagamento (verificando order + charges + transactions)
+        PaymentStatus finalStatus = determinePaymentStatus(orderResponse);
+        payment.setStatus(finalStatus);
+        
+        if (finalStatus == PaymentStatus.FAILED) {
+            log.warn("   ├─ ⚠️ Pagamento FAILED - Order Status: {}", orderResponse.getStatus());
+        } else if (finalStatus == PaymentStatus.PAID) {
+            log.info("   ├─ ✅ Pagamento PAID imediatamente");
+        } else {
+            log.info("   ├─ ⏳ Pagamento PENDING");
+        }
+
         Payment savedPayment = paymentRepository.save(payment);
-        log.info("   ├─ ✅ Payment #{} salvo no banco", savedPayment.getId());
+        log.info("   ├─ ✅ Payment #{} salvo no banco (Request: {} chars, Response: {} chars, Status: {})", 
+            savedPayment.getId(),
+            savedPayment.getRequest() != null ? savedPayment.getRequest().length() : 0,
+            savedPayment.getResponse() != null ? savedPayment.getResponse().length() : 0,
+            savedPayment.getStatus());
 
-        // Marcar delivery (aguarda webhook para confirmar pagamento)
-        delivery.setPaymentCompleted(false);
-        delivery.setPaymentCaptured(false);
-        deliveryRepository.save(delivery);
+        // Enviar notificação push se o pagamento falhou
+        if (finalStatus == PaymentStatus.FAILED) {
+            try {
+                String failureMessage = paymentService.extractPaymentFailureMessage(orderResponse);
+                String notificationBody = String.format("Pagamento de R$ %.2f não foi aprovado. %s Por favor, escolha outro método de pagamento.", 
+                    delivery.getShippingFee(), failureMessage);
+                
+                Map<String, Object> notificationData = new HashMap<>();
+                notificationData.put("type", "payment_failed");
+                notificationData.put("deliveryId", delivery.getId());
+                notificationData.put("paymentId", savedPayment.getId());
+                notificationData.put("amount", delivery.getShippingFee().toString());
+                notificationData.put("failureReason", failureMessage);
+                
+                boolean sent = pushNotificationService.sendNotificationToUser(
+                    customer.getId(),
+                    "❌ Pagamento não aprovado",
+                    notificationBody,
+                    notificationData
+                );
+                
+                if (sent) {
+                    log.info("   ├─ ✅ Notificação de falha enviada ao cliente #{}", customer.getId());
+                } else {
+                    log.warn("   ├─ ⚠️ Não foi possível enviar notificação - cliente #{} sem token push ativo", customer.getId());
+                }
+            } catch (Exception e) {
+                log.error("   ├─ ❌ Erro ao enviar notificação de falha: {}", e.getMessage());
+            }
+        }
 
-        log.info("   └─ ✅ Pagamento CARTÃO CUSTOMER criado com sucesso para delivery #{}", delivery.getId());
+        // Marcar delivery apenas se não falhou
+        if (finalStatus != PaymentStatus.FAILED) {
+            delivery.setPaymentCompleted(false);
+            delivery.setPaymentCaptured(false);
+            deliveryRepository.save(delivery);
+            log.info("   └─ ✅ Pagamento CARTÃO CUSTOMER criado com sucesso para delivery #{}", delivery.getId());
+        } else {
+            log.error("   └─ ❌ Pagamento FAILED - Delivery não marcada como paga");
+        }
+    }
+    
+    /**
+     * Determina o status final do Payment baseado na OrderResponse do Pagar.me.
+     * 
+     * Regras:
+     * - Status "paid" → PAID
+     * - Status "failed", "canceled", "cancelled" → FAILED
+     * - Transação com status "not_authorized", "refused", "failed" → FAILED
+     * - Antifraude "reproved" → FAILED
+     * - Caso contrário → PENDING
+     * 
+     * @param orderResponse Response recebida do Pagar.me
+     * @return PaymentStatus apropriado
+     */
+    private PaymentStatus determinePaymentStatus(com.mvt.mvt_events.payment.dto.OrderResponse orderResponse) {
+        if (orderResponse == null) {
+            return PaymentStatus.PENDING;
+        }
+        
+        String orderStatus = orderResponse.getStatus();
+        
+        // 1. Verificar status da order
+        if ("paid".equalsIgnoreCase(orderStatus)) {
+            return PaymentStatus.PAID;
+        }
+        
+        if ("failed".equalsIgnoreCase(orderStatus) || 
+            "canceled".equalsIgnoreCase(orderStatus) || 
+            "cancelled".equalsIgnoreCase(orderStatus)) {
+            return PaymentStatus.FAILED;
+        }
+        
+        // 2. Verificar charges e última transação
+        if (orderResponse.getCharges() != null && !orderResponse.getCharges().isEmpty()) {
+            com.mvt.mvt_events.payment.dto.OrderResponse.Charge charge = orderResponse.getCharges().get(0);
+            
+            // Status da charge
+            if ("failed".equalsIgnoreCase(charge.getStatus())) {
+                return PaymentStatus.FAILED;
+            }
+            
+            // Última transação
+            if (charge.getLastTransaction() != null) {
+                com.mvt.mvt_events.payment.dto.OrderResponse.LastTransaction transaction = charge.getLastTransaction();
+                
+                // Status da transação
+                String txStatus = transaction.getStatus();
+                
+                // PIX: status 'waiting_payment' é normal (aguardando customer pagar QR Code)
+                if ("waiting_payment".equalsIgnoreCase(txStatus)) {
+                    log.info("⏳ Transação PIX aguardando pagamento (waiting_payment) — status PENDING");
+                    return PaymentStatus.PENDING;
+                }
+                
+                if ("not_authorized".equalsIgnoreCase(txStatus) ||
+                    "refused".equalsIgnoreCase(txStatus) ||
+                    "failed".equalsIgnoreCase(txStatus)) {
+                    log.warn("🚫 Transação com status de falha: {}", txStatus);
+                    return PaymentStatus.FAILED;
+                }
+                
+                // Success flag (só verifica para transações não-PIX que já terminaram)
+                if (transaction.getSuccess() != null && !transaction.getSuccess()
+                    && !"pix".equalsIgnoreCase(transaction.getTransactionType())) {
+                    log.warn("🚫 Transação marcada como success=false");
+                    return PaymentStatus.FAILED;
+                }
+                
+                // Antifraude (pode estar como Map ou objeto complexo)
+                if (transaction.getAntifraudResponse() != null) {
+                    try {
+                        // Tentar como Map
+                        if (transaction.getAntifraudResponse() instanceof java.util.Map) {
+                            @SuppressWarnings("unchecked")
+                            java.util.Map<String, Object> antifraudMap = 
+                                (java.util.Map<String, Object>) transaction.getAntifraudResponse();
+                            Object status = antifraudMap.get("status");
+                            if ("reproved".equalsIgnoreCase(String.valueOf(status))) {
+                                log.warn("🚫 Antifraude reprovou a transação");
+                                return PaymentStatus.FAILED;
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("Erro ao verificar antifraude: {}", e.getMessage());
+                    }
+                }
+            }
+        }
+        
+        // Default: PENDING
+        return PaymentStatus.PENDING;
     }
 }

@@ -65,6 +65,9 @@ public class DeliveryController {
     @Autowired
     private SpecialZoneService specialZoneService;
 
+    @Autowired
+    private com.mvt.mvt_events.repository.PaymentRepository paymentRepository;
+
     @PostMapping
     @Operation(summary = "Criar nova delivery", description = "Requer autenticação. A delivery é criada com status PENDING.")
     public ResponseEntity<DeliveryResponse> create(
@@ -217,7 +220,17 @@ public class DeliveryController {
 
         Delivery delivery = deliveryService.findById(id, organizationId);
 
-        return ResponseEntity.ok(mapToResponse(delivery));
+        DeliveryResponse response = mapToResponse(delivery);
+
+        // Carregar payments com dados PIX (QR code, expiresAt) quando WAITING_PAYMENT
+        if (delivery.getStatus() == Delivery.DeliveryStatus.WAITING_PAYMENT
+                || delivery.getStatus() == Delivery.DeliveryStatus.ACCEPTED) {
+            List<DeliveryResponse.PaymentSummary> paymentSummaries = loadPaymentSummaries(delivery.getId());
+            response.setPayments(paymentSummaries);
+            response.setPaymentStatus(calculatePaymentStatus(paymentSummaries));
+        }
+
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
@@ -268,7 +281,7 @@ public class DeliveryController {
     }
 
     @PatchMapping("/{id}/accept")
-    @Operation(summary = "Aceitar delivery", description = "Courier aceita a delivery. Status: PENDING → ACCEPTED")
+    @Operation(summary = "Aceitar delivery", description = "Courier aceita a delivery. Status: PENDING → ACCEPTED ou WAITING_PAYMENT (se CUSTOMER + PIX)")
     public ResponseEntity<DeliveryResponse> accept(
             @PathVariable Long id,
             @RequestBody @Valid DeliveryAssignRequest request,
@@ -285,7 +298,15 @@ public class DeliveryController {
 
         Delivery delivery = deliveryService.assignToCourier(id, courierId, organizationId);
 
-        return ResponseEntity.ok(mapToResponse(delivery));
+        // Retornar delivery com dados do pagamento (PIX QR code quando WAITING_PAYMENT)
+        DeliveryResponse response = mapToResponse(delivery);
+        
+        // Carregar payments com dados PIX para esta delivery
+        List<DeliveryResponse.PaymentSummary> paymentSummaries = loadPaymentSummaries(delivery.getId());
+        response.setPayments(paymentSummaries);
+        response.setPaymentStatus(calculatePaymentStatus(paymentSummaries));
+
+        return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/{id}/pickup")
@@ -522,8 +543,68 @@ public class DeliveryController {
     private DeliveryResponse mapToResponse(Delivery delivery, Map<Long, List<DeliveryResponse.PaymentSummary>> paymentsMap) {
         DeliveryResponse response = mapToResponse(delivery);
         // Adiciona os payments do map
-        response.setPayments(paymentsMap.getOrDefault(delivery.getId(), Collections.emptyList()));
+        List<DeliveryResponse.PaymentSummary> payments = paymentsMap.getOrDefault(delivery.getId(), Collections.emptyList());
+        response.setPayments(payments);
+        
+        // Calcular paymentStatus consolidado
+        response.setPaymentStatus(calculatePaymentStatus(payments));
+        
         return response;
+    }
+    
+    /**
+     * Carrega payments com dados PIX para uma delivery específica.
+     * Usado no accept e getById para retornar QR Code e expiresAt.
+     */
+    private List<DeliveryResponse.PaymentSummary> loadPaymentSummaries(Long deliveryId) {
+        List<com.mvt.mvt_events.jpa.Payment> payments = paymentRepository.findByDeliveryIdLong(deliveryId);
+        List<DeliveryResponse.PaymentSummary> summaries = new ArrayList<>();
+        for (com.mvt.mvt_events.jpa.Payment p : payments) {
+            summaries.add(DeliveryResponse.PaymentSummary.builder()
+                    .id(p.getId())
+                    .status(p.getStatus().name())
+                    .paymentMethod(p.getPaymentMethod() != null ? p.getPaymentMethod().name() : null)
+                    .amount(p.getAmount())
+                    .pixQrCode(p.getPixQrCode())
+                    .pixQrCodeUrl(p.getPixQrCodeUrl())
+                    .expiresAt(p.getExpiresAt())
+                    .build());
+        }
+        return summaries;
+    }
+
+    /**
+     * Calcula o status consolidado de pagamento baseado na lista de payments.
+     * 
+     * Lógica:
+     * - Sem payments → UNPAID
+     * - Tem PAID → PAID
+     * - Tem PENDING → PENDING
+     * - Tem EXPIRED → EXPIRED
+     * - Resto → FAILED
+     */
+    private String calculatePaymentStatus(List<DeliveryResponse.PaymentSummary> payments) {
+        if (payments == null || payments.isEmpty()) {
+            return "UNPAID";
+        }
+        
+        // Verificar se tem algum PAID
+        boolean hasPaid = payments.stream()
+                .anyMatch(p -> "PAID".equals(p.getStatus()));
+        if (hasPaid) return "PAID";
+        
+        // Verificar se tem PENDING
+        boolean hasPending = payments.stream()
+                .anyMatch(p -> "PENDING".equals(p.getStatus()));
+        if (hasPending) return "PENDING";
+        
+        // Verificar se tem EXPIRED
+        boolean hasExpired = payments.stream()
+                .anyMatch(p -> "EXPIRED".equals(p.getStatus()));
+        if (hasExpired) return "EXPIRED";
+        
+        // Senão, é FAILED ou UNPAID
+        return "FAILED";
     }
 
     /**
