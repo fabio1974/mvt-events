@@ -114,8 +114,13 @@ public class CustomerCardService {
         log.info("Cartão adicionado com sucesso: {} | Default: {}", saved.getId(), saved.getIsDefault());
         
         // Se foi marcado como padrão, verificar deliveries ativas não pagas
+        // Wrapped em try-catch para NÃO afetar a criação do cartão se falhar
         if (saved.getIsDefault()) {
-            processUnpaidDeliveries(customer, saved);
+            try {
+                processUnpaidDeliveries(customer, saved);
+            } catch (Exception e) {
+                log.error("⚠️ Erro ao processar deliveries não pagas (cartão foi salvo com sucesso): {}", e.getMessage(), e);
+            }
         }
         
         return saved;
@@ -152,7 +157,7 @@ public class CustomerCardService {
                 .filter(d -> d.getClient() != null && d.getClient().getId().equals(customerId))
                 .filter(d -> d.getStatus() == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.IN_TRANSIT
                           || d.getStatus() == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.COMPLETED)
-                .filter(d -> !d.getPaymentCompleted() || !d.getPaymentCaptured())
+                .filter(d -> !Boolean.TRUE.equals(d.getPaymentCompleted()) || !Boolean.TRUE.equals(d.getPaymentCaptured()))
                 .toList();
         
         if (unpaidDeliveries.isEmpty()) {
@@ -273,7 +278,7 @@ public class CustomerCardService {
                 .filter(d -> d.getClient() != null && d.getClient().getId().equals(customer.getId()))
                 .filter(d -> d.getStatus() == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.IN_TRANSIT 
                           || d.getStatus() == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.COMPLETED)
-                .filter(d -> !d.getPaymentCompleted() || !d.getPaymentCaptured())
+                .filter(d -> !Boolean.TRUE.equals(d.getPaymentCompleted()) || !Boolean.TRUE.equals(d.getPaymentCaptured()))
                 .toList();
         
         if (unpaidDeliveries.isEmpty()) {

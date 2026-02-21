@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -34,6 +35,7 @@ import java.util.stream.Collectors;
 @Tag(name = "Cartões de Crédito", description = "Gerenciamento de cartões tokenizados dos clientes")
 @SecurityRequirement(name = "bearerAuth")
 @RequiredArgsConstructor
+@Slf4j
 public class CustomerCardController {
 
     private final CustomerCardService cardService;
@@ -56,6 +58,7 @@ public class CustomerCardController {
 
             return ResponseEntity.ok(new CardResponse(card));
         } catch (RuntimeException e) {
+            log.error("❌ Erro ao adicionar cartão: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(null);
         }
     }
