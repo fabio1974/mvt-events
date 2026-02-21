@@ -39,13 +39,19 @@ public class CustomerPaymentPreferenceController {
 
     @GetMapping
     @Operation(summary = "Buscar preferência de pagamento", 
-               description = "Retorna a preferência de pagamento atual do cliente. Se não existir, retorna PIX como padrão.")
+               description = "Retorna a preferência de pagamento atual do cliente. Se não existir, retorna preferênciaPaymentType null.")
     public ResponseEntity<?> getPreference(Authentication authentication) {
         try {
             UUID customerId = extractCustomerId(authentication);
             log.info("🔍 Buscando preferência de pagamento para customerId: {}", customerId);
             
             CustomerPaymentPreference preference = preferenceService.getPreference(customerId);
+            
+            if (preference == null) {
+                log.info("ℹ️ Nenhuma preferência salva para customerId: {}", customerId);
+                return ResponseEntity.ok(new PaymentPreferenceResponse());
+            }
+            
             log.info("✅ Preferência encontrada: type={}, cardId={}", 
                     preference.getPreferredPaymentType(), 
                     preference.getDefaultCard() != null ? preference.getDefaultCard().getId() : null);
@@ -178,8 +184,19 @@ public class CustomerPaymentPreferenceController {
         private String defaultCardBrand;
         private boolean hasDefaultCard;
 
+        /**
+         * Construtor vazio — sem preferência salva.
+         * Retorna todos os campos null/false.
+         */
+        public PaymentPreferenceResponse() {
+            this.preferredPaymentType = null;
+            this.hasDefaultCard = false;
+        }
+
         public PaymentPreferenceResponse(CustomerPaymentPreference preference) {
-            this.preferredPaymentType = preference.getPreferredPaymentType().name();
+            this.preferredPaymentType = preference.getPreferredPaymentType() != null 
+                    ? preference.getPreferredPaymentType().name() 
+                    : null;
             
             if (preference.getDefaultCard() != null) {
                 this.hasDefaultCard = true;

@@ -526,13 +526,15 @@ public class DeliveryService {
             if (delivery.getDeliveryType() == Delivery.DeliveryType.DELIVERY 
                     || delivery.getDeliveryType() == Delivery.DeliveryType.RIDE) {
                 CustomerPaymentPreference pref = preferenceService.getPreference(delivery.getClient().getId());
-                if (pref.getPreferredPaymentType() == PreferredPaymentType.PIX) {
+                if (pref != null && pref.getPreferredPaymentType() == PreferredPaymentType.PIX) {
                     isCustomerPix = true;
                     // CUSTOMER + PIX → WAITING_PAYMENT (não ACCEPTED)
                     delivery.setStatus(Delivery.DeliveryStatus.WAITING_PAYMENT);
                     log.info("📱 CUSTOMER + PIX na delivery #{} — status → WAITING_PAYMENT", delivery.getId());
-                } else {
+                } else if (pref != null && pref.getPreferredPaymentType() == PreferredPaymentType.CREDIT_CARD) {
                     log.info("💳 CUSTOMER com preferência CARTÃO na delivery #{} — cobrança será feita ao entrar em trânsito", delivery.getId());
+                } else {
+                    log.info("ℹ️ CUSTOMER sem preferência de pagamento na delivery #{} — seguindo fluxo normal (ACCEPTED)", delivery.getId());
                 }
             }
 
@@ -591,7 +593,7 @@ public class DeliveryService {
                 && (delivery.getDeliveryType() == Delivery.DeliveryType.DELIVERY 
                     || delivery.getDeliveryType() == Delivery.DeliveryType.RIDE)) {
             CustomerPaymentPreference pref = preferenceService.getPreference(delivery.getClient().getId());
-            if (pref.getPreferredPaymentType() == PreferredPaymentType.CREDIT_CARD) {
+            if (pref != null && pref.getPreferredPaymentType() == PreferredPaymentType.CREDIT_CARD) {
                 try {
                     createCreditCardPaymentForCustomer(saved, delivery.getClient());
                 } catch (Exception e) {
@@ -1058,8 +1060,8 @@ public class DeliveryService {
         
         // 1. Verificar preferência de pagamento
         CustomerPaymentPreference preference = preferenceService.getPreference(fullClient.getId());
-        if (preference.getPreferredPaymentType() != PreferredPaymentType.CREDIT_CARD) {
-            log.info("   ├─ Cliente prefere PIX, não criar pagamento automático");
+        if (preference == null || preference.getPreferredPaymentType() != PreferredPaymentType.CREDIT_CARD) {
+            log.info("   ├─ Cliente sem preferência de cartão, não criar pagamento automático");
             return;
         }
         

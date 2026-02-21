@@ -29,7 +29,7 @@ public class CustomerPaymentPreferenceService {
 
     /**
      * Busca a preferência de pagamento do cliente.
-     * Se não existir, retorna uma preferência padrão (PIX).
+     * Se não existir, retorna null (sem fallback).
      * 
      * IMPORTANTE: Inicializa o defaultCard para evitar LazyInitializationException.
      */
@@ -38,7 +38,8 @@ public class CustomerPaymentPreferenceService {
         Optional<CustomerPaymentPreference> prefOpt = preferenceRepository.findByUserId(userId);
         
         if (prefOpt.isEmpty()) {
-            return createDefaultPreference(userId);
+            log.info("Nenhuma preferência de pagamento encontrada para usuário {}", userId);
+            return null;
         }
         
         CustomerPaymentPreference preference = prefOpt.get();
@@ -51,21 +52,6 @@ public class CustomerPaymentPreferenceService {
         }
         
         return preference;
-    }
-
-    /**
-     * Cria uma preferência padrão (PIX) para o cliente.
-     * Não salva no banco - apenas retorna um objeto para exibição.
-     */
-    private CustomerPaymentPreference createDefaultPreference(UUID userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-        
-        return CustomerPaymentPreference.builder()
-                .user(user)
-                .preferredPaymentType(PreferredPaymentType.PIX)
-                .defaultCard(null)
-                .build();
     }
 
     /**
@@ -137,7 +123,7 @@ public class CustomerPaymentPreferenceService {
     public boolean prefersPix(UUID userId) {
         return preferenceRepository.findByUserId(userId)
                 .map(CustomerPaymentPreference::prefersPix)
-                .orElse(true); // Default é PIX
+                .orElse(false); // Sem preferência salva = sem PIX
     }
 
     /**

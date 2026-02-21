@@ -662,6 +662,10 @@ public class PaymentService {
         // 5. Buscar preferência do cliente
         com.mvt.mvt_events.jpa.CustomerPaymentPreference preference = preferenceService.getPreference(clientId);
         
+        if (preference == null) {
+            throw new IllegalStateException("Cliente não tem preferência de pagamento configurada. Configure antes de pagar.");
+        }
+        
         log.info("📋 Preferência detectada: {}", preference.getPreferredPaymentType());
         
         // 6. Processar baseado na preferência
