@@ -152,11 +152,13 @@ public class CustomerCardService {
             throw new RuntimeException("Cartão padrão está expirado. Defina outro cartão como padrão.");
         }
         
-        // 4. Buscar deliveries não pagas (IN_TRANSIT ou COMPLETED)
-        var unpaidDeliveries = deliveryRepository.findAll().stream()
-                .filter(d -> d.getClient() != null && d.getClient().getId().equals(customerId))
-                .filter(d -> d.getStatus() == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.IN_TRANSIT
-                          || d.getStatus() == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.COMPLETED)
+        // 4. Buscar deliveries não pagas (IN_TRANSIT ou COMPLETED) via query filtrada
+        var statuses = List.of(
+                com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.IN_TRANSIT,
+                com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.COMPLETED
+        );
+        var unpaidDeliveries = deliveryRepository.findByClientIdAndStatusesWithJoins(customerId, statuses)
+                .stream()
                 .filter(d -> !Boolean.TRUE.equals(d.getPaymentCompleted()) || !Boolean.TRUE.equals(d.getPaymentCaptured()))
                 .toList();
         
@@ -272,12 +274,14 @@ public class CustomerCardService {
     private void processUnpaidDeliveries(User customer, CustomerCard newCard) {
         log.info("🔍 Verificando deliveries ativas não pagas para customer: {}", customer.getId());
         
-        // Buscar deliveries não pagas (IN_TRANSIT ou COMPLETED)
+        // Buscar deliveries não pagas (IN_TRANSIT ou COMPLETED) via query filtrada
         // ACCEPTED fica de fora: em RIDE, pagamento só ocorre ao iniciar viagem
-        var unpaidDeliveries = deliveryRepository.findAll().stream()
-                .filter(d -> d.getClient() != null && d.getClient().getId().equals(customer.getId()))
-                .filter(d -> d.getStatus() == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.IN_TRANSIT 
-                          || d.getStatus() == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.COMPLETED)
+        var statuses = List.of(
+                com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.IN_TRANSIT,
+                com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.COMPLETED
+        );
+        var unpaidDeliveries = deliveryRepository.findByClientIdAndStatusesWithJoins(customer.getId(), statuses)
+                .stream()
                 .filter(d -> !Boolean.TRUE.equals(d.getPaymentCompleted()) || !Boolean.TRUE.equals(d.getPaymentCaptured()))
                 .toList();
         
