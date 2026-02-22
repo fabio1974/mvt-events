@@ -1338,6 +1338,12 @@ public class DeliveryService {
      * @param customer CUSTOMER que criou a delivery
      */
     private void createPixPaymentForCustomer(Delivery delivery, User customer) {
+        // ⛔ GUARD: Impedir pagamento duplicado — verificar se já existe PENDING ou PAID
+        if (paymentRepository.existsPendingOrPaidPaymentForDelivery(delivery.getId())) {
+            log.warn("⚠️ Delivery #{} já possui pagamento PENDING ou PAID — ignorando criação de PIX", delivery.getId());
+            return;
+        }
+
         log.info("💳 Criando pagamento PIX para CUSTOMER na delivery #{} (5 min expiração)", delivery.getId());
 
         // Buscar recipientId do courier
@@ -1496,6 +1502,12 @@ public class DeliveryService {
      * @param customer CUSTOMER que criou a delivery
      */
     private void createCreditCardPaymentForCustomer(Delivery delivery, User customer) {
+        // ⛔ GUARD: Impedir pagamento duplicado — verificar se já existe PENDING ou PAID
+        if (paymentRepository.existsPendingOrPaidPaymentForDelivery(delivery.getId())) {
+            log.warn("⚠️ Delivery #{} já possui pagamento PENDING ou PAID — ignorando criação de cartão", delivery.getId());
+            return;
+        }
+
         log.info("💳 Criando pagamento por CARTÃO para CUSTOMER na delivery #{}", delivery.getId());
 
         // Buscar recipientId do courier

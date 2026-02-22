@@ -113,6 +113,17 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
         boolean existsPendingPaymentForDelivery(@Param("deliveryId") Long deliveryId);
 
         /**
+         * Verifica se existe um pagamento PENDING ou PAID para uma delivery específica.
+         * Usado para impedir que a mesma corrida seja paga duas vezes.
+         * 
+         * @param deliveryId ID da delivery
+         * @return true se existe pagamento PENDING ou PAID
+         */
+        @Query("SELECT COUNT(p) > 0 FROM Payment p JOIN p.deliveries d " +
+                "WHERE d.id = :deliveryId AND p.status IN ('PENDING', 'PAID')")
+        boolean existsPendingOrPaidPaymentForDelivery(@Param("deliveryId") Long deliveryId);
+
+        /**
          * Busca pagamentos PIX PENDING cujo QR Code expirou (expiresAt < now).
          * Usado pelo cron de expiração PIX (PixExpirationService).
          */
