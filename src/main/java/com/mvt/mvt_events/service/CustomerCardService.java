@@ -1,10 +1,12 @@
 package com.mvt.mvt_events.service;
 
 import com.mvt.mvt_events.jpa.CustomerCard;
+import com.mvt.mvt_events.jpa.CustomerPaymentPreference;
 import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.payment.dto.BillingAddressDTO;
 import com.mvt.mvt_events.payment.service.PagarMeService;
 import com.mvt.mvt_events.repository.CustomerCardRepository;
+import com.mvt.mvt_events.repository.CustomerPaymentPreferenceRepository;
 import com.mvt.mvt_events.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +41,7 @@ import java.util.UUID;
 public class CustomerCardService {
 
     private final CustomerCardRepository cardRepository;
+    private final CustomerPaymentPreferenceRepository preferenceRepository;
     private final UserRepository userRepository;
     private final PagarMeService pagarMeService;
     private final com.mvt.mvt_events.repository.DeliveryRepository deliveryRepository;
@@ -551,8 +554,9 @@ public class CustomerCardService {
 
         log.info("Cartão {} deletado (soft) para customer {}", cardId, customerId);
 
-        // Se era o padrão, definir outro como padrão
+        // Se era o cartão padrão, promover outro e limpar preferência
         if (Boolean.TRUE.equals(card.getIsDefault())) {
+            // Promover próximo cartão ativo como padrão
             List<CustomerCard> activeCards = cardRepository.findActiveCardsByCustomerId(customerId);
             if (!activeCards.isEmpty()) {
                 CustomerCard newDefault = activeCards.get(0);
@@ -560,6 +564,12 @@ public class CustomerCardService {
                 cardRepository.save(newDefault);
                 log.info("Novo cartão padrão: {} para customer {}", newDefault.getId(), customerId);
             }
+
+            // Limpar preferência de pagamento — cliente deve reconfigurar
+            preferenceRepository.findByUserId(customerId).ifPresent(pref -> {
+                preferenceRepository.delete(pref);
+                log.info("⚠️ Cartão default deletado → preferência de pagamento removida para customer {}", customerId);
+            });
         }
     }
 
