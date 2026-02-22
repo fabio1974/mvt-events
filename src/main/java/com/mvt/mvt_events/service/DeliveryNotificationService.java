@@ -145,16 +145,17 @@ public class DeliveryNotificationService {
             return false;
         }
 
-        // Filtrar apenas motoboys disponíveis e próximos (CLIENT = sempre MOTORCYCLE)
+        // Filtrar apenas motoboys disponíveis e próximos (CLIENT = sempre MOTORCYCLE + DELIVERY)
+        List<String> serviceTypes = List.of("DELIVERY", "BOTH");
         List<User> availableCouriers = getAvailableCouriersInArea(
                 delivery.getFromLatitude(), delivery.getFromLongitude(), INITIAL_RADIUS_KM, courierIds,
-                VehicleType.MOTORCYCLE);
+                VehicleType.MOTORCYCLE, serviceTypes);
 
         if (availableCouriers.isEmpty()) {
             // Tentar raio estendido
             availableCouriers = getAvailableCouriersInArea(
                     delivery.getFromLatitude(), delivery.getFromLongitude(), EXTENDED_RADIUS_KM, courierIds,
-                    VehicleType.MOTORCYCLE);
+                    VehicleType.MOTORCYCLE, serviceTypes);
         }
 
         if (availableCouriers.isEmpty()) {
@@ -200,16 +201,17 @@ public class DeliveryNotificationService {
             return false;
         }
 
-        // Filtrar apenas motoboys disponíveis e próximos (CLIENT = sempre MOTORCYCLE)
+        // Filtrar apenas motoboys disponíveis e próximos (CLIENT = sempre MOTORCYCLE + DELIVERY)
+        List<String> serviceTypes = List.of("DELIVERY", "BOTH");
         List<User> availableCouriers = getAvailableCouriersInArea(
                 delivery.getFromLatitude(), delivery.getFromLongitude(), INITIAL_RADIUS_KM, courierIds,
-                VehicleType.MOTORCYCLE);
+                VehicleType.MOTORCYCLE, serviceTypes);
 
         if (availableCouriers.isEmpty()) {
             // Tentar raio estendido
             availableCouriers = getAvailableCouriersInArea(
                     delivery.getFromLatitude(), delivery.getFromLongitude(), EXTENDED_RADIUS_KM, courierIds,
-                    VehicleType.MOTORCYCLE);
+                    VehicleType.MOTORCYCLE, serviceTypes);
         }
 
         if (availableCouriers.isEmpty()) {
@@ -227,36 +229,35 @@ public class DeliveryNotificationService {
      * Nível 3: Notificar todos os motoboys próximos geograficamente (sem restrição
      * de organização)
      * 
-     * Para CLIENT: filtra apenas MOTORCYCLE
-     * Para CUSTOMER: filtra pelo preferredVehicleType da delivery (ou todos se ANY)
+     * Para CLIENT: filtra MOTORCYCLE + serviceType DELIVERY
+     * Para CUSTOMER: filtra pelo preferredVehicleType e deliveryType da delivery
      */
     private boolean notifyLevel3AllNearbyDrivers(Delivery delivery) {
         log.info("Executando Nível 3: Todos motoboys próximos para delivery {}", delivery.getId());
 
-        // Determinar tipo de veículo a filtrar
+        // Determinar filtros
         VehicleType vehicleTypeFilter = resolveVehicleTypeFilter(delivery);
+        List<String> serviceTypes = resolveServiceTypes(delivery);
 
         List<User> availableCouriers;
 
         if (vehicleTypeFilter != null) {
-            // Filtrar por tipo de veículo ativo
-            log.info("   ├─ Filtrando couriers com veículo ativo: {}", vehicleTypeFilter);
+            log.info("   ├─ Filtrando couriers com veículo ativo: {} e serviceType: {}", vehicleTypeFilter, serviceTypes);
             availableCouriers = userRepository.findAvailableCouriersNearbyWithVehicleType(
-                    delivery.getFromLatitude(), delivery.getFromLongitude(), INITIAL_RADIUS_KM, vehicleTypeFilter);
+                    delivery.getFromLatitude(), delivery.getFromLongitude(), INITIAL_RADIUS_KM, vehicleTypeFilter, serviceTypes);
 
             if (availableCouriers.isEmpty()) {
                 availableCouriers = userRepository.findAvailableCouriersNearbyWithVehicleType(
-                        delivery.getFromLatitude(), delivery.getFromLongitude(), EXTENDED_RADIUS_KM, vehicleTypeFilter);
+                        delivery.getFromLatitude(), delivery.getFromLongitude(), EXTENDED_RADIUS_KM, vehicleTypeFilter, serviceTypes);
             }
         } else {
-            // ANY — buscar todos os couriers (sem filtro de veículo)
-            log.info("   ├─ Sem filtro de veículo (ANY)");
+            log.info("   ├─ Sem filtro de veículo (ANY), serviceType: {}", serviceTypes);
             availableCouriers = userRepository.findAvailableCouriersNearby(
-                    delivery.getFromLatitude(), delivery.getFromLongitude(), INITIAL_RADIUS_KM);
+                    delivery.getFromLatitude(), delivery.getFromLongitude(), INITIAL_RADIUS_KM, serviceTypes);
 
             if (availableCouriers.isEmpty()) {
                 availableCouriers = userRepository.findAvailableCouriersNearby(
-                        delivery.getFromLatitude(), delivery.getFromLongitude(), EXTENDED_RADIUS_KM);
+                        delivery.getFromLatitude(), delivery.getFromLongitude(), EXTENDED_RADIUS_KM, serviceTypes);
             }
         }
 
@@ -271,20 +272,19 @@ public class DeliveryNotificationService {
     }
 
     /**
-     * Busca motoboys disponíveis em uma área específica, filtrados por IDs e tipo de veículo.
-     * @param vehicleType tipo de veículo ativo exigido (MOTORCYCLE, CAR). Null = sem filtro.
+     * Busca motoboys disponíveis em uma área específica, filtrados por IDs, tipo de veículo e serviceType.
      */
     private List<User> getAvailableCouriersInArea(Double latitude, Double longitude,
-            Double radiusKm, Set<UUID> courierIds, VehicleType vehicleType) {
+            Double radiusKm, Set<UUID> courierIds, VehicleType vehicleType, List<String> serviceTypes) {
 
         // Buscar motoboys próximos (com ou sem filtro de veículo)
         List<User> nearbyCouriers;
         if (vehicleType != null) {
             nearbyCouriers = userRepository.findAvailableCouriersNearbyWithVehicleType(
-                    latitude, longitude, radiusKm, vehicleType);
+                    latitude, longitude, radiusKm, vehicleType, serviceTypes);
         } else {
             nearbyCouriers = userRepository.findAvailableCouriersNearby(
-                    latitude, longitude, radiusKm);
+                    latitude, longitude, radiusKm, serviceTypes);
         }
 
         // Filtrar pelos IDs especificados (organização)
@@ -295,18 +295,16 @@ public class DeliveryNotificationService {
 
     /**
      * Determina o tipo de veículo a filtrar baseado na delivery.
-     * - CLIENT (tem organização via contrato): sempre MOTORCYCLE
+     * - CLIENT: sempre MOTORCYCLE
      * - CUSTOMER + preferredVehicleType MOTORCYCLE ou CAR: filtra pelo tipo
      * - CUSTOMER + preferredVehicleType ANY: retorna null (sem filtro)
      */
     private VehicleType resolveVehicleTypeFilter(Delivery delivery) {
-        // Se é entrega de CLIENT (tem contrato com organização), sempre MOTORCYCLE
         if (delivery.getClient() != null && delivery.getClient().getRole() != null
                 && delivery.getClient().getRole().name().equals("CLIENT")) {
             return VehicleType.MOTORCYCLE;
         }
 
-        // CUSTOMER: usar preferência da delivery
         if (delivery.getPreferredVehicleType() == Delivery.PreferredVehicleType.MOTORCYCLE) {
             return VehicleType.MOTORCYCLE;
         } else if (delivery.getPreferredVehicleType() == Delivery.PreferredVehicleType.CAR) {
@@ -315,6 +313,19 @@ public class DeliveryNotificationService {
 
         // ANY = sem filtro
         return null;
+    }
+
+    /**
+     * Determina os serviceTypes compatíveis com o deliveryType da delivery.
+     * - DELIVERY → couriers com serviceType DELIVERY ou BOTH (ou null)
+     * - RIDE → couriers com serviceType PASSENGER_TRANSPORT ou BOTH (ou null)
+     */
+    private List<String> resolveServiceTypes(Delivery delivery) {
+        if (delivery.getDeliveryType() == Delivery.DeliveryType.RIDE) {
+            return List.of("PASSENGER_TRANSPORT", "BOTH");
+        }
+        // DELIVERY (default, inclusive para CLIENT)
+        return List.of("DELIVERY", "BOTH");
     }
 
     /**

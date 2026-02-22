@@ -138,6 +138,11 @@ public class DeliveryService {
         delivery.setClient(client);
         delivery.setStatus(Delivery.DeliveryStatus.PENDING);
 
+        // CLIENT sempre cria entregas do tipo DELIVERY (nunca RIDE)
+        if (client.getRole() == User.Role.CLIENT) {
+            delivery.setDeliveryType(Delivery.DeliveryType.DELIVERY);
+        }
+
         // Calcular o frete automaticamente baseado na distância e configuração ativa
         if (delivery.getDistanceKm() != null && delivery.getDistanceKm().compareTo(BigDecimal.ZERO) > 0) {
             SiteConfiguration activeConfig = siteConfigurationService.getActiveConfiguration();

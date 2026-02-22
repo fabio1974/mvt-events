@@ -108,6 +108,7 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
               "  SELECT 1 FROM Delivery d WHERE d.courier.id = u.id " +
               "  AND d.status IN ('PENDING', 'ACCEPTED', 'IN_TRANSIT')" +
               ") " +
+              "AND (u.serviceType IS NULL OR u.serviceType IN :serviceTypes) " +
               "AND (6371 * acos(cos(radians(:latitude)) * cos(radians(u.gpsLatitude)) * " +
               "cos(radians(u.gpsLongitude) - radians(:longitude)) + " +
               "sin(radians(:latitude)) * sin(radians(u.gpsLatitude)))) <= :radiusKm " +
@@ -116,7 +117,8 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
               "sin(radians(:latitude)) * sin(radians(u.gpsLatitude)))) ASC")
        List<User> findAvailableCouriersNearby(@Param("latitude") Double latitude,
                                               @Param("longitude") Double longitude,
-                                              @Param("radiusKm") Double radiusKm);
+                                              @Param("radiusKm") Double radiusKm,
+                                              @Param("serviceTypes") List<String> serviceTypes);
 
        /**
         * Busca couriers próximos com veículo ativo do tipo especificado.
@@ -138,6 +140,7 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
               "  SELECT 1 FROM Vehicle v WHERE v.owner.id = u.id " +
               "  AND v.isActive = true AND v.type = :vehicleType" +
               ") " +
+              "AND (u.serviceType IS NULL OR u.serviceType IN :serviceTypes) " +
               "AND (6371 * acos(cos(radians(:latitude)) * cos(radians(u.gpsLatitude)) * " +
               "cos(radians(u.gpsLongitude) - radians(:longitude)) + " +
               "sin(radians(:latitude)) * sin(radians(u.gpsLatitude)))) <= :radiusKm " +
@@ -148,7 +151,8 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
                                               @Param("latitude") Double latitude,
                                               @Param("longitude") Double longitude,
                                               @Param("radiusKm") Double radiusKm,
-                                              @Param("vehicleType") com.mvt.mvt_events.jpa.VehicleType vehicleType);
+                                              @Param("vehicleType") com.mvt.mvt_events.jpa.VehicleType vehicleType,
+                                              @Param("serviceTypes") List<String> serviceTypes);
 
        // ============================================================================
        // EMAIL CONFIRMATION
