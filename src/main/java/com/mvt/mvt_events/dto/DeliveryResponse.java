@@ -55,6 +55,9 @@ public class DeliveryResponse {
     private BigDecimal shippingFee;
     private BigDecimal distanceKm;
 
+    // Veículo usado na entrega (objeto aninhado)
+    private VehicleDTO vehicle;
+
     // Status
     private String status;
     private String preferredVehicleType;
@@ -121,6 +124,24 @@ public class DeliveryResponse {
     public static class OrganizationDTO {
         private Long id;
         private String name;
+    }
+
+    /**
+     * DTO simplificado para Vehicle (evitar lazy loading)
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class VehicleDTO {
+        private Long id;
+        private String type;
+        private String plate;
+        private String brand;
+        private String model;
+        private String color;
+        private String year;
+        private Boolean isActive;
     }
 
     /**

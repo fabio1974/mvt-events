@@ -51,6 +51,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.client c " +
                         "LEFT JOIN FETCH d.courier " +
                         "LEFT JOIN FETCH d.organizer " +
+                        "LEFT JOIN FETCH d.vehicle " +
                         "ORDER BY d.updatedAt DESC",
                countQuery = "SELECT COUNT(DISTINCT d) FROM Delivery d")
         org.springframework.data.domain.Page<Delivery> findAllWithJoins(org.springframework.data.domain.Pageable pageable);
@@ -190,6 +191,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.client c " +
                         "LEFT JOIN FETCH d.courier " +
                         "LEFT JOIN FETCH d.organizer " +
+                        "LEFT JOIN FETCH d.vehicle " +
                         "WHERE c.id IN (" +
                         "  SELECT cc.client.id FROM ClientContract cc " +
                         "  WHERE cc.organization.id = :organizationId " +
@@ -230,6 +232,7 @@ public interface DeliveryRepository
         @Query("SELECT DISTINCT d FROM Delivery d " +
                         "LEFT JOIN FETCH d.client c " +
                         "LEFT JOIN FETCH d.courier " +
+                        "LEFT JOIN FETCH d.vehicle " +
                         "WHERE d.client.id IN (" +
                         "  SELECT cc.client.id FROM ClientContract cc " +
                         "  WHERE cc.organization.id IN :organizationIds " +
@@ -246,6 +249,7 @@ public interface DeliveryRepository
         @Query("SELECT DISTINCT d FROM Delivery d " +
                         "LEFT JOIN FETCH d.client c " +
                         "LEFT JOIN FETCH d.courier " +
+                        "LEFT JOIN FETCH d.vehicle " +
                         "WHERE d.client.id IN (" +
                         "  SELECT cc.client.id FROM ClientContract cc " +
                         "  WHERE cc.organization.id IN :organizationIds " +
@@ -264,6 +268,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.client c " +
                         "LEFT JOIN FETCH d.courier " +
                         "LEFT JOIN FETCH d.organizer " +
+                        "LEFT JOIN FETCH d.vehicle " +
                         "WHERE d.id = :id")
         java.util.Optional<Delivery> findByIdWithJoins(@Param("id") Long id);
 
@@ -275,6 +280,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.client c " +
                         "LEFT JOIN FETCH d.courier " +
                         "LEFT JOIN FETCH d.organizer " +
+                        "LEFT JOIN FETCH d.vehicle " +
                         "WHERE c.id = :clientId " +
                         "ORDER BY d.updatedAt DESC")
         List<Delivery> findByClientIdWithJoins(@Param("clientId") UUID clientId);
@@ -287,6 +293,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.client c " +
                         "LEFT JOIN FETCH d.courier " +
                         "LEFT JOIN FETCH d.organizer " +
+                        "LEFT JOIN FETCH d.vehicle " +
                         "WHERE c.id = :clientId AND d.status = :status " +
                         "ORDER BY d.updatedAt DESC")
         List<Delivery> findByClientIdAndStatusWithJoins(@Param("clientId") UUID clientId, 
@@ -300,6 +307,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.client c " +
                         "LEFT JOIN FETCH d.courier " +
                         "LEFT JOIN FETCH d.organizer " +
+                        "LEFT JOIN FETCH d.vehicle " +
                         "WHERE c.id = :clientId AND d.status IN :statuses " +
                         "ORDER BY d.updatedAt DESC")
         List<Delivery> findByClientIdAndStatusesWithJoins(@Param("clientId") UUID clientId,
@@ -312,6 +320,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.client c " +
                         "LEFT JOIN FETCH d.courier " +
                         "LEFT JOIN FETCH d.organizer o " +
+                        "LEFT JOIN FETCH d.vehicle " +
                         "WHERE o.id = :organizerId " +
                         "ORDER BY d.updatedAt DESC")
         List<Delivery> findByOrganizerIdWithJoins(@Param("organizerId") UUID organizerId);
@@ -323,6 +332,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.client c " +
                         "LEFT JOIN FETCH d.courier " +
                         "LEFT JOIN FETCH d.organizer o " +
+                        "LEFT JOIN FETCH d.vehicle " +
                         "WHERE o.id = :organizerId AND d.status = :status " +
                         "ORDER BY d.updatedAt DESC")
         List<Delivery> findByOrganizerIdAndStatusWithJoins(@Param("organizerId") UUID organizerId,

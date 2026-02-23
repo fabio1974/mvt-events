@@ -840,6 +840,7 @@ public class DeliveryService {
             org.hibernate.Hibernate.initialize(delivery.getClient());
             org.hibernate.Hibernate.initialize(delivery.getCourier());
             org.hibernate.Hibernate.initialize(delivery.getOrganizer());
+            org.hibernate.Hibernate.initialize(delivery.getVehicle());
         }
         
         return deliveries;
@@ -867,6 +868,7 @@ public class DeliveryService {
             org.hibernate.Hibernate.initialize(delivery.getClient());
             org.hibernate.Hibernate.initialize(delivery.getCourier());
             org.hibernate.Hibernate.initialize(delivery.getOrganizer());
+            org.hibernate.Hibernate.initialize(delivery.getVehicle());
         }
         
         return deliveries;
@@ -943,6 +945,7 @@ public class DeliveryService {
             org.hibernate.Hibernate.initialize(delivery.getClient());
             org.hibernate.Hibernate.initialize(delivery.getCourier());
             org.hibernate.Hibernate.initialize(delivery.getOrganizer());
+            org.hibernate.Hibernate.initialize(delivery.getVehicle());
         }
         
         return result;
