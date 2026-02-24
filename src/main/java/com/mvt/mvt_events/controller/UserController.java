@@ -399,6 +399,9 @@ public class UserController {
         // Localização GPS em tempo real (rastreamento)
         private Double gpsLatitude;        // Latitude GPS em tempo real
         private Double gpsLongitude;       // Longitude GPS em tempo real
+
+        // Tipo de serviço (apenas para COURIER): DELIVERY, PASSENGER_TRANSPORT, BOTH
+        private String serviceType;
     }
 
     // DTO para atualização de localização
@@ -472,6 +475,7 @@ public class UserController {
         private String gender;
         private String documentNumber; // CPF ou CNPJ formatado
         private String role;
+        private String serviceType; // Tipo de serviço (apenas para COURIER): DELIVERY, PASSENGER_TRANSPORT, BOTH
         private OrganizationDTO organization;
 
         // Campos de localização GPS em tempo real (rastreamento do usuário)
@@ -508,6 +512,7 @@ public class UserController {
             this.gender = user.getGender() != null ? user.getGender().toString() : null;
             this.documentNumber = user.getDocumentFormatted();
             this.role = user.getRole() != null ? user.getRole().toString() : null;
+            this.serviceType = user.getServiceType() != null ? user.getServiceType().name() : null;
 
             // Campos de localização GPS (em tempo real) - rastreamento do usuário
             this.gpsLatitude = user.getGpsLatitude();

@@ -323,6 +323,15 @@ public class UserService {
             user.setGpsLongitude(request.getGpsLongitude());
         }
 
+        // Atualizar tipo de serviço (apenas para COURIER)
+        if (request.getServiceType() != null && !request.getServiceType().trim().isEmpty()) {
+            try {
+                user.setServiceType(com.mvt.mvt_events.jpa.ServiceType.valueOf(request.getServiceType().trim().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("serviceType inválido. Valores aceitos: DELIVERY, PASSENGER_TRANSPORT, BOTH");
+            }
+        }
+
         // Processar array de endereços (sincronização: update, insert, delete)
         // Usa orphanRemoval=true na coleção user.addresses para deletar automaticamente
         if (request.getAddresses() != null) {
