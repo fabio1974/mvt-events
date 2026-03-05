@@ -176,6 +176,13 @@ public class PaymentResponse {
                 .request(payment.getRequest())
                 .response(payment.getResponse());
 
+        // Dados do cartão (apenas CREDIT_CARD)
+        if (payment.getCustomerCard() != null) {
+            builder.cardLastFour(payment.getCustomerCard().getLastFourDigits());
+            builder.cardBrand(payment.getCustomerCard().getBrand() != null
+                    ? payment.getCustomerCard().getBrand().name() : null);
+        }
+
         // Adicionar payer (apenas id e nome para evitar referências circulares)
         if (payment.getPayer() != null) {
             builder.payer(PayerInfo.builder()

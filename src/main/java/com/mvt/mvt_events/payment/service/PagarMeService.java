@@ -1529,4 +1529,52 @@ public class PagarMeService {
             throw new RuntimeException("Erro ao deletar cartão: " + e.getMessage(), e);
         }
     }
+
+    // ============================================================================
+    // SALDO DO RECEBEDOR
+    // ============================================================================
+
+    /**
+     * Obtém o saldo atual de um recipient (recebedor) no Pagar.me.
+     *
+     * Endpoint Pagar.me: GET /recipients/{recipient_id}/balance
+     *
+     * @param recipientId ID do recebedor no Pagar.me (ex: re_XXXXXXXXXXXXX)
+     * @return RecipientBalanceResponse com saldo disponível, a receber e total transferido
+     */
+    public RecipientBalanceResponse getRecipientBalance(String recipientId) {
+        log.info("💰 Consultando saldo do recipient {} no Pagar.me", recipientId);
+
+        try {
+            HttpHeaders headers = createHeaders();
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            String url = config.getApi().getUrl() + "/recipients/" + recipientId + "/balance";
+            ResponseEntity<RecipientBalanceResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    RecipientBalanceResponse.class
+            );
+
+            RecipientBalanceResponse balance = response.getBody();
+            if (balance != null) {
+                balance.setRecipientId(recipientId);
+                log.info("   └─ ✅ Saldo obtido: disponível=R$ {} | a receber=R$ {} | transferido=R$ {}",
+                        balance.getAvailableBrl(),
+                        balance.getWaitingFundsBrl(),
+                        balance.getTransferredBrl());
+            }
+
+            return balance;
+
+        } catch (HttpClientErrorException e) {
+            log.error("   └─ ❌ Erro ao consultar saldo do recipient {}: {} - {}",
+                    recipientId, e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException("Erro ao consultar saldo no Pagar.me: " + e.getResponseBodyAsString(), e);
+        } catch (Exception e) {
+            log.error("   └─ ❌ Erro inesperado ao consultar saldo do recipient {}", recipientId, e);
+            throw new RuntimeException("Erro ao consultar saldo: " + e.getMessage(), e);
+        }
+    }
 }

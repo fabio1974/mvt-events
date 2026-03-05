@@ -216,6 +216,19 @@ public class UserController {
         }
     }
 
+    @DeleteMapping("/me")
+    @Operation(summary = "Excluir minha conta",
+               description = "Soft-delete da conta do usuário logado. Anonimiza dados pessoais e bloqueia login. " +
+                           "Contas de demonstração (demo.*@zapi10.com) não podem ser excluídas.")
+    public ResponseEntity<?> deleteMyAccount(Authentication authentication) {
+        try {
+            userService.softDeleteMyAccount(authentication);
+            return ResponseEntity.ok(java.util.Map.of("message", "Conta excluída com sucesso"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
     @PutMapping("/{id}/location")
     @Operation(summary = "Atualizar localização do usuário", description = "Atualiza gpsLatitude, gpsLongitude e timestamp do usuário")
     public ResponseEntity<UserResponse> updateLocation(
@@ -299,7 +312,8 @@ public class UserController {
         private String gender; // MALE, FEMALE, OTHER
         private Long organizationId; // ID da organização (opcional, aceita direto)
         private OrganizationIdWrapper organization; // Aceita também {"id": 6}
-        private Boolean enabled = true; // default true
+        private Boolean enabled = true; // default true — regras de preenchimento mínimo por role
+        private Boolean blocked; // bloqueio de segurança (impede login)
 
         // Método helper para obter o cityId de qualquer formato
         public Long getCityIdResolved() {
@@ -402,6 +416,10 @@ public class UserController {
 
         // Tipo de serviço (apenas para COURIER): DELIVERY, PASSENGER_TRANSPORT, BOTH
         private String serviceType;
+
+        // Ativação (admin only)
+        private Boolean enabled;       // regras de preenchimento mínimo por role
+        private Boolean blocked;       // bloqueio de segurança (impede login)
     }
 
     // DTO para atualização de localização
@@ -477,6 +495,8 @@ public class UserController {
         private String role;
         private String serviceType; // Tipo de serviço (apenas para COURIER): DELIVERY, PASSENGER_TRANSPORT, BOTH
         private OrganizationDTO organization;
+        private boolean enabled;  // regras de preenchimento mínimo por role
+        private boolean blocked;  // bloqueio de segurança (impede login)
 
         // Campos de localização GPS em tempo real (rastreamento do usuário)
         private Double gpsLatitude;
@@ -525,6 +545,9 @@ public class UserController {
             // Organization is now accessed through the reverse relationship (Organization.owner)
             // Will be populated separately if needed
             this.organization = null;
+
+            this.enabled = user.getEnabled();
+            this.blocked = user.isBlocked();
 
             // Inicializar listas vazias (serão preenchidas no controller se necessário)
             this.employmentContracts = new java.util.ArrayList<>();

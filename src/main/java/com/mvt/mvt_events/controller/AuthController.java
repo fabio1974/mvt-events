@@ -86,6 +86,13 @@ public class AuthController {
                         "username", user.getUsername()
                     ));
                 }
+                // Verificar se o usuário está bloqueado
+                if (user.isBlocked()) {
+                    return ResponseEntity.status(403).body(Map.of(
+                        "error", "USER_BLOCKED",
+                        "message", "Sua conta está bloqueada. Entre em contato com o suporte."
+                    ));
+                }
             }
 
             Authentication authentication = authenticationManager.authenticate(

@@ -462,8 +462,10 @@ public class DeliveryService {
      * VALIDA: Courier existe, está ativo, pertence ao ADM
      * 
      * VALIDAÇÃO DE PAGAMENTO:
-     * - Para CLIENT (estabelecimento): Pode aceitar SEM aguardar confirmação de pagamento
-     *   → Pagamento automático por cartão criado no aceite (se preferência CREDIT_CARD)
+     * - Para CLIENT (estabelecimento) + CREDIT_CARD: pagamento automático criado no aceite
+     * - Para CLIENT (estabelecimento) + PIX: SEM cobrança automática em nenhuma etapa.
+     *   O pagamento PIX será gerado manualmente pelo admin via frontend (perfil admin).
+     *   A delivery segue normalmente para ACCEPTED sem aguardar pagamento.
      * - Para CUSTOMER (app mobile) + DELIVERY ou RIDE type:
      *   → PIX: pagamento criado no aceite (imediato)
      *   → CREDIT_CARD: pagamento criado ao entrar em trânsito (confirmPickup)
@@ -511,12 +513,20 @@ public class DeliveryService {
 
             Delivery saved = deliveryRepository.save(delivery);
 
-            // 💳 PAGAMENTO AUTOMÁTICO CLIENT: Se tem preferência CREDIT_CARD
-            try {
-                createAutomaticCreditCardPayment(saved, delivery.getClient());
-            } catch (Exception e) {
-                log.warn("⚠️ Falha ao criar pagamento automático por cartão para delivery #{}: {}", 
-                    saved.getId(), e.getMessage());
+            // 💳 PAGAMENTO AUTOMÁTICO CLIENT: somente se preferência for CREDIT_CARD
+            // Se preferência for PIX → sem cobrança automática em nenhuma etapa da delivery.
+            // O pagamento PIX será criado manualmente pelo admin via frontend (perfil admin).
+            CustomerPaymentPreference clientPref = preferenceService.getPreference(delivery.getClient().getId());
+            if (clientPref != null && clientPref.getPreferredPaymentType() == PreferredPaymentType.PIX) {
+                log.info("💡 CLIENT com preferência PIX na delivery #{} — sem cobrança automática. " +
+                         "Pagamento será gerado manualmente pelo admin.", saved.getId());
+            } else {
+                try {
+                    createAutomaticCreditCardPayment(saved, delivery.getClient());
+                } catch (Exception e) {
+                    log.warn("⚠️ Falha ao criar pagamento automático por cartão para delivery #{}: {}", 
+                        saved.getId(), e.getMessage());
+                }
             }
 
             return deliveryRepository.findByIdWithJoins(saved.getId()).orElse(saved);
@@ -571,7 +581,9 @@ public class DeliveryService {
      * Courier confirma coleta
      * 
      * VALIDAÇÃO DE PAGAMENTO:
-     * - Para CLIENT (estabelecimento): Pode iniciar SEM aguardar confirmação de pagamento
+     * - Para CLIENT (estabelecimento): Sem cobrança nesta etapa (nem PIX, nem cartão)
+     *   → Se PIX: pagamento manual via admin
+     *   → Se CREDIT_CARD: pagamento já foi criado no aceite (assignToCourier)
      * - Para CUSTOMER (app mobile) + DELIVERY ou RIDE + CREDIT_CARD: cria pagamento ao entrar em trânsito
      * - Para CUSTOMER (app mobile) + DELIVERY ou RIDE + PIX: Pagamento já foi criado no accept
      */
@@ -884,6 +896,38 @@ public class DeliveryService {
     }
 
     /**
+     * Busca deliveries ativas de um organizer (ACCEPTED, IN_TRANSIT)
+     * Inicializa relacionamentos lazy para evitar LazyInitializationException
+     */
+    @Transactional(readOnly = true)
+    public List<Delivery> findActiveByOrganizer(UUID organizerId) {
+        List<Delivery> deliveries = deliveryRepository.findActiveByOrganizerId(organizerId);
+        for (Delivery delivery : deliveries) {
+            org.hibernate.Hibernate.initialize(delivery.getClient());
+            org.hibernate.Hibernate.initialize(delivery.getCourier());
+            org.hibernate.Hibernate.initialize(delivery.getOrganizer());
+            org.hibernate.Hibernate.initialize(delivery.getVehicle());
+        }
+        return deliveries;
+    }
+
+    /**
+     * Busca deliveries concluídas de um organizer
+     * Ordenadas por completedAt DESC (mais recentes primeiro)
+     */
+    @Transactional(readOnly = true)
+    public List<Delivery> findCompletedByOrganizer(UUID organizerId) {
+        List<Delivery> deliveries = deliveryRepository.findCompletedByOrganizerId(organizerId);
+        for (Delivery delivery : deliveries) {
+            org.hibernate.Hibernate.initialize(delivery.getClient());
+            org.hibernate.Hibernate.initialize(delivery.getCourier());
+            org.hibernate.Hibernate.initialize(delivery.getOrganizer());
+            org.hibernate.Hibernate.initialize(delivery.getVehicle());
+        }
+        return deliveries;
+    }
+
+    /**
      * Lista deliveries PENDING e sem courier de clientes CUSTOMER,
      * aplicando filtro de proximidade (<= radiusKm) em relação ao pickup OU destino.
      * NÃO exige contratos - qualquer delivery de cliente CUSTOMER é elegível.
@@ -1069,7 +1113,8 @@ public class DeliveryService {
         // 1. Verificar preferência de pagamento
         CustomerPaymentPreference preference = preferenceService.getPreference(fullClient.getId());
         if (preference == null || preference.getPreferredPaymentType() != PreferredPaymentType.CREDIT_CARD) {
-            log.info("   ├─ Cliente sem preferência de cartão, não criar pagamento automático");
+            log.info("   ├─ Preferência de pagamento não é CREDIT_CARD ({}), não criar pagamento automático por cartão",
+                preference != null ? preference.getPreferredPaymentType() : "null");
             return;
         }
         
@@ -1130,6 +1175,7 @@ public class DeliveryService {
         payment.setProvider(PaymentProvider.PAGARME);
         payment.setPayer(fullClient);
         payment.setStatus(PaymentStatus.PENDING);
+        payment.setCustomerCard(card);
         payment.addDelivery(delivery);
         
         try {
@@ -1595,6 +1641,7 @@ public class DeliveryService {
         payment.setProvider(PaymentProvider.PAGARME);
         payment.setPayer(customer);
         payment.setStatus(PaymentStatus.PENDING);
+        payment.setCustomerCard(card);
         payment.addDelivery(delivery);
 
         // CRÍTICO: Capturar request/response do OrderResponse

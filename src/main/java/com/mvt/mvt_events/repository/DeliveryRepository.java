@@ -128,6 +128,26 @@ public interface DeliveryRepository
         List<Delivery> findCompletedUnpaidByCourierId(@Param("courierId") UUID courierId);
 
         /**
+         * Busca deliveries ativas de um organizer (ACCEPTED, IN_TRANSIT)
+         * Ordenadas por updatedAt DESC para mostrar as mais recentes primeiro
+         */
+        @Query("SELECT d FROM Delivery d " +
+                        "WHERE d.organizer.id = :organizerId " +
+                        "AND d.status IN ('ACCEPTED', 'IN_TRANSIT') " +
+                        "ORDER BY d.updatedAt DESC")
+        List<Delivery> findActiveByOrganizerId(@Param("organizerId") UUID organizerId);
+
+        /**
+         * Busca deliveries concluídas de um organizer
+         * Ordenadas por completedAt DESC para mostrar as mais recentes primeiro
+         */
+        @Query("SELECT d FROM Delivery d " +
+                        "WHERE d.organizer.id = :organizerId " +
+                        "AND d.status = 'COMPLETED' " +
+                        "ORDER BY d.completedAt DESC")
+        List<Delivery> findCompletedByOrganizerId(@Param("organizerId") UUID organizerId);
+
+        /**
          * Busca deliveries em um período para uma organização (ordenado por updatedAt DESC)
          * Usa ClientContract para determinar organização do cliente
          */

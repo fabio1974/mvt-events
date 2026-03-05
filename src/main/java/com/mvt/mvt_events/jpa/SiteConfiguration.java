@@ -4,6 +4,8 @@ import com.mvt.mvt_events.metadata.Visible;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -158,6 +160,30 @@ public class SiteConfiguration extends BaseEntity {
     @Size(max = 300, message = "Observações podem ter no máximo 300 caracteres")  
     @Visible(table = false, form = true, filter = false)
     private String notes;
+
+    /**
+     * Número de dias padrão para filtrar histórico de pagamentos no FE/Mobile.
+     * O FE/Mobile pode sobrescrever via parâmetro recentDays na query.
+     * Ex: 7 = últimos 7 dias, 30 = último mês.
+     */
+    @NotNull(message = "Número de dias do histórico de pagamentos é obrigatório")
+    @Min(value = 1, message = "Mínimo de 1 dia")
+    @Max(value = 365, message = "Máximo de 365 dias")
+    @Column(name = "payment_history_days", nullable = false)
+    @Visible(table = true, form = true, filter = false)
+    private Integer paymentHistoryDays = 7;
+
+    /**
+     * Número de dias padrão para filtrar histórico de deliveries no FE/Mobile.
+     * Aplicado quando o parâmetro recent=true é passado na query.
+     * Ex: 7 = últimos 7 dias, 30 = último mês.
+     */
+    @NotNull(message = "Número de dias do histórico de deliveries é obrigatório")
+    @Min(value = 1, message = "Mínimo de 1 dia")
+    @Max(value = 365, message = "Máximo de 365 dias")
+    @Column(name = "delivery_history_days", nullable = false)
+    @Visible(table = true, form = true, filter = false)
+    private Integer deliveryHistoryDays = 7;
 
     @PrePersist
     protected void onCreate() {

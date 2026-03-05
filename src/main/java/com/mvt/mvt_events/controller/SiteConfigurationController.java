@@ -135,14 +135,19 @@ public class SiteConfigurationController {
         
         // Atualizar campos
         existingConfig.setPricePerKm(updatedConfig.getPricePerKm());
+        existingConfig.setCarPricePerKm(updatedConfig.getCarPricePerKm());
         existingConfig.setMinimumShippingFee(updatedConfig.getMinimumShippingFee());
+        existingConfig.setCarMinimumShippingFee(updatedConfig.getCarMinimumShippingFee());
         existingConfig.setOrganizerPercentage(updatedConfig.getOrganizerPercentage());
         existingConfig.setPlatformPercentage(updatedConfig.getPlatformPercentage());
         existingConfig.setPagarmeRecipientId(updatedConfig.getPagarmeRecipientId());
         existingConfig.setDangerFeePercentage(updatedConfig.getDangerFeePercentage());
         existingConfig.setHighIncomeFeePercentage(updatedConfig.getHighIncomeFeePercentage());
+        existingConfig.setCreditCardFeePercentage(updatedConfig.getCreditCardFeePercentage());
         existingConfig.setIsActive(updatedConfig.getIsActive());
         existingConfig.setNotes(updatedConfig.getNotes());
+        existingConfig.setPaymentHistoryDays(updatedConfig.getPaymentHistoryDays());
+        existingConfig.setDeliveryHistoryDays(updatedConfig.getDeliveryHistoryDays());
         existingConfig.setUpdatedBy(admin.getUsername());
         
         // Salvar

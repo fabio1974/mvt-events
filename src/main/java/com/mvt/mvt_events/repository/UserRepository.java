@@ -182,7 +182,7 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
         * Usa immutable_unaccent para busca insensível a acentos
         */
        @Query(value = "SELECT * FROM users u WHERE u.role = 'COURIER' " +
-              "AND u.enabled = true " +
+              "AND u.enabled = true AND u.blocked = false " +
               "AND (immutable_unaccent(LOWER(u.name)) LIKE immutable_unaccent(LOWER(CONCAT('%', :search, '%'))) OR immutable_unaccent(LOWER(u.username)) LIKE immutable_unaccent(LOWER(CONCAT('%', :search, '%')))) " +
               "AND NOT EXISTS (SELECT 1 FROM employment_contracts ec WHERE ec.courier_id = u.id AND ec.organization_id = :organizationId AND ec.is_active = true) " +
               "ORDER BY u.name ASC " +
@@ -196,7 +196,7 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
         * Usa immutable_unaccent para busca insensível a acentos
         */
        @Query(value = "SELECT * FROM users u WHERE u.role = 'COURIER' " +
-              "AND u.enabled = true " +
+              "AND u.enabled = true AND u.blocked = false " +
               "AND (immutable_unaccent(LOWER(u.name)) LIKE immutable_unaccent(LOWER(CONCAT('%', :search, '%'))) OR immutable_unaccent(LOWER(u.username)) LIKE immutable_unaccent(LOWER(CONCAT('%', :search, '%')))) " +
               "ORDER BY u.name ASC " +
               "LIMIT :limit", nativeQuery = true)
@@ -213,7 +213,7 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
         * Usa immutable_unaccent para busca insensível a acentos
         */
        @Query(value = "SELECT * FROM users u WHERE u.role IN ('CLIENT', 'CUSTOMER') " +
-              "AND u.enabled = true " +
+              "AND u.enabled = true AND u.blocked = false " +
               "AND (immutable_unaccent(LOWER(u.name)) LIKE immutable_unaccent(LOWER(CONCAT('%', :search, '%'))) OR immutable_unaccent(LOWER(u.username)) LIKE immutable_unaccent(LOWER(CONCAT('%', :search, '%')))) " +
               "AND NOT EXISTS (SELECT 1 FROM client_contracts cc WHERE cc.client_id = u.id AND cc.organization_id = :organizationId AND cc.status = 'ACTIVE') " +
               "ORDER BY u.name ASC " +
@@ -227,7 +227,7 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
         * Usa immutable_unaccent para busca insensível a acentos
         */
        @Query(value = "SELECT * FROM users u WHERE u.role IN ('CLIENT', 'CUSTOMER') " +
-              "AND u.enabled = true " +
+              "AND u.enabled = true AND u.blocked = false " +
               "AND (immutable_unaccent(LOWER(u.name)) LIKE immutable_unaccent(LOWER(CONCAT('%', :search, '%'))) OR immutable_unaccent(LOWER(u.username)) LIKE immutable_unaccent(LOWER(CONCAT('%', :search, '%')))) " +
               "ORDER BY u.name ASC " +
               "LIMIT :limit", nativeQuery = true)

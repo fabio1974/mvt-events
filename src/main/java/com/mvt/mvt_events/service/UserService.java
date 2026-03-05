@@ -61,6 +61,9 @@ public class UserService {
     @Autowired
     private com.mvt.mvt_events.repository.CustomerCardRepository customerCardRepository;
 
+    @Autowired
+    private com.mvt.mvt_events.repository.CustomerPaymentPreferenceRepository customerPaymentPreferenceRepository;
+
     public List<User> findAll() {
         return userRepository.findAll();
     }
@@ -204,9 +207,14 @@ public class UserService {
             }
         }
 
-        // Enabled
+        // Enabled — regras de preenchimento mínimo por role
         if (request.getEnabled() != null) {
             user.setEnabled(request.getEnabled());
+        }
+
+        // Blocked — bloqueio de segurança (impede login)
+        if (request.getBlocked() != null) {
+            user.setBlocked(request.getBlocked());
         }
 
         User savedUser = userRepository.save(user);
@@ -330,6 +338,19 @@ public class UserService {
             } catch (IllegalArgumentException e) {
                 throw new RuntimeException("serviceType inválido. Valores aceitos: DELIVERY, PASSENGER_TRANSPORT, BOTH");
             }
+        }
+
+        // Enabled — validações obrigatórias por role para ativação
+        if (request.getEnabled() != null) {
+            if (request.getEnabled()) {
+                validateActivationRequirements(user);
+            }
+            user.setEnabled(request.getEnabled());
+        }
+
+        // Blocked — bloqueio de segurança (impede login)
+        if (request.getBlocked() != null) {
+            user.setBlocked(request.getBlocked());
         }
 
         // Processar array de endereços (sincronização: update, insert, delete)
@@ -518,6 +539,60 @@ public class UserService {
 
         User user = findById(id);
         userRepository.delete(user);
+    }
+
+    /**
+     * Soft-delete da própria conta do usuário logado (DELETE /api/users/me).
+     * - Contas demo (demo.*@zapi10.com) não podem ser excluídas.
+     * - Anonimiza dados pessoais e bloqueia login.
+     */
+    public void softDeleteMyAccount(Authentication authentication) {
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+        if (user.isDemoAccount()) {
+            throw new RuntimeException("Contas de demonstração não podem ser excluídas");
+        }
+
+        // Anonymize personal data
+        user.setUsername("deleted_" + user.getId() + "@removed.com");
+        user.setName("Usuário Removido");
+        user.setDocumentNumber(generateDeletedCpf(user.getId()));
+        user.setPhoneDdd(null);
+        user.setPhoneNumber(null);
+
+        // Block login and mark as deleted
+        user.setBlocked(true);
+        user.setEnabled(false);
+        user.setDeletedAt(LocalDateTime.now());
+
+        userRepository.save(user);
+    }
+
+    /**
+     * Generates a unique valid CPF from UUID for anonymized deleted accounts.
+     */
+    private String generateDeletedCpf(UUID userId) {
+        // Use first 9 hex digits of UUID, convert to decimal base digits
+        String hex = userId.toString().replace("-", "");
+        long num = Long.parseLong(hex.substring(0, 9), 16) % 999999999L;
+        String base = String.format("%09d", num);
+        int[] digits = new int[11];
+        for (int i = 0; i < 9; i++) digits[i] = base.charAt(i) - '0';
+        // First check digit
+        int sum = 0;
+        for (int i = 0; i < 9; i++) sum += digits[i] * (10 - i);
+        int rem = sum % 11;
+        digits[9] = rem < 2 ? 0 : 11 - rem;
+        // Second check digit
+        sum = 0;
+        for (int i = 0; i < 10; i++) sum += digits[i] * (11 - i);
+        rem = sum % 11;
+        digits[10] = rem < 2 ? 0 : 11 - rem;
+        StringBuilder sb = new StringBuilder();
+        for (int d : digits) sb.append(d);
+        return sb.toString();
     }
 
     public User findByUsername(String username) {
@@ -957,27 +1032,52 @@ public class UserService {
         }
         
         // Verificações específicas por role
-        if (user.getRole() == User.Role.COURIER) {
-            // Verificar veículo
-            List<com.mvt.mvt_events.jpa.Vehicle> vehicles = vehicleRepository.findByOwnerId(user.getId());
-            if (vehicles.isEmpty()) {
-                missing.add("vehicle");
-                messages.put("vehicle", "Cadastre um veículo");
-            }
-            
+        if (user.getRole() == User.Role.ORGANIZER) {
             // Verificar conta bancária
             boolean hasBankAccount = bankAccountRepository.existsByUserId(user.getId());
             if (!hasBankAccount) {
                 missing.add("bankAccount");
                 messages.put("bankAccount", "Cadastre sua conta bancária");
             }
-            
-        } else if (user.getRole() == User.Role.CUSTOMER) {
-            // Verificar meio de pagamento (cartão)
+            // Verificar dados de saque (Pagar.me)
+            if (user.getPagarmeRecipientId() == null || !"active".equals(user.getPagarmeStatus())) {
+                missing.add("transferSettings");
+                messages.put("transferSettings", "Configure seus dados de saque");
+            }
+
+        } else if (user.getRole() == User.Role.COURIER) {
+            // Verificar conta bancária
+            boolean hasBankAccount = bankAccountRepository.existsByUserId(user.getId());
+            if (!hasBankAccount) {
+                missing.add("bankAccount");
+                messages.put("bankAccount", "Cadastre sua conta bancária");
+            }
+            // Verificar dados de saque (Pagar.me)
+            if (user.getPagarmeRecipientId() == null || !"active".equals(user.getPagarmeStatus())) {
+                missing.add("transferSettings");
+                messages.put("transferSettings", "Configure seus dados de saque");
+            }
+            // Verificar veículo
+            List<com.mvt.mvt_events.jpa.Vehicle> vehicles = vehicleRepository.findByOwnerId(user.getId());
+            if (vehicles.isEmpty()) {
+                missing.add("vehicle");
+                messages.put("vehicle", "Cadastre um veículo");
+            }
+            // Verificar tipo de serviço
+            if (user.getServiceType() == null) {
+                missing.add("serviceType");
+                messages.put("serviceType", "Defina seu tipo de serviço");
+            }
+
+        } else if (user.getRole() == User.Role.CUSTOMER || user.getRole() == User.Role.CLIENT) {
+            // Verificar meio de pagamento (cartão ativo OU preferência PIX)
             long activeCards = customerCardRepository.countActiveCardsByCustomerId(user.getId());
-            if (activeCards == 0) {
+            boolean hasPixPreference = customerPaymentPreferenceRepository.findByUserId(user.getId())
+                    .map(pref -> pref.getPreferredPaymentType() == com.mvt.mvt_events.jpa.CustomerPaymentPreference.PreferredPaymentType.PIX)
+                    .orElse(false);
+            if (activeCards == 0 && !hasPixPreference) {
                 missing.add("paymentMethod");
-                messages.put("paymentMethod", "Cadastre um meio de pagamento");
+                messages.put("paymentMethod", "Cadastre um meio de pagamento (cartão ou PIX)");
             }
         }
         
@@ -995,5 +1095,51 @@ public class UserService {
                 .messages(messages)
                 .suggested(suggested)
                 .build();
+    }
+
+    /**
+     * Valida requisitos obrigatórios para ativação por role.
+     * Lança RuntimeException se algum requisito não for atendido.
+     */
+    private void validateActivationRequirements(User user) {
+        switch (user.getRole()) {
+            case ORGANIZER:
+                if (!bankAccountRepository.existsByUserId(user.getId())) {
+                    throw new RuntimeException("Organizer precisa ter conta bancária cadastrada para ser ativado");
+                }
+                if (user.getPagarmeRecipientId() == null || !"active".equals(user.getPagarmeStatus())) {
+                    throw new RuntimeException("Organizer precisa ter dados de saque configurados no Pagar.me para ser ativado");
+                }
+                break;
+
+            case COURIER:
+                if (!bankAccountRepository.existsByUserId(user.getId())) {
+                    throw new RuntimeException("Courier precisa ter conta bancária cadastrada para ser ativado");
+                }
+                if (user.getPagarmeRecipientId() == null || !"active".equals(user.getPagarmeStatus())) {
+                    throw new RuntimeException("Courier precisa ter dados de saque configurados no Pagar.me para ser ativado");
+                }
+                if (vehicleRepository.findByOwnerId(user.getId()).isEmpty()) {
+                    throw new RuntimeException("Courier precisa ter veículo cadastrado para ser ativado");
+                }
+                if (user.getServiceType() == null) {
+                    throw new RuntimeException("Courier precisa ter tipo de serviço definido para ser ativado");
+                }
+                break;
+
+            case CUSTOMER:
+            case CLIENT:
+                boolean hasActiveCard = customerCardRepository.countActiveCardsByCustomerId(user.getId()) > 0;
+                boolean hasPixPreference = customerPaymentPreferenceRepository.findByUserId(user.getId())
+                        .map(pref -> pref.getPreferredPaymentType() == com.mvt.mvt_events.jpa.CustomerPaymentPreference.PreferredPaymentType.PIX)
+                        .orElse(false);
+                if (!hasActiveCard && !hasPixPreference) {
+                    throw new RuntimeException("Cliente precisa ter cartão ativo ou preferência PIX cadastrada para ser ativado");
+                }
+                break;
+
+            default:
+                break;
+        }
     }
 }

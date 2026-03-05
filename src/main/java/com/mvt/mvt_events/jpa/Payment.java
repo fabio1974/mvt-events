@@ -54,6 +54,16 @@ public class Payment extends BaseEntity {
     @Visible(table = true, form = true, filter = true)
     private User payer;
 
+    /**
+     * Cartão utilizado no pagamento (preenchido apenas quando paymentMethod = CREDIT_CARD).
+     * Null para pagamentos PIX.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_card_id")
+    @JsonIgnore
+    @Visible(table = false, form = false, filter = false)
+    private CustomerCard customerCard;
+
     // ============================================================================
     // PAYMENT INFO
     // ============================================================================

@@ -162,6 +162,13 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    @Column(nullable = false)
+    private boolean blocked = false;
+
+    @Column(name = "deleted_at")
+    @Visible(table = false, form = false, filter = false)
+    private LocalDateTime deletedAt;
+
     // ============================================================================
     // EMAIL CONFIRMATION FIELDS
     // ============================================================================
@@ -323,7 +330,12 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return enabled;
+        return !blocked;
+    }
+
+    /** Valor real do campo enabled (regras de preenchimento mínimo por role). */
+    public boolean getEnabled() {
+        return this.enabled;
     }
 
     // ============================================================================
@@ -332,6 +344,10 @@ public class User implements UserDetails {
 
     public boolean isOrganizer() {
         return role == Role.ORGANIZER;
+    }
+
+    public boolean isDemoAccount() {
+        return username != null && username.startsWith("demo.") && username.endsWith("@zapi10.com");
     }
 
     public boolean isAdmin() {

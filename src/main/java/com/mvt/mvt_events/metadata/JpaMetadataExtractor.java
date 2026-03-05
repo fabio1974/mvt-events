@@ -170,6 +170,8 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("highIncomeFeePercentage", "Taxa de Renda Alta (%)");
         FIELD_TRANSLATIONS.put("creditCardFeePercentage", "Taxa de Cartão de Crédito (%)");
         FIELD_TRANSLATIONS.put("isActive", "Ativo");
+        FIELD_TRANSLATIONS.put("paymentHistoryDays", "Dias do Histórico de Pagamentos");
+        FIELD_TRANSLATIONS.put("deliveryHistoryDays", "Dias do Histórico de Entregas");
         FIELD_TRANSLATIONS.put("updatedBy", "Atualizado por");
         FIELD_TRANSLATIONS.put("notes", "Observações");
 

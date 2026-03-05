@@ -124,6 +124,10 @@ public class JwtUtil {
                 }
             }
 
+            // Activation status
+            claims.put("enabled", user.getEnabled());
+            claims.put("blocked", user.isBlocked());
+
             // Add organization_id for ORGANIZER users - find organization where user is owner
             Optional<Organization> orgOpt = organizationRepository.findByOwner(user);
             if (orgOpt.isPresent()) {
@@ -273,6 +277,8 @@ public class JwtUtil {
         userData.put("latitude", claims.get("latitude"));
         userData.put("longitude", claims.get("longitude"));
         userData.put("organizationId", claims.get("organizationId"));
+        userData.put("enabled", claims.get("enabled"));
+        userData.put("blocked", claims.get("blocked"));
 
         return userData;
     }

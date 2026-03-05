@@ -847,6 +847,9 @@ public class PaymentService {
                 log.info("⏳ Pagamento com cartão pendente de aprovação - Delivery: {}", delivery.getId());
             }
             
+            // Vincular cartão utilizado ao pagamento
+            payment.setCustomerCard(card);
+
             payment = paymentRepository.save(payment);
             log.info("💾 Payment salvo - ID: {}, Provider ID: {}, Status: {}, Request length: {}, Response length: {}",
                 payment.getId(), 

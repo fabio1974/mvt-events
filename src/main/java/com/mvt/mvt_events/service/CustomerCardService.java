@@ -392,6 +392,7 @@ public class CustomerCardService {
             payment.setProvider(com.mvt.mvt_events.jpa.PaymentProvider.PAGARME);
             payment.setPayer(customer);
             payment.setStatus(paymentStatus);
+            payment.setCustomerCard(card);
             payment.addDelivery(delivery);
             
             if (isPaid) {

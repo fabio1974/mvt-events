@@ -4,10 +4,15 @@ import com.mvt.mvt_events.common.JwtUtil;
 import com.mvt.mvt_events.dto.PaymentRequest;
 import com.mvt.mvt_events.dto.PaymentResponse;
 import com.mvt.mvt_events.payment.dto.PaymentReportResponse;
+import com.mvt.mvt_events.payment.dto.RecipientBalanceResponse;
+import com.mvt.mvt_events.payment.service.PagarMeService;
 import com.mvt.mvt_events.jpa.Payment;
 import com.mvt.mvt_events.jpa.PaymentStatus;
+import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.repository.PaymentRepository;
+import com.mvt.mvt_events.repository.UserRepository;
 import com.mvt.mvt_events.service.PaymentService;
+import com.mvt.mvt_events.service.SiteConfigurationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -15,7 +20,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,6 +30,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
@@ -88,6 +96,9 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final PaymentRepository paymentRepository;
     private final JwtUtil jwtUtil;
+    private final SiteConfigurationService siteConfigurationService;
+    private final UserRepository userRepository;
+    private final PagarMeService pagarMeService;
 
     /**
      * Listar todos os pagamentos com paginação e filtros
@@ -105,7 +116,8 @@ public class PaymentController {
             @RequestParam(required = false) UUID payerId,
             @RequestParam(required = false) PaymentStatus status,
             @RequestParam(required = false) String transactionId,
-            Pageable pageable,
+            @RequestParam(required = false, defaultValue = "false") boolean recent,
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             jakarta.servlet.http.HttpServletRequest request) {
         
         // Extrair role e userId do token JWT
@@ -115,6 +127,13 @@ public class PaymentController {
         
         Specification<Payment> spec = (root, query, cb) -> cb.conjunction();
         
+        // Filtro por data: recent=true usa paymentHistoryDays do site_configurations
+        if (recent) {
+            int days = siteConfigurationService.getActiveConfiguration().getPaymentHistoryDays();
+            LocalDateTime since = LocalDateTime.now().minusDays(days);
+            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("createdAt"), since));
+        }
+
         // CLIENT e CUSTOMER só podem ver seus próprios pagamentos (onde ele é o payer)
         if ("CLIENT".equals(role) || "CUSTOMER".equals(role)) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("payer").get("id"), userIdFromToken));
@@ -126,7 +145,9 @@ public class PaymentController {
             });
         } else if ("ORGANIZER".equals(role)) {
             // ORGANIZER vê apenas pagamentos de entregas onde ele é o gerente
+            // query.distinct(true) evita duplicatas quando um payment tem múltiplas deliveries do mesmo organizer
             spec = spec.and((root, query, cb) -> {
+                query.distinct(true);
                 var deliveriesJoin = root.join("deliveries");
                 return cb.equal(deliveriesJoin.get("organizer").get("id"), userIdFromToken);
             });
@@ -155,6 +176,48 @@ public class PaymentController {
             return authHeader.substring(7);
         }
         throw new RuntimeException("Token JWT não encontrado no header Authorization");
+    }
+
+    /**
+     * Listar pagamentos do organizer autenticado
+     * Retorna todos os payments que contêm ao menos uma delivery onde o gerente logado é o organizer.
+     * Suporte a paginação e filtro por status.
+     */
+    @GetMapping("/organizer")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORGANIZER')")
+    @Transactional(readOnly = true)
+    @Operation(
+            summary = "Listar pagamentos do gerente autenticado",
+            description = "Retorna pagamentos que contêm ao menos uma entrega onde o gerente logado é o organizer. " +
+                         "O organizerId é extraído do token — nenhum parâmetro de ID necessário."
+    )
+    public Page<PaymentResponse> listByOrganizer(
+            @RequestParam(required = false) PaymentStatus status,
+            @RequestParam(required = false, defaultValue = "false") boolean recent,
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            jakarta.servlet.http.HttpServletRequest request) {
+
+        String token = extractTokenFromRequest(request);
+        UUID organizerId = UUID.fromString(jwtUtil.getUserIdFromToken(token));
+
+        Specification<Payment> spec = (root, query, cb) -> {
+            query.distinct(true);
+            var deliveriesJoin = root.join("deliveries");
+            return cb.equal(deliveriesJoin.get("organizer").get("id"), organizerId);
+        };
+
+        // Filtro por data: recent=true usa paymentHistoryDays do site_configurations
+        if (recent) {
+            int days = siteConfigurationService.getActiveConfiguration().getPaymentHistoryDays();
+            LocalDateTime since = LocalDateTime.now().minusDays(days);
+            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("createdAt"), since));
+        }
+
+        if (status != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+        }
+
+        return paymentRepository.findAll(spec, pageable).map(PaymentResponse::from);
     }
 
     /**
@@ -477,6 +540,67 @@ public class PaymentController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                     "error", "INTERNAL_ERROR",
                     "message", "Erro ao processar pagamento: " + e.getMessage()
+            ));
+        }
+    }
+
+    // ============================================================================
+    // SALDO DO RECEBEDOR (COURIER / ORGANIZER)
+    // ============================================================================
+
+    /**
+     * Retorna o saldo do usuário logado no Pagar.me.
+     *
+     * <p>Fluxo:</p>
+     * <ol>
+     *   <li>Extrai userId do token JWT</li>
+     *   <li>Busca o usuário e obtém seu pagarmeRecipientId</li>
+     *   <li>Chama Pagar.me GET /recipients/{id}/balance</li>
+     *   <li>Retorna disponível, a receber e total transferido em centavos e em Reais</li>
+     * </ol>
+     *
+     * <p>Exemplo de resposta:</p>
+     * <pre>
+     * {
+     *   "recipientId": "re_abc123",
+     *   "available":      { "amount": 1250 },
+     *   "waiting_funds":   { "amount": 500 },
+     *   "transferred":    { "amount": 20000 },
+     *   "availableBrl":   12.50,
+     *   "waitingFundsBrl": 5.00,
+     *   "transferredBrl": 200.00
+     * }
+     * </pre>
+     */
+    @GetMapping("/my-balance")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER')")
+    @Operation(summary = "Saldo do recebedor logado", description = "Retorna o saldo disponível, a receber e transferido do usuário logado no Pagar.me")
+    public ResponseEntity<?> getMyBalance(@RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.replace("Bearer ", "");
+        UUID userId = UUID.fromString(jwtUtil.getUserIdFromToken(token));
+
+        log.info("💰 Consultando saldo Pagar.me do usuário {}", userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+        String recipientId = user.getPagarmeRecipientId();
+        if (recipientId == null || recipientId.isBlank()) {
+            log.warn("⚠️ Usuário {} não possui pagarmeRecipientId cadastrado", userId);
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(Map.of(
+                    "error", "NO_RECIPIENT",
+                    "message", "Usuário não possui conta de recebedor cadastrada no Pagar.me"
+            ));
+        }
+
+        try {
+            RecipientBalanceResponse balance = pagarMeService.getRecipientBalance(recipientId);
+            return ResponseEntity.ok(balance);
+        } catch (Exception e) {
+            log.error("❌ Erro ao consultar saldo do usuário {} (recipient={})", userId, recipientId, e);
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of(
+                    "error", "PAGARME_ERROR",
+                    "message", "Erro ao consultar saldo na Pagar.me: " + e.getMessage()
             ));
         }
     }
