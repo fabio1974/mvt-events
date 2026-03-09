@@ -106,7 +106,7 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
               "AND u.gpsLongitude IS NOT NULL " +
               "AND NOT EXISTS (" +
               "  SELECT 1 FROM Delivery d WHERE d.courier.id = u.id " +
-              "  AND d.status IN ('PENDING', 'ACCEPTED', 'IN_TRANSIT')" +
+              "  AND d.status IN ('ACCEPTED', 'WAITING_PAYMENT', 'IN_TRANSIT')" +
               ") " +
               "AND (u.serviceType IS NULL OR u.serviceType IN :serviceTypes) " +
               "AND (6371 * acos(cos(radians(:latitude)) * cos(radians(u.gpsLatitude)) * " +
@@ -134,7 +134,7 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
               "AND u.gpsLongitude IS NOT NULL " +
               "AND NOT EXISTS (" +
               "  SELECT 1 FROM Delivery d WHERE d.courier.id = u.id " +
-              "  AND d.status IN ('PENDING', 'ACCEPTED', 'IN_TRANSIT')" +
+              "  AND d.status IN ('ACCEPTED', 'WAITING_PAYMENT', 'IN_TRANSIT')" +
               ") " +
               "AND EXISTS (" +
               "  SELECT 1 FROM Vehicle v WHERE v.owner.id = u.id " +

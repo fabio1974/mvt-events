@@ -448,9 +448,13 @@ public class PaymentService {
         SiteConfiguration config = siteConfigurationRepository.findActiveConfiguration()
                 .orElseThrow(() -> new IllegalStateException("Nenhuma configuração ativa encontrada"));
 
-        // Lista de deliveries do pagamento
-        List<Delivery> deliveries = payment.getDeliveries();
-        
+        // Lista de deliveries do pagamento — mais recente primeiro
+        List<Delivery> deliveries = payment.getDeliveries().stream()
+                .sorted(java.util.Comparator.comparing(
+                        d -> d.getCreatedAt() != null ? d.getCreatedAt() : java.time.LocalDateTime.MIN,
+                        java.util.Comparator.reverseOrder()))
+                .collect(java.util.stream.Collectors.toList());
+
         // Mapa para acumular splits consolidados por recipient
         Map<String, PaymentReportResponse.SplitItem> consolidatedSplitsMap = new HashMap<>();
 

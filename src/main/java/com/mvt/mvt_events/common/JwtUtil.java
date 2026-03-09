@@ -128,6 +128,11 @@ public class JwtUtil {
             claims.put("enabled", user.getEnabled());
             claims.put("blocked", user.isBlocked());
 
+            // Current delivery for COURIER
+            if (user.getCurrentDeliveryId() != null) {
+                claims.put("currentDeliveryId", user.getCurrentDeliveryId());
+            }
+
             // Add organization_id for ORGANIZER users - find organization where user is owner
             Optional<Organization> orgOpt = organizationRepository.findByOwner(user);
             if (orgOpt.isPresent()) {

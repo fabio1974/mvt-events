@@ -86,5 +86,29 @@ public class UserIntegrityCheck {
         if (total == 0) {
             log.info("[INTEGRITY] Todos os usuários ativos possuem os requisitos obrigatórios");
         }
+
+        // === DELIVERY INTEGRITY: PENDING jamais pode ter courier atrelado ===
+        int pendingWithCourier = jdbcTemplate.update(
+            "UPDATE deliveries SET courier_id = NULL " +
+            "WHERE status = 'PENDING' AND courier_id IS NOT NULL"
+        );
+        if (pendingWithCourier > 0) {
+            log.warn("[INTEGRITY] DELIVERY: {} delivery(ies) PENDING tinham courier_id — limpeza realizada", pendingWithCourier);
+        } else {
+            log.info("[INTEGRITY] DELIVERY: nenhuma delivery PENDING com courier_id órfão encontrada");
+        }
+
+        // === COURIER INTEGRITY: currentDeliveryId só pode apontar para delivery ativa ===
+        int staleCurrentDelivery = jdbcTemplate.update(
+            "UPDATE users SET current_delivery_id = NULL " +
+            "WHERE current_delivery_id IN (" +
+            "  SELECT id FROM deliveries WHERE status IN ('COMPLETED','CANCELLED','PENDING')" +
+            ")"
+        );
+        if (staleCurrentDelivery > 0) {
+            log.warn("[INTEGRITY] COURIER: {} courier(s) com currentDeliveryId apontando para delivery finalizada — limpeza realizada", staleCurrentDelivery);
+        } else {
+            log.info("[INTEGRITY] COURIER: nenhum currentDeliveryId órfão encontrado");
+        }
     }
 }

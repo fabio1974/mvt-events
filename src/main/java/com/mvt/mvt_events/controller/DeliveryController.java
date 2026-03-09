@@ -96,16 +96,9 @@ public class DeliveryController {
             @RequestParam(required = false) Boolean hasPayment,
             @RequestParam(required = false) String completedAfter,
             @RequestParam(required = false) String completedBefore,
-            @RequestParam(required = false, defaultValue = "false") boolean recent,
             Pageable pageable,
             Authentication authentication,
             jakarta.servlet.http.HttpServletRequest request) {
-
-        // recent=true: limitar por delivery_history_days do site_configurations
-        if (recent && startDate == null) {
-            int days = siteConfigurationService.getActiveConfiguration().getDeliveryHistoryDays();
-            startDate = LocalDateTime.now().minusDays(days).toString();
-        }
 
         // Garantir ordenação por updatedAt DESC se não especificado
         if (pageable.getSort().isUnsorted()) {
@@ -208,25 +201,6 @@ public class DeliveryController {
         }
 
         return deliveries.map(d -> mapToResponse(d, paymentsMap));
-    }
-
-    @GetMapping("/organizer")
-    @Operation(summary = "Listar deliveries do organizer autenticado", description = "Retorna entregas do organizer do token com paginação")
-    @Transactional(readOnly = true)
-    public Page<DeliveryResponse> listByOrganizer(
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) String endDate,
-            @RequestParam(required = false) Boolean hasPayment,
-            @RequestParam(required = false) String completedAfter,
-            @RequestParam(required = false) String completedBefore,
-            @RequestParam(required = false, defaultValue = "false") boolean recent,
-            Pageable pageable,
-            Authentication authentication,
-            jakarta.servlet.http.HttpServletRequest request) {
-
-        return list(null, null, null, status, startDate, endDate, hasPayment,
-                completedAfter, completedBefore, recent, pageable, authentication, request);
     }
 
     @GetMapping("/{id}")
@@ -437,33 +411,6 @@ public class DeliveryController {
         return ResponseEntity.ok(deliveries.stream().map(this::mapToResponse).toList());
     }
 
-    @GetMapping("/organizer/active")
-    @Operation(summary = "Listar deliveries ativas do organizer autenticado",
-               description = "Retorna entregas com status ACCEPTED ou IN_TRANSIT do gerente logado.")
-    public ResponseEntity<?> listOrganizerActive(Authentication authentication) {
-        UUID organizerId = getUserIdFromAuthentication(authentication);
-        var deliveries = deliveryService.findActiveByOrganizer(organizerId);
-        return ResponseEntity.ok(deliveries.stream().map(this::mapToResponse).toList());
-    }
-
-    @GetMapping("/organizer/completed")
-    @Operation(summary = "Listar deliveries concluídas do organizer autenticado",
-               description = "Retorna entregas com status COMPLETED do gerente logado, ordenadas por completedAt DESC.")
-    public ResponseEntity<?> listOrganizerCompleted(
-            Authentication authentication,
-            @RequestParam(required = false, defaultValue = "false") boolean recent) {
-        UUID organizerId = getUserIdFromAuthentication(authentication);
-        var deliveries = deliveryService.findCompletedByOrganizer(organizerId);
-        if (recent) {
-            int days = siteConfigurationService.getActiveConfiguration().getDeliveryHistoryDays();
-            LocalDateTime since = LocalDateTime.now().minusDays(days);
-            deliveries = deliveries.stream()
-                    .filter(d -> d.getCompletedAt() != null && d.getCompletedAt().isAfter(since))
-                    .toList();
-        }
-        return ResponseEntity.ok(deliveries.stream().map(this::mapToResponse).toList());
-    }
-
     @GetMapping("/courier/active")
     @Operation(summary = "Listar deliveries ativas do courier autenticado")
     public ResponseEntity<?> listCourierActive(Authentication authentication) {
@@ -475,21 +422,12 @@ public class DeliveryController {
     @GetMapping("/courier/completed")
     @Operation(summary = "Listar deliveries concluídas do courier autenticado", 
                description = "Retorna as entregas concluídas pelo courier, ordenadas pela mais recente primeiro (completedAt DESC). " +
-                           "Use unpaidOnly=true para retornar apenas entregas sem pagamento confirmado (PAID). " +
-                           "Use recent=true para limitar pelo período configurado em delivery_history_days.")
+                           "Use unpaidOnly=true para retornar apenas entregas sem pagamento confirmado (PAID).")
     public ResponseEntity<?> listCourierCompleted(
             Authentication authentication,
-            @RequestParam(value = "unpaidOnly", required = false, defaultValue = "false") boolean unpaidOnly,
-            @RequestParam(required = false, defaultValue = "false") boolean recent) {
+            @RequestParam(value = "unpaidOnly", required = false, defaultValue = "false") boolean unpaidOnly) {
         UUID courierId = getUserIdFromAuthentication(authentication);
         var deliveries = deliveryService.findCompletedByCourier(courierId, unpaidOnly);
-        if (recent) {
-            int days = siteConfigurationService.getActiveConfiguration().getDeliveryHistoryDays();
-            LocalDateTime since = LocalDateTime.now().minusDays(days);
-            deliveries = deliveries.stream()
-                    .filter(d -> d.getCompletedAt() != null && d.getCompletedAt().isAfter(since))
-                    .toList();
-        }
         return ResponseEntity.ok(deliveries.stream().map(this::mapToResponse).toList());
     }
 

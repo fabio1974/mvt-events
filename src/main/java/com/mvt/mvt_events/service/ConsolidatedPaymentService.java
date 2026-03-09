@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -104,7 +106,7 @@ public class ConsolidatedPaymentService {
                             String.format("Processando cliente %d de %d", i + 1, clientIds.size()));
                     }
 
-                    Map<String, Object> clientStats = processClientConsolidatedPayments(clientId);
+                    Map<String, Object> clientStats = processClientConsolidatedPayments(clientId, DEFAULT_PIX_EXPIRY_MINUTES);
                     
                     if ((Boolean) clientStats.get("processed")) {
                         totalClientsProcessed++;
@@ -168,10 +170,19 @@ public class ConsolidatedPaymentService {
      * 
      * @return Map com estatísticas de processamento
      */
+    /** Expiry padrão em minutos para disparos manuais (via controller) */
+    public static final int DEFAULT_PIX_EXPIRY_MINUTES = 235; // 3h55 — expira antes da próxima rodada (08h, 12h, 16h, 20h)
+
+    /** Versão sem parâmetro — usada pelo controller (disparo manual) */
     @Transactional
     public Map<String, Object> processAllClientsConsolidatedPayments() {
-        log.info("🚀 Iniciando processamento de pagamentos consolidados");
-        
+        return processAllClientsConsolidatedPayments(DEFAULT_PIX_EXPIRY_MINUTES);
+    }
+
+    @Transactional
+    public Map<String, Object> processAllClientsConsolidatedPayments(int pixExpiryMinutes) {
+        log.info("🚀 Iniciando processamento de pagamentos consolidados (pixExpiryMinutes={})", pixExpiryMinutes);
+
         Map<String, Object> stats = new HashMap<>();
         int totalClientsProcessed = 0;
         int totalPaymentsCreated = 0;
@@ -186,7 +197,7 @@ public class ConsolidatedPaymentService {
             // 2. Processar cada cliente
             for (UUID clientId : clientIds) {
                 try {
-                    Map<String, Object> clientStats = processClientConsolidatedPayments(clientId);
+                    Map<String, Object> clientStats = processClientConsolidatedPayments(clientId, pixExpiryMinutes);
                     
                     if ((Boolean) clientStats.get("processed")) {
                         totalClientsProcessed++;
@@ -228,12 +239,13 @@ public class ConsolidatedPaymentService {
 
     /**
      * Processa consolidação de pagamentos para UM cliente específico
-     * 
-     * @param clientId UUID do cliente
+     *
+     * @param clientId         UUID do cliente
+     * @param pixExpiryMinutes minutos de validade do PIX gerado
      * @return Map com estatísticas (processed, paymentsCreated, deliveriesIncluded)
      */
     @Transactional
-    public Map<String, Object> processClientConsolidatedPayments(UUID clientId) {
+    public Map<String, Object> processClientConsolidatedPayments(UUID clientId, int pixExpiryMinutes) {
         log.info("👤 Processando pagamentos consolidados para cliente: {}", clientId);
         
         Map<String, Object> stats = new HashMap<>();
@@ -257,7 +269,13 @@ public class ConsolidatedPaymentService {
                 return stats;
             }
 
-            // 3. Filtrar deliveries que NÃO têm payment PAID
+            // 3. Verificar se já existe um PIX PENDING para este cliente — se sim, aguardar pagamento ou expiração
+            if (paymentRepository.existsPendingPixByPayerId(clientId)) {
+                log.info("   └─ Cliente {} já possui PIX PENDING — aguardando pagamento ou expiração", clientId);
+                return stats;
+            }
+
+            // 4. Filtrar deliveries que NÃO têm payment PAID
             List<Delivery> deliveriesToPay = completedDeliveries.stream()
                     .filter(d -> !hasActivePaidPayment(d))
                     .collect(Collectors.toList());
@@ -269,7 +287,7 @@ public class ConsolidatedPaymentService {
 
             log.info("   📦 {} deliveries a pagar encontradas", deliveriesToPay.size());
 
-            // 4. Filtrar deliveries que podem ser reprocessadas
+            // 5. Filtrar deliveries que podem ser reprocessadas
             // Incluir apenas: NULL (sem payment), FAILED ou EXPIRED
             List<Delivery> deliverisWithPaymentProblems = deliveriesToPay.stream()
                     .filter(d -> {
@@ -291,10 +309,11 @@ public class ConsolidatedPaymentService {
 
             log.info("   💰 {} deliveries com pagamento a resolver", deliverisWithPaymentProblems.size());
 
-            // 5. Criar pagamento consolidado
+            // 6. Criar pagamento consolidado
             Payment consolidatedPayment = createConsolidatedPayment(
-                    client, 
-                    deliverisWithPaymentProblems
+                    client,
+                    deliverisWithPaymentProblems,
+                    pixExpiryMinutes
             );
 
             // 6. Atualizar estatísticas
@@ -329,7 +348,7 @@ public class ConsolidatedPaymentService {
      * @return Payment criado
      */
     @Transactional
-    private Payment createConsolidatedPayment(User client, List<Delivery> deliveries) {
+    private Payment createConsolidatedPayment(User client, List<Delivery> deliveries, int pixExpiryMinutes) {
         log.info("💳 Criando pagamento consolidado para {} deliveries", deliveries.size());
 
         // 1. Calcular valor total (baseado no FRETE - shippingFee)
@@ -362,7 +381,7 @@ public class ConsolidatedPaymentService {
 
         // 5. Criar order no Pagar.me
         try {
-            String orderId = createPagarMeOrder(client, deliveries, totalAmount, splitMap, savedPayment);
+            String orderId = createPagarMeOrder(client, deliveries, totalAmount, splitMap, savedPayment, pixExpiryMinutes);
             savedPayment.setProviderPaymentId(orderId);
             paymentRepository.save(savedPayment);
             log.info("   ✅ Order Pagar.me criada: {}", orderId);
@@ -444,9 +463,9 @@ public class ConsolidatedPaymentService {
      * @param payment Payment local (para referenciar)
      * @return Order ID do Pagar.me
      */
-    private String createPagarMeOrder(User client, List<Delivery> deliveries, 
+    private String createPagarMeOrder(User client, List<Delivery> deliveries,
                                      BigDecimal totalAmount, Map<String, SplitItem> splitMap,
-                                     Payment payment) {
+                                     Payment payment, int pixExpiryMinutes) {
         log.info("📤 Criando order no Pagar.me");
 
         // Buscar recipientId da plataforma (da config)
@@ -467,7 +486,7 @@ public class ConsolidatedPaymentService {
 
         // PIX
         OrderRequest.PixRequest.PixRequestBuilder pixBuilder = OrderRequest.PixRequest.builder()
-                .expiresIn("7200");  // 2 horas
+                .expiresIn(String.valueOf(pixExpiryMinutes * 60)); // converte minutos → segundos
 
         // Split: valores absolutos em centavos para cada recipient
         List<OrderRequest.SplitRequest> splits = new ArrayList<>();
@@ -564,6 +583,24 @@ public class ConsolidatedPaymentService {
                     if (transaction.getQrCodeUrl() != null) {
                         payment.setPixQrCodeUrl(transaction.getQrCodeUrl());
                         log.info("✅ PIX QR Code URL salvo no payment: {}", transaction.getQrCodeUrl());
+                    }
+
+                    // Salvar expiresAt — Pagar.me retorna ISO 8601 com timezone (ex: 2026-02-18T23:41:17Z)
+                    String expiresAtStr = transaction.getExpiresAt();
+                    if (expiresAtStr != null) {
+                        try {
+                            OffsetDateTime offsetDateTime = OffsetDateTime.parse(expiresAtStr);
+                            LocalDateTime expiresAt = offsetDateTime.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
+                            payment.setExpiresAt(expiresAt);
+                            log.info("⏰ Expiração configurada: {} (UTC: {})", expiresAt, expiresAtStr);
+                        } catch (Exception ex) {
+                            log.warn("⚠️ Erro ao parsear expiresAt '{}': {}", expiresAtStr, ex.getMessage());
+                            payment.setExpiresAt(LocalDateTime.now().plusMinutes(pixExpiryMinutes));
+                            log.info("⏰ Expiração calculada manualmente (fallback {}min)", pixExpiryMinutes);
+                        }
+                    } else {
+                        payment.setExpiresAt(LocalDateTime.now().plusMinutes(pixExpiryMinutes));
+                        log.info("⏰ Expiração calculada manualmente — Pagar.me não retornou expiresAt ({}min)", pixExpiryMinutes);
                     }
                 } else {
                     log.warn("⚠️ lastTransaction é NULL no charge");

@@ -513,6 +513,10 @@ public class DeliveryService {
 
             Delivery saved = deliveryRepository.save(delivery);
 
+            // Setar currentDeliveryId no courier
+            courierUser.setCurrentDeliveryId(saved.getId());
+            userRepository.save(courierUser);
+
             // 💳 PAGAMENTO AUTOMÁTICO CLIENT: somente se preferência for CREDIT_CARD
             // Se preferência for PIX → sem cobrança automática em nenhuma etapa da delivery.
             // O pagamento PIX será criado manualmente pelo admin via frontend (perfil admin).
@@ -555,6 +559,10 @@ public class DeliveryService {
 
             Delivery saved = deliveryRepository.save(delivery);
 
+            // Setar currentDeliveryId no courier
+            courierUser.setCurrentDeliveryId(saved.getId());
+            userRepository.save(courierUser);
+
             // 💳 PAGAMENTO CUSTOMER PIX: Criar pagamento PIX no aceite (DELIVERY e RIDE)
             // Cartão de crédito será cobrado quando entrar em trânsito (confirmPickup)
             if (isCustomerPix) {
@@ -569,6 +577,8 @@ public class DeliveryService {
                     saved.setAcceptedAt(null);
                     saved.setVehicle(null);
                     deliveryRepository.save(saved);
+                    courierUser.setCurrentDeliveryId(null);
+                    userRepository.save(courierUser);
                     throw new RuntimeException("Não foi possível processar o pagamento PIX: " + e.getMessage());
                 }
             }
@@ -661,6 +671,13 @@ public class DeliveryService {
         delivery.setStatus(Delivery.DeliveryStatus.COMPLETED);
         delivery.setCompletedAt(LocalDateTime.now());
 
+        // Limpar currentDeliveryId do courier
+        User courier = delivery.getCourier();
+        if (courier != null) {
+            courier.setCurrentDeliveryId(null);
+            userRepository.save(courier);
+        }
+
         Delivery saved = deliveryRepository.save(delivery);
         
         // Recarregar com joins
@@ -688,6 +705,9 @@ public class DeliveryService {
 
         // Se tinha courier atribuído, remover courier e organization
         if (delivery.getCourier() != null) {
+            // Limpar currentDeliveryId do courier
+            delivery.getCourier().setCurrentDeliveryId(null);
+            userRepository.save(delivery.getCourier());
             // Remover courier e organizer
             delivery.setCourier(null);
             delivery.setOrganizer(null);
@@ -713,6 +733,11 @@ public class DeliveryService {
 
         switch (newStatus) {
             case PENDING:
+                // Limpar currentDeliveryId do courier antes de remover
+                if (delivery.getCourier() != null) {
+                    delivery.getCourier().setCurrentDeliveryId(null);
+                    userRepository.save(delivery.getCourier());
+                }
                 // Limpar dados quando volta para pending
                 delivery.setCourier(null);
                 delivery.setAcceptedAt(null);
@@ -755,6 +780,11 @@ public class DeliveryService {
                     delivery.setInTransitAt(now);
                 }
                 delivery.setCompletedAt(now);
+                // Limpar currentDeliveryId do courier
+                if (delivery.getCourier() != null) {
+                    delivery.getCourier().setCurrentDeliveryId(null);
+                    userRepository.save(delivery.getCourier());
+                }
                 break;
 
             case CANCELLED:
@@ -763,6 +793,9 @@ public class DeliveryService {
                 
                 // IMPORTANTE: Remover courier e voltar para PENDING
                 if (delivery.getCourier() != null) {
+                    // Limpar currentDeliveryId do courier antes de remover
+                    delivery.getCourier().setCurrentDeliveryId(null);
+                    userRepository.save(delivery.getCourier());
                     // Remover courier da delivery
                     delivery.setCourier(null);
                 }
@@ -935,17 +968,17 @@ public class DeliveryService {
     @Transactional(readOnly = true)
     public List<Delivery> findPendingNearbyInPrimaryOrgs(UUID courierId, double radiusKm) {
         org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(getClass());
-        log.info("🔍 [COURIER PENDINGS] Buscando entregas para courier: {}, raio: {}km", courierId, radiusKm);
-        
-        // Verificar se o courier tem entregas ativas
+        log.info("🔍 [COURIER PENDINGS] Buscando entregas para courier: {}", courierId);
+
+        // Se courier tem entrega ativa, não mostrar pendentes
         List<Delivery> activeDeliveries = deliveryRepository.findActiveByCourierId(courierId);
         if (!activeDeliveries.isEmpty()) {
             log.info("⚠️ [COURIER PENDINGS] Courier {} possui {} entrega(s) ativa(s) - não retornando pendentes",
                     courierId, activeDeliveries.size());
             return java.util.Collections.emptyList();
         }
-        
-        // Carregar courier para obter coordenadas GPS
+
+        // Carregar courier
         User courier = userRepository.findById(courierId)
                 .orElseThrow(() -> new RuntimeException("Courier não encontrado: " + courierId));
 
@@ -956,43 +989,76 @@ public class DeliveryService {
         Double courierLat = courier.getGpsLatitude();
         Double courierLng = courier.getGpsLongitude();
         log.info("📍 [COURIER PENDINGS] Courier location: lat={}, lng={}", courierLat, courierLng);
-        
+
         if (courierLat == null || courierLng == null) {
             log.warn("⚠️ [COURIER PENDINGS] Courier sem localização GPS");
             return java.util.Collections.emptyList();
         }
 
-        // Buscar TODAS as deliveries pendentes de clientes CUSTOMER (sem exigir contratos)
-        List<Delivery> candidates = deliveryRepository.findPendingForCustomerClients();
-        log.info("📦 [COURIER PENDINGS] Candidatas (clientes CUSTOMER): {}", candidates.size());
+        // ─────────────────────────────────────────────────────────────────────
+        // NÍVEL 1 — contratos ativos: courier → org → client_contract → client
+        //           raio 15 km, ordenado por proximidade ao pickup
+        // ─────────────────────────────────────────────────────────────────────
+        final double RADIUS_NIVEL1 = 15.0;
+        List<Delivery> contractCandidates = deliveryRepository.findPendingByContractCourier(courierId);
+        log.info("📦 [NÍVEL 1] Candidatas via contrato: {}", contractCandidates.size());
 
-        // Log detalhado de cada candidata
-        for (Delivery d : candidates) {
-            log.info("   → Delivery #{}: from=({}, {}), to=({}, {}), status={}, courier={}", 
-                d.getId(), 
-                d.getFromLatitude(), d.getFromLongitude(),
-                d.getToLatitude(), d.getToLongitude(),
-                d.getStatus(),
-                d.getCourier() != null ? d.getCourier().getId() : "null");
+        List<Delivery> nivel1 = contractCandidates.stream()
+                .filter(d -> isWithinRadius(courierLat, courierLng, d, RADIUS_NIVEL1, log))
+                .sorted(java.util.Comparator.comparingDouble(d ->
+                        minDistanceTo(courierLat, courierLng, (Delivery) d)))
+                .collect(java.util.stream.Collectors.toList());
+        log.info("✅ [NÍVEL 1] Após filtro {}km (ordenado por proximidade): {}", RADIUS_NIVEL1, nivel1.size());
+
+        if (!nivel1.isEmpty()) {
+            log.info("🏁 [COURIER PENDINGS] Nível 1 tem entregas — ignorando nível 2. Total: {}", nivel1.size());
+            for (Delivery delivery : nivel1) {
+                org.hibernate.Hibernate.initialize(delivery.getClient());
+                org.hibernate.Hibernate.initialize(delivery.getCourier());
+                org.hibernate.Hibernate.initialize(delivery.getOrganizer());
+                org.hibernate.Hibernate.initialize(delivery.getVehicle());
+            }
+            return nivel1;
         }
 
-        // Aplicar filtro de proximidade: pickup OU destino dentro do raio
-        List<Delivery> result = candidates.stream()
-                .filter(d -> isWithinRadius(courierLat, courierLng, d, radiusKm, log))
-                .toList();
-        
-        log.info("✅ [COURIER PENDINGS] Resultado final: {} deliveries", result.size());
-        
-        // IMPORTANTE: Inicializar relacionamentos lazy-loaded para evitar LazyInitializationException
-        // Força a inicialização dentro da transação @Transactional
-        for (Delivery delivery : result) {
+        // ─────────────────────────────────────────────────────────────────────
+        // NÍVEL 2 — CUSTOMER livre (sem contrato exigido)
+        //           raio 5 km, ordenado por proximidade ao pickup
+        //           só executado se nível 1 estiver vazio
+        // ─────────────────────────────────────────────────────────────────────
+        final double RADIUS_NIVEL2 = 5.0;
+        List<Delivery> customerCandidates = deliveryRepository.findPendingForCustomerClients();
+        log.info("📦 [NÍVEL 2] Candidatas CUSTOMER: {}", customerCandidates.size());
+
+        List<Delivery> nivel2 = customerCandidates.stream()
+                .filter(d -> isWithinRadius(courierLat, courierLng, d, RADIUS_NIVEL2, log))
+                .sorted(java.util.Comparator.comparingDouble(d ->
+                        minDistanceTo(courierLat, courierLng, (Delivery) d)))
+                .collect(java.util.stream.Collectors.toList());
+        log.info("✅ [NÍVEL 2] Após filtro {}km (ordenado por proximidade): {}", RADIUS_NIVEL2, nivel2.size());
+
+        log.info("🏁 [COURIER PENDINGS] Total final (nível 2): {}", nivel2.size());
+
+        // Inicializar lazy-loaded dentro da transação
+        for (Delivery delivery : nivel2) {
             org.hibernate.Hibernate.initialize(delivery.getClient());
             org.hibernate.Hibernate.initialize(delivery.getCourier());
             org.hibernate.Hibernate.initialize(delivery.getOrganizer());
             org.hibernate.Hibernate.initialize(delivery.getVehicle());
         }
-        
-        return result;
+
+        return nivel2;
+    }
+
+    /** Distância mínima entre o courier e o pickup da entrega (usa pickup como referência principal). */
+    private double minDistanceTo(Double courierLat, Double courierLng, Delivery d) {
+        if (d.getFromLatitude() != null && d.getFromLongitude() != null) {
+            return calculateDistance(courierLat, courierLng, d.getFromLatitude(), d.getFromLongitude());
+        }
+        if (d.getToLatitude() != null && d.getToLongitude() != null) {
+            return calculateDistance(courierLat, courierLng, d.getToLatitude(), d.getToLongitude());
+        }
+        return Double.MAX_VALUE;
     }
 
     private boolean isWithinRadius(Double courierLat, Double courierLng, Delivery d, double radiusKm, org.slf4j.Logger log) {

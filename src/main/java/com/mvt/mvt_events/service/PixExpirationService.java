@@ -16,14 +16,16 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Serviço para tratamento de expiração de pagamentos PIX do CUSTOMER.
- * 
- * Opção B: Quando o QR Code PIX expira sem pagamento,
+ * Serviço para tratamento de expiração de pagamentos PIX.
+ *
+ * CUSTOMER: Quando o QR Code PIX expira sem pagamento,
  * desassocia o courier e retorna a delivery para PENDING,
  * depois notifica motoboys disponíveis (mesmo fluxo de delivery nova).
- * 
- * Somente processa pagamentos de pagadores com role CUSTOMER.
- * 
+ *
+ * CLIENT: Quando o QR Code PIX consolidado expira sem pagamento,
+ * apenas marca o pagamento como EXPIRED. O scheduler consolidado
+ * (ConsolidatedPaymentScheduler) irá gerar um novo PIX na próxima execução.
+ *
  * Executa a cada 30 segundos para detectar expiração rapidamente.
  */
 @Service
@@ -37,17 +39,11 @@ public class PixExpirationService {
 
     /**
      * Verifica pagamentos PIX PENDING com expiresAt vencido.
-     * 
-     * Somente pagamentos de pagadores CUSTOMER são processados.
-     * 
-     * Para cada pagamento expirado:
-     * 1. Marca o pagamento como EXPIRED
-     * 2. Para cada delivery em WAITING_PAYMENT associada:
-     *    - Desassocia o courier
-     *    - Retorna o status para PENDING
-     *    - Limpa dados do aceite (acceptedAt, vehicle)
-     *    - Notifica motoboys disponíveis (push)
-     * 
+     *
+     * - CUSTOMER: reverte deliveries para PENDING e notifica motoboys.
+     * - CLIENT: apenas marca o pagamento como EXPIRED (novo PIX será gerado
+     *   pelo ConsolidatedPaymentScheduler na próxima execução).
+     *
      * Roda a cada 30 segundos.
      */
     @Scheduled(fixedRate = 30000)
@@ -55,30 +51,62 @@ public class PixExpirationService {
     public void checkExpiredPixPayments() {
         LocalDateTime now = LocalDateTime.now();
 
-        // Buscar pagamentos PIX PENDING cujo expiresAt já passou
         List<Payment> expiredPayments = paymentRepository.findExpiredPendingPixPayments(now);
 
         if (expiredPayments.isEmpty()) {
             return;
         }
 
-        log.info("⏰ Encontrados {} pagamentos PIX expirados — verificando se são CUSTOMER", 
-                expiredPayments.size());
+        log.info("⏰ Encontrados {} pagamentos PIX expirados", expiredPayments.size());
 
         for (Payment payment : expiredPayments) {
             try {
-                // Filtrar: somente CUSTOMER
-                if (payment.getPayer() == null || payment.getPayer().getRole() != User.Role.CUSTOMER) {
-                    log.debug("⏭️ Payment #{} não é de CUSTOMER (payer role: {}) — ignorando no cron", 
-                            payment.getId(),
-                            payment.getPayer() != null ? payment.getPayer().getRole() : "null");
+                if (payment.getPayer() == null) {
+                    log.warn("⏭️ Payment #{} sem payer — ignorando", payment.getId());
                     continue;
                 }
 
-                processExpiredPayment(payment);
+                User.Role role = payment.getPayer().getRole();
+
+                if (role == User.Role.CUSTOMER) {
+                    processExpiredCustomerPayment(payment);
+                } else if (role == User.Role.CLIENT) {
+                    processExpiredClientPayment(payment);
+                } else {
+                    log.debug("⏭️ Payment #{} ignorado (payer role: {})", payment.getId(), role);
+                }
             } catch (Exception e) {
-                log.error("❌ Erro ao processar expiração do Payment #{}: {}", 
+                log.error("❌ Erro ao processar expiração do Payment #{}: {}",
                         payment.getId(), e.getMessage(), e);
+            }
+        }
+
+        // Cancelar deliveries PENDING sem aceite há mais de 30 minutos
+        expireStalePendingDeliveries(now);
+    }
+
+    /**
+     * Cancela deliveries que estão em PENDING sem aceite de motoboy há mais de 30 minutos.
+     * Status final: CANCELLED com motivo "Expirada: sem aceite em 30 minutos".
+     */
+    private void expireStalePendingDeliveries(LocalDateTime now) {
+        LocalDateTime cutoff = now.minusMinutes(30);
+        List<com.mvt.mvt_events.jpa.Delivery> stale =
+                deliveryRepository.findStalePendingDeliveries(cutoff);
+
+        if (stale.isEmpty()) return;
+
+        log.info("⏰ [PENDING EXPIRY] {} deliveries PENDING há mais de 30 min — cancelando", stale.size());
+
+        for (com.mvt.mvt_events.jpa.Delivery delivery : stale) {
+            try {
+                delivery.setStatus(com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.CANCELLED);
+                delivery.setCancelledAt(now);
+                delivery.setCancellationReason("Expirada: sem aceite em 30 minutos");
+                deliveryRepository.save(delivery);
+                log.info("   ✅ Delivery #{} cancelada (criada em {})", delivery.getId(), delivery.getCreatedAt());
+            } catch (Exception e) {
+                log.error("   ❌ Erro ao cancelar delivery #{}: {}", delivery.getId(), e.getMessage());
             }
         }
     }
@@ -88,20 +116,18 @@ public class PixExpirationService {
      * Marca como EXPIRED, reverte deliveries para PENDING e notifica motoboys.
      */
     @Transactional
-    public void processExpiredPayment(Payment payment) {
-        log.info("⏰ Expirando Payment #{} (CUSTOMER PIX, expiresAt: {}, agora: {})", 
-                payment.getId(), payment.getExpiresAt(), LocalDateTime.now());
+    public void processExpiredCustomerPayment(Payment payment) {
+        log.info("⏰ Expirando Payment #{} (CUSTOMER PIX, expiresAt: {})", 
+                payment.getId(), payment.getExpiresAt());
 
-        // 1. Marcar pagamento como EXPIRED
         payment.setStatus(PaymentStatus.EXPIRED);
         paymentRepository.save(payment);
 
-        // 2. Reverter deliveries em WAITING_PAYMENT para PENDING e notificar motoboys
         if (payment.getDeliveries() != null) {
             for (Delivery delivery : payment.getDeliveries()) {
                 if (delivery.getStatus() == Delivery.DeliveryStatus.WAITING_PAYMENT) {
-                    log.info("   ├─ Delivery #{}: WAITING_PAYMENT → PENDING (desassociando courier {})", 
-                            delivery.getId(), 
+                    log.info("   ├─ Delivery #{}: WAITING_PAYMENT → PENDING (desassociando courier {})",
+                            delivery.getId(),
                             delivery.getCourier() != null ? delivery.getCourier().getName() : "null");
 
                     delivery.setStatus(Delivery.DeliveryStatus.PENDING);
@@ -112,22 +138,37 @@ public class PixExpirationService {
                     delivery.setPaymentCaptured(false);
                     deliveryRepository.save(delivery);
 
-                    // 3. Notificar motoboys disponíveis (mesmo fluxo de delivery nova)
                     try {
                         deliveryNotificationService.notifyAvailableDrivers(delivery);
                         log.info("   ├─ 📢 Push enviado para motoboys disponíveis (delivery #{})", delivery.getId());
                     } catch (Exception e) {
-                        log.error("   ├─ ❌ Falha ao enviar push para motoboys (delivery #{}): {}", 
+                        log.error("   ├─ ❌ Falha ao enviar push para motoboys (delivery #{}): {}",
                                 delivery.getId(), e.getMessage());
                     }
 
-                    log.info("   └─ ✅ Delivery #{} revertida para PENDING — motoboys notificados", 
-                            delivery.getId());
+                    log.info("   └─ ✅ Delivery #{} revertida para PENDING — motoboys notificados", delivery.getId());
                 }
             }
         }
 
-        log.info("✅ Payment #{} CUSTOMER PIX expirado — deliveries revertidas e motoboys notificados", 
+        log.info("✅ Payment #{} CUSTOMER PIX expirado — deliveries revertidas e motoboys notificados",
+                payment.getId());
+    }
+
+    /**
+     * Processa um pagamento PIX consolidado expirado de CLIENT.
+     * Apenas marca o pagamento como EXPIRED.
+     * O ConsolidatedPaymentScheduler gerará um novo PIX na próxima execução.
+     */
+    @Transactional
+    public void processExpiredClientPayment(Payment payment) {
+        log.info("⏰ Expirando Payment #{} (CLIENT PIX consolidado, expiresAt: {})",
+                payment.getId(), payment.getExpiresAt());
+
+        payment.setStatus(PaymentStatus.EXPIRED);
+        paymentRepository.save(payment);
+
+        log.info("✅ Payment #{} CLIENT PIX expirado — novo PIX será gerado pelo scheduler consolidado",
                 payment.getId());
     }
 }

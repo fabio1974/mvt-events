@@ -244,6 +244,30 @@ public interface DeliveryRepository
         List<Delivery> findPendingForCustomerClients();
 
         /**
+         * Busca deliveries PENDING sem courier há mais de X minutos (para expiração automática).
+         */
+        @Query("SELECT d FROM Delivery d WHERE d.status = 'PENDING' AND d.courier IS NULL " +
+               "AND d.createdAt < :expirationCutoff")
+        List<Delivery> findStalePendingDeliveries(@Param("expirationCutoff") java.time.LocalDateTime expirationCutoff);
+
+        /**
+         * NÍVEL 1 — Busca deliveries PENDING de clientes vinculados por contrato ativo ao courier.
+         * Cadeia: courier → employment_contracts (isActive=true) → organization
+         *                 → client_contracts (status=ACTIVE) → client → deliveries PENDING
+         * Ordenadas por updatedAt DESC.
+         */
+        @Query("SELECT d FROM Delivery d WHERE d.status = 'PENDING' AND d.courier IS NULL " +
+               "AND d.client.id IN (" +
+               "  SELECT cc.client.id FROM ClientContract cc " +
+               "  WHERE cc.status = 'ACTIVE' " +
+               "  AND cc.organization.id IN (" +
+               "    SELECT ec.organization.id FROM EmploymentContract ec " +
+               "    WHERE ec.courier.id = :courierId AND ec.isActive = true" +
+               "  )" +
+               ") ORDER BY d.updatedAt DESC")
+        List<Delivery> findPendingByContractCourier(@Param("courierId") UUID courierId);
+
+        /**
          * Busca deliveries com fetch joins usando contratos ativos (nova arquitetura)
          * Para COURIERs que acessam organizações via employment_contracts
          * Ordenado por updatedAt DESC

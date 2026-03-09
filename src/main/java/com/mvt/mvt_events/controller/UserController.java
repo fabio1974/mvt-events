@@ -497,6 +497,7 @@ public class UserController {
         private OrganizationDTO organization;
         private boolean enabled;  // regras de preenchimento mínimo por role
         private boolean blocked;  // bloqueio de segurança (impede login)
+        private Long currentDeliveryId; // ID da delivery atual do courier (null se livre)
 
         // Campos de localização GPS em tempo real (rastreamento do usuário)
         private Double gpsLatitude;
@@ -548,6 +549,7 @@ public class UserController {
 
             this.enabled = user.getEnabled();
             this.blocked = user.isBlocked();
+            this.currentDeliveryId = user.getCurrentDeliveryId();
 
             // Inicializar listas vazias (serão preenchidas no controller se necessário)
             this.employmentContracts = new java.util.ArrayList<>();
@@ -624,6 +626,9 @@ public class UserController {
         private Double gpsLongitude;
         private String lastLocationUpdate;  // Timestamp da última atualização
         
+        // Delivery atual
+        private Long currentDeliveryId; // null = livre, não-null = em entrega
+
         // Status do contrato
         private Boolean isActive;
         private String linkedAt;         // Data de vínculo com a organização
@@ -650,6 +655,9 @@ public class UserController {
             this.gpsLongitude = courier.getGpsLongitude();
             this.lastLocationUpdate = courier.getUpdatedAt() != null ? courier.getUpdatedAt().toString() : null;
             
+            // Delivery atual
+            this.currentDeliveryId = courier.getCurrentDeliveryId();
+
             // Status Pagar.me
             this.pagarmeStatus = courier.getPagarmeStatus();
             

@@ -169,6 +169,10 @@ public class User implements UserDetails {
     @Visible(table = false, form = false, filter = false)
     private LocalDateTime deletedAt;
 
+    @Column(name = "current_delivery_id")
+    @Visible(table = false, form = false, filter = false)
+    private Long currentDeliveryId;
+
     // ============================================================================
     // EMAIL CONFIRMATION FIELDS
     // ============================================================================

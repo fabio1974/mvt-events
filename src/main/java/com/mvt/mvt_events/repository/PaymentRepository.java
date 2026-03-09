@@ -39,6 +39,20 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
         List<Payment> findByPayerId(@Param("payerId") UUID payerId);
 
         /**
+         * Verifica se existe pagamento PIX PENDING para um determinado pagador.
+         * Usado para evitar criar novo PIX consolidado enquanto o anterior ainda está pendente.
+         */
+        @Query("SELECT COUNT(p) > 0 FROM Payment p WHERE p.payer.id = :payerId AND p.status = 'PENDING' AND p.paymentMethod = 'PIX'")
+        boolean existsPendingPixByPayerId(@Param("payerId") UUID payerId);
+
+        /**
+         * Busca todos os pagamentos PIX PENDING de CLIENTs (estabelecimentos).
+         * Usado pelo scheduler de notificação para cobrar pagamentos consolidados pendentes.
+         */
+        @Query("SELECT p FROM Payment p WHERE p.status = 'PENDING' AND p.paymentMethod = 'PIX' AND p.payer.role = 'CLIENT'")
+        List<Payment> findPendingPixPaymentsByClients();
+
+        /**
          * Busca pagamentos por status
          */
         List<Payment> findByStatus(PaymentStatus status);
