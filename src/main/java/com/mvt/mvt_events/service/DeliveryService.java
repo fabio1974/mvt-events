@@ -1161,13 +1161,15 @@ public class DeliveryService {
         try {
             card = cardService.getDefaultCard(fullClient.getId());
         } catch (Exception e) {
-            log.warn("   ├─ ⚠️ Cliente não tem cartão padrão cadastrado: {}", e.getMessage());
-            return;
+            log.error("   ├─ ❌ Cliente não tem cartão padrão cadastrado: {}", e.getMessage());
+            throw new RuntimeException("Cliente não possui cartão de crédito padrão cadastrado. " +
+                "Por favor, cadastre um cartão padrão na preferência de pagamento.", e);
         }
         
         if (!card.getIsActive() || card.isExpired()) {
-            log.warn("   ├─ ⚠️ Cartão padrão inativo ou expirado");
-            return;
+            log.error("   ├─ ❌ Cartão padrão inativo ou expirado");
+            throw new RuntimeException("Cartão de crédito padrão está inativo ou expirado. " +
+                "Por favor, atualize suas informações de pagamento.");
         }
         
         log.info("   ├─ Cartão encontrado: {} **** {}", card.getBrand(), card.getLastFourDigits());
