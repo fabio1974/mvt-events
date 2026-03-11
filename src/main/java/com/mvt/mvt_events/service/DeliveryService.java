@@ -525,12 +525,8 @@ public class DeliveryService {
                 log.info("💡 CLIENT com preferência PIX na delivery #{} — sem cobrança automática. " +
                          "Pagamento será gerado manualmente pelo admin.", saved.getId());
             } else {
-                try {
-                    createAutomaticCreditCardPayment(saved, delivery.getClient());
-                } catch (Exception e) {
-                    log.warn("⚠️ Falha ao criar pagamento automático por cartão para delivery #{}: {}", 
-                        saved.getId(), e.getMessage());
-                }
+                // Se cartão falha → exceção propaga, transação faz rollback completo (tudo ou nada)
+                createAutomaticCreditCardPayment(saved, delivery.getClient());
             }
 
             return deliveryRepository.findByIdWithJoins(saved.getId()).orElse(saved);
@@ -566,21 +562,7 @@ public class DeliveryService {
             // 💳 PAGAMENTO CUSTOMER PIX: Criar pagamento PIX no aceite (DELIVERY e RIDE)
             // Cartão de crédito será cobrado quando entrar em trânsito (confirmPickup)
             if (isCustomerPix) {
-                try {
-                    createPixPaymentForCustomer(saved, delivery.getClient());
-                } catch (Exception e) {
-                    log.error("❌ Falha ao criar pagamento PIX para CUSTOMER na delivery #{}: {}", 
-                        saved.getId(), e.getMessage(), e);
-                    // Reverter aceite se pagamento PIX falhar
-                    saved.setStatus(Delivery.DeliveryStatus.PENDING);
-                    saved.setCourier(null);
-                    saved.setAcceptedAt(null);
-                    saved.setVehicle(null);
-                    deliveryRepository.save(saved);
-                    courierUser.setCurrentDeliveryId(null);
-                    userRepository.save(courierUser);
-                    throw new RuntimeException("Não foi possível processar o pagamento PIX: " + e.getMessage());
-                }
+                createPixPaymentForCustomer(saved, delivery.getClient());
             }
 
             return deliveryRepository.findByIdWithJoins(saved.getId()).orElse(saved);
@@ -616,23 +598,13 @@ public class DeliveryService {
         Delivery saved = deliveryRepository.save(delivery);
 
         // 💳 PAGAMENTO CUSTOMER CARTÃO: Criar pagamento por cartão ao entrar em trânsito (DELIVERY e RIDE)
+        // Se falhar → exceção propaga, transação faz rollback completo (status volta a ACCEPTED)
         if (!delivery.isFromTrustedClient() 
                 && (delivery.getDeliveryType() == Delivery.DeliveryType.DELIVERY 
                     || delivery.getDeliveryType() == Delivery.DeliveryType.RIDE)) {
             CustomerPaymentPreference pref = preferenceService.getPreference(delivery.getClient().getId());
             if (pref != null && pref.getPreferredPaymentType() == PreferredPaymentType.CREDIT_CARD) {
-                try {
-                    createCreditCardPaymentForCustomer(saved, delivery.getClient());
-                } catch (Exception e) {
-                    log.error("❌ Falha ao criar pagamento por cartão para CUSTOMER na delivery #{}: {}", 
-                        saved.getId(), e.getMessage(), e);
-                    // Reverter para ACCEPTED se pagamento falhar
-                    saved.setStatus(Delivery.DeliveryStatus.ACCEPTED);
-                    saved.setPickedUpAt(null);
-                    saved.setInTransitAt(null);
-                    deliveryRepository.save(saved);
-                    throw new RuntimeException("Não foi possível processar o pagamento por cartão: " + e.getMessage());
-                }
+                createCreditCardPaymentForCustomer(saved, delivery.getClient());
             }
         }
         

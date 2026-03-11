@@ -15,6 +15,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.Builder;
 import lombok.Data;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +42,8 @@ import java.util.*;
 @Tag(name = "Deliveries", description = "Gerenciamento de entregas")
 @SecurityRequirement(name = "bearerAuth")
 public class DeliveryController {
+
+    private static final Logger log = LoggerFactory.getLogger(DeliveryController.class);
 
     @Autowired
     private DeliveryService deliveryService;
@@ -282,43 +286,67 @@ public class DeliveryController {
 
     @PatchMapping("/{id}/accept")
     @Operation(summary = "Aceitar delivery", description = "Courier aceita a delivery. Status: PENDING → ACCEPTED ou WAITING_PAYMENT (se CUSTOMER + PIX)")
-    public ResponseEntity<DeliveryResponse> accept(
+    public ResponseEntity<?> accept(
             @PathVariable Long id,
             @RequestBody @Valid DeliveryAssignRequest request,
             Authentication authentication,
             jakarta.servlet.http.HttpServletRequest httpRequest) {
 
-        String token = extractTokenFromRequest(httpRequest);
-        String role = jwtUtil.getRoleFromToken(token);
-        
-        // organizationId não é usado para filtrar/validar deliveries
-        Long organizationId = null;
+        try {
+            String token = extractTokenFromRequest(httpRequest);
+            String role = jwtUtil.getRoleFromToken(token);
+            
+            // organizationId não é usado para filtrar/validar deliveries
+            Long organizationId = null;
 
-        UUID courierId = UUID.fromString(request.getCourierId());
+            UUID courierId = UUID.fromString(request.getCourierId());
 
-        Delivery delivery = deliveryService.assignToCourier(id, courierId, organizationId);
+            Delivery delivery = deliveryService.assignToCourier(id, courierId, organizationId);
 
-        // Retornar delivery com dados do pagamento (PIX QR code quando WAITING_PAYMENT)
-        DeliveryResponse response = mapToResponse(delivery);
-        
-        // Carregar payments com dados PIX para esta delivery
-        List<DeliveryResponse.PaymentSummary> paymentSummaries = loadPaymentSummaries(delivery.getId());
-        response.setPayments(paymentSummaries);
-        response.setPaymentStatus(calculatePaymentStatus(paymentSummaries));
+            // Retornar delivery com dados do pagamento (PIX QR code quando WAITING_PAYMENT)
+            DeliveryResponse response = mapToResponse(delivery);
+            
+            // Carregar payments com dados PIX para esta delivery
+            List<DeliveryResponse.PaymentSummary> paymentSummaries = loadPaymentSummaries(delivery.getId());
+            response.setPayments(paymentSummaries);
+            response.setPaymentStatus(calculatePaymentStatus(paymentSummaries));
 
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            // Log detalhado do erro (já está sendo feito no Service, mas repetimos aqui para contexto HTTP)
+            log.error("❌ Erro ao aceitar delivery #{}: {}", id, e.getMessage(), e);
+            
+            // Retornar HTTP 400 Bad Request com mensagem legível ao mobile
+            java.util.Map<String, String> errorResponse = new java.util.HashMap<>();
+            errorResponse.put("error", "Falha ao aceitar delivery");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("timestamp", java.time.LocalDateTime.now().toString());
+            
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
     }
 
     @PatchMapping("/{id}/pickup")
     @Operation(summary = "Confirmar coleta e iniciar transporte", description = "Courier confirma que coletou o item e inicia o transporte. Status: ACCEPTED → IN_TRANSIT")
-    public ResponseEntity<DeliveryResponse> confirmPickup(
+    public ResponseEntity<?> confirmPickup(
             @PathVariable Long id,
             Authentication authentication) {
 
-        UUID courierId = getUserIdFromAuthentication(authentication);
-        Delivery delivery = deliveryService.confirmPickup(id, courierId);
+        try {
+            UUID courierId = getUserIdFromAuthentication(authentication);
+            Delivery delivery = deliveryService.confirmPickup(id, courierId);
 
-        return ResponseEntity.ok(mapToResponse(delivery));
+            return ResponseEntity.ok(mapToResponse(delivery));
+        } catch (RuntimeException e) {
+            log.error("❌ Erro ao confirmar coleta da delivery #{}: {}", id, e.getMessage(), e);
+            
+            java.util.Map<String, String> errorResponse = new java.util.HashMap<>();
+            errorResponse.put("error", "Falha ao confirmar coleta");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("timestamp", java.time.LocalDateTime.now().toString());
+            
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
     }
 
     @PatchMapping("/{id}/transit")
