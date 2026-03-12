@@ -1,6 +1,7 @@
 package com.mvt.mvt_events.schedule;
 
 import com.mvt.mvt_events.service.ConsolidatedPaymentService;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -26,6 +27,15 @@ import java.util.Map;
 public class ConsolidatedPaymentScheduler {
 
     private final ConsolidatedPaymentService consolidatedPaymentService;
+
+    /**
+     * Executa uma rodada na subida da aplicação usando o mesmo fluxo do scheduler.
+     */
+    @PostConstruct
+    public void consolidatePaymentsOnStartup() {
+        log.info("🚀 STARTUP: disparando consolidação inicial de PIX");
+        consolidatePayments();
+    }
 
     /**
      * Cria PIX consolidado para todos os clientes com deliveries não pagas.

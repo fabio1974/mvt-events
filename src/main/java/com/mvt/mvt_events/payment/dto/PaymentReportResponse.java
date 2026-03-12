@@ -35,6 +35,8 @@ public class PaymentReportResponse {
     @Builder
     public static class DeliveryItem {
         private Long deliveryId;
+        private LocalDateTime createdAt;
+        private LocalDateTime completedAt;
         private BigDecimal shippingFee;
         private String clientName;
         private String pickupAddress;

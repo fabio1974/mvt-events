@@ -46,6 +46,17 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
         boolean existsPendingPixByPayerId(@Param("payerId") UUID payerId);
 
         /**
+         * Verifica se existe pagamento PIX PENDING não expirado para um pagador.
+         * Considera não expirado quando expiresAt é nulo (legado) ou maior que o horário atual.
+         */
+        @Query("SELECT COUNT(p) > 0 FROM Payment p " +
+                "WHERE p.payer.id = :payerId " +
+                "AND p.status = 'PENDING' " +
+                "AND p.paymentMethod = 'PIX' " +
+                "AND (p.expiresAt IS NULL OR p.expiresAt > :now)")
+        boolean existsNonExpiredPendingPixByPayerId(@Param("payerId") UUID payerId, @Param("now") LocalDateTime now);
+
+        /**
          * Busca todos os pagamentos PIX PENDING de CLIENTs (estabelecimentos).
          * Usado pelo scheduler de notificação para cobrar pagamentos consolidados pendentes.
          */

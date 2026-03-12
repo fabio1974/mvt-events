@@ -269,9 +269,9 @@ public class ConsolidatedPaymentService {
                 return stats;
             }
 
-            // 3. Verificar se já existe um PIX PENDING para este cliente — se sim, aguardar pagamento ou expiração
-            if (paymentRepository.existsPendingPixByPayerId(clientId)) {
-                log.info("   └─ Cliente {} já possui PIX PENDING — aguardando pagamento ou expiração", clientId);
+            // 3. Verificar se já existe um PIX PENDING não expirado para este cliente
+            if (paymentRepository.existsNonExpiredPendingPixByPayerId(clientId, LocalDateTime.now())) {
+                log.info("   └─ Cliente {} já possui PIX PENDING não expirado — aguardando pagamento", clientId);
                 return stats;
             }
 

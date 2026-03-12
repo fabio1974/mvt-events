@@ -567,6 +567,8 @@ public class PaymentService {
             // Criar item de delivery
             PaymentReportResponse.DeliveryItem deliveryItem = PaymentReportResponse.DeliveryItem.builder()
                     .deliveryId(delivery.getId())
+                    .createdAt(delivery.getCreatedAt())
+                    .completedAt(delivery.getCompletedAt())
                     .shippingFee(shippingFee)
                     .clientName(delivery.getClient() != null ? delivery.getClient().getName() : "N/A")
                     .pickupAddress(delivery.getFromAddress())
