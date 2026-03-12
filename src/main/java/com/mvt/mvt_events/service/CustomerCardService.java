@@ -104,26 +104,34 @@ public class CustomerCardService {
         card.setIsActive(true);
         card.setIsVerified(true); // Já verificado pelo Pagar.me
 
-        // Se não tem cartões, este é o padrão automaticamente
-        boolean hasCards = cardRepository.countActiveCardsByCustomerId(customerId) > 0;
-        if (!hasCards || Boolean.TRUE.equals(setAsDefault)) {
-            cardRepository.clearDefaultFlag(customerId);
-            card.setIsDefault(true);
-        } else {
-            card.setIsDefault(false);
-        }
-
+        // Salva o cartão PRIMEIRO
         CustomerCard saved = cardRepository.save(card);
-        log.info("Cartão adicionado com sucesso: {} | Default: {}", saved.getId(), saved.getIsDefault());
+        log.info("Cartão adicionado com sucesso: {}", saved.getId());
+
+        // Decidir se será o cartão padrão (atualizar preference)
+        boolean shouldBeDefault = Boolean.TRUE.equals(setAsDefault) || cardRepository.countActiveCardsByCustomerId(customerId) == 1;
         
-        // Se foi marcado como padrão, verificar deliveries ativas não pagas
-        // Wrapped em try-catch para NÃO afetar a criação do cartão se falhar
-        if (saved.getIsDefault()) {
+        if (shouldBeDefault) {
+            // Atualizar preferência para usar CREDIT_CARD com este cartão
+            CustomerPaymentPreference pref = preferenceRepository.findByUserId(customerId)
+                    .orElse(CustomerPaymentPreference.builder()
+                            .user(customer)
+                            .build());
+            
+            pref.setPreferredPaymentType(CustomerPaymentPreference.PreferredPaymentType.CREDIT_CARD);
+            pref.setDefaultCard(saved);
+            preferenceRepository.save(pref);
+            
+            log.info("   └─ Cartão {} definido como DEFAULT (atualizado em customer_payment_preferences)", saved.getId());
+
+            // Processar deliveries não pagas (wrapped em try-catch)
             try {
                 processUnpaidDeliveries(customer, saved);
             } catch (Exception e) {
                 log.error("⚠️ Erro ao processar deliveries não pagas (cartão foi salvo com sucesso): {}", e.getMessage(), e);
             }
+        } else {
+            log.info("   └─ Cartão {} NÃO é default (cliente já tem outros cartões)", saved.getId());
         }
         
         return saved;
@@ -143,9 +151,14 @@ public class CustomerCardService {
         User customer = userRepository.findById(customerId)
                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
         
-        // 2. Buscar cartão padrão
-        CustomerCard defaultCard = cardRepository.findDefaultCardByCustomerId(customerId)
-                .orElseThrow(() -> new RuntimeException("Nenhum cartão padrão cadastrado. Cadastre um cartão primeiro."));
+        // 2. Buscar cartão padrão (de customer_payment_preferences)
+        CustomerPaymentPreference pref = preferenceRepository.findByUserId(customerId)
+                .orElseThrow(() -> new RuntimeException("Nenhuma preferência de pagamento cadastrada. Configure seu método de pagamento."));
+        
+        CustomerCard defaultCard = pref.getDefaultCard();
+        if (defaultCard == null) {
+            throw new RuntimeException("Nenhum cartão padrão cadastrado. Cadastre um cartão primeiro.");
+        }
         
         // 3. Verificar se cartão está ativo e não expirado
         if (!defaultCard.getIsActive()) {
@@ -449,41 +462,58 @@ public class CustomerCardService {
         card.setIsActive(true);
         card.setIsVerified(false);
 
-        boolean hasCards = cardRepository.countActiveCardsByCustomerId(customerId) > 0;
-        if (!hasCards || Boolean.TRUE.equals(setAsDefault)) {
-            cardRepository.clearDefaultFlag(customerId);
-            card.setIsDefault(true);
-        } else {
-            card.setIsDefault(false);
-        }
-
+        // Salvar cartão PRIMEIRO
         CustomerCard saved = cardRepository.save(card);
-        log.info("Cartão adicionado com sucesso: {} | Default: {}", saved.getId(), saved.getIsDefault());
+        log.info("Cartão adicionado com sucesso: {}", saved.getId());
+
+        // Decidir se será padrão
+        boolean shouldBeDefault = Boolean.TRUE.equals(setAsDefault) || cardRepository.countActiveCardsByCustomerId(customerId) == 1;
+        
+        if (shouldBeDefault) {
+            // Atualizar preferência
+            CustomerPaymentPreference pref = preferenceRepository.findByUserId(customerId)
+                    .orElse(CustomerPaymentPreference.builder()
+                            .user(customer)
+                            .build());
+            
+            pref.setPreferredPaymentType(CustomerPaymentPreference.PreferredPaymentType.CREDIT_CARD);
+            pref.setDefaultCard(saved);
+            preferenceRepository.save(pref);
+            
+            log.info("   └─ Cartão {} definido como DEFAULT via preference", saved.getId());
+        }
         
         return saved;
     }
 
     /**
      * Lista todos os cartões ativos do cliente.
-     * Ordena por: padrão primeiro, depois por último uso.
+     * Popula campo isDefault dinamicamente baseado em customer_payment_preferences.
      */
     @Transactional(readOnly = true)
     public List<CustomerCard> listCustomerCards(UUID customerId) {
-        return cardRepository.findActiveCardsByCustomerId(customerId);
+        List<CustomerCard> cards = cardRepository.findActiveCardsByCustomerId(customerId);
+        populateIsDefaultFields(cards, customerId);
+        return cards;
     }
 
     /**
-     * Busca o cartão padrão do cliente.
+     * Busca o cartão padrão do cliente (de customer_payment_preferences).
      */
     @Transactional(readOnly = true)
     public CustomerCard getDefaultCard(UUID customerId) {
-        return cardRepository.findDefaultCardByCustomerId(customerId)
-                .orElseThrow(() -> new RuntimeException("Cliente não possui cartão padrão cadastrado"));
+        CustomerPaymentPreference pref = preferenceRepository.findByUserId(customerId)
+                .orElseThrow(() -> new RuntimeException("Cliente não possui preferência de pagamento cadastrada"));
+        
+        if (pref.getDefaultCard() == null) {
+            throw new RuntimeException("Cliente não possui cartão padrão cadastrado");
+        }
+        
+        return pref.getDefaultCard();
     }
 
     /**
-     * Define um cartão como padrão.
-     * Remove flag de todos os outros cartões do cliente.
+     * Define um cartão como padrão (atualiza customer_payment_preferences).
      */
     @Transactional
     public CustomerCard setDefaultCard(UUID customerId, Long cardId, Authentication authentication) {
@@ -504,15 +534,22 @@ public class CustomerCardService {
             throw new RuntimeException("Cartão expirado não pode ser definido como padrão");
         }
 
-        // Remover flag de outros cartões
-        cardRepository.clearDefaultFlag(customerId);
+        // Buscar customer para preference
+        User customer = userRepository.findById(customerId)
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
 
-        // Definir como padrão
-        card.setIsDefault(true);
-        CustomerCard updated = cardRepository.save(card);
+        // Atualizar customer_payment_preferences (operação atômica via transação)
+        CustomerPaymentPreference pref = preferenceRepository.findByUserId(customerId)
+                .orElse(CustomerPaymentPreference.builder()
+                        .user(customer)
+                        .build());
+        
+        pref.setPreferredPaymentType(CustomerPaymentPreference.PreferredPaymentType.CREDIT_CARD);
+        pref.setDefaultCard(card);
+        preferenceRepository.save(pref);
 
-        log.info("Cartão {} definido como padrão para customer {}", cardId, customerId);
-        return updated;
+        log.info("✅ Cartão {} definido como padrão para customer {} (atualizado em customer_payment_preferences)", cardId, customerId);
+        return card;
     }
 
     /**
@@ -555,23 +592,25 @@ public class CustomerCardService {
 
         log.info("Cartão {} deletado (soft) para customer {}", cardId, customerId);
 
-        // Se era o cartão padrão, promover outro e limpar preferência
-        if (Boolean.TRUE.equals(card.getIsDefault())) {
-            // Promover próximo cartão ativo como padrão
-            List<CustomerCard> activeCards = cardRepository.findActiveCardsByCustomerId(customerId);
-            if (!activeCards.isEmpty()) {
-                CustomerCard newDefault = activeCards.get(0);
-                newDefault.setIsDefault(true);
-                cardRepository.save(newDefault);
-                log.info("Novo cartão padrão: {} para customer {}", newDefault.getId(), customerId);
+        // Verificar se era o cartão padrão (via customer_payment_preferences)
+        preferenceRepository.findByUserId(customerId).ifPresent(pref -> {
+            if (pref.getDefaultCard() != null && pref.getDefaultCard().getId().equals(cardId)) {
+                // Promover próximo cartão ativo como padrão
+                List<CustomerCard> activeCards = cardRepository.findActiveCardsByCustomerId(customerId);
+                if (!activeCards.isEmpty()) {
+                    CustomerCard newDefault = activeCards.get(0);
+                    pref.setDefaultCard(newDefault);
+                    preferenceRepository.save(pref);
+                    log.info("Novo cartão padrão: {} para customer {}", newDefault.getId(), customerId);
+                } else {
+                    // Sem cartões restantes, trocar preferência para PIX
+                    pref.setPreferredPaymentType(CustomerPaymentPreference.PreferredPaymentType.PIX);
+                    pref.setDefaultCard(null);
+                    preferenceRepository.save(pref);
+                    log.info("⚠️ Último cartão deletado → preferência alterada para PIX para customer {}", customerId);
+                }
             }
-
-            // Limpar preferência de pagamento — cliente deve reconfigurar
-            preferenceRepository.findByUserId(customerId).ifPresent(pref -> {
-                preferenceRepository.delete(pref);
-                log.info("⚠️ Cartão default deletado → preferência de pagamento removida para customer {}", customerId);
-            });
-        }
+        });
     }
 
     /**
@@ -607,6 +646,29 @@ public class CustomerCardService {
     // ============================================================================
     // MÉTODOS PRIVADOS
     // ============================================================================
+
+    /**
+     * Popula campo isDefault dinamicamente em uma lista de cartões.
+     * Consulta customer_payment_preferences.default_card_id para determinar qual cartão é o padrão.
+     */
+    private void populateIsDefaultFields(List<CustomerCard> cards, UUID customerId) {
+        if (cards == null || cards.isEmpty()) {
+            return;
+        }
+        
+        // Buscar cartão padrão da preferência
+        Long defaultCardId = preferenceRepository.findByUserId(customerId)
+                .map(CustomerPaymentPreference::getDefaultCard)
+                .map(CustomerCard::getId)
+                .orElse(null);
+        
+        // Popular campo transiente isDefault
+        for (CustomerCard card : cards) {
+            boolean isDefault = defaultCardId != null && card.getId().equals(defaultCardId);
+            card.setIsDefault(isDefault);
+            log.debug("Cartão {} - isDefault: {}", card.getId(), isDefault);
+        }
+    }
 
     /**
      * Valida se usuário logado tem acesso ao customer.

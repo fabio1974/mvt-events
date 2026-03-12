@@ -48,6 +48,12 @@ public class CustomerCardController {
             // Extrair customerId do token JWT
             UUID customerId = extractCustomerId(authentication);
 
+            // 🔍 LOG DO PAYLOAD RECEBIDO DO MOBILE
+            log.info("📱 [MOBILE REQUEST] POST /api/customer-cards");
+            log.info("   └─ cardToken: {}", request.getCardToken() != null ? request.getCardToken().substring(0, Math.min(20, request.getCardToken().length())) + "..." : "null");
+            log.info("   └─ setAsDefault: {}", request.getSetAsDefault());
+            log.info("   └─ billingAddress: {}", request.getBillingAddress() != null ? "presente" : "null");
+
             // Adicionar cartão com billing address (se fornecido)
             CustomerCard card = cardService.addCard(
                 customerId, 

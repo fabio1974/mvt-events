@@ -30,6 +30,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -61,6 +62,9 @@ public class AuthController {
 
     @Autowired
     private EmailService emailService;
+
+    @Autowired
+    private com.mvt.mvt_events.repository.CustomerPaymentPreferenceRepository customerPaymentPreferenceRepository;
 
     @Value("${app.frontend.url:http://localhost:5173}")
     private String frontendUrl;
@@ -131,6 +135,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @Transactional
     @Operation(summary = "Registrar novo usuário", description = "Criação de conta (acesso público). Envia email de confirmação.")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest) {
         if (userRepository.findByUsername(registerRequest.getUsername()).isPresent()) {
@@ -154,10 +159,22 @@ public class AuthController {
         user.setConfirmationTokenExpiresAt(LocalDateTime.now().plusHours(24)); // Expira em 24h
         user.setConfirmed(false); // Não confirmado até clicar no link
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        // Se for CLIENT, criar automaticamente preferência de pagamento como PIX
+        if (savedUser.getRole() == User.Role.CLIENT) {
+            com.mvt.mvt_events.jpa.CustomerPaymentPreference preference = 
+                com.mvt.mvt_events.jpa.CustomerPaymentPreference.builder()
+                    .user(savedUser)
+                    .preferredPaymentType(com.mvt.mvt_events.jpa.CustomerPaymentPreference.PreferredPaymentType.PIX)
+                    .defaultCard(null)
+                    .build();
+            customerPaymentPreferenceRepository.save(preference);
+            log.info("✅ Preferência de pagamento PIX criada automaticamente para CLIENT: {}", savedUser.getUsername());
+        }
 
         // Enviar email de confirmação (async)
-        emailService.sendConfirmationEmail(user);
+        emailService.sendConfirmationEmail(savedUser);
 
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Cadastro realizado! Verifique seu email para confirmar a conta.");

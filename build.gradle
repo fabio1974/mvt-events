@@ -95,6 +95,17 @@ tasks.named('test') {
 }
 
 // ============================================================================
+// SPRING BOOT CONFIGURATION
+// ============================================================================
+springBoot {
+	mainClass = 'com.mvt.mvt_events.MvtEventsApplication'
+}
+
+bootRun {
+	mainClass = 'com.mvt.mvt_events.MvtEventsApplication'
+}
+
+// ============================================================================
 // FLYWAY CONFIGURATION
 // ============================================================================
 flyway {

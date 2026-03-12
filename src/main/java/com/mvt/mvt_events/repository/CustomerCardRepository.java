@@ -17,15 +17,19 @@ public interface CustomerCardRepository extends JpaRepository<CustomerCard, Long
 
     /**
      * Busca todos os cartões ativos de um cliente (não deletados).
+     * Ordenação: mais recentemente usado primeiro, depois por data de criação.
      */
-    @Query("SELECT c FROM CustomerCard c WHERE c.customer.id = :customerId AND c.deletedAt IS NULL ORDER BY c.isDefault DESC, c.lastUsedAt DESC NULLS LAST, c.createdAt DESC")
+    @Query("SELECT c FROM CustomerCard c WHERE c.customer.id = :customerId AND c.deletedAt IS NULL ORDER BY c.lastUsedAt DESC NULLS LAST, c.createdAt DESC")
     List<CustomerCard> findActiveCardsByCustomerId(@Param("customerId") UUID customerId);
 
     /**
      * Busca o cartão padrão de um cliente.
+     * DEPRECATED: Use CustomerPaymentPreferenceService.getDefaultCard() que consulta customer_payment_preferences.default_card_id
      */
-    @Query("SELECT c FROM CustomerCard c WHERE c.customer.id = :customerId AND c.isDefault = TRUE AND c.deletedAt IS NULL")
-    Optional<CustomerCard> findDefaultCardByCustomerId(@Param("customerId") UUID customerId);
+    @Deprecated
+    default Optional<CustomerCard> findDefaultCardByCustomerId(UUID customerId) {
+        return Optional.empty(); // Removido - usar CustomerPaymentPreference
+    }
 
     /**
      * Busca cartão por ID do Pagar.me (único identificador externo).
@@ -39,12 +43,9 @@ public interface CustomerCardRepository extends JpaRepository<CustomerCard, Long
     Optional<CustomerCard> findByIdAndCustomerId(@Param("cardId") Long cardId, @Param("customerId") UUID customerId);
 
     /**
-     * Remove flag is_default de todos os cartões do cliente.
-     * Usado antes de marcar um novo cartão como padrão.
+     * REMOVIDO: clearDefaultFlag e setDefaultCardAtomic não são mais necessários.
+     * Agora usamos customer_payment_preferences.default_card_id para identificar o cartão padrão.
      */
-    @Modifying
-    @Query("UPDATE CustomerCard c SET c.isDefault = FALSE WHERE c.customer.id = :customerId")
-    void clearDefaultFlag(@Param("customerId") UUID customerId);
 
     /**
      * Conta quantos cartões ativos um cliente possui.
@@ -53,8 +54,7 @@ public interface CustomerCardRepository extends JpaRepository<CustomerCard, Long
     long countActiveCardsByCustomerId(@Param("customerId") UUID customerId);
 
     /**
-     * Verifica se existe um cartão padrão para o cliente.
+     * REMOVIDO: hasDefaultCard não é mais necessário.
+     * Use CustomerPaymentPreferenceService para verificar se existe cartão padrão.
      */
-    @Query("SELECT COUNT(c) > 0 FROM CustomerCard c WHERE c.customer.id = :customerId AND c.isDefault = TRUE AND c.deletedAt IS NULL")
-    boolean hasDefaultCard(@Param("customerId") UUID customerId);
 }

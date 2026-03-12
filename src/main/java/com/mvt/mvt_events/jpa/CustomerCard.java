@@ -20,9 +20,13 @@ import java.time.LocalDateTime;
  * Relacionamentos:
  * - N:1 com User (customer que possui o cartão)
  * 
+ * CARTÃO PADRÃO:
+ * - Não existe mais coluna is_default no banco
+ * - O cartão padrão é identificado por customer_payment_preferences.default_card_id
+ * - Para saber qual é o cartão padrão, consultar CustomerPaymentPreferenceService
+ * 
  * Funcionalidades:
  * - Múltiplos cartões por cliente
- * - Um cartão marcado como "padrão" (default)
  * - Soft delete (não remove fisicamente por auditoria)
  */
 @Entity
@@ -110,11 +114,12 @@ public class CustomerCard extends BaseEntity {
     // ============================================================================
 
     /**
-     * Se este é o cartão padrão do cliente (usado por default nos pagamentos).
-     * Apenas um cartão pode ser padrão por cliente.
+     * CAMPO TRANSIENTE: Se este é o cartão padrão do cliente.
+     * NÃO persiste no banco - calculado dinamicamente a partir de customer_payment_preferences.default_card_id
+     * Mantido apenas para compatibilidade com API mobile/frontend.
+     * Populado automaticamente em CustomerCardService.populateIsDefaultFields()
      */
-    @Column(name = "is_default", nullable = false)
-    @Visible(table = true, form = true, filter = true)
+    @Transient
     private Boolean isDefault = false;
 
     /**
@@ -198,7 +203,6 @@ public class CustomerCard extends BaseEntity {
     public void softDelete() {
         this.deletedAt = LocalDateTime.now();
         this.isActive = false;
-        this.isDefault = false;
     }
 
     /**
