@@ -1,5 +1,6 @@
 package com.mvt.mvt_events.payment.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,6 +23,7 @@ import java.math.RoundingMode;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class RecipientBalanceResponse {
 
     /**
@@ -47,32 +49,71 @@ public class RecipientBalanceResponse {
     @JsonProperty("transferred")
     private BalanceItem transferred;
 
+    /**
+     * Formato atual da API Pagar.me (core v5): valores em centavos no nível raiz.
+     */
+    @JsonProperty("available_amount")
+    private Long availableAmount;
+
+    @JsonProperty("waiting_funds_amount")
+    private Long waitingFundsAmount;
+
+    @JsonProperty("transferred_amount")
+    private Long transferredAmount;
+
     // ── Valores em Reais (calculados pelo BE para facilitar o mobile) ──────────
 
     /**
      * Saldo disponível em Reais (ex: 12.50)
      */
     public BigDecimal getAvailableBrl() {
-        return toBrl(available);
+        return toBrl(resolveAvailableCents());
     }
 
     /**
      * Valores a receber em Reais (ex: 5.00)
      */
     public BigDecimal getWaitingFundsBrl() {
-        return toBrl(waitingFunds);
+        return toBrl(resolveWaitingFundsCents());
     }
 
     /**
      * Total transferido em Reais (ex: 200.00)
      */
     public BigDecimal getTransferredBrl() {
-        return toBrl(transferred);
+        return toBrl(resolveTransferredCents());
     }
 
-    private BigDecimal toBrl(BalanceItem item) {
-        if (item == null || item.getAmount() == null) return BigDecimal.ZERO;
-        return BigDecimal.valueOf(item.getAmount())
+    public Long getAvailableCents() {
+        return resolveAvailableCents();
+    }
+
+    public Long getWaitingFundsCents() {
+        return resolveWaitingFundsCents();
+    }
+
+    public Long getTransferredCents() {
+        return resolveTransferredCents();
+    }
+
+    private Long resolveAvailableCents() {
+        if (availableAmount != null) return availableAmount;
+        return available != null ? available.getAmount() : null;
+    }
+
+    private Long resolveWaitingFundsCents() {
+        if (waitingFundsAmount != null) return waitingFundsAmount;
+        return waitingFunds != null ? waitingFunds.getAmount() : null;
+    }
+
+    private Long resolveTransferredCents() {
+        if (transferredAmount != null) return transferredAmount;
+        return transferred != null ? transferred.getAmount() : null;
+    }
+
+    private BigDecimal toBrl(Long cents) {
+        if (cents == null) return BigDecimal.ZERO;
+        return BigDecimal.valueOf(cents)
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
     }
 

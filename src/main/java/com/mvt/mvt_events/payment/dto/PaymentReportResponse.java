@@ -39,6 +39,7 @@ public class PaymentReportResponse {
         private LocalDateTime completedAt;
         private BigDecimal shippingFee;
         private String clientName;
+        private String courierName;
         private String pickupAddress;
         private String deliveryAddress;
         private List<SplitItem> splits;

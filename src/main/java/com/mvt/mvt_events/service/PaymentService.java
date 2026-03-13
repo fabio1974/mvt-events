@@ -571,6 +571,7 @@ public class PaymentService {
                     .completedAt(delivery.getCompletedAt())
                     .shippingFee(shippingFee)
                     .clientName(delivery.getClient() != null ? delivery.getClient().getName() : "N/A")
+                    .courierName(delivery.getCourier() != null ? delivery.getCourier().getName() : "N/A")
                     .pickupAddress(delivery.getFromAddress())
                     .deliveryAddress(delivery.getToAddress())
                     .splits(deliverySplits)

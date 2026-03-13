@@ -1560,9 +1560,12 @@ public class PagarMeService {
             RecipientBalanceResponse balance = response.getBody();
             if (balance != null) {
                 balance.setRecipientId(recipientId);
-                log.info("   └─ ✅ Saldo obtido: disponível=R$ {} | a receber=R$ {} | transferido=R$ {}",
+                log.info("   └─ ✅ Saldo obtido: disponível={} cents (R$ {}) | a receber={} cents (R$ {}) | transferido={} cents (R$ {})",
+                    balance.getAvailableCents(),
                         balance.getAvailableBrl(),
+                    balance.getWaitingFundsCents(),
                         balance.getWaitingFundsBrl(),
+                    balance.getTransferredCents(),
                         balance.getTransferredBrl());
             }
 
