@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -81,8 +81,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
                         "AND p.paymentDate BETWEEN :startDate AND :endDate " +
                         "ORDER BY p.id DESC")
         List<Payment> findCompletedPaymentsBetween(
-                        @Param("startDate") LocalDateTime startDate,
-                        @Param("endDate") LocalDateTime endDate);
+                        @Param("startDate") OffsetDateTime startDate,
+                        @Param("endDate") OffsetDateTime endDate);
 
         /**
          * Busca pagamentos por provider
@@ -157,5 +157,5 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
                 "AND p.paymentMethod = 'PIX' " +
                 "AND p.expiresAt IS NOT NULL " +
                 "AND p.expiresAt < :now")
-        List<Payment> findExpiredPendingPixPayments(@Param("now") LocalDateTime now);
+        List<Payment> findExpiredPendingPixPayments(@Param("now") OffsetDateTime now);
 }

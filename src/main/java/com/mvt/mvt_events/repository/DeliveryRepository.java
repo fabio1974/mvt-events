@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -160,8 +160,8 @@ public interface DeliveryRepository
                         "ORDER BY d.id DESC")
         List<Delivery> findByOrganizationIdAndDateRange(
                         @Param("organizationId") Long organizationId,
-                        @Param("startDate") LocalDateTime startDate,
-                        @Param("endDate") LocalDateTime endDate);
+                        @Param("startDate") OffsetDateTime startDate,
+                        @Param("endDate") OffsetDateTime endDate);
 
         /**
          * Busca deliveries completadas sem avaliação (ordenado por id DESC)
@@ -171,7 +171,7 @@ public interface DeliveryRepository
                         "AND NOT EXISTS (SELECT e FROM Evaluation e WHERE e.delivery.id = d.id) " +
                         "AND d.completedAt > :sinceDate " +
                         "ORDER BY d.id DESC")
-        List<Delivery> findCompletedWithoutEvaluation(@Param("sinceDate") LocalDateTime sinceDate);
+        List<Delivery> findCompletedWithoutEvaluation(@Param("sinceDate") OffsetDateTime sinceDate);
 
         /**
          * Busca entregas disponíveis para um motoboy (PENDING na organização)
@@ -248,7 +248,7 @@ public interface DeliveryRepository
          */
         @Query("SELECT d FROM Delivery d WHERE d.status = 'PENDING' AND d.courier IS NULL " +
                "AND d.createdAt < :expirationCutoff")
-        List<Delivery> findStalePendingDeliveries(@Param("expirationCutoff") java.time.LocalDateTime expirationCutoff);
+        List<Delivery> findStalePendingDeliveries(@Param("expirationCutoff") OffsetDateTime expirationCutoff);
 
         /**
          * NÍVEL 1 — Busca deliveries PENDING de clientes vinculados por contrato ativo ao courier.

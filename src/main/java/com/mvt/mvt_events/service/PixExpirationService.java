@@ -12,7 +12,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 /**
@@ -49,7 +50,7 @@ public class PixExpirationService {
     @Scheduled(fixedRate = 30000)
     @Transactional
     public void checkExpiredPixPayments() {
-        LocalDateTime now = LocalDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now(ZoneId.of("America/Fortaleza"));
 
         List<Payment> expiredPayments = paymentRepository.findExpiredPendingPixPayments(now);
 
@@ -89,8 +90,8 @@ public class PixExpirationService {
      * Cancela deliveries que estão em PENDING sem aceite de motoboy há mais de 30 minutos.
      * Status final: CANCELLED com motivo "Expirada: sem aceite em 30 minutos".
      */
-    private void expireStalePendingDeliveries(LocalDateTime now) {
-        LocalDateTime cutoff = now.minusMinutes(30);
+    private void expireStalePendingDeliveries(OffsetDateTime now) {
+        OffsetDateTime cutoff = now.minusMinutes(30);
         List<com.mvt.mvt_events.jpa.Delivery> stale =
                 deliveryRepository.findStalePendingDeliveries(cutoff);
 
@@ -101,7 +102,7 @@ public class PixExpirationService {
         for (com.mvt.mvt_events.jpa.Delivery delivery : stale) {
             try {
                 delivery.setStatus(com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.CANCELLED);
-                delivery.setCancelledAt(java.time.OffsetDateTime.ofInstant(now.toInstant(java.time.ZoneOffset.UTC), java.time.ZoneId.of("America/Fortaleza")));
+                delivery.setCancelledAt(now);
                 delivery.setCancellationReason("Expirada: sem aceite em 30 minutos");
                 deliveryRepository.save(delivery);
                 log.info("   ✅ Delivery #{} cancelada (criada em {})", delivery.getId(), delivery.getCreatedAt());
