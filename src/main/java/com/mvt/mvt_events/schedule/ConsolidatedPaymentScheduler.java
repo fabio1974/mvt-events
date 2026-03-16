@@ -14,7 +14,7 @@ import java.util.Map;
 /**
  * Scheduler para processamento automático de pagamentos consolidados.
  *
- * Criação: 4x/dia (08h, 12h, 16h, 20h). PIX gerado expira em 3h55 (235 min),
+ * Criação: 6x/dia (00h, 04h, 08h, 12h, 16h, 20h). PIX gerado expira em 3h55 (235 min),
  * ou seja, sempre expira antes da próxima rodada (janela de 5 min entre expiração e novo PIX).
  *
  * Lembrete: tratado pelo ConsolidatedPaymentReminderScheduler (16:05).
@@ -39,9 +39,9 @@ public class ConsolidatedPaymentScheduler {
 
     /**
      * Cria PIX consolidado para todos os clientes com deliveries não pagas.
-     * Roda 4x/dia: 08:00, 12:00, 16:00, 20:00. PIX expira em 3h55 (antes da próxima rodada).
+     * Roda 6x/dia: 00:00, 04:00, 08:00, 12:00, 16:00, 20:00. PIX expira em 3h55 (antes da próxima rodada).
      */
-    @Scheduled(cron = "0 0 8,12,16,20 * * *")
+    @Scheduled(cron = "0 0 0,4,8,12,16,20 * * *")
     public void consolidatePayments() {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         log.info("╔════════════════════════════════════════════════════════════════╗");
