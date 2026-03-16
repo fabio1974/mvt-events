@@ -5,7 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -38,12 +39,12 @@ public class ConsolidatedPaymentProcessResponse {
     /**
      * Timestamp de quando a tarefa foi iniciada
      */
-    private LocalDateTime startedAt;
+    private OffsetDateTime startedAt;
 
     /**
      * Timestamp de quando a tarefa foi concluída
      */
-    private LocalDateTime completedAt;
+    private OffsetDateTime completedAt;
 
     /**
      * Estatísticas gerais de processamento

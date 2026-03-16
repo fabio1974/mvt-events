@@ -4,7 +4,8 @@ import com.mvt.mvt_events.dto.ConsolidatedPaymentProcessResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -29,7 +30,7 @@ public class ConsolidatedPaymentTaskTracker {
         response.setTaskId(taskId);
         response.setStatus("QUEUED");
         response.setMessage("Tarefa enfileirada para processamento");
-        response.setStartedAt(LocalDateTime.now());
+        response.setStartedAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")));
         response.setProgressPercentage(0);
 
         tasks.put(taskId, response);
@@ -45,7 +46,7 @@ public class ConsolidatedPaymentTaskTracker {
         if (task != null) {
             task.setStatus("PROCESSING");
             task.setMessage("Processamento em andamento");
-            task.setStartedAt(LocalDateTime.now());
+            task.setStartedAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")));
             task.setProgressPercentage(10);
             log.info("▶️ Tarefa marcada como PROCESSING: {}", taskId);
         }
@@ -71,7 +72,7 @@ public class ConsolidatedPaymentTaskTracker {
         if (task != null) {
             task.setStatus("COMPLETED");
             task.setMessage("Processamento concluído com sucesso");
-            task.setCompletedAt(LocalDateTime.now());
+            task.setCompletedAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")));
             task.setStatistics(statistics);
             task.setProgressPercentage(100);
             log.info("✅ Tarefa marcada como COMPLETED: {}", taskId);
@@ -86,7 +87,7 @@ public class ConsolidatedPaymentTaskTracker {
         if (task != null) {
             task.setStatus("FAILED");
             task.setMessage(errorMessage);
-            task.setCompletedAt(LocalDateTime.now());
+            task.setCompletedAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")));
             task.setErrors(errors);
             task.setProgressPercentage(0);
             log.error("❌ Tarefa marcada como FAILED: {} - {}", taskId, errorMessage);
@@ -119,9 +120,9 @@ public class ConsolidatedPaymentTaskTracker {
      * Limpa tarefas antigas (completadas há mais de 24h)
      */
     public void cleanupOldTasks() {
-        LocalDateTime cutoff = LocalDateTime.now().minusHours(24);
+        OffsetDateTime cutoff = OffsetDateTime.now(ZoneId.of("America/Fortaleza")).minusHours(24);
         tasks.entrySet().removeIf(entry -> {
-            LocalDateTime completed = entry.getValue().getCompletedAt();
+            OffsetDateTime completed = entry.getValue().getCompletedAt();
             return completed != null && completed.isBefore(cutoff);
         });
         log.info("🧹 Limpeza de tarefas antigas concluída");

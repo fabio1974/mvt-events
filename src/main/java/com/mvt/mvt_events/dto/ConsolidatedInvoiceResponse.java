@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Map;
 
 /**
@@ -65,7 +65,7 @@ public class ConsolidatedInvoiceResponse {
     /**
      * Data/hora de expiração da invoice
      */
-    private LocalDateTime expiresAt;
+    private OffsetDateTime expiresAt;
 
     /**
      * Mensagem amigável sobre o status

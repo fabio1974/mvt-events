@@ -30,7 +30,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.UUID;
 
@@ -130,7 +131,7 @@ public class PaymentController {
         // Filtro por data: recent=true usa paymentHistoryDays do site_configurations
         if (recent) {
             int days = siteConfigurationService.getActiveConfiguration().getPaymentHistoryDays();
-            LocalDateTime since = LocalDateTime.now().minusDays(days);
+            OffsetDateTime since = OffsetDateTime.now(ZoneId.of("America/Fortaleza")).minusDays(days);
             spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("createdAt"), since));
         }
 
@@ -209,7 +210,7 @@ public class PaymentController {
         // Filtro por data: recent=true usa paymentHistoryDays do site_configurations
         if (recent) {
             int days = siteConfigurationService.getActiveConfiguration().getPaymentHistoryDays();
-            LocalDateTime since = LocalDateTime.now().minusDays(days);
+            OffsetDateTime since = OffsetDateTime.now(ZoneId.of("America/Fortaleza")).minusDays(days);
             spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("createdAt"), since));
         }
 

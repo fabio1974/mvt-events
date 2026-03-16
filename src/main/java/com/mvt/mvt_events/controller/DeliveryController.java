@@ -320,7 +320,7 @@ public class DeliveryController {
             java.util.Map<String, String> errorResponse = new java.util.HashMap<>();
             errorResponse.put("error", "Falha ao aceitar delivery");
             errorResponse.put("message", e.getMessage());
-            errorResponse.put("timestamp", java.time.LocalDateTime.now().toString());
+            errorResponse.put("timestamp", java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza")).toString());
             
             return ResponseEntity.badRequest().body(errorResponse);
         }
@@ -343,7 +343,7 @@ public class DeliveryController {
             java.util.Map<String, String> errorResponse = new java.util.HashMap<>();
             errorResponse.put("error", "Falha ao confirmar coleta");
             errorResponse.put("message", e.getMessage());
-            errorResponse.put("timestamp", java.time.LocalDateTime.now().toString());
+            errorResponse.put("timestamp", java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza")).toString());
             
             return ResponseEntity.badRequest().body(errorResponse);
         }
