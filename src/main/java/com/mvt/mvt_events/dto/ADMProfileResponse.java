@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * DTO de resposta para ADMProfile
@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 public class ADMProfileResponse {
 
     private Long id;
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
 
     // User
     private String userId;

@@ -17,7 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 
 /**
@@ -151,7 +152,7 @@ log.info("🔔 Webhook recebido em /api/webhooks/order");
             
             // Se for pagamento confirmado, registrar data de pagamento
             if (newStatus == PaymentStatus.PAID && payment.getPaymentDate() == null) {
-                payment.setPaymentDate(LocalDateTime.now());
+                payment.setPaymentDate(OffsetDateTime.now(ZoneId.of("America/Fortaleza")));
                 log.info("💰 Data de pagamento registrada: {}", payment.getPaymentDate());
             }
             

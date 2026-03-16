@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * DTO de resposta para Evaluation
@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 public class EvaluationResponse {
 
     private Long id;
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
 
     // Delivery
     private Long deliveryId;

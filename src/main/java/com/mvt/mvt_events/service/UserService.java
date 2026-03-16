@@ -517,16 +517,16 @@ public class UserService {
                     gpsTimestamp = LocalDateTime.parse(updatedAtString.replace(" ", "T"));
                 }
 
-                user.setUpdatedAt(gpsTimestamp);
+                user.setUpdatedAt(java.time.OffsetDateTime.ofInstant(gpsTimestamp.toInstant(java.time.ZoneOffset.UTC), java.time.ZoneId.of("America/Fortaleza")));
             } catch (Exception e) {
                 // Se não conseguir parsear, usar timestamp atual e logar warning
                 System.err
                         .println("Erro ao parsear timestamp do GPS: " + updatedAtString + ". Usando timestamp atual.");
-                user.setUpdatedAt(LocalDateTime.now());
+                user.setUpdatedAt(java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza")));
             }
         } else {
             // Se não fornecido, usar timestamp atual
-            user.setUpdatedAt(LocalDateTime.now());
+            user.setUpdatedAt(java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza")));
         }
 
         User savedUser = userRepository.save(user);
@@ -782,7 +782,7 @@ public class UserService {
             contract.setCourier(courier);
             contract.setOrganization(organization);
             contract.setActive(true);
-            contract.setLinkedAt(java.time.LocalDateTime.now());
+            contract.setLinkedAt(java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza")));
             contract = employmentContractRepository.save(contract);
         }
         

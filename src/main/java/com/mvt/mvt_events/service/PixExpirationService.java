@@ -101,7 +101,7 @@ public class PixExpirationService {
         for (com.mvt.mvt_events.jpa.Delivery delivery : stale) {
             try {
                 delivery.setStatus(com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.CANCELLED);
-                delivery.setCancelledAt(now);
+                delivery.setCancelledAt(java.time.OffsetDateTime.ofInstant(now.toInstant(java.time.ZoneOffset.UTC), java.time.ZoneId.of("America/Fortaleza")));
                 delivery.setCancellationReason("Expirada: sem aceite em 30 minutos");
                 deliveryRepository.save(delivery);
                 log.info("   ✅ Delivery #{} cancelada (criada em {})", delivery.getId(), delivery.getCreatedAt());

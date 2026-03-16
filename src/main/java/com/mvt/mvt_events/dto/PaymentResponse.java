@@ -8,7 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * DTO para retornar dados de pagamentos PIX via Pagar.me
@@ -103,17 +103,17 @@ public class PaymentResponse {
     /**
      * Data/hora de expiração da fatura
      */
-    private LocalDateTime expiresAt;
+    private OffsetDateTime expiresAt;
 
     /**
      * Data/hora de criação
      */
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
 
     /**
      * Data/hora do pagamento (quando foi pago)
      */
-    private LocalDateTime paymentDate;
+    private OffsetDateTime paymentDate;
 
     /**
      * ID da entrega

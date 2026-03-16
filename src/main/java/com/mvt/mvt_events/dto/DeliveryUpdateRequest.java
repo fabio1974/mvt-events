@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * DTO para atualização de Delivery
@@ -48,5 +48,5 @@ public class DeliveryUpdateRequest {
     @DecimalMin(value = "0.00", message = "Taxa de entrega deve ser maior ou igual a zero")
     private BigDecimal shippingFee;
 
-    private LocalDateTime scheduledPickupAt;
+    private OffsetDateTime scheduledPickupAt;
 }

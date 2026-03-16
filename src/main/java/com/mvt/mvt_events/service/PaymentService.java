@@ -160,21 +160,21 @@ public class PaymentService {
                         try {
                             // Parse usando OffsetDateTime (suporta timezone Z)
                             OffsetDateTime offsetDateTime = OffsetDateTime.parse(expiresAtStr);
-                            // Converter para o timezone local do servidor mantendo o mesmo instante
-                            LocalDateTime expiresAt = offsetDateTime.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
+                            // Converter para o timezone de Fortaleza mantendo o mesmo instante
+                            OffsetDateTime expiresAt = offsetDateTime.atZoneSameInstant(ZoneId.of("America/Fortaleza")).toOffsetDateTime();
                             payment.setExpiresAt(expiresAt);
-                            log.info("⏰ Expiração configurada: {} (UTC: {}, Timezone: {})", 
-                                    expiresAt, expiresAtStr, ZoneId.systemDefault());
+                            log.info("⏰ Expiração configurada: {} (UTC: {}, Timezone: America/Fortaleza)", 
+                                    expiresAt, expiresAtStr);
                         } catch (Exception e) {
                             log.warn("⚠️ Erro ao parsear expiresAt '{}': {}", expiresAtStr, e.getMessage());
                             // Fallback: calcular manualmente (2 horas)
-                            LocalDateTime calculatedExpiration = LocalDateTime.now().plusHours(2);
+                            OffsetDateTime calculatedExpiration = OffsetDateTime.now(ZoneId.of("America/Fortaleza")).plusHours(2);
                             payment.setExpiresAt(calculatedExpiration);
                             log.info("⏰ Expiração calculada manualmente após erro de parse: {}", calculatedExpiration);
                         }
                     } else {
                         // Se Pagar.me não retornou expiresAt, calcular manualmente (2 horas)
-                        LocalDateTime calculatedExpiration = LocalDateTime.now().plusHours(2);
+                        OffsetDateTime calculatedExpiration = OffsetDateTime.now(ZoneId.of("America/Fortaleza")).plusHours(2);
                         payment.setExpiresAt(calculatedExpiration);
                         log.info("⏰ Expiração calculada manualmente (Pagar.me não retornou): {}", calculatedExpiration);
                     }
@@ -451,7 +451,7 @@ public class PaymentService {
         // Lista de deliveries do pagamento — mais recente primeiro
         List<Delivery> deliveries = payment.getDeliveries().stream()
                 .sorted(java.util.Comparator.comparing(
-                        d -> d.getCreatedAt() != null ? d.getCreatedAt() : java.time.LocalDateTime.MIN,
+                        d -> d.getCreatedAt() != null ? d.getCreatedAt() : java.time.OffsetDateTime.MIN,
                         java.util.Comparator.reverseOrder()))
                 .collect(java.util.stream.Collectors.toList());
 
@@ -814,7 +814,7 @@ public class PaymentService {
             log.info("📝 Notes preenchido: {}", notes);
             
             if (finalStatus == PaymentStatus.PAID) {
-                payment.setPaymentDate(LocalDateTime.now());
+                payment.setPaymentDate(OffsetDateTime.now(ZoneId.of("America/Fortaleza")));
                 delivery.setPaymentCaptured(true);
                 delivery.setPaymentCompleted(true);
                 deliveryRepository.save(delivery);

@@ -61,7 +61,7 @@ public class CourierEarningsService {
         // Filtrar por data se recent=true
         if (recent != null && recent) {
             int days = config.getDeliveryHistoryDays();
-            java.time.LocalDateTime cutoffDate = java.time.LocalDateTime.now().minusDays(days);
+            java.time.OffsetDateTime cutoffDate = java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza")).minusDays(days);
             completedDeliveries = completedDeliveries.stream()
                     .filter(d -> d.getCompletedAt() != null && d.getCompletedAt().isAfter(cutoffDate))
                     .collect(Collectors.toList());

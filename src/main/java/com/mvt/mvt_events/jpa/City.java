@@ -1,7 +1,8 @@
 package com.mvt.mvt_events.jpa;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.Objects;
 
 @Entity
@@ -25,15 +26,15 @@ public class City {
     private String ibgeCode;
 
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private OffsetDateTime updatedAt;
 
     // Constructors
     public City() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.createdAt = OffsetDateTime.now(ZoneId.of("America/Fortaleza"));
+        this.updatedAt = OffsetDateTime.now(ZoneId.of("America/Fortaleza"));
     }
 
     public City(String name, String state, String stateCode, String ibgeCode) {
@@ -85,32 +86,32 @@ public class City {
         this.ibgeCode = ibgeCode;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
     }
 
-    public LocalDateTime getUpdatedAt() {
+    public OffsetDateTime getUpdatedAt() {
         return updatedAt;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
+    public void setUpdatedAt(OffsetDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
 
     // Lifecycle methods
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        createdAt = OffsetDateTime.now(ZoneId.of("America/Fortaleza"));
+        updatedAt = OffsetDateTime.now(ZoneId.of("America/Fortaleza"));
     }
 
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        updatedAt = OffsetDateTime.now(ZoneId.of("America/Fortaleza"));
     }
 
     // toString, equals, hashCode

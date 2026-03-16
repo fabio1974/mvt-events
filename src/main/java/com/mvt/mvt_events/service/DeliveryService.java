@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -491,7 +493,7 @@ public class DeliveryService {
         // Atribuir courier
         delivery.setCourier(courierUser);
         delivery.setStatus(Delivery.DeliveryStatus.ACCEPTED);
-        delivery.setAcceptedAt(LocalDateTime.now());
+        delivery.setAcceptedAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")));
 
         // Setar o veículo ativo do courier no momento do aceite
         vehicleRepository.findActiveVehicleByOwnerId(courierUser.getId())
@@ -592,8 +594,8 @@ public class DeliveryService {
         }
 
         delivery.setStatus(Delivery.DeliveryStatus.IN_TRANSIT);
-        delivery.setPickedUpAt(LocalDateTime.now());
-        delivery.setInTransitAt(LocalDateTime.now());
+        delivery.setPickedUpAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")));
+        delivery.setInTransitAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")));
 
         Delivery saved = deliveryRepository.save(delivery);
 
@@ -641,7 +643,7 @@ public class DeliveryService {
         }
 
         delivery.setStatus(Delivery.DeliveryStatus.COMPLETED);
-        delivery.setCompletedAt(LocalDateTime.now());
+        delivery.setCompletedAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")));
 
         // Limpar currentDeliveryId do courier
         User courier = delivery.getCourier();
@@ -672,7 +674,7 @@ public class DeliveryService {
         }
 
         delivery.setStatus(Delivery.DeliveryStatus.CANCELLED);
-        delivery.setCancelledAt(LocalDateTime.now());
+        delivery.setCancelledAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")));
         delivery.setCancellationReason(reason);
 
         // Se tinha courier atribuído, remover courier e organization
@@ -701,9 +703,13 @@ public class DeliveryService {
 
         // Atualizar status e timestamps correspondentes
         delivery.setStatus(newStatus);
-        LocalDateTime now = LocalDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now(ZoneId.of("America/Fortaleza"));
 
         switch (newStatus) {
+            case WAITING_PAYMENT:
+                // Entrega aguardando pagamento - não altera timestamps
+                break;
+
             case PENDING:
                 // Limpar currentDeliveryId do courier antes de remover
                 if (delivery.getCourier() != null) {
@@ -1244,7 +1250,7 @@ public class DeliveryService {
             // Atualizar Payment com dados de sucesso
             payment.setProviderPaymentId(orderResponse.getId());
             payment.setAmount(delivery.getShippingFee());
-            payment.setPaymentDate(java.time.LocalDateTime.now());
+            payment.setPaymentDate(OffsetDateTime.now(ZoneId.of("America/Fortaleza")));
             
             // CRÍTICO: Capturar request/response do OrderResponse
             String req = orderResponse.getRequestPayload();
@@ -1522,19 +1528,19 @@ public class DeliveryService {
                 if (tx.getExpiresAt() != null) {
                     try {
                         java.time.OffsetDateTime offsetDateTime = java.time.OffsetDateTime.parse(tx.getExpiresAt());
-                        LocalDateTime expiresAt = offsetDateTime
-                                .atZoneSameInstant(java.time.ZoneId.systemDefault())
-                                .toLocalDateTime();
+                        OffsetDateTime expiresAt = offsetDateTime
+                                .atZoneSameInstant(ZoneId.of("America/Fortaleza"))
+                                .toOffsetDateTime();
                         payment.setExpiresAt(expiresAt);
                         log.info("   ├─ ⏰ Expiração PIX: {} (UTC: {}, Timezone: {})", 
-                                expiresAt, tx.getExpiresAt(), java.time.ZoneId.systemDefault());
+                                expiresAt, tx.getExpiresAt(), ZoneId.of("America/Fortaleza"));
                     } catch (Exception e) {
                         log.warn("   ├─ ⚠️ Falha ao parsear expiresAt: {} — usando fallback now+300s", tx.getExpiresAt());
-                        payment.setExpiresAt(LocalDateTime.now().plusSeconds(300));
+                        payment.setExpiresAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")).plusSeconds(300));
                     }
                 } else {
                     log.warn("   ├─ ⚠️ expiresAt ausente na resposta Pagar.me — usando fallback now+300s");
-                    payment.setExpiresAt(LocalDateTime.now().plusSeconds(300));
+                    payment.setExpiresAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")).plusSeconds(300));
                 }
             }
         }
@@ -1542,7 +1548,7 @@ public class DeliveryService {
         // Garantir que expiresAt NUNCA é null (spec: expiresAt NEVER null)
         if (payment.getExpiresAt() == null) {
             log.warn("   ├─ ⚠️ expiresAt ainda null após extração — usando fallback now+300s");
-            payment.setExpiresAt(LocalDateTime.now().plusSeconds(300));
+            payment.setExpiresAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")).plusSeconds(300));
         }
 
         // CRÍTICO: Capturar request/response do OrderResponse

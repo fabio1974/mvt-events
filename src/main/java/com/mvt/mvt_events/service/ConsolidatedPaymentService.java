@@ -270,7 +270,7 @@ public class ConsolidatedPaymentService {
             }
 
             // 3. Verificar se já existe um PIX PENDING não expirado para este cliente
-            if (paymentRepository.existsNonExpiredPendingPixByPayerId(clientId, LocalDateTime.now())) {
+            if (paymentRepository.existsNonExpiredPendingPixByPayerId(clientId, OffsetDateTime.now(ZoneId.of("America/Fortaleza")))) {
                 log.info("   └─ Cliente {} já possui PIX PENDING não expirado — aguardando pagamento", clientId);
                 return stats;
             }
@@ -590,16 +590,16 @@ public class ConsolidatedPaymentService {
                     if (expiresAtStr != null) {
                         try {
                             OffsetDateTime offsetDateTime = OffsetDateTime.parse(expiresAtStr);
-                            LocalDateTime expiresAt = offsetDateTime.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
+                            OffsetDateTime expiresAt = offsetDateTime.atZoneSameInstant(ZoneId.of("America/Fortaleza")).toOffsetDateTime();
                             payment.setExpiresAt(expiresAt);
                             log.info("⏰ Expiração configurada: {} (UTC: {})", expiresAt, expiresAtStr);
                         } catch (Exception ex) {
                             log.warn("⚠️ Erro ao parsear expiresAt '{}': {}", expiresAtStr, ex.getMessage());
-                            payment.setExpiresAt(LocalDateTime.now().plusMinutes(pixExpiryMinutes));
+                            payment.setExpiresAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")).plusMinutes(pixExpiryMinutes));
                             log.info("⏰ Expiração calculada manualmente (fallback {}min)", pixExpiryMinutes);
                         }
                     } else {
-                        payment.setExpiresAt(LocalDateTime.now().plusMinutes(pixExpiryMinutes));
+                        payment.setExpiresAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")).plusMinutes(pixExpiryMinutes));
                         log.info("⏰ Expiração calculada manualmente — Pagar.me não retornou expiresAt ({}min)", pixExpiryMinutes);
                     }
                 } else {

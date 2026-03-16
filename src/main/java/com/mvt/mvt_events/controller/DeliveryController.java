@@ -104,12 +104,12 @@ public class DeliveryController {
             Authentication authentication,
             jakarta.servlet.http.HttpServletRequest request) {
 
-        // Garantir ordenação por updatedAt DESC se não especificado
+        // Garantir ordenação por id DESC se não especificado
         if (pageable.getSort().isUnsorted()) {
             pageable = org.springframework.data.domain.PageRequest.of(
                 pageable.getPageNumber(), 
                 pageable.getPageSize(), 
-                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "updatedAt")
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id")
             );
         }
 

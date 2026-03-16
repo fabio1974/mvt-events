@@ -21,30 +21,30 @@ public interface DeliveryRepository
                 extends JpaRepository<Delivery, Long>, JpaSpecificationExecutor<Delivery> {
 
         /**
-         * Busca deliveries por cliente (ordenado por updatedAt DESC)
+         * Busca deliveries por cliente (ordenado por id DESC)
          */
-        @Query("SELECT d FROM Delivery d WHERE d.client.id = :clientId ORDER BY d.updatedAt DESC")
+        @Query("SELECT d FROM Delivery d WHERE d.client.id = :clientId ORDER BY d.id DESC")
         List<Delivery> findByClientId(@Param("clientId") UUID clientId);
 
         /**
-         * Busca deliveries por courier (ordenado por updatedAt DESC)
+         * Busca deliveries por courier (ordenado por id DESC)
          */
-        @Query("SELECT d FROM Delivery d WHERE d.courier.id = :courierId ORDER BY d.updatedAt DESC")
+        @Query("SELECT d FROM Delivery d WHERE d.courier.id = :courierId ORDER BY d.id DESC")
         List<Delivery> findByCourierId(@Param("courierId") UUID courierId);
 
         /**
-         * Busca deliveries por organização (novo tenant, ordenado por updatedAt DESC)
+         * Busca deliveries por organização (novo tenant, ordenado por id DESC)
          * Usa ClientContract para determinar organização do cliente
          */
         @Query("SELECT d FROM Delivery d WHERE d.client.id IN (" +
                "  SELECT cc.client.id FROM ClientContract cc " +
                "  WHERE cc.organization.id = :organizationId AND cc.status = 'ACTIVE'" +
-               ") ORDER BY d.updatedAt DESC")
+               ") ORDER BY d.id DESC")
         List<Delivery> findByOrganizationId(@Param("organizationId") Long organizationId);
 
         /**
          * Busca TODAS as deliveries com fetch joins (para ADMIN)
-         * Ordenado por updatedAt DESC
+         * Ordenado por id DESC
          * Note: organization removed from User, access via Organization.owner if needed
          */
         @Query(value = "SELECT DISTINCT d FROM Delivery d " +
@@ -52,18 +52,18 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.courier " +
                         "LEFT JOIN FETCH d.organizer " +
                         "LEFT JOIN FETCH d.vehicle " +
-                        "ORDER BY d.updatedAt DESC",
+                        "ORDER BY d.id DESC",
                countQuery = "SELECT COUNT(DISTINCT d) FROM Delivery d")
         org.springframework.data.domain.Page<Delivery> findAllWithJoins(org.springframework.data.domain.Pageable pageable);
 
         /**
-         * Busca deliveries por status em uma organização específica (ordenado por updatedAt DESC)
+         * Busca deliveries por status em uma organização específica (ordenado por id DESC)
          * Usa ClientContract para determinar organização do cliente
          */
         @Query("SELECT d FROM Delivery d WHERE d.client.id IN (" +
                "  SELECT cc.client.id FROM ClientContract cc " +
                "  WHERE cc.organization.id = :organizationId AND cc.status = 'ACTIVE'" +
-               ") AND d.status = :status ORDER BY d.updatedAt DESC")
+               ") AND d.status = :status ORDER BY d.id DESC")
         List<Delivery> findByOrganizationIdAndStatus(@Param("organizationId") Long organizationId,
                         @Param("status") String status);
 
@@ -84,38 +84,38 @@ public interface DeliveryRepository
          * Busca deliveries pendentes de atribuição
          * Se organizationId for null, retorna todas as deliveries pendentes (para ADMIN)
          * Se organizationId for informado, filtrar seria incorreto pois organization não tem relação com deliveries
-         * Ordenadas por updatedAt DESC para mostrar as mais recentes primeiro
+         * Ordenadas por id DESC para mostrar as mais recentes primeiro
          */
         @Query("SELECT d FROM Delivery d " +
                         "LEFT JOIN FETCH d.client " +
                         "WHERE (:organizationId IS NULL) AND d.status = 'PENDING' AND d.courier IS NULL " +
-                        "ORDER BY d.updatedAt DESC")
+                        "ORDER BY d.id DESC")
         List<Delivery> findPendingAssignmentByOrganizationId(@Param("organizationId") Long organizationId);
 
         /**
          * Busca deliveries ativas de um courier
-         * Ordenadas por updatedAt DESC para mostrar as mais recentes primeiro
+         * Ordenadas por id DESC para mostrar as mais recentes primeiro
          */
         @Query("SELECT d FROM Delivery d " +
                         "WHERE d.courier.id = :courierId " +
                         "AND d.status IN ('ACCEPTED', 'IN_TRANSIT') " +
-                        "ORDER BY d.updatedAt DESC")
+                        "ORDER BY d.id DESC")
         List<Delivery> findActiveByCourierId(@Param("courierId") UUID courierId);
 
         /**
          * Busca deliveries concluídas de um courier
-         * Ordenadas por completedAt DESC para mostrar as mais recentes primeiro
+         * Ordenadas por id DESC para mostrar as mais recentes primeiro
          */
         @Query("SELECT d FROM Delivery d " +
                         "WHERE d.courier.id = :courierId " +
                         "AND d.status = 'COMPLETED' " +
-                        "ORDER BY d.completedAt DESC")
+                        "ORDER BY d.id DESC")
         List<Delivery> findCompletedByCourierId(@Param("courierId") UUID courierId);
 
         /**
          * Busca deliveries concluídas de um courier que NÃO possuem nenhum pagamento PAID
          * Útil para listar entregas pendentes de pagamento
-         * Ordenadas por completedAt DESC para mostrar as mais recentes primeiro
+         * Ordenadas por id DESC para mostrar as mais recentes primeiro
          */
         @Query("SELECT d FROM Delivery d " +
                         "WHERE d.courier.id = :courierId " +
@@ -124,31 +124,31 @@ public interface DeliveryRepository
                         "  SELECT p FROM Payment p JOIN p.deliveries pd " +
                         "  WHERE pd.id = d.id AND p.status = 'PAID'" +
                         ") " +
-                        "ORDER BY d.completedAt DESC")
+                        "ORDER BY d.id DESC")
         List<Delivery> findCompletedUnpaidByCourierId(@Param("courierId") UUID courierId);
 
         /**
          * Busca deliveries ativas de um organizer (ACCEPTED, IN_TRANSIT)
-         * Ordenadas por updatedAt DESC para mostrar as mais recentes primeiro
+         * Ordenadas por id DESC para mostrar as mais recentes primeiro
          */
         @Query("SELECT d FROM Delivery d " +
                         "WHERE d.organizer.id = :organizerId " +
                         "AND d.status IN ('ACCEPTED', 'IN_TRANSIT') " +
-                        "ORDER BY d.updatedAt DESC")
+                        "ORDER BY d.id DESC")
         List<Delivery> findActiveByOrganizerId(@Param("organizerId") UUID organizerId);
 
         /**
          * Busca deliveries concluídas de um organizer
-         * Ordenadas por completedAt DESC para mostrar as mais recentes primeiro
+         * Ordenadas por id DESC para mostrar as mais recentes primeiro
          */
         @Query("SELECT d FROM Delivery d " +
                         "WHERE d.organizer.id = :organizerId " +
                         "AND d.status = 'COMPLETED' " +
-                        "ORDER BY d.completedAt DESC")
+                        "ORDER BY d.id DESC")
         List<Delivery> findCompletedByOrganizerId(@Param("organizerId") UUID organizerId);
 
         /**
-         * Busca deliveries em um período para uma organização (ordenado por updatedAt DESC)
+         * Busca deliveries em um período para uma organização (ordenado por id DESC)
          * Usa ClientContract para determinar organização do cliente
          */
         @Query("SELECT d FROM Delivery d " +
@@ -157,31 +157,31 @@ public interface DeliveryRepository
                         "  WHERE cc.organization.id = :organizationId AND cc.status = 'ACTIVE'" +
                         ") " +
                         "AND d.createdAt BETWEEN :startDate AND :endDate " +
-                        "ORDER BY d.updatedAt DESC")
+                        "ORDER BY d.id DESC")
         List<Delivery> findByOrganizationIdAndDateRange(
                         @Param("organizationId") Long organizationId,
                         @Param("startDate") LocalDateTime startDate,
                         @Param("endDate") LocalDateTime endDate);
 
         /**
-         * Busca deliveries completadas sem avaliação (ordenado por updatedAt DESC)
+         * Busca deliveries completadas sem avaliação (ordenado por id DESC)
          */
         @Query("SELECT d FROM Delivery d " +
                         "WHERE d.status = 'COMPLETED' " +
                         "AND NOT EXISTS (SELECT e FROM Evaluation e WHERE e.delivery.id = d.id) " +
                         "AND d.completedAt > :sinceDate " +
-                        "ORDER BY d.updatedAt DESC")
+                        "ORDER BY d.id DESC")
         List<Delivery> findCompletedWithoutEvaluation(@Param("sinceDate") LocalDateTime sinceDate);
 
         /**
          * Busca entregas disponíveis para um motoboy (PENDING na organização)
-         * Ordenadas por updatedAt DESC para mostrar as mais recentes primeiro
+         * Ordenadas por id DESC para mostrar as mais recentes primeiro
          * Usa ClientContract para determinar organização do cliente
          */
         @Query("SELECT d FROM Delivery d WHERE d.status = 'PENDING' AND d.client.id IN (" +
                "  SELECT cc.client.id FROM ClientContract cc " +
                "  WHERE cc.organization.id = :organizationId AND cc.status = 'ACTIVE'" +
-               ") AND d.courier IS NULL ORDER BY d.updatedAt DESC")
+               ") AND d.courier IS NULL ORDER BY d.id DESC")
         List<Delivery> findAvailableForCourier(@Param("organizationId") Long organizationId);
 
         /**
@@ -197,14 +197,14 @@ public interface DeliveryRepository
         boolean hasActiveDeliveries(@Param("clientId") UUID clientId);
 
         /**
-         * Busca entregas com pagamento pendente (ordenado por updatedAt DESC)
+         * Busca entregas com pagamento pendente (ordenado por id DESC)
          * Note: Agora usa payments (N:M) ao invés de payment (1:1)
          */
-        @Query("SELECT d FROM Delivery d LEFT JOIN d.payments p WHERE d.status = 'COMPLETED' AND (p IS NULL OR p.status = 'PENDING') ORDER BY d.updatedAt DESC")
+        @Query("SELECT d FROM Delivery d LEFT JOIN d.payments p WHERE d.status = 'COMPLETED' AND (p IS NULL OR p.status = 'PENDING') ORDER BY d.id DESC")
         List<Delivery> findWithPendingPayment();
 
         /**
-         * Busca deliveries com fetch joins por organização do cliente (ordenado por updatedAt DESC)
+         * Busca deliveries com fetch joins por organização do cliente (ordenado por id DESC)
          * Note: organization removed from User, access via Organization.owner if needed
          */
         @Query("SELECT DISTINCT d FROM Delivery d " +
@@ -217,30 +217,30 @@ public interface DeliveryRepository
                         "  WHERE cc.organization.id = :organizationId " +
                         "  AND cc.status = 'ACTIVE'" +
                         ") " +
-                        "ORDER BY d.updatedAt DESC")
+                        "ORDER BY d.id DESC")
         List<Delivery> findAllWithJoinsByOrganizationId(@Param("organizationId") Long organizationId);
 
         /**
          * Busca deliveries PENDING e sem courier em organizações PRIMÁRIAS (isPrimary=true)
-         * onde o courier possui contratos ativos. Ordenadas por updatedAt DESC.
+         * onde o courier possui contratos ativos. Ordenadas por id DESC.
          */
         @Query("SELECT d FROM Delivery d WHERE d.status = 'PENDING' AND d.courier IS NULL AND d.client.id IN (" +
                "  SELECT cc.client.id FROM ClientContract cc " +
                "  WHERE cc.organization.id IN :organizationIds " +
                "    AND cc.status = 'ACTIVE' " +
                "    AND cc.isPrimary = true" +
-               ") ORDER BY d.updatedAt DESC")
+               ") ORDER BY d.id DESC")
         List<Delivery> findPendingInPrimaryOrganizations(@Param("organizationIds") List<Long> organizationIds);
 
         /**
          * Busca deliveries PENDING (sem courier) e WAITING_PAYMENT (aguardando PIX) de clientes CUSTOMER.
          * PENDING: sem courier atribuído (disponíveis para aceite)
          * WAITING_PAYMENT: aguardando confirmação de pagamento PIX (já podem ter courier)
-         * Ordenadas por updatedAt DESC.
+         * Ordenadas por id DESC.
          */
         @Query("SELECT d FROM Delivery d WHERE " +
                "((d.status = 'PENDING' AND d.courier IS NULL) OR d.status = 'WAITING_PAYMENT') " +
-               "AND d.client.role = 'CUSTOMER' ORDER BY d.updatedAt DESC")
+               "AND d.client.role = 'CUSTOMER' ORDER BY d.id DESC")
         List<Delivery> findPendingForCustomerClients();
 
         /**
@@ -254,7 +254,7 @@ public interface DeliveryRepository
          * NÍVEL 1 — Busca deliveries PENDING de clientes vinculados por contrato ativo ao courier.
          * Cadeia: courier → employment_contracts (isActive=true) → organization
          *                 → client_contracts (status=ACTIVE) → client → deliveries PENDING
-         * Ordenadas por updatedAt DESC.
+         * Ordenadas por id DESC.
          */
         @Query("SELECT d FROM Delivery d WHERE d.status = 'PENDING' AND d.courier IS NULL " +
                "AND d.client.id IN (" +
@@ -264,13 +264,13 @@ public interface DeliveryRepository
                "    SELECT ec.organization.id FROM EmploymentContract ec " +
                "    WHERE ec.courier.id = :courierId AND ec.isActive = true" +
                "  )" +
-               ") ORDER BY d.updatedAt DESC")
+               ") ORDER BY d.id DESC")
         List<Delivery> findPendingByContractCourier(@Param("courierId") UUID courierId);
 
         /**
          * Busca deliveries com fetch joins usando contratos ativos (nova arquitetura)
          * Para COURIERs que acessam organizações via employment_contracts
-         * Ordenado por updatedAt DESC
+         * Ordenado por id DESC
          * Note: organization removed from User, access via Organization.owner if needed
          */
         @Query("SELECT DISTINCT d FROM Delivery d " +
@@ -282,12 +282,12 @@ public interface DeliveryRepository
                         "  WHERE cc.organization.id IN :organizationIds " +
                         "  AND cc.status = 'ACTIVE'" +
                         ") " +
-                        "ORDER BY d.updatedAt DESC")
+                        "ORDER BY d.id DESC")
         List<Delivery> findAllWithJoinsByClientContracts(@Param("organizationIds") List<Long> organizationIds);
 
         /**
          * Busca deliveries com fetch joins usando contratos ativos + status filter
-         * Ordenado por updatedAt DESC
+         * Ordenado por id DESC
          * Note: organization removed from User, access via Organization.owner if needed
          */
         @Query("SELECT DISTINCT d FROM Delivery d " +
@@ -300,7 +300,7 @@ public interface DeliveryRepository
                         "  AND cc.status = 'ACTIVE'" +
                         ") " +
                         "AND d.status = :status " +
-                        "ORDER BY d.updatedAt DESC")
+                        "ORDER BY d.id DESC")
         List<Delivery> findAllWithJoinsByClientContractsAndStatus(@Param("organizationIds") List<Long> organizationIds,
                         @Param("status") Delivery.DeliveryStatus status);
 
@@ -326,7 +326,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.organizer " +
                         "LEFT JOIN FETCH d.vehicle " +
                         "WHERE c.id = :clientId " +
-                        "ORDER BY d.updatedAt DESC")
+                        "ORDER BY d.id DESC")
         List<Delivery> findByClientIdWithJoins(@Param("clientId") UUID clientId);
 
         /**
@@ -339,7 +339,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.organizer " +
                         "LEFT JOIN FETCH d.vehicle " +
                         "WHERE c.id = :clientId AND d.status = :status " +
-                        "ORDER BY d.updatedAt DESC")
+                        "ORDER BY d.id DESC")
         List<Delivery> findByClientIdAndStatusWithJoins(@Param("clientId") UUID clientId, 
                         @Param("status") Delivery.DeliveryStatus status);
 
@@ -353,7 +353,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.organizer " +
                         "LEFT JOIN FETCH d.vehicle " +
                         "WHERE c.id = :clientId AND d.status IN :statuses " +
-                        "ORDER BY d.updatedAt DESC")
+                        "ORDER BY d.id DESC")
         List<Delivery> findByClientIdAndStatusesWithJoins(@Param("clientId") UUID clientId,
                         @Param("statuses") List<Delivery.DeliveryStatus> statuses);
 
@@ -366,7 +366,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.organizer o " +
                         "LEFT JOIN FETCH d.vehicle " +
                         "WHERE o.id = :organizerId " +
-                        "ORDER BY d.updatedAt DESC")
+                        "ORDER BY d.id DESC")
         List<Delivery> findByOrganizerIdWithJoins(@Param("organizerId") UUID organizerId);
 
         /**
@@ -378,7 +378,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.organizer o " +
                         "LEFT JOIN FETCH d.vehicle " +
                         "WHERE o.id = :organizerId AND d.status = :status " +
-                        "ORDER BY d.updatedAt DESC")
+                        "ORDER BY d.id DESC")
         List<Delivery> findByOrganizerIdAndStatusWithJoins(@Param("organizerId") UUID organizerId,
                         @Param("status") Delivery.DeliveryStatus status);
 
@@ -391,7 +391,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.courier " +
                         "LEFT JOIN FETCH d.organizer o " +
                         "WHERE o.id = :organizerId AND d.status IN :statuses " +
-                        "ORDER BY d.updatedAt DESC")
+                        "ORDER BY d.id DESC")
         List<Delivery> findByOrganizerIdAndStatusesWithJoins(@Param("organizerId") UUID organizerId,
                         @Param("statuses") List<Delivery.DeliveryStatus> statuses);
 
@@ -436,7 +436,7 @@ public interface DeliveryRepository
                "WHERE d.client.id = :clientId " +
                "AND d.status = 'COMPLETED' " +
                "AND (p IS NULL OR CAST(p.status AS string) IN :statuses) " +
-               "ORDER BY d.updatedAt DESC")
+               "ORDER BY d.id DESC")
         List<Delivery> findByClientIdAndPaymentStatusesWithJoins(@Param("clientId") UUID clientId,
                                                                   @Param("statuses") List<String> statuses);
 
@@ -450,7 +450,7 @@ public interface DeliveryRepository
                "LEFT JOIN FETCH d.organizer o " +
                "WHERE d.courier.id = :courierId " +
                "AND d.status = :status " +
-               "ORDER BY d.completedAt DESC")
+               "ORDER BY d.id DESC")
         List<Delivery> findByCourierIdAndStatus(@Param("courierId") UUID courierId,
                                                  @Param("status") Delivery.DeliveryStatus status);
 }

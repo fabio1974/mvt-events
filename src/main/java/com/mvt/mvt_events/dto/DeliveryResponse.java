@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
@@ -20,7 +20,7 @@ import java.util.List;
 public class DeliveryResponse {
 
     private Long id;
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
 
     // Cliente (objeto aninhado)
     private UserDTO client;
@@ -61,12 +61,12 @@ public class DeliveryResponse {
     // Status
     private String status;
     private String preferredVehicleType;
-    private LocalDateTime scheduledPickupAt;
-    private LocalDateTime acceptedAt;
-    private LocalDateTime pickedUpAt;
-    private LocalDateTime inTransitAt;
-    private LocalDateTime completedAt;
-    private LocalDateTime cancelledAt;
+    private OffsetDateTime scheduledPickupAt;
+    private OffsetDateTime acceptedAt;
+    private OffsetDateTime pickedUpAt;
+    private OffsetDateTime inTransitAt;
+    private OffsetDateTime completedAt;
+    private OffsetDateTime cancelledAt;
     private String cancellationReason;
 
     // Parceria (objeto aninhado)
@@ -158,6 +158,6 @@ public class DeliveryResponse {
         private BigDecimal amount;
         private String pixQrCode;
         private String pixQrCodeUrl;
-        private LocalDateTime expiresAt;
+        private OffsetDateTime expiresAt;
     }
 }

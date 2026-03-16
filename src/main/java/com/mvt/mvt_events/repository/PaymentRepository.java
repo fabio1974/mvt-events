@@ -29,13 +29,13 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
         /**
          * Busca todos os pagamentos que incluem uma entrega (N:M via payment_deliveries)
          */
-        @Query("SELECT p FROM Payment p JOIN p.deliveries d WHERE d.id = :deliveryId ORDER BY p.createdAt DESC")
+        @Query("SELECT p FROM Payment p JOIN p.deliveries d WHERE d.id = :deliveryId ORDER BY p.id DESC")
         List<Payment> findByDeliveryId(@Param("deliveryId") UUID deliveryId);
 
         /**
          * Busca todos os pagamentos de um pagador
          */
-        @Query("SELECT p FROM Payment p WHERE p.payer.id = :payerId ORDER BY p.createdAt DESC")
+        @Query("SELECT p FROM Payment p WHERE p.payer.id = :payerId ORDER BY p.id DESC")
         List<Payment> findByPayerId(@Param("payerId") UUID payerId);
 
         /**
@@ -54,7 +54,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
                 "AND p.status = 'PENDING' " +
                 "AND p.paymentMethod = 'PIX' " +
                 "AND (p.expiresAt IS NULL OR p.expiresAt > :now)")
-        boolean existsNonExpiredPendingPixByPayerId(@Param("payerId") UUID payerId, @Param("now") LocalDateTime now);
+        boolean existsNonExpiredPendingPixByPayerId(@Param("payerId") UUID payerId, @Param("now") java.time.OffsetDateTime now);
 
         /**
          * Busca todos os pagamentos PIX PENDING de CLIENTs (estabelecimentos).
@@ -79,7 +79,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
          */
         @Query("SELECT p FROM Payment p WHERE p.status = 'COMPLETED' " +
                         "AND p.paymentDate BETWEEN :startDate AND :endDate " +
-                        "ORDER BY p.paymentDate DESC")
+                        "ORDER BY p.id DESC")
         List<Payment> findCompletedPaymentsBetween(
                         @Param("startDate") LocalDateTime startDate,
                         @Param("endDate") LocalDateTime endDate);
@@ -104,7 +104,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
         /**
          * Busca todos os pagamentos que incluem uma entrega por ID Long (N:M via payment_deliveries)
          */
-        @Query("SELECT p FROM Payment p JOIN p.deliveries d WHERE d.id = :deliveryId ORDER BY p.createdAt DESC")
+        @Query("SELECT p FROM Payment p JOIN p.deliveries d WHERE d.id = :deliveryId ORDER BY p.id DESC")
         List<Payment> findByDeliveryIdLong(@Param("deliveryId") Long deliveryId);
 
         /**
@@ -123,7 +123,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
         @Query("SELECT DISTINCT p FROM Payment p JOIN p.deliveries d " +
                 "WHERE d.id IN :deliveryIds " +
                 "AND p.status IN ('PENDING', 'COMPLETED') " +
-                "ORDER BY p.createdAt DESC")
+                "ORDER BY p.id DESC")
         List<Payment> findPendingOrCompletedPaymentsForDeliveries(@Param("deliveryIds") List<Long> deliveryIds);
 
         /**

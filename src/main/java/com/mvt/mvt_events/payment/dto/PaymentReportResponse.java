@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
@@ -20,10 +20,10 @@ public class PaymentReportResponse {
     private String status;
     private BigDecimal totalAmount;
     private String currency;
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
     private String pixQrCode;
     private String pixQrCodeUrl;
-    private LocalDateTime expiresAt;
+    private OffsetDateTime expiresAt;
     
     private List<DeliveryItem> deliveries;
     private List<SplitItem> consolidatedSplits;
@@ -35,8 +35,8 @@ public class PaymentReportResponse {
     @Builder
     public static class DeliveryItem {
         private Long deliveryId;
-        private LocalDateTime createdAt;
-        private LocalDateTime completedAt;
+        private OffsetDateTime createdAt;
+        private OffsetDateTime completedAt;
         private BigDecimal shippingFee;
         private String clientName;
         private String courierName;

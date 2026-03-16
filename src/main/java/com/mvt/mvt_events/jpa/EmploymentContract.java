@@ -7,7 +7,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 /**
  * Entidade que representa um contrato de trabalho entre COURIER e Organization.
@@ -55,7 +56,7 @@ public class EmploymentContract extends BaseEntity {
 
     @Column(name = "linked_at", nullable = false)
     @Visible(table = true, form = false, filter = false)
-    private LocalDateTime linkedAt = LocalDateTime.now();
+    private OffsetDateTime linkedAt = OffsetDateTime.now(ZoneId.of("America/Fortaleza"));
 
     @Column(name = "is_active", nullable = false)
     @Visible(table = true, form = true, filter = true)

@@ -160,7 +160,7 @@ public class BankAccount extends BaseEntity {
 
     @Column(name = "validated_at")
     @Visible(table = true, form = false, filter = false)
-    private LocalDateTime validatedAt;
+    private java.time.OffsetDateTime validatedAt;
 
     // ============================================================================
     // METADATA?
@@ -239,7 +239,7 @@ public class BankAccount extends BaseEntity {
 
     public void markAsActive() {
         this.status = BankAccountStatus.ACTIVE;
-        this.validatedAt = LocalDateTime.now();
+        this.validatedAt = java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza"));
     }
 
     public void markAsBlocked(String reason) {

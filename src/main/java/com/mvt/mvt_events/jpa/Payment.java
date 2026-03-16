@@ -9,7 +9,8 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -98,7 +99,7 @@ public class Payment extends BaseEntity {
 
     @Column(name = "payment_date")
     @Visible(table = true, form = false, filter = true)
-    private LocalDateTime paymentDate;
+    private OffsetDateTime paymentDate;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "provider", length = 50)
@@ -124,7 +125,7 @@ public class Payment extends BaseEntity {
 
     @Column(name = "expires_at")
     @Visible(table = true, form = false, filter = true)
-    private LocalDateTime expiresAt;
+    private OffsetDateTime expiresAt;
 
     // ============================================================================
     // PAGAR.ME PIX FIELDS
@@ -229,7 +230,7 @@ public class Payment extends BaseEntity {
 
     public void markAsCompleted() {
         this.status = PaymentStatus.PAID;
-        this.paymentDate = LocalDateTime.now();
+        this.paymentDate = OffsetDateTime.now(ZoneId.of("America/Fortaleza"));
     }
 
     public void markAsFailed() {
@@ -258,7 +259,7 @@ public class Payment extends BaseEntity {
      * Verifica se o pagamento PIX expirou
      */
     public boolean isExpired() {
-        return expiresAt != null && LocalDateTime.now().isAfter(expiresAt);
+        return expiresAt != null && OffsetDateTime.now(ZoneId.of("America/Fortaleza")).isAfter(expiresAt);
     }
 
     /**

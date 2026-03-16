@@ -355,8 +355,8 @@ public class OrganizationController {
     @NoArgsConstructor
     public static class OrganizationResponse {
         private Long id;
-        private LocalDateTime createdAt;
-        private LocalDateTime updatedAt;
+        private java.time.OffsetDateTime createdAt;
+        private java.time.OffsetDateTime updatedAt;
         private String name;
         private String slug;
         private String website;

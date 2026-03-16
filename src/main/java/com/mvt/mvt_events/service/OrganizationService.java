@@ -259,9 +259,9 @@ public class OrganizationService {
 
                 // Parse linkedAt date
                 if (contractRequest.getLinkedAt() != null) {
-                    contract.setLinkedAt(LocalDateTime.parse(contractRequest.getLinkedAt()));
+                    contract.setLinkedAt(java.time.OffsetDateTime.parse(contractRequest.getLinkedAt()));
                 } else {
-                    contract.setLinkedAt(LocalDateTime.now());
+                    contract.setLinkedAt(java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza")));
                 }
 
                 contract.setActive(contractRequest.getIsActive() != null ? contractRequest.getIsActive() : true);

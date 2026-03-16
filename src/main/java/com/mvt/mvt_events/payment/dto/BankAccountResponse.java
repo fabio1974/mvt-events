@@ -4,7 +4,7 @@ import com.mvt.mvt_events.jpa.BankAccount;
 import com.mvt.mvt_events.jpa.BankAccount.AccountType;
 import com.mvt.mvt_events.jpa.BankAccount.BankAccountStatus;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * DTO de resposta com dados bancários
@@ -31,8 +31,8 @@ public record BankAccountResponse(
     Integer transferDay,
     BankAccountStatus status,
     String statusDisplayName,
-    LocalDateTime createdAt,
-    LocalDateTime validatedAt,
+    OffsetDateTime createdAt,
+    OffsetDateTime validatedAt,
     Boolean canReceivePayments
 ) {
     

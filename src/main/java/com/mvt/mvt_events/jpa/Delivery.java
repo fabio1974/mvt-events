@@ -6,7 +6,7 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -114,7 +114,7 @@ public class Delivery extends BaseEntity {
 
     @Column(name = "scheduled_pickup_at")
     @Visible(table = false, form = false, filter = false)
-    private LocalDateTime scheduledPickupAt;
+    private OffsetDateTime scheduledPickupAt;
 
     // ============================================================================
     // PRICING
@@ -196,23 +196,23 @@ public class Delivery extends BaseEntity {
 
     @Column(name = "accepted_at")
     @Visible(table = false, form = false, filter = false)
-    private LocalDateTime acceptedAt;
+    private OffsetDateTime acceptedAt;
 
     @Column(name = "picked_up_at")
     @Visible(table = false, form = false, filter = false)
-    private LocalDateTime pickedUpAt;
+    private OffsetDateTime pickedUpAt;
 
     @Column(name = "in_transit_at")
     @Visible(table = true, form = false, filter = false)
-    private LocalDateTime inTransitAt;
+    private OffsetDateTime inTransitAt;
 
     @Column(name = "completed_at")
     @Visible(table = true, form = false, filter = true)
-    private LocalDateTime completedAt;
+    private OffsetDateTime completedAt;
 
     @Column(name = "cancelled_at")
     @Visible(table = false, form = false, filter = false)
-    private LocalDateTime cancelledAt;
+    private OffsetDateTime cancelledAt;
 
     @Column(name = "cancellation_reason", columnDefinition = "TEXT")
     @Visible(table = false, form = true, filter = false)

@@ -321,7 +321,7 @@ public class PaymentController {
                 .map(payment -> {
                     payment.setStatus(status);
                     if (status == PaymentStatus.PAID) {
-                        payment.setPaymentDate(java.time.LocalDateTime.now());
+                        payment.setPaymentDate(java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza")));
                     }
                     Payment updated = paymentRepository.save(payment);
                     return ResponseEntity.ok(PaymentResponse.from(updated));
