@@ -17,10 +17,11 @@ import java.util.TimeZone;
  *   <li>JVM timezone: America/Fortaleza (Brasília - UTC-3)</li>
  *   <li>Database: Armazena em UTC via Hibernate</li>
  *   <li>Jackson: Serializa para JSON com timezone configurado</li>
+ *   <li>JPA Auditing: Usa DateTimeProvider customizado com OffsetDateTime</li>
  * </ul>
  */
 @SpringBootApplication
-@EnableJpaAuditing
+@EnableJpaAuditing(dateTimeProviderRef = "dateTimeProvider")
 @EnableScheduling
 @EnableAsync
 public class MvtEventsApplication {
