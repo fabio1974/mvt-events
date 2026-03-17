@@ -150,6 +150,11 @@ public class EmailService {
      */
     @Async
     public void sendPasswordResetEmail(User user) {
+        log.info("🔵 [DEBUG] sendPasswordResetEmail chamado para: {}", user.getUsername());
+        log.info("🔵 [DEBUG] Email enabled: {}", isEmailEnabled());
+        log.info("🔵 [DEBUG] Provider: {}", emailProvider);
+        log.info("🔵 [DEBUG] Resend API Key presente: {}", resendApiKey != null && !resendApiKey.isBlank());
+        
         if (!isEmailEnabled()) {
             logEmailNotConfigured("reset de senha", user.getUsername(), user.getResetToken(),
                 frontendUrl + "/nova-senha?token=" + user.getResetToken());
@@ -160,6 +165,7 @@ public class EmailService {
         String htmlContent = buildPasswordResetEmailHtml(user.getName(), resetLink);
         String subject = "Recuperacao de senha - " + appName;
 
+        log.info("🔵 [DEBUG] Chamando sendEmail para: {}", user.getUsername());
         sendEmail(user.getUsername(), subject, htmlContent, "reset de senha");
     }
 

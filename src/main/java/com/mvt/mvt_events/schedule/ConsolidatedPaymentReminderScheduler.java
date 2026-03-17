@@ -61,7 +61,7 @@ public class ConsolidatedPaymentReminderScheduler {
                 BigDecimal amount = payment.getAmount();
                 String title = "💳 Pagamento pendente";
                 String body = String.format(
-                    "Você tem R$ %.2f em fretes pendentes. Pague via PIX agora e evite bloqueios.",
+                    "Você tem R$ %.2f em fretes pendentes. Pague via PIX ainda hoje e evite bloqueios.",
                     amount
                 );
 

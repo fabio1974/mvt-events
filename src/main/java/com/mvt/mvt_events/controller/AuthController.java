@@ -521,11 +521,16 @@ public class AuthController {
                description = "Envia email com link para redefinir a senha. O link expira em 1 hora.")
     public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         try {
+            log.info("🔵 [DEBUG] forgot-password chamado para: {}", request.getEmail());
             // Sempre retorna sucesso para não revelar se o email existe
             Optional<User> userOpt = userRepository.findByUsername(request.getEmail());
             
+            log.info("🔵 [DEBUG] Usuário encontrado: {}", userOpt.isPresent());
+            
             if (userOpt.isPresent()) {
                 User user = userOpt.get();
+                
+                log.info("🔵 [DEBUG] Gerando token para usuário: {} (ID: {})", user.getUsername(), user.getId());
                 
                 // Gerar token único
                 String resetToken = UUID.randomUUID().toString();
@@ -533,8 +538,12 @@ public class AuthController {
                 user.setResetTokenExpiresAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")).plusHours(1));
                 userRepository.save(user);
                 
+                log.info("🔵 [DEBUG] Token salvo. Chamando sendPasswordResetEmail...");
+                
                 // Enviar email de recuperação
                 emailService.sendPasswordResetEmail(user);
+                
+                log.info("🔵 [DEBUG] sendPasswordResetEmail retornou (async)");
             }
             
             // Sempre retorna sucesso (segurança: não revelar se email existe)

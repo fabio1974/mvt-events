@@ -1,0 +1,12 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Configuration on demand is an incubating feature.
+
+> Task :compileJava
+Note: /Users/fabio2barros/Documents/projects/mvt-events/src/main/java/com/mvt/mvt_events/payment/service/PagarMeService.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+[Incubating] Problems report is available at: file:///Users/fabio2barros/Documents/projects/mvt-events/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 10s
+1 actionable task: 1 executed

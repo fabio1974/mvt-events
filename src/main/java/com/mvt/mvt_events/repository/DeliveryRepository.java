@@ -453,5 +453,20 @@ public interface DeliveryRepository
                "ORDER BY d.id DESC")
         List<Delivery> findByCourierIdAndStatus(@Param("courierId") UUID courierId,
                                                  @Param("status") Delivery.DeliveryStatus status);
+
+        /**
+         * Busca deliveries por organizer e status com payments carregados (fetch join)
+         * Útil para listar recebimentos do organizer com detalhamento de pagamento
+         */
+        @Query("SELECT DISTINCT d FROM Delivery d " +
+               "LEFT JOIN FETCH d.payments p " +
+               "LEFT JOIN FETCH d.client c " +
+               "LEFT JOIN FETCH d.courier co " +
+               "LEFT JOIN FETCH d.organizer o " +
+               "WHERE o.id = :organizerId " +
+               "AND d.status = :status " +
+               "ORDER BY d.id DESC")
+        List<Delivery> findByOrganizerIdAndStatus(@Param("organizerId") UUID organizerId,
+                                                   @Param("status") Delivery.DeliveryStatus status);
 }
 
