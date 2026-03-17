@@ -202,7 +202,7 @@ public class User implements UserDetails {
      */
     @Column(name = "confirmation_token_expires_at")
     @Visible(table = false, form = false, filter = false)
-    private LocalDateTime confirmationTokenExpiresAt;
+    private OffsetDateTime confirmationTokenExpiresAt;
 
     // ============================================================================
     // PASSWORD RESET FIELDS
@@ -222,7 +222,7 @@ public class User implements UserDetails {
      */
     @Column(name = "reset_token_expires_at")
     @Visible(table = false, form = false, filter = false)
-    private LocalDateTime resetTokenExpiresAt;
+    private OffsetDateTime resetTokenExpiresAt;
 
     // ============================================================================
     // PAGAR.ME INTEGRATION FIELDS

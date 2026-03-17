@@ -33,7 +33,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -156,7 +157,7 @@ public class AuthController {
         // Gerar token de confirmação de email
         String confirmationToken = UUID.randomUUID().toString();
         user.setConfirmationToken(confirmationToken);
-        user.setConfirmationTokenExpiresAt(LocalDateTime.now().plusHours(24)); // Expira em 24h
+        user.setConfirmationTokenExpiresAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")).plusHours(24)); // Expira em 24h
         user.setConfirmed(false); // Não confirmado até clicar no link
 
         User savedUser = userRepository.save(user);
@@ -205,7 +206,7 @@ public class AuthController {
 
         // Verificar se token expirou
         if (user.getConfirmationTokenExpiresAt() != null && 
-            user.getConfirmationTokenExpiresAt().isBefore(LocalDateTime.now())) {
+            user.getConfirmationTokenExpiresAt().isBefore(OffsetDateTime.now(ZoneId.of("America/Fortaleza")))) {
             return ResponseEntity.badRequest().body(Map.of(
                 "error", "TOKEN_EXPIRED",
                 "message", "Token de confirmação expirado. Solicite um novo email de confirmação.",
@@ -261,7 +262,7 @@ public class AuthController {
         // Gerar novo token
         String newToken = UUID.randomUUID().toString();
         user.setConfirmationToken(newToken);
-        user.setConfirmationTokenExpiresAt(LocalDateTime.now().plusHours(24));
+        user.setConfirmationTokenExpiresAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")).plusHours(24));
         userRepository.save(user);
 
         // Enviar email
@@ -529,7 +530,7 @@ public class AuthController {
                 // Gerar token único
                 String resetToken = UUID.randomUUID().toString();
                 user.setResetToken(resetToken);
-                user.setResetTokenExpiresAt(LocalDateTime.now().plusHours(1));
+                user.setResetTokenExpiresAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")).plusHours(1));
                 userRepository.save(user);
                 
                 // Enviar email de recuperação
@@ -575,7 +576,7 @@ public class AuthController {
             
             // Verificar expiração
             if (user.getResetTokenExpiresAt() == null || 
-                user.getResetTokenExpiresAt().isBefore(LocalDateTime.now())) {
+                user.getResetTokenExpiresAt().isBefore(OffsetDateTime.now(ZoneId.of("America/Fortaleza")))) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "error", "TOKEN_EXPIRED",
                     "message", "Token expirado. Solicite um novo link de recuperação."
