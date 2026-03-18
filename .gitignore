@@ -54,6 +54,8 @@ out/
 nohup.out
 *.pid
 logs/
+bootrun-*.log
+app-*.pid
 
 ### Scripts and SQL ###
 sh/
@@ -68,4 +70,7 @@ sql/
 *.swp
 *.bak
 *~
+
+### Dashboard logs ###
+.dashboard-logs/
 
