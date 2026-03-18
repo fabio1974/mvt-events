@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: '3'
+
+tasks:
+  start:
+    desc: "▶️ Iniciar App (porta padrão)"
+    cmds:
+      - ./scripts/start-app.sh
+
+  start-8080:
+    desc: "▶️ Iniciar App (porta 8080)"
+    cmds:
+      - ./scripts/start-app-8080.sh
+
+  stop-8080:
+    desc: "⏹️ Parar App (porta 8080)"
+    cmds:
+      - ./scripts/stop-app-8080.sh
+
+  health:
+    desc: "❤️ Health Check"
+    cmds:
+      - ./scripts/health-check.sh
+
+  deploy:
+    desc: "🚀 Deploy"
+    cmds:
+      - ./scripts/deploy.sh
+
+  git-push:
+    desc: "📤 Git Push"
+    cmds:
+      - ./scripts/git-push.sh
+
+  test-webhook:
+    desc: "🔗 Testar Webhook (Produção)"
+    cmds:
+      - ./scripts/test-webhook-prod.sh
+
+  build:
+    desc: "🔨 Gradle Build"
+    cmds:
+      - ./gradlew build
+
+  clean:
+    desc: "🧹 Gradle Clean"
+    cmds:
+      - ./gradlew clean
