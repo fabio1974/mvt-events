@@ -37,16 +37,8 @@ FILES_CHANGED=$(git diff --name-only; git diff --cached --name-only; git ls-file
 COMMIT_TYPE="chore"
 COMMIT_SCOPE=""
 COMMIT_MESSAGE=""
-COMMIT_BODY=""
-
-# Função para adicionar itens ao corpo do commit
-add_to_body() {
-    if [ -n "$COMMIT_BODY" ]; then
-        COMMIT_BODY="$COMMIT_BODY\n- $1"
-    else
-        COMMIT_BODY="- $1"
-    fi
-}
+COMMIT_BODY_FILE="/tmp/git-commit-body-events-$$"
+> "$COMMIT_BODY_FILE"  # Limpar arquivo
 
 # 1. Verificar mudanças em controllers
 if echo "$FILES_CHANGED" | grep -q "src/main/java/.*/controller/"; then
@@ -61,9 +53,9 @@ if echo "$FILES_CHANGED" | grep -q "src/main/java/.*/controller/"; then
         else
             COMMIT_MESSAGE="update API endpoints ($CONTROLLER_COUNT controllers)"
             
-            # Listar controllers modificados (máximo 5)
-            echo "$FILES_CHANGED" | grep "controller/" | head -5 | while read -r file; do
-                add_to_body "$(basename "$file" | sed 's/\.java$//')"
+            # Listar controllers modificados (máximo 10)
+            echo "$FILES_CHANGED" | grep "controller/" | head -10 | while read -r file; do
+                echo "- $(basename "$file" | sed 's/\.java$//')" >> "$COMMIT_BODY_FILE"
             done
         fi
     fi
@@ -82,9 +74,9 @@ if echo "$FILES_CHANGED" | grep -q "src/main/java/.*/service/"; then
         else
             COMMIT_MESSAGE="update business logic ($SERVICE_COUNT services)"
             
-            # Listar services modificados (máximo 5)
-            echo "$FILES_CHANGED" | grep "service/" | head -5 | while read -r file; do
-                add_to_body "$(basename "$file" | sed 's/\.java$//')"
+            # Listar services modificados (máximo 10)
+            echo "$FILES_CHANGED" | grep "service/" | head -10 | while read -r file; do
+                echo "- $(basename "$file" | sed 's/\.java$//')" >> "$COMMIT_BODY_FILE"
             done
         fi
     fi
@@ -99,9 +91,9 @@ if echo "$FILES_CHANGED" | grep -q "src/main/java/.*/repository/"; then
         REPO_COUNT=$(echo "$FILES_CHANGED" | grep -c "repository/" || echo "0")
         COMMIT_MESSAGE="update database repositories ($REPO_COUNT files)"
         
-        # Listar repositories modificados (máximo 5)
-        echo "$FILES_CHANGED" | grep "repository/" | head -5 | while read -r file; do
-            add_to_body "$(basename "$file" | sed 's/\.java$//')"
+        # Listar repositories modificados (máximo 10)
+        echo "$FILES_CHANGED" | grep "repository/" | head -10 | while read -r file; do
+            echo "- $(basename "$file" | sed 's/\.java$//')" >> "$COMMIT_BODY_FILE"
         done
     fi
 fi
@@ -115,9 +107,9 @@ if echo "$FILES_CHANGED" | grep -q "src/main/java/.*/entity/\|src/main/java/.*/m
         MODEL_COUNT=$(echo "$FILES_CHANGED" | grep -cE "entity/|model/" || echo "0")
         COMMIT_MESSAGE="update data models and entities ($MODEL_COUNT files)"
         
-        # Listar models/entities modificados (máximo 5)
-        echo "$FILES_CHANGED" | grep -E "entity/|model/" | head -5 | while read -r file; do
-            add_to_body "$(basename "$file" | sed 's/\.java$//')"
+        # Listar models/entities modificados (máximo 10)
+        echo "$FILES_CHANGED" | grep -E "entity/|model/" | head -10 | while read -r file; do
+            echo "- $(basename "$file" | sed 's/\.java$//')" >> "$COMMIT_BODY_FILE"
         done
     fi
 fi
@@ -131,9 +123,9 @@ if echo "$FILES_CHANGED" | grep -q "src/main/java/.*/dto/"; then
         DTO_COUNT=$(echo "$FILES_CHANGED" | grep -c "dto/" || echo "0")
         COMMIT_MESSAGE="update data transfer objects ($DTO_COUNT DTOs)"
         
-        # Listar DTOs modificados (máximo 5)
-        echo "$FILES_CHANGED" | grep "dto/" | head -5 | while read -r file; do
-            add_to_body "$(basename "$file" | sed 's/\.java$//')"
+        # Listar DTOs modificados (máximo 10)
+        echo "$FILES_CHANGED" | grep "dto/" | head -10 | while read -r file; do
+            echo "- $(basename "$file" | sed 's/\.java$//')" >> "$COMMIT_BODY_FILE"
         done
     fi
 fi
@@ -146,7 +138,7 @@ if echo "$FILES_CHANGED" | grep -q "src/main/java/.*/config/\|application\.prope
         COMMIT_MESSAGE="update application configuration"
         
         echo "$FILES_CHANGED" | grep -E "config/|application\." | while read -r file; do
-            add_to_body "$(basename "$file")"
+            echo "- $(basename "$file")" >> "$COMMIT_BODY_FILE"
         done
     fi
 fi
@@ -159,7 +151,7 @@ if echo "$FILES_CHANGED" | grep -q "pom\.xml\|build\.gradle"; then
         COMMIT_MESSAGE="update dependencies and build configuration"
         
         echo "$FILES_CHANGED" | grep -E "pom\.xml|build\.gradle" | while read -r file; do
-            add_to_body "$(basename "$file")"
+            echo "- $(basename "$file")" >> "$COMMIT_BODY_FILE"
         done
     fi
 fi
@@ -177,9 +169,9 @@ if echo "$FILES_CHANGED" | grep -q "\.sh$"; then
         else
             COMMIT_MESSAGE="update deployment scripts ($SCRIPT_COUNT files)"
             
-            # Listar scripts modificados (máximo 5)
-            echo "$FILES_CHANGED" | grep "\.sh$" | head -5 | while read -r file; do
-                add_to_body "$(basename "$file")"
+            # Listar scripts modificados (máximo 10)
+            echo "$FILES_CHANGED" | grep "\.sh$" | head -10 | while read -r file; do
+                echo "- $(basename "$file")" >> "$COMMIT_BODY_FILE"
             done
         fi
     fi
@@ -194,9 +186,9 @@ if echo "$FILES_CHANGED" | grep -q "src/test/"; then
         TEST_COUNT=$(echo "$FILES_CHANGED" | grep -c "src/test/" || echo "0")
         COMMIT_MESSAGE="update tests ($TEST_COUNT files)"
         
-        # Listar testes modificados (máximo 5)
-        echo "$FILES_CHANGED" | grep "src/test/" | head -5 | while read -r file; do
-            add_to_body "$(basename "$file" | sed 's/\.java$//')"
+        # Listar testes modificados (máximo 10)
+        echo "$FILES_CHANGED" | grep "src/test/" | head -10 | while read -r file; do
+            echo "- $(basename "$file" | sed 's/\.java$//')" >> "$COMMIT_BODY_FILE"
         done
     fi
 fi
@@ -210,8 +202,8 @@ if echo "$FILES_CHANGED" | grep -q "\.md$\|README"; then
         DOC_COUNT=$(echo "$FILES_CHANGED" | grep -cE "\.md$|README" || echo "0")
         COMMIT_MESSAGE="update documentation ($DOC_COUNT files)"
         
-        echo "$FILES_CHANGED" | grep -E "\.md$|README" | head -5 | while read -r file; do
-            add_to_body "$(basename "$file")"
+        echo "$FILES_CHANGED" | grep -E "\.md$|README" | head -10 | while read -r file; do
+            echo "- $(basename "$file")" >> "$COMMIT_BODY_FILE"
         done
     fi
 fi
@@ -227,8 +219,8 @@ fi
 if [ -z "$COMMIT_MESSAGE" ]; then
     if [ "$MODIFIED" -gt 0 ] && [ "$ADDED" -gt 0 ]; then
         COMMIT_MESSAGE="update and add backend files"
-        add_to_body "$MODIFIED files modified"
-        add_to_body "$ADDED files added"
+        echo "- $MODIFIED files modified" >> "$COMMIT_BODY_FILE"
+        echo "- $ADDED files added" >> "$COMMIT_BODY_FILE"
     elif [ "$MODIFIED" -gt 0 ]; then
         COMMIT_MESSAGE="update backend implementation ($MODIFIED files)"
     elif [ "$ADDED" -gt 0 ]; then
@@ -247,11 +239,14 @@ else
     FINAL_MESSAGE="$COMMIT_TYPE: $COMMIT_MESSAGE"
 fi
 
-# Se temos um corpo de commit, preparar o commit completo
-if [ -n "$COMMIT_BODY" ]; then
-    FULL_COMMIT_MESSAGE="$FINAL_MESSAGE
-
-$COMMIT_BODY"
+# Preparar commit completo (título + corpo se houver)
+if [ -s "$COMMIT_BODY_FILE" ]; then
+    # Criar arquivo temporário com mensagem completa
+    COMMIT_MSG_FILE="/tmp/git-commit-message-events-$$"
+    echo "$FINAL_MESSAGE" > "$COMMIT_MSG_FILE"
+    echo "" >> "$COMMIT_MSG_FILE"
+    cat "$COMMIT_BODY_FILE" >> "$COMMIT_MSG_FILE"
+    FULL_COMMIT_MESSAGE=$(cat "$COMMIT_MSG_FILE")
 else
     FULL_COMMIT_MESSAGE="$FINAL_MESSAGE"
 fi
@@ -295,10 +290,17 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "💾 Criando commit..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-git commit -m "$FULL_COMMIT_MESSAGE"
+if [ -s "$COMMIT_BODY_FILE" ]; then
+    git commit -F "$COMMIT_MSG_FILE"
+else
+    git commit -m "$FINAL_MESSAGE"
+fi
 
 echo "✅ Commit criado"
 echo ""
+
+# Limpar arquivos temporários
+rm -f "$COMMIT_BODY_FILE" "$COMMIT_MSG_FILE"
 
 # Git push
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
