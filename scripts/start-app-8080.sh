@@ -61,10 +61,12 @@ else
 fi
 
 echo ""
-echo "✅ Aplicação está INICIANDO (não espere ela subir completamente)"
+echo "✅ Aplicação está INICIANDO..."
+echo "📄 Acompanhe os logs abaixo (Ctrl+C para sair dos logs sem parar o servidor):"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "📊 Comandos úteis:"
-echo "   Ver log completo: tail -f bootrun-8080.log"
-echo "   Health check:     ./health-check.sh"
-echo "   Parar aplicação:  kill \$(cat app-8080.pid)"
-echo ""
+
+# Aguarda o arquivo de log existir antes de fazer tail
+while [ ! -s bootrun-8080.log ]; do sleep 1; done
+
+tail -f bootrun-8080.log
