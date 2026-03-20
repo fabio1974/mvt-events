@@ -33,216 +33,108 @@ DELETED=$(grep -c "^ D\|^D" /tmp/git-status-events.txt 2>/dev/null) || DELETED=0
 # Analisar arquivos modificados para criar mensagem inteligente
 FILES_CHANGED=$(git diff --name-only; git diff --cached --name-only; git ls-files --others --exclude-standard)
 
-# Detectar tipo de mudança baseado nos arquivos (ordem de prioridade)
-COMMIT_TYPE="chore"
-COMMIT_SCOPE=""
-COMMIT_MESSAGE=""
+# ============================================
+# ANÁLISE DETALHADA DAS MUDANÇAS
+# ============================================
 COMMIT_BODY_FILE="/tmp/git-commit-body-events-$$"
-> "$COMMIT_BODY_FILE"  # Limpar arquivo
+COMMIT_MSG_FILE="/tmp/git-commit-message-events-$$"
+> "$COMMIT_BODY_FILE"
+TOTAL_FILES=$(echo "$FILES_CHANGED" | grep -v "^$" | wc -l | xargs)
 
-# 1. Verificar mudanças em controllers
-if echo "$FILES_CHANGED" | grep -q "src/main/java/.*/controller/"; then
-    if [ -z "$COMMIT_MESSAGE" ]; then
-        COMMIT_TYPE="feat"
-        COMMIT_SCOPE="api"
-        
-        CONTROLLER_COUNT=$(echo "$FILES_CHANGED" | grep -c "controller/" || echo "0")
-        if [ "$CONTROLLER_COUNT" -eq 1 ]; then
-            CONTROLLER_NAME=$(echo "$FILES_CHANGED" | grep "controller/" | head -1 | xargs basename | sed 's/Controller\.java$//' | sed 's/\.java$//')
-            COMMIT_MESSAGE="update $CONTROLLER_NAME API endpoints"
-        else
-            COMMIT_MESSAGE="update API endpoints ($CONTROLLER_COUNT controllers)"
-            
-            # Listar controllers modificados (máximo 10)
-            echo "$FILES_CHANGED" | grep "controller/" | head -10 | while read -r file; do
-                echo "- $(basename "$file" | sed 's/\.java$//')" >> "$COMMIT_BODY_FILE"
-            done
-        fi
-    fi
-fi
+# --- Categorizar TODOS os arquivos modificados ---
+AREA_CONTROLLERS=0; AREA_SERVICES=0; AREA_REPOS=0; AREA_ENTITIES=0
+AREA_DTOS=0; AREA_CONFIG=0; AREA_MIGRATIONS=0; AREA_BUILD=0
+AREA_SCRIPTS=0; AREA_DOCS=0; AREA_INFRA=0
+FILE_NAMES=""
 
-# 2. Verificar mudanças em services
-if echo "$FILES_CHANGED" | grep -q "src/main/java/.*/service/"; then
-    if [ -z "$COMMIT_MESSAGE" ]; then
-        COMMIT_TYPE="feat"
-        COMMIT_SCOPE="service"
-        
-        SERVICE_COUNT=$(echo "$FILES_CHANGED" | grep -c "service/" || echo "0")
-        if [ "$SERVICE_COUNT" -eq 1 ]; then
-            SERVICE_NAME=$(echo "$FILES_CHANGED" | grep "service/" | head -1 | xargs basename | sed 's/Service\.java$//' | sed 's/\.java$//')
-            COMMIT_MESSAGE="update $SERVICE_NAME business logic"
-        else
-            COMMIT_MESSAGE="update business logic ($SERVICE_COUNT services)"
-            
-            # Listar services modificados (máximo 10)
-            echo "$FILES_CHANGED" | grep "service/" | head -10 | while read -r file; do
-                echo "- $(basename "$file" | sed 's/\.java$//')" >> "$COMMIT_BODY_FILE"
-            done
-        fi
-    fi
-fi
+for file in $FILES_CHANGED; do
+    BNAME=$(basename "$file" | sed 's/\.[^.]*$//')
+    FILE_NAMES="$FILE_NAMES $BNAME"
+    case "$file" in
+        src/main/java/*/controller/*) AREA_CONTROLLER        src/main/java/*/controller/*) AREA_CONTROLLE/*/       /*        src/main/java/*/controller/*) AREA_CO           src/main/java/*/controller/*) AREA_CONTROAR        src/main/java/*/controller/*) AREA_CONTROLLER    java/*/entity/*|src/main/java/*/model/*) AREA_ENTITIES=$((AREA_ENTITIES + 1)) ;;
+        src/main/java/*/dto/*)        AREA_DTOS=$((AREA_DTOS + 1)) ;;
+        src/main/java/*/config/*|*application*.properties|*application*.yml) AREA_CONFIG=$((AREA_CONFIG + 1)) ;;
+        src/main/resources/db/migration/*) AREA_MIGRATIONS=$((AREA_MIGRATIONS + 1)) ;;
+        build.gradle|settings.gradle|gradle.properties) AREA_BUILD=$((AREA_BUILD + 1)) ;;
+        compose*.yaml|compose*.yml|Dockerfile|render.yaml) AREA_INFRA=$((AREA_INFRA + 1)) ;;
+        scripts/*|*.sh)               AREA_SCRIPTS=$((AREA_SCRIPTS + 1)) ;;
+        *.md|README*|docs/*)          AREA_DOCS=$((AREA_DOCS + 1)) ;;
+    esac
+done
 
-# 3. Verificar mudanças em repositories
-if echo "$FILES_CHANGED" | grep -q "src/main/java/.*/repository/"; then
-    if [ -z "$COMMIT_MESSAGE" ]; then
-        COMMIT_TYPE="feat"
-        COMMIT_SCOPE="database"
-        
-        REPO_COUNT=$(echo "$FILES_CHANGED" | grep -c "repository/" || echo "0")
-        COMMIT_MESSAGE="update database repositories ($REPO_COUNT files)"
-        
-        # Listar repositories modificados (máximo 10)
-        echo "$FILES_CHANGED" | grep "repository/" | head -10 | while read -r file; do
-            echo "- $(basename "$file" | sed 's/\.java$//')" >> "$COMMIT_BODY_FILE"
-        done
-    fi
-fi
+# Lista de áreas únicas para o título
+UNIQUE_AREAS=""
+[ "$AREA_CONTROLLERS" -gt 0 ] && UNIQUE_AREAS="${UNIQUE_AREAS}, api"
+[ "$AREA_SERVICES" -gt 0 ] && UNIQUE_AREAS="${UNIQUE_AREAS}, services"
+[ "$AREA_REPOS" -gt 0 ] && UNIQUE_AREAS="${UNIQUE_AREAS}, repositories"
+[ "$AREA_ENTITIES" -gt 0 ] && UNIQUE_AREAS="${UNIQUE_AREAS}, entities"
+[ "$AREA_DTOS" -gt 0 ] && UNIQUE_AREAS="${UNIQUE_AREAS}, dtos"
+[ "$AREA_MIGRATIONS" -gt 0 ] && UNIQUE_AREAS="${UNIQUE_AREAS}, migrations"
+[ "$AREA_BUILD" -gt 0 ] && UNIQUE_AREAS="${UNIQUE_AREAS}, build"
+[ "$AREA_INFRA" -gt 0 ] && UNIQUE_AREAS="${UNIQUE_AREAS}, infra"
+[ "$AREA_CONFIG" -gt 0 ] && UNIQUE_AREAS="${UNIQUE_AREAS}, config"
+[ "$AREA_SCRIPTS" -gt 0 ] && UNIQUE_AREAS="${UNIQUE_AREAS}, scripts"
+[ "$AREA_DOCS" -gt 0 ] && UNIQUE_AREAS="${UNIQUE_AREAS}, docs"
+UNIQUE_AREAS=$(echo "$UNIQUE_AREAS" | sed 's/^, //')
 
-# 4. Verificar mudanças em entities/models
-if echo "$FILES_CHANGED" | grep -q "src/main/java/.*/entity/\|src/main/java/.*/model/"; then
-    if [ -z "$COMMIT_MESSAGE" ]; then
-        COMMIT_TYPE="feat"
-        COMMIT_SCOPE="model"
-        
-        MODEL_COUNT=$(echo "$FILES_CHANGED" | grep -cE "entity/|model/" || echo "0")
-        COMMIT_MESSAGE="update data models and entities ($MODEL_COUNT files)"
-        
-        # Listar models/entities modificados (máximo 10)
-        echo "$FILES_CHANGED" | grep -E "entity/|model/" | head -10 | while read -r file; do
-            echo "- $(basename "$file" | sed 's/\.java$//')" >> "$COMMIT_BODY_FILE"
-        done
-    fi
-fi
-
-# 5. Verificar mudanças em DTOs
-if echo "$FILES_CHANGED" | grep -q "src/main/java/.*/dto/"; then
-    if [ -z "$COMMIT_MESSAGE" ]; then
-        COMMIT_TYPE="feat"
-        COMMIT_SCOPE="dto"
-        
-        DTO_COUNT=$(echo "$FILES_CHANGED" | grep -c "dto/" || echo "0")
-        COMMIT_MESSAGE="update data transfer objects ($DTO_COUNT DTOs)"
-        
-        # Listar DTOs modificados (máximo 10)
-        echo "$FILES_CHANGED" | grep "dto/" | head -10 | while read -r file; do
-            echo "- $(basename "$file" | sed 's/\.java$//')" >> "$COMMIT_BODY_FILE"
-        done
-    fi
-fi
-
-# 6. Verificar mudanças em configuração
-if echo "$FILES_CHANGED" | grep -q "src/main/java/.*/config/\|application\.properties\|application\.yml"; then
-    if [ -z "$COMMIT_MESSAGE" ]; then
-        COMMIT_TYPE="chore"
-        COMMIT_SCOPE="config"
-        COMMIT_MESSAGE="update application configuration"
-        
-        echo "$FILES_CHANGED" | grep -E "config/|application\." | while read -r file; do
-            echo "- $(basename "$file")" >> "$COMMIT_BODY_FILE"
-        done
-    fi
-fi
-
-# 7. Verificar mudanças em build
-if echo "$FILES_CHANGED" | grep -q "pom\.xml\|build\.gradle"; then
-    if [ -z "$COMMIT_MESSAGE" ]; then
-        COMMIT_TYPE="build"
-        COMMIT_SCOPE="deps"
-        COMMIT_MESSAGE="update dependencies and build configuration"
-        
-        echo "$FILES_CHANGED" | grep -E "pom\.xml|build\.gradle" | while read -r file; do
-            echo "- $(basename "$file")" >> "$COMMIT_BODY_FILE"
-        done
-    fi
-fi
-
-# 8. Verificar mudanças em scripts
-if echo "$FILES_CHANGED" | grep -q "\.sh$"; then
-    if [ -z "$COMMIT_MESSAGE" ]; then
-        COMMIT_TYPE="chore"
-        COMMIT_SCOPE="scripts"
-        
-        SCRIPT_COUNT=$(echo "$FILES_CHANGED" | grep -c "\.sh$" || echo "0")
-        if [ "$SCRIPT_COUNT" -eq 1 ]; then
-            SCRIPT_NAME=$(echo "$FILES_CHANGED" | grep "\.sh$" | head -1 | xargs basename)
-            COMMIT_MESSAGE="update $SCRIPT_NAME deployment script"
-        else
-            COMMIT_MESSAGE="update deployment scripts ($SCRIPT_COUNT files)"
-            
-            # Listar scripts modificados (máximo 10)
-            echo "$FILES_CHANGED" | grep "\.sh$" | head -10 | while read -r file; do
-                echo "- $(basename "$file")" >> "$COMMIT_BODY_FILE"
-            done
-        fi
-    fi
-fi
-
-# 9. Verificar mudanças em testes
-if echo "$FILES_CHANGED" | grep -q "src/test/"; then
-    if [ -z "$COMMIT_MESSAGE" ]; then
-        COMMIT_TYPE="test"
-        COMMIT_SCOPE=""
-        
-        TEST_COUNT=$(echo "$FILES_CHANGED" | grep -c "src/test/" || echo "0")
-        COMMIT_MESSAGE="update tests ($TEST_COUNT files)"
-        
-        # Listar testes modificados (máximo 10)
-        echo "$FILES_CHANGED" | grep "src/test/" | head -10 | while read -r file; do
-            echo "- $(basename "$file" | sed 's/\.java$//')" >> "$COMMIT_BODY_FILE"
-        done
-    fi
-fi
-
-# 10. Verificar mudanças em docs
-if echo "$FILES_CHANGED" | grep -q "\.md$\|README"; then
-    if [ -z "$COMMIT_MESSAGE" ]; then
-        COMMIT_TYPE="docs"
-        COMMIT_SCOPE=""
-        
-        DOC_COUNT=$(echo "$FILES_CHANGED" | grep -cE "\.md$|README" || echo "0")
-        COMMIT_MESSAGE="update documentation ($DOC_COUNT files)"
-        
-        echo "$FILES_CHANGED" | grep -E "\.md$|README" | head -10 | while read -r file; do
-            echo "- $(basename "$file")" >> "$COMMIT_BODY_FILE"
-        done
-    fi
-fi
-
-# 11. Verificar correções (palavras-chave em diffs)
-if git diff | grep -iq "fix\|bug\|error\|issue\|hotfix"; then
-    if [ -z "$COMMIT_MESSAGE" ]; then
-        COMMIT_TYPE="fix"
-    fi
-fi
-
-# 12. Se ainda não temos mensagem específica, criar uma genérica
-if [ -z "$COMMIT_MESSAGE" ]; then
-    if [ "$MODIFIED" -gt 0 ] && [ "$ADDED" -gt 0 ]; then
-        COMMIT_MESSAGE="update and add backend files"
-        echo "- $MODIFIED files modified" >> "$COMMIT_BODY_FILE"
-        echo "- $ADDED files added" >> "$COMMIT_BODY_FILE"
-    elif [ "$MODIFIED" -gt 0 ]; then
-        COMMIT_MESSAGE="update backend implementation ($MODIFIED files)"
-    elif [ "$ADDED" -gt 0 ]; then
-        COMMIT_MESSAGE="add new backend features ($ADDED files)"
-    elif [ "$DELETED" -gt 0 ]; then
-        COMMIT_MESSAGE="remove unused code ($DELETED files)"
-    else
-        COMMIT_MESSAGE="update backend"
-    fi
-fi
-
-# Construir mensagem final (título)
-if [ -n "$COMMIT_SCOPE" ]; then
-    FINAL_MESSAGE="$COMMIT_TYPE($COMMIT_SCOPE): $COMMIT_MESSAGE"
+# --- Determinar tipo do commit ---
+if [ "$AREA_CONTROLLERS" -gt 0 ] || [ "$AREA_SERVICES" -gt 0 ] || [ "$AREA_REPOS" -gt 0 ] || [ "$AREA_ENTITIES" -gt 0 ]; then
+    COMMIT_TYPE="feat"
+elif [ "$AREA_MIGRATIONS" -gt 0 ]; then
+    COMMIT_TYPE="feat"
+elif [ "$AREA_BUILD" -gt 0 ] || [ "$AREA_INFRA" -gt 0 ]; then
+    COMMIT_TYPE="build"
+elif [ "$AREA_DOCS" -gt 0 ]; then
+    COMMIT_TYPE="docs"
 else
-    FINAL_MESSAGE="$COMMIT_TYPE: $COMMIT_MESSAGE"
+    COMMIT_TYPE="chore"
 fi
 
-# Preparar commit completo (título + corpo se houver)
+# --- Gerar descrição detalhada por arquivo usando git diff ---
+echo "Alterações por arquivo:" >> "$COMMIT_BODY_FILE"
+for file in $FILES_CHANGED; do
+    BNAME=$(basename "$file" | sed 's/\.java$//' | sed 's/\.sql$//' | sed 's/\.[^.]*$//')
+
+    # Tentar diff de arquivo rastreado (unstaged, depois staged)
+    DIFF_OUTPUT=$(git diff "$file" 2>/dev/null)
+    if [ -z "$DIFF_OUTPUT" ]; then
+        DIFF_OUTPUT=$(git diff --cached "$file" 2>/dev/null)
+    fi
+
+    if [ -n "$DIFF_OUTPUT" ]; then
+        # Contar adições/remoções
+        ADDS=$(echo "$DIFF_OUTPUT" | grep "^+" | grep -v "^+++" | wc -l | xargs)
+        DELS=$(echo "$DIFF_OUTPUT" | grep "^-" | grep -v "^---" | wc -l | xargs)
+
+        # Extrair funções/métodos dos hunk headers (@@ ... @@ contexto)
+        CONTEXT=$(echo "$DIFF_OUTPUT" | grep "^@@" | sed 's/.*@@[[:space:]]*//' | grep -v "^$" | sed 's/[[:space:]]*{[[:space:]]*$//' | head -3 | tr '\n' '; ' | sed 's/;[[:space:]]*$//')
+
+        if [ -n "$CONTEXT" ]; then
+            echo "- $BNAME: $CONTEXT (+$ADDS/-$DELS)" >> "$COMMIT_BODY_FILE"
+        else
+            echo "- $BNAME (+$ADDS/-$DELS)" >> "$COMMIT_BODY_FILE"
+        fi
+    else
+        # Arquivo novo (untracked)
+        if [ -f "$file" ]; then
+            LINES=$(wc -l < "$file" | xargs)
+            echo "- $BNAME: novo arquivo ($LINES linhas)" >> "$COMMIT_BODY_FILE"
+        else
+            echo "- $BNAME: novo arquivo" >> "$COMMIT_BODY_FILE"
+        fi
+    fi
+done
+
+# --- Construir título do commit ---
+if [ "$TOTAL_FILES" -le 3 ]; then
+    NAMES=$(echo "$FILE_NAMES" | xargs | tr ' ' ', ')
+    FINAL_MESSAGE="$COMMIT_TYPE: update $NAMES"
+else
+    FINAL_MESSAGE="$COMMIT_TYPE: update $UNIQUE_AREAS ($TOTAL_FILES arquivos)"
+fi
+
+# --- Montar mensagem completa (título + corpo) ---
 if [ -s "$COMMIT_BODY_FILE" ]; then
-    # Criar arquivo temporário com mensagem completa
-    COMMIT_MSG_FILE="/tmp/git-commit-message-events-$$"
     echo "$FINAL_MESSAGE" > "$COMMIT_MSG_FILE"
     echo "" >> "$COMMIT_MSG_FILE"
     cat "$COMMIT_BODY_FILE" >> "$COMMIT_MSG_FILE"
