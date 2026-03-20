@@ -197,6 +197,10 @@ public class DeliveryService {
             
             // Arredondar para 2 casas decimais
             delivery.setShippingFee(calculatedFee.setScale(2, RoundingMode.HALF_UP));
+
+            // Guardar previsão original (Google Directions) para comparativo
+            delivery.setEstimatedDistanceKm(delivery.getDistanceKm());
+            delivery.setEstimatedShippingFee(delivery.getShippingFee());
         }
 
         Delivery savedDelivery = deliveryRepository.save(delivery);
@@ -655,6 +659,59 @@ public class DeliveryService {
 
         delivery.setStatus(Delivery.DeliveryStatus.COMPLETED);
         delivery.setCompletedAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")));
+
+        // Recálculo pela rota real (PostGIS)
+        try {
+            Double realDistanceMeters = deliveryRepository.getRouteDistanceMeters(deliveryId);
+            if (realDistanceMeters != null && realDistanceMeters > 0) {
+                BigDecimal realDistanceKm = BigDecimal.valueOf(realDistanceMeters / 1000.0)
+                        .setScale(2, RoundingMode.HALF_UP);
+                delivery.setDistanceKm(realDistanceKm);
+
+                // Recalcular frete com a distância real
+                SiteConfiguration activeConfig = siteConfigurationService.getActiveConfiguration();
+                BigDecimal pricePerKm = activeConfig.getPricePerKm();
+                BigDecimal minimumFee = activeConfig.getMinimumShippingFee();
+                if (delivery.getPreferredVehicleType() == Delivery.PreferredVehicleType.CAR) {
+                    pricePerKm = activeConfig.getCarPricePerKm() != null
+                            ? activeConfig.getCarPricePerKm() : activeConfig.getPricePerKm();
+                    minimumFee = activeConfig.getCarMinimumShippingFee() != null
+                            ? activeConfig.getCarMinimumShippingFee() : activeConfig.getMinimumShippingFee();
+                }
+
+                BigDecimal calculatedFee = realDistanceKm.multiply(pricePerKm);
+                if (calculatedFee.compareTo(minimumFee) < 0) {
+                    calculatedFee = minimumFee;
+                }
+
+                // Sobretaxa de zona especial
+                if (delivery.getToLatitude() != null && delivery.getToLongitude() != null) {
+                    var nearestZone = specialZoneService.findNearestZone(
+                            delivery.getToLatitude(), delivery.getToLongitude());
+                    if (nearestZone.isPresent()) {
+                        SpecialZone zone = nearestZone.get();
+                        BigDecimal pct = BigDecimal.ZERO;
+                        if (zone.getZoneType() == SpecialZone.ZoneType.DANGER) {
+                            pct = activeConfig.getDangerFeePercentage();
+                        } else if (zone.getZoneType() == SpecialZone.ZoneType.HIGH_INCOME) {
+                            pct = activeConfig.getHighIncomeFeePercentage();
+                        }
+                        if (pct.compareTo(BigDecimal.ZERO) > 0) {
+                            BigDecimal surcharge = calculatedFee.multiply(pct)
+                                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                            calculatedFee = calculatedFee.add(surcharge);
+                        }
+                    }
+                }
+
+                delivery.setShippingFee(calculatedFee.setScale(2, RoundingMode.HALF_UP));
+                System.out.println("📊 Delivery #" + deliveryId + " recalculada: "
+                        + "dist real=" + realDistanceKm + "km (prev=" + delivery.getEstimatedDistanceKm() + "km), "
+                        + "frete real=R$" + delivery.getShippingFee() + " (prev=R$" + delivery.getEstimatedShippingFee() + ")");
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Falha ao recalcular rota real da delivery #" + deliveryId + ": " + e.getMessage());
+        }
 
         // Limpar currentDeliveryId do courier
         User courier = delivery.getCourier();

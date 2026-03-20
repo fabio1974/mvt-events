@@ -135,6 +135,14 @@ public class Delivery extends BaseEntity {
     @Visible(table = true, form = true, filter = false, readonly = true)
     private BigDecimal distanceKm;
 
+    /** Distância prevista pelo Google Directions (antes do recálculo pela rota real) */
+    @Column(name = "estimated_distance_km", precision = 6, scale = 2)
+    private BigDecimal estimatedDistanceKm;
+
+    /** Frete previsto pelo Google Directions (antes do recálculo pela rota real) */
+    @Column(name = "estimated_shipping_fee", precision = 10, scale = 2)
+    private BigDecimal estimatedShippingFee;
+
 
     // ============================================================================
     // STATUS & TIMESTAMPS

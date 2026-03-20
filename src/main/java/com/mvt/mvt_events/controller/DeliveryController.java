@@ -940,6 +940,25 @@ public class DeliveryController {
     }
 
     /**
+     * Retorna a rota real percorrida pelo courier como GeoJSON
+     */
+    @GetMapping("/{id}/route")
+    @Operation(summary = "Rota real da entrega", description = "Retorna a rota GPS percorrida como GeoJSON LineString")
+    public ResponseEntity<?> getActualRoute(@PathVariable Long id) {
+        try {
+            String geoJson = deliveryService.getRouteGeoJson(id);
+            if (geoJson == null) {
+                return ResponseEntity.ok(Collections.singletonMap("route", null));
+            }
+            return ResponseEntity.ok(Collections.singletonMap("route", geoJson));
+        } catch (Exception e) {
+            log.error("❌ Erro ao buscar rota da delivery #{}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Collections.singletonMap("error", "Erro ao buscar rota"));
+        }
+    }
+
+    /**
      * Helper para buscar UUID da organização pelo ID Long
      */
     private UUID findOrganizationUuidById(Long organizationId) {

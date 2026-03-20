@@ -51,7 +51,10 @@ for file in $FILES_CHANGED; do
     BNAME=$(basename "$file" | sed 's/\.[^.]*$//')
     FILE_NAMES="$FILE_NAMES $BNAME"
     case "$file" in
-        src/main/java/*/controller/*) AREA_CONTROLLER        src/main/java/*/controller/*) AREA_CONTROLLE/*/       /*        src/main/java/*/controller/*) AREA_CO           src/main/java/*/controller/*) AREA_CONTROAR        src/main/java/*/controller/*) AREA_CONTROLLER    java/*/entity/*|src/main/java/*/model/*) AREA_ENTITIES=$((AREA_ENTITIES + 1)) ;;
+        src/main/java/*/controller/*) AREA_CONTROLLERS=$((AREA_CONTROLLERS + 1)) ;;
+        src/main/java/*/service/*)    AREA_SERVICES=$((AREA_SERVICES + 1)) ;;
+        src/main/java/*/repository/*) AREA_REPOS=$((AREA_REPOS + 1)) ;;
+        src/main/java/*/jpa/*|src/main/java/*/entity/*|src/main/java/*/model/*) AREA_ENTITIES=$((AREA_ENTITIES + 1)) ;;
         src/main/java/*/dto/*)        AREA_DTOS=$((AREA_DTOS + 1)) ;;
         src/main/java/*/config/*|*application*.properties|*application*.yml) AREA_CONFIG=$((AREA_CONFIG + 1)) ;;
         src/main/resources/db/migration/*) AREA_MIGRATIONS=$((AREA_MIGRATIONS + 1)) ;;
