@@ -4,6 +4,7 @@ import com.mvt.mvt_events.metadata.Visible;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
+import org.locationtech.jts.geom.LineString;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -213,6 +214,10 @@ public class Delivery extends BaseEntity {
     @Column(name = "cancelled_at")
     @Visible(table = false, form = false, filter = false)
     private OffsetDateTime cancelledAt;
+
+    @Column(name = "actual_route", columnDefinition = "geometry(LineString, 4326)")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private LineString actualRoute;
 
     @Column(name = "cancellation_reason", columnDefinition = "TEXT")
     @Visible(table = false, form = true, filter = false)

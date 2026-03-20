@@ -64,6 +64,9 @@ public class UserService {
     @Autowired
     private com.mvt.mvt_events.repository.CustomerPaymentPreferenceRepository customerPaymentPreferenceRepository;
 
+    @Autowired
+    private com.mvt.mvt_events.repository.DeliveryRepository deliveryRepository;
+
     public List<User> findAll() {
         return userRepository.findAll();
     }
@@ -530,6 +533,19 @@ public class UserService {
         }
 
         User savedUser = userRepository.save(user);
+
+        // 📍 ROUTE TRACKING: If courier has active IN_TRANSIT delivery, append point to route
+        if (savedUser.getCurrentDeliveryId() != null) {
+            try {
+                deliveryRepository.findById(savedUser.getCurrentDeliveryId()).ifPresent(delivery -> {
+                    if (delivery.getStatus() == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.IN_TRANSIT) {
+                        deliveryRepository.appendRoutePoint(delivery.getId(), latitude, longitude);
+                    }
+                });
+            } catch (Exception e) {
+                System.err.println("⚠️ Failed to append route point: " + e.getMessage());
+            }
+        }
 
         // Force load da city via address para evitar lazy loading
         if (savedUser.getAddress() != null && savedUser.getAddress().getCity() != null) {

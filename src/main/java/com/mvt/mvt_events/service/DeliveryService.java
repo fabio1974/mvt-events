@@ -599,7 +599,18 @@ public class DeliveryService {
 
         Delivery saved = deliveryRepository.save(delivery);
 
-        // 💳 PAGAMENTO CUSTOMER CARTÃO: Criar pagamento por cartão ao entrar em trânsito (DELIVERY e RIDE)
+        // � ROUTE TRACKING: Initialize route with courier's current GPS position
+        try {
+            User courier = delivery.getCourier();
+            if (courier != null && courier.getGpsLatitude() != null && courier.getGpsLongitude() != null) {
+                deliveryRepository.initializeRoute(saved.getId(), courier.getGpsLatitude(), courier.getGpsLongitude());
+                System.out.println("📍 Route initialized for delivery " + saved.getId());
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to initialize route for delivery " + saved.getId() + ": " + e.getMessage());
+        }
+
+        // �💳 PAGAMENTO CUSTOMER CARTÃO: Criar pagamento por cartão ao entrar em trânsito (DELIVERY e RIDE)
         // Se falhar → exceção propaga, transação faz rollback completo (status volta a ACCEPTED)
         if (!delivery.isFromTrustedClient() 
                 && (delivery.getDeliveryType() == Delivery.DeliveryType.DELIVERY 
@@ -1871,5 +1882,36 @@ public class DeliveryService {
         
         // Default: PENDING
         return PaymentStatus.PENDING;
+    }
+
+    // ============================================================================
+    // ROUTE TRACKING
+    // ============================================================================
+
+    /**
+     * Append a GPS point to the delivery's route.
+     * Called by UserService when a courier updates their location during an IN_TRANSIT delivery.
+     */
+    @Transactional
+    public void appendRoutePoint(Long deliveryId, double latitude, double longitude) {
+        try {
+            deliveryRepository.appendRoutePoint(deliveryId, latitude, longitude);
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to append route point to delivery " + deliveryId + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get the actual route of a delivery as GeoJSON
+     */
+    public String getRouteGeoJson(Long deliveryId) {
+        return deliveryRepository.getRouteAsGeoJson(deliveryId);
+    }
+
+    /**
+     * Get the real distance traveled in meters
+     */
+    public Double getRouteDistanceMeters(Long deliveryId) {
+        return deliveryRepository.getRouteDistanceMeters(deliveryId);
     }
 }

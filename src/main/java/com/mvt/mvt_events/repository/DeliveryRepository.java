@@ -3,6 +3,7 @@ package com.mvt.mvt_events.repository;
 import com.mvt.mvt_events.jpa.Delivery;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -468,5 +469,41 @@ public interface DeliveryRepository
                "ORDER BY d.id DESC")
         List<Delivery> findByOrganizerIdAndStatus(@Param("organizerId") UUID organizerId,
                                                    @Param("status") Delivery.DeliveryStatus status);
+
+        // ============================================================================
+        // ROUTE TRACKING (PostGIS)
+        // ============================================================================
+
+        /**
+         * Initialize the route with the first GPS point (called on pickup/IN_TRANSIT)
+         */
+        @Modifying
+        @Query(value = "UPDATE deliveries SET actual_route = ST_MakeLine(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)) WHERE id = :deliveryId", nativeQuery = true)
+        void initializeRoute(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng);
+
+        /**
+         * Append a GPS point to the existing route
+         */
+        @Modifying
+        @Query(value = "UPDATE deliveries SET actual_route = ST_AddPoint(actual_route, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)) WHERE id = :deliveryId AND actual_route IS NOT NULL", nativeQuery = true)
+        void appendRoutePoint(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng);
+
+        /**
+         * Get the route as a JSON array of [lng, lat] coordinates
+         */
+        @Query(value = "SELECT ST_AsGeoJSON(actual_route) FROM deliveries WHERE id = :deliveryId AND actual_route IS NOT NULL", nativeQuery = true)
+        String getRouteAsGeoJson(@Param("deliveryId") Long deliveryId);
+
+        /**
+         * Get the total route distance in meters (geodesic calculation)
+         */
+        @Query(value = "SELECT ST_Length(actual_route::geography) FROM deliveries WHERE id = :deliveryId AND actual_route IS NOT NULL", nativeQuery = true)
+        Double getRouteDistanceMeters(@Param("deliveryId") Long deliveryId);
+
+        /**
+         * Get the number of points in the route
+         */
+        @Query(value = "SELECT ST_NPoints(actual_route) FROM deliveries WHERE id = :deliveryId AND actual_route IS NOT NULL", nativeQuery = true)
+        Integer getRoutePointCount(@Param("deliveryId") Long deliveryId);
 }
 
