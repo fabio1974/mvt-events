@@ -195,11 +195,13 @@ public class DeliveryController {
                 Long deliveryId = ((Number) row.get("deliveryId")).longValue();
                 Long paymentId = ((Number) row.get("paymentId")).longValue();
                 String paymentStatus = (String) row.get("paymentStatus");
+                String paymentMethod = (String) row.get("paymentMethod");
                 
                 paymentsMap.computeIfAbsent(deliveryId, k -> new ArrayList<>())
                         .add(DeliveryResponse.PaymentSummary.builder()
                                 .id(paymentId)
                                 .status(paymentStatus)
+                                .paymentMethod(paymentMethod)
                                 .build());
             }
         }

@@ -28,6 +28,12 @@ else
     echo ""
 fi
 
+# Limpa build anterior (evita duplicatas de migration no cache)
+echo "🧹 Limpando build anterior..."
+./gradlew clean > /dev/null 2>&1
+echo "✅ Build limpo"
+echo ""
+
 # Limpa log anterior
 > bootrun-8080.log
 

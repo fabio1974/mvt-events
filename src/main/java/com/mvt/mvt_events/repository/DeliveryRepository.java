@@ -401,7 +401,7 @@ public interface DeliveryRepository
          * Retorna como DTO projection para evitar carregar relacionamento completo
          * CAST do enum para String para evitar ClassCastException
          */
-        @Query("SELECT new map(d.id as deliveryId, p.id as paymentId, CAST(p.status AS string) as paymentStatus) " +
+        @Query("SELECT new map(d.id as deliveryId, p.id as paymentId, CAST(p.status AS string) as paymentStatus, CAST(p.paymentMethod AS string) as paymentMethod) " +
                "FROM Payment p " +
                "JOIN p.deliveries d " +
                "WHERE d.id IN :deliveryIds")
