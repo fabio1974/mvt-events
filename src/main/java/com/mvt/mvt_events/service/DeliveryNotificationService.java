@@ -66,10 +66,13 @@ public class DeliveryNotificationService {
         log.info("Iniciando notificação de motoboys para delivery {}", delivery.getId());
 
         try {
+            // Rastrear motoboys já notificados para evitar notificações duplicadas entre níveis
+            Set<UUID> alreadyNotifiedIds = new HashSet<>();
+
             // Nível 1: Organização titular do cliente
-            boolean level1Notified = notifyLevel1PrimaryOrganization(delivery);
+            boolean level1Notified = notifyLevel1PrimaryOrganization(delivery, alreadyNotifiedIds);
             if (level1Notified) {
-                log.info("Notificação Nível 1 enviada para delivery {}", delivery.getId());
+                log.info("Notificação Nível 1 enviada para delivery {} ({} motoboys notificados)", delivery.getId(), alreadyNotifiedIds.size());
                 
                 // Aguardar 2 minutos antes do Nível 2
                 Thread.sleep(TimeUnit.MINUTES.toMillis(LEVEL_TIMEOUT_MINUTES));
@@ -84,9 +87,9 @@ public class DeliveryNotificationService {
             }
 
             // Nível 2: Outras organizações do cliente
-            boolean level2Notified = notifyLevel2OtherOrganizations(delivery);
+            boolean level2Notified = notifyLevel2OtherOrganizations(delivery, alreadyNotifiedIds);
             if (level2Notified) {
-                log.info("Notificação Nível 2 enviada para delivery {}", delivery.getId());
+                log.info("Notificação Nível 2 enviada para delivery {} ({} motoboys notificados no total)", delivery.getId(), alreadyNotifiedIds.size());
                 
                 // Aguardar 2 minutos antes do Nível 3
                 Thread.sleep(TimeUnit.MINUTES.toMillis(LEVEL_TIMEOUT_MINUTES));
@@ -100,9 +103,9 @@ public class DeliveryNotificationService {
                 log.info("Nível 2 não encontrou motoboys, pulando direto para Nível 3");
             }
 
-            // Nível 3: Todos os motoboys próximos
-            notifyLevel3AllNearbyDrivers(delivery);
-            log.info("Notificação Nível 3 enviada para delivery {}", delivery.getId());
+            // Nível 3: Todos os motoboys próximos (excluindo já notificados)
+            notifyLevel3AllNearbyDrivers(delivery, alreadyNotifiedIds);
+            log.info("Notificação Nível 3 enviada para delivery {} ({} motoboys notificados no total)", delivery.getId(), alreadyNotifiedIds.size());
 
         } catch (InterruptedException e) {
             log.error("Processo de notificação interrompido para delivery {}", delivery.getId(), e);
@@ -119,7 +122,7 @@ public class DeliveryNotificationService {
      * (isPrimary=true)
      * CLIENT: filtra apenas couriers com veículo ativo MOTORCYCLE
      */
-    private boolean notifyLevel1PrimaryOrganization(Delivery delivery) {
+    private boolean notifyLevel1PrimaryOrganization(Delivery delivery, Set<UUID> alreadyNotifiedIds) {
         log.info("Executando Nível 1: Organização titular para delivery {}", delivery.getId());
 
         // Buscar contrato titular do cliente
@@ -163,6 +166,9 @@ public class DeliveryNotificationService {
             return false;
         }
 
+        // Registrar motoboys que serão notificados neste nível
+        availableCouriers.forEach(c -> alreadyNotifiedIds.add(c.getId()));
+
         // Enviar notificações
         sendNotificationsToDrivers(availableCouriers, delivery, "Nível 1 - Organização Titular");
         return true;
@@ -171,7 +177,7 @@ public class DeliveryNotificationService {
     /**
      * Nível 2: Notificar motoboys de outras organizações conectadas ao cliente
      */
-    private boolean notifyLevel2OtherOrganizations(Delivery delivery) {
+    private boolean notifyLevel2OtherOrganizations(Delivery delivery, Set<UUID> alreadyNotifiedIds) {
         log.info("Executando Nível 2: Outras organizações para delivery {}", delivery.getId());
 
         // Buscar todos os contratos ativos do cliente (exceto o titular)
@@ -220,20 +226,34 @@ public class DeliveryNotificationService {
             return false;
         }
 
+        // Excluir motoboys já notificados no Nível 1
+        List<User> newCouriers = availableCouriers.stream()
+                .filter(c -> !alreadyNotifiedIds.contains(c.getId()))
+                .collect(Collectors.toList());
+
+        if (newCouriers.isEmpty()) {
+            log.info("Todos os motoboys do Nível 2 já foram notificados no Nível 1 para delivery {}", delivery.getId());
+            return false;
+        }
+
+        // Registrar motoboys que serão notificados neste nível
+        newCouriers.forEach(c -> alreadyNotifiedIds.add(c.getId()));
+
         // Enviar notificações
-        sendNotificationsToDrivers(availableCouriers, delivery, "Nível 2 - Outras Organizações");
+        sendNotificationsToDrivers(newCouriers, delivery, "Nível 2 - Outras Organizações");
         return true;
     }
 
     /**
      * Nível 3: Notificar todos os motoboys próximos geograficamente (sem restrição
-     * de organização)
+     * de organização), excluindo os já notificados nos níveis 1 e 2.
      * 
      * Para CLIENT: filtra MOTORCYCLE + serviceType DELIVERY
      * Para CUSTOMER: filtra pelo preferredVehicleType e deliveryType da delivery
      */
-    private boolean notifyLevel3AllNearbyDrivers(Delivery delivery) {
-        log.info("Executando Nível 3: Todos motoboys próximos para delivery {}", delivery.getId());
+    private boolean notifyLevel3AllNearbyDrivers(Delivery delivery, Set<UUID> alreadyNotifiedIds) {
+        log.info("Executando Nível 3: Todos motoboys próximos para delivery {} (excluindo {} já notificados)",
+                delivery.getId(), alreadyNotifiedIds.size());
 
         // Determinar filtros
         VehicleType vehicleTypeFilter = resolveVehicleTypeFilter(delivery);
@@ -266,8 +286,21 @@ public class DeliveryNotificationService {
             return false;
         }
 
+        // Excluir motoboys já notificados nos níveis anteriores
+        List<User> newCouriers = availableCouriers.stream()
+                .filter(c -> !alreadyNotifiedIds.contains(c.getId()))
+                .collect(Collectors.toList());
+
+        if (newCouriers.isEmpty()) {
+            log.info("Todos os motoboys próximos já foram notificados nos níveis anteriores para delivery {}", delivery.getId());
+            return false;
+        }
+
+        log.info("   ├─ Nível 3: {} motoboys novos (de {} encontrados, {} já notificados)",
+                newCouriers.size(), availableCouriers.size(), alreadyNotifiedIds.size());
+
         // Enviar notificações
-        sendNotificationsToDrivers(availableCouriers, delivery, "Nível 3 - Todos Próximos");
+        sendNotificationsToDrivers(newCouriers, delivery, "Nível 3 - Todos Próximos");
         return true;
     }
 

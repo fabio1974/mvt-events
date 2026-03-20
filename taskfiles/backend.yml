@@ -2,11 +2,6 @@
 version: '3'
 
 tasks:
-  start:
-    desc: "▶️ Iniciar App (porta padrão)"
-    cmds:
-      - ./scripts/start-app.sh
-
   start-8080:
     desc: "▶️ Iniciar App (porta 8080)"
     cmds:

@@ -4,7 +4,7 @@
 # Analisa mudanças e cria commit apropriado para mvt-events (Spring Boot)
 
 set -e
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "📤 GIT PUSH - MVT EVENTS (Backend)"
@@ -26,9 +26,9 @@ echo ""
 git status --short > /tmp/git-status-events.txt
 
 # Contar tipos de mudanças
-MODIFIED=$(grep -c "^ M\|^M" /tmp/git-status-events.txt 2>/dev/null || echo "0")
-ADDED=$(grep -c "^??\|^A" /tmp/git-status-events.txt 2>/dev/null || echo "0")
-DELETED=$(grep -c "^ D\|^D" /tmp/git-status-events.txt 2>/dev/null || echo "0")
+MODIFIED=$(grep -c "^ M\|^M" /tmp/git-status-events.txt 2>/dev/null) || MODIFIED=0
+ADDED=$(grep -c "^??\|^A" /tmp/git-status-events.txt 2>/dev/null) || ADDED=0
+DELETED=$(grep -c "^ D\|^D" /tmp/git-status-events.txt 2>/dev/null) || DELETED=0
 
 # Analisar arquivos modificados para criar mensagem inteligente
 FILES_CHANGED=$(git diff --name-only; git diff --cached --name-only; git ls-files --others --exclude-standard)
