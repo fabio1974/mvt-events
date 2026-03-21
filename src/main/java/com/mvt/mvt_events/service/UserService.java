@@ -534,11 +534,13 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
 
-        // 📍 ROUTE TRACKING: If courier has active IN_TRANSIT delivery, append point to route
+        // 📍 ROUTE TRACKING: If courier has active delivery (ACCEPTED or IN_TRANSIT), append point to route
         if (savedUser.getCurrentDeliveryId() != null) {
             try {
                 deliveryRepository.findById(savedUser.getCurrentDeliveryId()).ifPresent(delivery -> {
-                    if (delivery.getStatus() == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.IN_TRANSIT) {
+                    var status = delivery.getStatus();
+                    if (status == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.ACCEPTED
+                            || status == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.IN_TRANSIT) {
                         deliveryRepository.appendRoutePoint(delivery.getId(), latitude, longitude);
                     }
                 });

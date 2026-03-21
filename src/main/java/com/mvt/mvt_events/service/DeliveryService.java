@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -523,7 +524,17 @@ public class DeliveryService {
             courierUser.setCurrentDeliveryId(saved.getId());
             userRepository.save(courierUser);
 
-            // 💳 PAGAMENTO AUTOMÁTICO CLIENT: somente se preferência for CREDIT_CARD
+            // � ROUTE TRACKING: Initialize route on ACCEPTED with courier's current GPS position
+            try {
+                if (courierUser.getGpsLatitude() != null && courierUser.getGpsLongitude() != null) {
+                    deliveryRepository.initializeRoute(saved.getId(), courierUser.getGpsLatitude(), courierUser.getGpsLongitude());
+                    System.out.println("📍 Route initialized on ACCEPTED for delivery " + saved.getId());
+                }
+            } catch (Exception e) {
+                System.err.println("⚠️ Failed to initialize route on ACCEPTED for delivery " + saved.getId() + ": " + e.getMessage());
+            }
+
+            // �💳 PAGAMENTO AUTOMÁTICO CLIENT: somente se preferência for CREDIT_CARD
             // Se preferência for PIX → sem cobrança automática em nenhuma etapa da delivery.
             // O pagamento PIX será criado manualmente pelo admin via frontend (perfil admin).
             CustomerPaymentPreference clientPref = preferenceService.getPreference(delivery.getClient().getId());
@@ -565,7 +576,19 @@ public class DeliveryService {
             courierUser.setCurrentDeliveryId(saved.getId());
             userRepository.save(courierUser);
 
-            // 💳 PAGAMENTO CUSTOMER PIX: Criar pagamento PIX no aceite (DELIVERY e RIDE)
+            // � ROUTE TRACKING: Initialize route on ACCEPTED (only if not WAITING_PAYMENT)
+            if (saved.getStatus() == Delivery.DeliveryStatus.ACCEPTED) {
+                try {
+                    if (courierUser.getGpsLatitude() != null && courierUser.getGpsLongitude() != null) {
+                        deliveryRepository.initializeRoute(saved.getId(), courierUser.getGpsLatitude(), courierUser.getGpsLongitude());
+                        System.out.println("📍 Route initialized on ACCEPTED for delivery " + saved.getId());
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ Failed to initialize route on ACCEPTED for delivery " + saved.getId() + ": " + e.getMessage());
+                }
+            }
+
+            // �💳 PAGAMENTO CUSTOMER PIX: Criar pagamento PIX no aceite (DELIVERY e RIDE)
             // Cartão de crédito será cobrado quando entrar em trânsito (confirmPickup)
             if (isCustomerPix) {
                 createPixPaymentForCustomer(saved, delivery.getClient());
@@ -603,12 +626,16 @@ public class DeliveryService {
 
         Delivery saved = deliveryRepository.save(delivery);
 
-        // � ROUTE TRACKING: Initialize route with courier's current GPS position
+        // 📍 ROUTE TRACKING: Fallback - initialize route if not already done on ACCEPTED
         try {
             User courier = delivery.getCourier();
             if (courier != null && courier.getGpsLatitude() != null && courier.getGpsLongitude() != null) {
-                deliveryRepository.initializeRoute(saved.getId(), courier.getGpsLatitude(), courier.getGpsLongitude());
-                System.out.println("📍 Route initialized for delivery " + saved.getId());
+                // Only initialize if route was not already created on ACCEPTED
+                String existingRoute = deliveryRepository.getRouteAsGeoJson(saved.getId());
+                if (existingRoute == null || existingRoute.isEmpty()) {
+                    deliveryRepository.initializeRoute(saved.getId(), courier.getGpsLatitude(), courier.getGpsLongitude());
+                    System.out.println("📍 Route initialized (fallback on IN_TRANSIT) for delivery " + saved.getId());
+                }
             }
         } catch (Exception e) {
             System.err.println("⚠️ Failed to initialize route for delivery " + saved.getId() + ": " + e.getMessage());
@@ -1963,6 +1990,35 @@ public class DeliveryService {
      */
     public String getRouteGeoJson(Long deliveryId) {
         return deliveryRepository.getRouteAsGeoJson(deliveryId);
+    }
+
+    /**
+     * Retorna dados de tracking unificados: localização do courier + rota real + status.
+     * Usado pelo app mobile para polling a cada 10s.
+     */
+    public Map<String, Object> getTrackingData(Long deliveryId) {
+        Delivery delivery = deliveryRepository.findById(deliveryId)
+                .orElseThrow(() -> new RuntimeException("Delivery não encontrada: " + deliveryId));
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("deliveryId", deliveryId);
+        result.put("status", delivery.getStatus().name());
+
+        // Courier location
+        if (delivery.getCourier() != null) {
+            Map<String, Object> courierLocation = new LinkedHashMap<>();
+            courierLocation.put("latitude", delivery.getCourier().getGpsLatitude());
+            courierLocation.put("longitude", delivery.getCourier().getGpsLongitude());
+            result.put("courierLocation", courierLocation);
+        } else {
+            result.put("courierLocation", null);
+        }
+
+        // Actual route (PostGIS GeoJSON)
+        String geoJson = deliveryRepository.getRouteAsGeoJson(deliveryId);
+        result.put("route", geoJson);
+
+        return result;
     }
 
     /**

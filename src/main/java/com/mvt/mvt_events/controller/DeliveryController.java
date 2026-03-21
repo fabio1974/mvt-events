@@ -446,7 +446,7 @@ public class DeliveryController {
     public ResponseEntity<?> listCourierActive(Authentication authentication) {
         UUID courierId = getUserIdFromAuthentication(authentication);
         var deliveries = deliveryService.findActiveByCourier(courierId);
-        return ResponseEntity.ok(deliveries.stream().map(this::mapToResponse).toList());
+        return ResponseEntity.ok(mapToResponsesWithPayments(deliveries));
     }
 
     @GetMapping("/courier/completed")
@@ -458,7 +458,7 @@ public class DeliveryController {
             @RequestParam(value = "unpaidOnly", required = false, defaultValue = "false") boolean unpaidOnly) {
         UUID courierId = getUserIdFromAuthentication(authentication);
         var deliveries = deliveryService.findCompletedByCourier(courierId, unpaidOnly);
-        return ResponseEntity.ok(deliveries.stream().map(this::mapToResponse).toList());
+        return ResponseEntity.ok(mapToResponsesWithPayments(deliveries));
     }
 
     @GetMapping("/courier/pendings")
@@ -467,7 +467,7 @@ public class DeliveryController {
         UUID courierId = getUserIdFromAuthentication(authentication);
         double radiusKm = 5.0; // raio padrão
         var deliveries = deliveryService.findPendingNearbyInPrimaryOrgs(courierId, radiusKm);
-        return ResponseEntity.ok(deliveries.stream().map(this::mapToResponse).toList());
+        return ResponseEntity.ok(mapToResponsesWithPayments(deliveries));
     }
 
     // ========================================================================
@@ -575,6 +575,33 @@ public class DeliveryController {
                 // Payments: carrega através de query JOIN para evitar StackOverflow
                 .payments(null) // Será populado pela versão sobrecarregada
                 .build();
+    }
+
+    /**
+     * Converte uma lista de Deliveries para DeliveryResponse com payments e paymentStatus populados.
+     * Usa uma única query batch para carregar todos os payments de forma eficiente.
+     */
+    private List<DeliveryResponse> mapToResponsesWithPayments(List<Delivery> deliveries) {
+        List<Long> deliveryIds = deliveries.stream().map(Delivery::getId).toList();
+        
+        Map<Long, List<DeliveryResponse.PaymentSummary>> paymentsMap = new HashMap<>();
+        if (!deliveryIds.isEmpty()) {
+            List<Map<String, Object>> paymentData = deliveryRepository.findPaymentsByDeliveryIds(deliveryIds);
+            for (Map<String, Object> row : paymentData) {
+                Long deliveryId = ((Number) row.get("deliveryId")).longValue();
+                Long paymentId = ((Number) row.get("paymentId")).longValue();
+                String paymentStatus = (String) row.get("paymentStatus");
+                String paymentMethod = (String) row.get("paymentMethod");
+                paymentsMap.computeIfAbsent(deliveryId, k -> new ArrayList<>())
+                        .add(DeliveryResponse.PaymentSummary.builder()
+                                .id(paymentId)
+                                .status(paymentStatus)
+                                .paymentMethod(paymentMethod)
+                                .build());
+            }
+        }
+        
+        return deliveries.stream().map(d -> mapToResponse(d, paymentsMap)).toList();
     }
 
     /**
@@ -957,6 +984,23 @@ public class DeliveryController {
             log.error("❌ Erro ao buscar rota da delivery #{}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Collections.singletonMap("error", "Erro ao buscar rota"));
+        }
+    }
+
+    /**
+     * Endpoint unificado de tracking: retorna localização do courier + rota real numa única chamada.
+     * Usado pelo app para polling a cada 10s durante corridas ativas.
+     */
+    @GetMapping("/{id}/tracking")
+    @Operation(summary = "Tracking unificado", description = "Retorna localização do courier e rota real GPS numa única chamada")
+    public ResponseEntity<?> getTracking(@PathVariable Long id) {
+        try {
+            Map<String, Object> tracking = deliveryService.getTrackingData(id);
+            return ResponseEntity.ok(tracking);
+        } catch (Exception e) {
+            log.error("❌ Erro ao buscar tracking da delivery #{}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Collections.singletonMap("error", "Erro ao buscar tracking"));
         }
     }
 
