@@ -127,12 +127,11 @@ public interface UserPushTokenRepository extends JpaRepository<UserPushToken, UU
         @Query(value = """
                 INSERT INTO user_push_tokens (id, user_id, token, platform, device_type, is_active, created_at, updated_at)
                 VALUES (gen_random_uuid(), :userId, :token, CAST(:platform AS VARCHAR), CAST(:deviceType AS VARCHAR), true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                ON CONFLICT (token, is_active) 
-                WHERE is_active = true
+                ON CONFLICT (user_id, token) 
                 DO UPDATE SET 
-                    user_id = EXCLUDED.user_id,
                     platform = EXCLUDED.platform,
                     device_type = EXCLUDED.device_type,
+                    is_active = true,
                     updated_at = CURRENT_TIMESTAMP
                 """, nativeQuery = true)
         int upsertPushToken(
