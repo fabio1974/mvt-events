@@ -115,4 +115,30 @@ public interface UserPushTokenRepository extends JpaRepository<UserPushToken, UU
          */
         @Query("SELECT u FROM UserPushToken u WHERE u.deviceType = 'MOBILE' AND u.isActive = true")
         List<UserPushToken> findAllActiveMobileTokens();
+
+        /**
+         * UPSERT: Insere ou atualiza token push usando ON CONFLICT (PostgreSQL)
+         * Resolve race conditions ao registrar o mesmo token múltiplas vezes
+         * 
+         * @return número de linhas afetadas (1 se sucesso, 0 se falha)
+         */
+        @Modifying
+        @Transactional
+        @Query(value = """
+                INSERT INTO user_push_tokens (id, user_id, token, platform, device_type, is_active, created_at, updated_at)
+                VALUES (gen_random_uuid(), :userId, :token, CAST(:platform AS VARCHAR), CAST(:deviceType AS VARCHAR), true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                ON CONFLICT (token, is_active) 
+                WHERE is_active = true
+                DO UPDATE SET 
+                    user_id = EXCLUDED.user_id,
+                    platform = EXCLUDED.platform,
+                    device_type = EXCLUDED.device_type,
+                    updated_at = CURRENT_TIMESTAMP
+                """, nativeQuery = true)
+        int upsertPushToken(
+                @Param("userId") UUID userId,
+                @Param("token") String token,
+                @Param("platform") String platform,
+                @Param("deviceType") String deviceType
+        );
 }

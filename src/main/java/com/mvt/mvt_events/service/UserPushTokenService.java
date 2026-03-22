@@ -55,50 +55,44 @@ public class UserPushTokenService {
                         .build();
             }
 
-            // Garantir unicidade do token entre usuários: se o mesmo token estiver
-            // associado a outro usuário, desativamos essa(s) associação(ões)
-            // e prosseguimos com o registro para o usuário atual.
-            try {
-                Optional<UserPushToken> tokenFromOtherUser = pushTokenRepository.findByToken(request.getToken());
-                if (tokenFromOtherUser.isPresent() && !tokenFromOtherUser.get().getUserId().equals(userId)) {
-                    int deactivated = pushTokenRepository.deactivateToken(request.getToken());
-                    log.info(
-                            "Token já estava associado a outro usuário ({}). Desativadas {} associações antes de registrar para {}",
-                            tokenFromOtherUser.get().getUserId(), deactivated, userId);
-                }
-            } catch (Exception ex) {
-                log.warn("Falha ao verificar/desativar token existente para outros usuários: {}", ex.getMessage());
-            }
-
-            // TENTATIVA 1: Verificar se o token já existe para este usuário (ativo ou não)
-            Optional<UserPushToken> existingToken = pushTokenRepository.findByUserIdAndToken(userId, request.getToken());
-            
-            if (existingToken.isPresent()) {
-                return handleExistingToken(existingToken.get(), platform, deviceType, request, userId);
-            }
-
-            // Desativar tokens antigos para o mesmo usuário/plataforma/dispositivo
+            // Desativar tokens antigos PRIMEIRO (para o mesmo user/platform/device)
+            // Isso garante que não teremos múltiplos tokens ativos
             int deactivatedCount = pushTokenRepository.deactivateTokens(userId, platform, deviceType);
             if (deactivatedCount > 0) {
                 log.info("Desativados {} tokens antigos para usuário {} (platform={}, deviceType={})",
                         deactivatedCount, userId, platform, deviceType);
             }
 
-            // Criar novo token
+            // UPSERT atômico: insere ou atualiza se já existir
+            // Resolve race conditions de múltiplas requisições simultâneas
             try {
-                return createNewToken(userId, request, platform, deviceType);
-            } catch (org.springframework.dao.DataIntegrityViolationException e) {
-                // TENTATIVA 2: Race condition detectada - token foi inserido entre nossa verificação e INSERT
-                // Tentar buscar novamente e reativar
-                log.warn("Violação de constraint ao inserir token - tentando buscar e reativar: {}", e.getMessage());
+                int affected = pushTokenRepository.upsertPushToken(
+                    userId, 
+                    request.getToken(), 
+                    platform.name(), 
+                    deviceType.name()
+                );
                 
-                existingToken = pushTokenRepository.findByUserIdAndToken(userId, request.getToken());
-                if (existingToken.isPresent()) {
-                    log.info("Token encontrado na segunda tentativa - reativando");
-                    return handleExistingToken(existingToken.get(), platform, deviceType, request, userId);
+                if (affected > 0) {
+                    log.info("Token push registrado/atualizado com sucesso via UPSERT: userId={}, platform={}, deviceType={}",
+                            userId, platform, deviceType);
+                    
+                    return PushTokenResponse.builder()
+                            .success(true)
+                            .message("Token registrado com sucesso")
+                            .build();
+                } else {
+                    log.warn("UPSERT não afetou nenhuma linha: userId={}, token={}", userId, request.getToken());
+                    return PushTokenResponse.builder()
+                            .success(false)
+                            .message("Erro ao registrar token")
+                            .build();
                 }
                 
-                // Se ainda assim não encontrou, relançar exceção
+            } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                // Se mesmo assim der erro de constraint, significa que há um problema estrutural
+                log.error("Erro de constraint violation mesmo após UPSERT - possível problema no índice: {}", 
+                          e.getMessage());
                 throw e;
             }
 
