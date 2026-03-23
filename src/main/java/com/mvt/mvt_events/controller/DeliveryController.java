@@ -183,12 +183,12 @@ public class DeliveryController {
                 .map(Delivery::getId)
                 .toList();
         
-        // IMPORTANTE: Inicializar relacionamentos lazy-loaded para evitar ConcurrentModificationException
-        // Força a inicialização dentro da transação @Transactional
+        // IMPORTANTE: Inicializar relacionamentos lazy-loaded dentro da transação @Transactional
         for (Delivery delivery : deliveries.getContent()) {
             org.hibernate.Hibernate.initialize(delivery.getClient());
             org.hibernate.Hibernate.initialize(delivery.getCourier());
             org.hibernate.Hibernate.initialize(delivery.getOrganizer());
+            org.hibernate.Hibernate.initialize(delivery.getStops());
         }
         
         Map<Long, List<DeliveryResponse.PaymentSummary>> paymentsMap = new HashMap<>();

@@ -733,24 +733,47 @@ public class DeliveryService {
                     calculatedFee = minimumFee;
                 }
 
-                // Sobretaxa de zona especial
-                if (delivery.getToLatitude() != null && delivery.getToLongitude() != null) {
+                // Sobretaxa de zona especial (multi-stop: pior zona vence)
+                BigDecimal zonePct = BigDecimal.ZERO;
+                List<DeliveryStop> completeStops = delivery.getStops();
+                if (completeStops != null && completeStops.size() > 1) {
+                    List<double[]> coords = completeStops.stream()
+                            .filter(s -> s.getLatitude() != null && s.getLongitude() != null)
+                            .map(s -> new double[]{ s.getLatitude(), s.getLongitude() })
+                            .toList();
+                    var worstZone = specialZoneService.findWorstZoneAcrossStops(coords, activeConfig);
+                    if (worstZone.isPresent()) {
+                        SpecialZone zone = worstZone.get();
+                        if (zone.getZoneType() == SpecialZone.ZoneType.DANGER) {
+                            zonePct = activeConfig.getDangerFeePercentage();
+                        } else if (zone.getZoneType() == SpecialZone.ZoneType.HIGH_INCOME) {
+                            zonePct = activeConfig.getHighIncomeFeePercentage();
+                        }
+                    }
+                } else if (delivery.getToLatitude() != null && delivery.getToLongitude() != null) {
                     var nearestZone = specialZoneService.findNearestZone(
                             delivery.getToLatitude(), delivery.getToLongitude());
                     if (nearestZone.isPresent()) {
                         SpecialZone zone = nearestZone.get();
-                        BigDecimal pct = BigDecimal.ZERO;
                         if (zone.getZoneType() == SpecialZone.ZoneType.DANGER) {
-                            pct = activeConfig.getDangerFeePercentage();
+                            zonePct = activeConfig.getDangerFeePercentage();
                         } else if (zone.getZoneType() == SpecialZone.ZoneType.HIGH_INCOME) {
-                            pct = activeConfig.getHighIncomeFeePercentage();
-                        }
-                        if (pct.compareTo(BigDecimal.ZERO) > 0) {
-                            BigDecimal surcharge = calculatedFee.multiply(pct)
-                                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-                            calculatedFee = calculatedFee.add(surcharge);
+                            zonePct = activeConfig.getHighIncomeFeePercentage();
                         }
                     }
+                }
+                if (zonePct.compareTo(BigDecimal.ZERO) > 0) {
+                    BigDecimal surcharge = calculatedFee.multiply(zonePct)
+                            .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                    calculatedFee = calculatedFee.add(surcharge);
+                }
+
+                // Taxa por paradas extras (multi-stop)
+                if (completeStops != null && completeStops.size() > 1) {
+                    int extraStops = completeStops.size() - 1;
+                    BigDecimal stopFee = activeConfig.getAdditionalStopFee()
+                            .multiply(BigDecimal.valueOf(extraStops));
+                    calculatedFee = calculatedFee.add(stopFee);
                 }
 
                 delivery.setShippingFee(calculatedFee.setScale(2, RoundingMode.HALF_UP));
@@ -760,6 +783,17 @@ public class DeliveryService {
             }
         } catch (Exception e) {
             System.err.println("⚠️ Falha ao recalcular rota real da delivery #" + deliveryId + ": " + e.getMessage());
+        }
+
+        // Marcar todos os stops pendentes como COMPLETED junto com a delivery
+        if (delivery.getStops() != null) {
+            OffsetDateTime now = OffsetDateTime.now(ZoneId.of("America/Fortaleza"));
+            for (DeliveryStop stop : delivery.getStops()) {
+                if (stop.getStatus() == DeliveryStop.StopStatus.PENDING) {
+                    stop.setStatus(DeliveryStop.StopStatus.COMPLETED);
+                    stop.setCompletedAt(now);
+                }
+            }
         }
 
         // Limpar currentDeliveryId do courier
