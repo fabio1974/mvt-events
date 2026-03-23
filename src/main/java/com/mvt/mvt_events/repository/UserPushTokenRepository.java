@@ -59,6 +59,18 @@ public interface UserPushTokenRepository extends JpaRepository<UserPushToken, UU
                         @Param("deviceType") UserPushToken.DeviceType deviceType);
 
         /**
+         * Desativa tokens de um usuário por plataforma e tipo de dispositivo, excluindo um token específico.
+         * Usado após o UPSERT para limpar tokens antigos sem tocar no token recém-registrado.
+         */
+        @Modifying
+        @Transactional
+        @Query("UPDATE UserPushToken u SET u.isActive = false WHERE u.user.id = :userId AND u.platform = :platform AND u.deviceType = :deviceType AND u.token <> :excludeToken")
+        int deactivateOtherTokens(@Param("userId") UUID userId,
+                        @Param("platform") UserPushToken.Platform platform,
+                        @Param("deviceType") UserPushToken.DeviceType deviceType,
+                        @Param("excludeToken") String excludeToken);
+
+        /**
          * Desativa todos os tokens de um usuário
          */
         @Modifying
