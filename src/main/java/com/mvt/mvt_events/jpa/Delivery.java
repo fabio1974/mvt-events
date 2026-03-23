@@ -227,6 +227,11 @@ public class Delivery extends BaseEntity {
     @com.fasterxml.jackson.annotation.JsonIgnore
     private LineString actualRoute;
 
+    /** Rota planejada calculada no wizard (Google Directions), persistida uma única vez */
+    @Column(name = "planned_route", columnDefinition = "geometry(LineString, 4326)")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private LineString plannedRoute;
+
     @Column(name = "cancellation_reason", columnDefinition = "TEXT")
     @Visible(table = false, form = true, filter = false)
     @Size(max = 200, message = "Motivo de cancelamento deve ter no máximo 200 caracteres")

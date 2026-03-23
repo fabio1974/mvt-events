@@ -495,6 +495,9 @@ public interface DeliveryRepository
         @Query(value = "SELECT ST_AsGeoJSON(actual_route) FROM deliveries WHERE id = :deliveryId AND actual_route IS NOT NULL", nativeQuery = true)
         String getRouteAsGeoJson(@Param("deliveryId") Long deliveryId);
 
+        @Query(value = "SELECT ST_AsGeoJSON(planned_route) FROM deliveries WHERE id = :deliveryId AND planned_route IS NOT NULL", nativeQuery = true)
+        String getPlannedRouteAsGeoJson(@Param("deliveryId") Long deliveryId);
+
         /**
          * Get the total route distance in meters (geodesic calculation)
          */

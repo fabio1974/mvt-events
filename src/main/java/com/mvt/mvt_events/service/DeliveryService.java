@@ -15,11 +15,17 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.PrecisionModel;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -224,6 +230,22 @@ public class DeliveryService {
             delivery.setShippingFee(calculatedFee.setScale(2, RoundingMode.HALF_UP));
             delivery.setEstimatedDistanceKm(delivery.getDistanceKm());
             delivery.setEstimatedShippingFee(delivery.getShippingFee());
+        }
+
+        // Persistir rota planejada (calculada no wizard, evita chamadas Google durante corridas)
+        if (request.getPlannedRouteCoordinates() != null && request.getPlannedRouteCoordinates().size() >= 2) {
+            try {
+                GeometryFactory gf = new GeometryFactory(new PrecisionModel(), 4326);
+                Coordinate[] coords = request.getPlannedRouteCoordinates().stream()
+                        .filter(p -> p != null && p.size() >= 2)
+                        .map(p -> new Coordinate(p.get(1), p.get(0))) // [lat,lng] → Coordinate(lng,lat)
+                        .toArray(Coordinate[]::new);
+                if (coords.length >= 2) {
+                    delivery.setPlannedRoute(gf.createLineString(coords));
+                }
+            } catch (Exception e) {
+                log.warn("⚠️ Falha ao persistir rota planejada, ignorando: {}", e.getMessage());
+            }
         }
 
         Delivery savedDelivery = deliveryRepository.save(delivery);
@@ -2070,9 +2092,13 @@ public class DeliveryService {
             result.put("courierLocation", null);
         }
 
-        // Actual route (PostGIS GeoJSON)
+        // Actual route (PostGIS GeoJSON) — caminho real percorrido pelo courier
         String geoJson = deliveryRepository.getRouteAsGeoJson(deliveryId);
         result.put("route", geoJson);
+
+        // Planned route (PostGIS GeoJSON) — rota calculada no wizard, usada para o polyline azul
+        String plannedGeoJson = deliveryRepository.getPlannedRouteAsGeoJson(deliveryId);
+        result.put("plannedRoute", plannedGeoJson);
 
         return result;
     }

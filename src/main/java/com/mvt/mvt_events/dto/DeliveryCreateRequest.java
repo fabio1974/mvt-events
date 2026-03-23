@@ -103,6 +103,12 @@ public class DeliveryCreateRequest {
     }
 
     /**
+     * Rota planejada calculada no wizard (lista de pares [latitude, longitude]).
+     * Persistida como PostGIS LINESTRING — elimina chamadas ao Google durante corridas ativas.
+     */
+    private List<List<Double>> plannedRouteCoordinates;
+
+    /**
      * Retorna true se a request tem paradas explícitas (multi-stop).
      */
     public boolean hasStops() {

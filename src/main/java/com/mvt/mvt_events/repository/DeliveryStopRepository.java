@@ -14,8 +14,13 @@ public interface DeliveryStopRepository extends JpaRepository<DeliveryStop, Long
 
     List<DeliveryStop> findByDeliveryIdOrderByStopOrderAsc(Long deliveryId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("UPDATE DeliveryStop s SET s.status = 'COMPLETED', s.completedAt = CURRENT_TIMESTAMP " +
            "WHERE s.id = :stopId AND s.delivery.id = :deliveryId")
     int completeStop(@Param("deliveryId") Long deliveryId, @Param("stopId") Long stopId);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE DeliveryStop s SET s.status = 'SKIPPED', s.completedAt = CURRENT_TIMESTAMP " +
+           "WHERE s.id = :stopId AND s.delivery.id = :deliveryId AND s.status = 'PENDING'")
+    int skipStop(@Param("deliveryId") Long deliveryId, @Param("stopId") Long stopId);
 }

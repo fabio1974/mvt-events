@@ -400,11 +400,41 @@ public class DeliveryController {
                         .body(Map.of("error", "Parada não encontrada"));
             }
 
-            // Recarrega para retornar o estado atualizado
+            delivery = deliveryService.findById(deliveryId, null);
             org.hibernate.Hibernate.initialize(delivery.getStops());
             return ResponseEntity.ok(mapToResponse(delivery));
         } catch (Exception e) {
             log.error("Erro ao completar parada #{} da delivery #{}: {}", stopId, deliveryId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/{deliveryId}/stops/{stopId}/skip")
+    @Operation(summary = "Pular parada", description = "Courier marca uma parada individual como pulada (SKIPPED)")
+    @Transactional
+    public ResponseEntity<?> skipStop(
+            @PathVariable Long deliveryId,
+            @PathVariable Long stopId,
+            Authentication authentication) {
+        try {
+            UUID courierId = getUserIdFromAuthentication(authentication);
+            Delivery delivery = deliveryService.findById(deliveryId, null);
+            if (delivery.getCourier() == null || !delivery.getCourier().getId().equals(courierId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Apenas o courier designado pode pular paradas"));
+            }
+            int updated = deliveryStopRepository.skipStop(deliveryId, stopId);
+            if (updated == 0) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "Parada não encontrada ou já finalizada"));
+            }
+
+            delivery = deliveryService.findById(deliveryId, null);
+            org.hibernate.Hibernate.initialize(delivery.getStops());
+            return ResponseEntity.ok(mapToResponse(delivery));
+        } catch (Exception e) {
+            log.error("Erro ao pular parada #{} da delivery #{}: {}", stopId, deliveryId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", e.getMessage()));
         }
