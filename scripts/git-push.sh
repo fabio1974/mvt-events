@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 📤 Git Push - Commit automatico com mensagem descritiva em PT-BR
-# Analisa git diff e gera mensagem de commit inteligente para mvt-events (Spring Boot)
+# Analisa git diff e gera mensagem de commit explicativa para mvt-events (Spring Boot)
 
 set -e
 cd "$(dirname "$0")/.."
@@ -25,204 +25,257 @@ echo ""
 FILES_CHANGED=$(( git diff --name-only; git diff --cached --name-only; git ls-files --others --exclude-standard ) | sort -u | grep -v "^$")
 TOTAL_FILES=$(echo "$FILES_CHANGED" | wc -l | xargs)
 
-# ============================================
-# GERAR DESCRICAO POR ARQUIVO
-# ============================================
+# Capturar diff completo para analise semantica
+FULL_DIFF=$(git diff; git diff --cached)
+
 COMMIT_BODY_FILE="/tmp/git-commit-body-events-$$"
 COMMIT_MSG_FILE="/tmp/git-commit-message-events-$$"
-TITLE_HINTS_FILE="/tmp/git-commit-hints-events-$$"
 > "$COMMIT_BODY_FILE"
-> "$TITLE_HINTS_FILE"
 
+# ============================================
+# DETECTAR TIPO DE COMMIT
+# ============================================
+
+# Palavras no diff que indicam correcao de bug
+FIX_SCORE=0
+FEAT_SCORE=0
+REFACTOR_SCORE=0
+
+# Indicadores de fix no diff
+echo "$FULL_DIFF" | grep -qiE "\+.*(Exception|Error|constraint|duplicate|violation|rollback|invalid|npe|nullpointer|NPE|fix|corrige|bug|falha)" && FIX_SCORE=$((FIX_SCORE + 3)) || true
+echo "$FULL_DIFF" | grep -qiE "-(.*ON CONFLICT|.*upsert|.*deactivat|.*isActive)" && FIX_SCORE=$((FIX_SCORE + 2)) || true
+echo "$FULL_DIFF" | grep -qiE "\+.*(ON CONFLICT|upsert|deactivat|isActive)" && FIX_SCORE=$((FIX_SCORE + 2)) || true
+echo "$FILES_CHANGED" | grep -qiE "V[0-9]+__cleanup|V[0-9]+__fix|V[0-9]+__drop|V[0-9]+__remove|V[0-9]+__simplify" && FIX_SCORE=$((FIX_SCORE + 2)) || true
+
+# Indicadores de feature nova
+echo "$FILES_CHANGED" | grep -qiE "V[0-9]+__add|V[0-9]+__create|V[0-9]+__new" && FEAT_SCORE=$((FEAT_SCORE + 3)) || true
+echo "$FULL_DIFF" | grep -qiE "^\+.*(public [A-Z][a-zA-Z]+ [a-z][a-zA-Z]+\(|@PostMapping|@GetMapping|@PutMapping|@DeleteMapping)" && FEAT_SCORE=$((FEAT_SCORE + 2)) || true
+
+# Indicadores de refactor
+echo "$FULL_DIFF" | grep -qiE "^\-.*(public|private|protected).*\(" && REFACTOR_SCORE=$((REFACTOR_SCORE + 1)) || true
+echo "$FULL_DIFF" | grep -qiE "^\+.*(public|private|protected).*\(" && REFACTOR_SCORE=$((REFACTOR_SCORE + 1)) || true
+
+HAS_SRC=$(echo "$FILES_CHANGED" | grep -c "src/main/java" 2>/dev/null || echo 0)
+HAS_MIGRATION=$(echo "$FILES_CHANGED" | grep -c "db/migration" 2>/dev/null || echo 0)
+HAS_BUILD=$(echo "$FILES_CHANGED" | grep -c "build.gradle\|compose\|Dockerfile\|render" 2>/dev/null || echo 0)
+HAS_DOCS=$(echo "$FILES_CHANGED" | grep -c "\.md$\|docs/" 2>/dev/null || echo 0)
+HAS_SCRIPTS=$(echo "$FILES_CHANGED" | grep -c "scripts/\|\.sh$" 2>/dev/null || echo 0)
+
+if [ "$FIX_SCORE" -gt "$FEAT_SCORE" ] && [ "$FIX_SCORE" -gt 2 ]; then
+    COMMIT_TYPE="fix"
+elif [ "$HAS_BUILD" -gt 0 ] && [ "$HAS_SRC" -eq 0 ] && [ "$HAS_MIGRATION" -eq 0 ]; then
+    COMMIT_TYPE="build"
+elif [ "$HAS_DOCS" -gt 0 ] && [ "$HAS_SRC" -eq 0 ] && [ "$HAS_MIGRATION" -eq 0 ]; then
+    COMMIT_TYPE="docs"
+elif [ "$HAS_SCRIPTS" -gt 0 ] && [ "$HAS_SRC" -eq 0 ] && [ "$HAS_MIGRATION" -eq 0 ]; then
+    COMMIT_TYPE="chore"
+elif [ "$REFACTOR_SCORE" -gt "$FEAT_SCORE" ] && [ "$FIX_SCORE" -le 2 ]; then
+    COMMIT_TYPE="refactor"
+else
+    COMMIT_TYPE="feat"
+fi
+
+# ============================================
+# GERAR TITULO
+# ============================================
+
+# Nomes das classes Java principais alteradas (sem Config/Test/Application)
+CORE_FILES=$(echo "$FILES_CHANGED" | grep "src/main/java" | xargs -I{} basename {} .java 2>/dev/null | \
+    grep -v "Config\|Application\|Test" | head -3 | tr '\n' ', ' | sed 's/,$//' | sed 's/,/, /g') || true
+
+# Detectar area principal de mudanca
+MAIN_AREA=""
+if echo "$FILES_CHANGED" | grep -q "push\|Push\|notification\|Notification"; then
+    MAIN_AREA="push notification"
+elif echo "$FILES_CHANGED" | grep -q "payment\|Payment"; then
+    MAIN_AREA="pagamento"
+elif echo "$FILES_CHANGED" | grep -q "delivery\|Delivery"; then
+    MAIN_AREA="entrega"
+elif echo "$FILES_CHANGED" | grep -q "user\|User"; then
+    MAIN_AREA="usuario"
+elif echo "$FILES_CHANGED" | grep -q "auth\|Auth"; then
+    MAIN_AREA="autenticacao"
+elif echo "$FILES_CHANGED" | grep -q "location\|Location"; then
+    MAIN_AREA="localizacao"
+fi
+
+# Detectar o que mudou para o titulo
+CHANGED_WHAT=""
+
+# Metodo principal removido (o "antes")
+OLD_METHOD=$(echo "$FULL_DIFF" | grep "^-" | grep -v "^---" | \
+    grep -oE "(public|private|protected) [^ ]+ [a-z][A-Za-z]+\(" | \
+    sed 's/(.*//' | awk '{print $NF}' | head -1) || true
+
+# Metodo principal adicionado (o "depois")
+NEW_METHOD=$(echo "$FULL_DIFF" | grep "^+" | grep -v "^+++" | \
+    grep -oE "(public|private|protected) [^ ]+ [a-z][A-Za-z]+\(" | \
+    sed 's/(.*//' | awk '{print $NF}' | head -1) || true
+
+# Deteccao de migracao nova
+MIGRATION_NAMES=$(echo "$FILES_CHANGED" | grep "db/migration" | \
+    sed 's/.*V[0-9]*__//' | sed 's/\.sql$//' | tr '_' ' ' | head -2 | tr '\n' '; ' | sed 's/; $//') || true
+
+# Montar titulo
+if [ -n "$MAIN_AREA" ] && [ -n "$MIGRATION_NAMES" ]; then
+    TITLE="$COMMIT_TYPE: $MAIN_AREA - $MIGRATION_NAMES"
+elif [ -n "$MAIN_AREA" ] && [ -n "$CORE_FILES" ]; then
+    TITLE="$COMMIT_TYPE: $MAIN_AREA em $CORE_FILES"
+elif [ -n "$MIGRATION_NAMES" ]; then
+    TITLE="$COMMIT_TYPE: $MIGRATION_NAMES"
+elif [ -n "$CORE_FILES" ]; then
+    TITLE="$COMMIT_TYPE: atualiza $CORE_FILES"
+elif [ "$HAS_BUILD" -gt 0 ]; then
+    TITLE="$COMMIT_TYPE: atualiza configuracao de build"
+elif [ "$HAS_SCRIPTS" -gt 0 ]; then
+    TITLE="$COMMIT_TYPE: atualiza scripts"
+else
+    TITLE="$COMMIT_TYPE: atualiza $TOTAL_FILES arquivo(s)"
+fi
+
+# ============================================
+# GERAR CORPO EXPLICATIVO
+# ============================================
+
+# --- Contexto do que foi removido (o "antes") ---
+REMOVED_METHODS=$(echo "$FULL_DIFF" | grep "^-" | grep -v "^---" | \
+    grep -oE "(public|private|protected) [^ ]+ [a-z][A-Za-z]+\(" | \
+    sed 's/(.*//' | awk '{print $NF}' | sort -u | head -4 | tr '\n' ', ' | sed 's/,$//' | sed 's/,/, /g') || true
+
+ADDED_METHODS=$(echo "$FULL_DIFF" | grep "^+" | grep -v "^+++" | \
+    grep -oE "(public|private|protected) [^ ]+ [a-z][A-Za-z]+\(" | \
+    sed 's/(.*//' | awk '{print $NF}' | sort -u | head -4 | tr '\n' ', ' | sed 's/,$//' | sed 's/,/, /g') || true
+
+# Detectar mudancas de logica especificas
+REMOVED_CALLS=$(echo "$FULL_DIFF" | grep "^-" | grep -v "^---" | \
+    grep -oE "[a-z][A-Za-z]+Repository\.[a-z][A-Za-z]+" | head -3 | sort -u | tr '\n' ', ' | sed 's/,$//' | sed 's/,/, /g') || true
+
+ADDED_CALLS=$(echo "$FULL_DIFF" | grep "^+" | grep -v "^+++" | \
+    grep -oE "[a-z][A-Za-z]+Repository\.[a-z][A-Za-z]+" | head -3 | sort -u | tr '\n' ', ' | sed 's/,$//' | sed 's/,/, /g') || true
+
+# Detectar excecoes/constraints mencionadas no diff
+EXCEPTIONS=$(echo "$FULL_DIFF" | grep -oiE "(ConstraintViolation|DataIntegrity|Duplicate|ON CONFLICT|unique constraint|rollback|NullPointer)[A-Za-z]*" | sort -u | head -3 | tr '\n' ', ' | sed 's/,$//' | sed 's/,/, /g') || true
+
+# Queries SQL novas
+NEW_QUERIES=$(echo "$FULL_DIFF" | grep "^+" | grep -v "^+++" | \
+    grep -oiE "(ON CONFLICT|INSERT INTO|UPDATE .* SET|DELETE FROM|SELECT .* FROM)[^\"]*" | \
+    head -2 | sed 's/[[:space:]]\+/ /g' | tr '\n' '; ' | sed 's/; $//') || true
+
+# --- Construir corpo narrativo ---
+
+# Bloco 1: contexto das classes alteradas
 for file in $FILES_CHANGED; do
     BNAME=$(basename "$file" | sed 's/\.java$//' | sed 's/\.sql$//' | sed 's/\.[^.]*$//')
+    FILE_DIFF=$(git diff "$file" 2>/dev/null || git diff --cached "$file" 2>/dev/null || true)
 
-    # Obter diff do arquivo
-    DIFF_OUTPUT=$(git diff "$file" 2>/dev/null)
-    if [ -z "$DIFF_OUTPUT" ]; then
-        DIFF_OUTPUT=$(git diff --cached "$file" 2>/dev/null)
-    fi
-
-    if [ -n "$DIFF_OUTPUT" ]; then
-        ADDS=$(echo "$DIFF_OUTPUT" | grep "^+" | grep -v "^+++" | wc -l | xargs)
-        DELS=$(echo "$DIFF_OUTPUT" | grep "^-" | grep -v "^---" | wc -l | xargs)
-
-        # Linhas adicionadas (limpas, sem import/comment/blank)
-        ADDED_LINES=$(echo "$DIFF_OUTPUT" | grep "^+" | grep -v "^+++" | \
-            sed 's/^+//' | sed 's/^[[:space:]]*//' | \
-            grep -v "^$" | grep -v "^//" | grep -v "^\*" | grep -v "^import " | \
-            grep -v "^@Override" | grep -v "^}$" | grep -v "^{$") || true
-
-        # Detectar o que foi adicionado
-        DESCRICAO=""
-
-        # Novos metodos Java
-        NEW_METHODS=$(echo "$ADDED_LINES" | grep -oE "(public|private|protected)[^;{]*\(" | sed 's/(.*//' | awk '{print $NF}' | head -3 | tr '\n' ', ' | sed 's/,$//' | sed 's/,/, /g') || true
-
-        # Novos campos
-        NEW_FIELDS=$(echo "$ADDED_LINES" | grep -E "^private [A-Z]" | sed 's/private [^ ]* //' | sed 's/;.*//' | head -3 | tr '\n' ', ' | sed 's/,$//' | sed 's/,/, /g') || true
-
-        # Novas dependencias (build.gradle)
-        NEW_DEPS=$(echo "$ADDED_LINES" | grep "implementation\|runtimeOnly\|compileOnly" | sed "s/.*'\([^']*\)'.*/\1/" | sed 's/.*"\([^"]*\)".*/\1/' | head -2 | tr '\n' ', ' | sed 's/,$//' | sed 's/,/, /g') || true
-
-        # Determinar verbo
-        if [ "$DELS" -eq 0 ] && [ "$ADDS" -gt 0 ]; then
-            VERBO="adiciona"
-        elif [ "$ADDS" -eq 0 ] && [ "$DELS" -gt 0 ]; then
-            VERBO="remove"
-        elif [ "$ADDS" -gt "$DELS" ]; then
-            VERBO="adiciona"
-        else
-            VERBO="altera"
-        fi
-
-        # Montar descricao por tipo de arquivo
-        case "$file" in
-            src/main/java/*/controller/*)
-                if [ -n "$NEW_METHODS" ]; then
-                    DESCRICAO="$VERBO endpoints: $NEW_METHODS"
-                else
-                    DESCRICAO="$VERBO logica no controller"
-                fi
-                echo "endpoint" >> "$TITLE_HINTS_FILE"
-                ;;
-            src/main/java/*/service/*)
-                if [ -n "$NEW_METHODS" ]; then
-                    DESCRICAO="$VERBO metodos: $NEW_METHODS"
-                else
-                    DESCRICAO="$VERBO logica de negocio"
-                fi
-                echo "servico" >> "$TITLE_HINTS_FILE"
-                ;;
-            src/main/java/*/repository/*)
-                if [ -n "$NEW_METHODS" ]; then
-                    DESCRICAO="$VERBO queries: $NEW_METHODS"
-                else
-                    DESCRICAO="$VERBO queries no repositorio"
-                fi
-                echo "repositorio" >> "$TITLE_HINTS_FILE"
-                ;;
-            src/main/java/*/jpa/*|src/main/java/*/entity/*|src/main/java/*/model/*)
-                if [ -n "$NEW_FIELDS" ]; then
-                    DESCRICAO="$VERBO campos: $NEW_FIELDS"
-                else
-                    DESCRICAO="$VERBO propriedades na entidade"
-                fi
-                echo "entidade" >> "$TITLE_HINTS_FILE"
-                ;;
-            src/main/java/*/dto/*)
-                if [ -n "$NEW_FIELDS" ]; then
-                    DESCRICAO="$VERBO campos: $NEW_FIELDS"
-                else
-                    DESCRICAO="$VERBO campos no DTO"
-                fi
-                echo "dto" >> "$TITLE_HINTS_FILE"
-                ;;
-            src/main/java/*/config/*)
-                DESCRICAO="$VERBO configuracao"
-                echo "config" >> "$TITLE_HINTS_FILE"
-                ;;
-            build.gradle|settings.gradle|gradle.properties)
-                if [ -n "$NEW_DEPS" ]; then
-                    DESCRICAO="$VERBO dependencia: $NEW_DEPS"
-                else
-                    DESCRICAO="$VERBO configuracao de build"
-                fi
-                echo "build" >> "$TITLE_HINTS_FILE"
-                ;;
-            compose*.yaml|compose*.yml|Dockerfile|render.yaml)
-                DESCRICAO="$VERBO configuracao de infra/deploy"
-                echo "infra" >> "$TITLE_HINTS_FILE"
-                ;;
-            *application*.properties|*application*.yml)
-                DESCRICAO="$VERBO propriedades da aplicacao"
-                echo "config" >> "$TITLE_HINTS_FILE"
-                ;;
-            scripts/*|*.sh)
-                DESCRICAO="$VERBO script"
-                echo "scripts" >> "$TITLE_HINTS_FILE"
-                ;;
-            *.md|docs/*)
-                DESCRICAO="$VERBO documentacao"
-                echo "docs" >> "$TITLE_HINTS_FILE"
-                ;;
-            *)
-                DESCRICAO="$VERBO conteudo (+$ADDS/-$DELS)"
-                ;;
-        esac
-
-        echo "- $BNAME: $DESCRICAO" >> "$COMMIT_BODY_FILE"
-    else
-        # Arquivo novo (untracked)
-        LINES=0
-        [ -f "$file" ] && LINES=$(wc -l < "$file" | xargs)
-
+    if [ -z "$FILE_DIFF" ] && [ -f "$file" ]; then
+        # Arquivo novo
         case "$file" in
             src/main/resources/db/migration/*)
                 MIGRATION_DESC=$(basename "$file" | sed 's/^V[0-9]*__//' | sed 's/\.sql$//' | tr '_' ' ')
-                DESCRICAO="nova migracao: $MIGRATION_DESC ($LINES linhas)"
-                echo "migracao" >> "$TITLE_HINTS_FILE"
+                # Tentar extrair contexto do conteudo SQL
+                SQL_CONTEXT=$(head -5 "$file" | grep "^--" | sed 's/^-- *//' | head -2 | tr '\n' ' ') || true
+                if [ -n "$SQL_CONTEXT" ]; then
+                    echo "- Migration $BNAME: $SQL_CONTEXT" >> "$COMMIT_BODY_FILE"
+                else
+                    echo "- Migration $BNAME: $MIGRATION_DESC" >> "$COMMIT_BODY_FILE"
+                fi
                 ;;
             *)
-                DESCRICAO="novo arquivo ($LINES linhas)"
+                LINES=$(wc -l < "$file" 2>/dev/null | xargs || echo "?")
+                echo "- $BNAME: novo arquivo ($LINES linhas)" >> "$COMMIT_BODY_FILE"
                 ;;
         esac
-        echo "- $BNAME: $DESCRICAO" >> "$COMMIT_BODY_FILE"
+        continue
     fi
+
+    [ -z "$FILE_DIFF" ] && continue
+
+    ADDS=$(echo "$FILE_DIFF" | grep "^+" | grep -v "^+++" | wc -l | xargs)
+    DELS=$(echo "$FILE_DIFF" | grep "^-" | grep -v "^---" | wc -l | xargs)
+
+    FILE_REMOVED=$(echo "$FILE_DIFF" | grep "^-" | grep -v "^---" | \
+        grep -oE "(public|private|protected) [^ ]+ [a-z][A-Za-z]+\(" | \
+        sed 's/(.*//' | awk '{print $NF}' | head -2 | tr '\n' ', ' | sed 's/,$//' | sed 's/,/, /g') || true
+    FILE_ADDED=$(echo "$FILE_DIFF" | grep "^+" | grep -v "^+++" | \
+        grep -oE "(public|private|protected) [^ ]+ [a-z][A-Za-z]+\(" | \
+        sed 's/(.*//' | awk '{print $NF}' | head -2 | tr '\n' ', ' | sed 's/,$//' | sed 's/,/, /g') || true
+
+    LINE=""
+    case "$file" in
+        src/main/java/*/service/*)
+            if [ -n "$FILE_REMOVED" ] && [ -n "$FILE_ADDED" ]; then
+                LINE="- $BNAME (service): reordena logica de $FILE_REMOVED / adiciona $FILE_ADDED"
+            elif [ -n "$FILE_ADDED" ]; then
+                LINE="- $BNAME (service): adiciona $FILE_ADDED"
+            elif [ -n "$FILE_REMOVED" ]; then
+                LINE="- $BNAME (service): refatora $FILE_REMOVED"
+            else
+                LINE="- $BNAME (service): altera logica (+$ADDS/-$DELS linhas)"
+            fi
+            ;;
+        src/main/java/*/repository/*)
+            if [ -n "$FILE_ADDED" ]; then
+                LINE="- $BNAME (repository): adiciona query $FILE_ADDED"
+            else
+                LINE="- $BNAME (repository): altera queries (+$ADDS/-$DELS linhas)"
+            fi
+            ;;
+        src/main/java/*/controller/*)
+            if [ -n "$FILE_ADDED" ]; then
+                LINE="- $BNAME (controller): adiciona endpoint $FILE_ADDED"
+            else
+                LINE="- $BNAME (controller): altera endpoints (+$ADDS/-$DELS linhas)"
+            fi
+            ;;
+        src/main/java/*/jpa/*|src/main/java/*/entity/*)
+            NEW_FIELDS=$(echo "$FILE_DIFF" | grep "^+" | grep -v "^+++" | \
+                grep -E "^[+][[:space:]]+private [A-Z]" | sed 's/.*private [^ ]* //' | sed 's/;.*//' | \
+                head -3 | tr '\n' ', ' | sed 's/,$//' | sed 's/,/, /g') || true
+            if [ -n "$NEW_FIELDS" ]; then
+                LINE="- $BNAME (entidade): adiciona campos $NEW_FIELDS"
+            else
+                LINE="- $BNAME (entidade): altera propriedades (+$ADDS/-$DELS linhas)"
+            fi
+            ;;
+        src/main/resources/db/migration/*)
+            MIGRATION_DESC=$(basename "$file" | sed 's/^V[0-9]*__//' | sed 's/\.sql$//' | tr '_' ' ')
+            LINE="- Migration $BNAME: $MIGRATION_DESC"
+            ;;
+        build.gradle|settings.gradle)
+            NEW_DEPS=$(echo "$FILE_DIFF" | grep "^+" | grep -v "^+++" | \
+                grep "implementation\|runtimeOnly\|compileOnly" | \
+                sed "s/.*'\([^']*\)'.*/\1/" | head -2 | tr '\n' ', ' | sed 's/,$//' | sed 's/,/, /g') || true
+            [ -n "$NEW_DEPS" ] && LINE="- build.gradle: adiciona dependencia $NEW_DEPS" || \
+                LINE="- build.gradle: altera configuracao de build"
+            ;;
+        scripts/*|*.sh)
+            LINE="- $(basename "$file"): altera script (+$ADDS/-$DELS linhas)"
+            ;;
+        *.md|docs/*)
+            LINE="- $(basename "$file"): atualiza documentacao"
+            ;;
+        *)
+            LINE="- $BNAME: altera conteudo (+$ADDS/-$DELS linhas)"
+            ;;
+    esac
+
+    [ -n "$LINE" ] && echo "$LINE" >> "$COMMIT_BODY_FILE"
 done
 
-# ============================================
-# GERAR TITULO DO COMMIT EM PT-BR
-# ============================================
+# Bloco 2: nota explicativa sobre o motivo (quando detectavel)
+REASON_LINES=""
 
-HINT_SUMMARY=$(sort "$TITLE_HINTS_FILE" 2>/dev/null | uniq -c | sort -rn | head -1 | awk '{print $2}') || true
-
-# Nomes das classes Java alteradas
-CORE_FILES=$(echo "$FILES_CHANGED" | grep "src/main/java" | xargs -I{} basename {} .java 2>/dev/null | \
-    grep -v "Config\|Application\|Test" | head -4 | tr '\n' ', ' | sed 's/,$//' | sed 's/,/, /g') || true
-
-# Tipo do commit
-HAS_SRC=$(echo "$FILES_CHANGED" | grep -c "src/main/java" 2>/dev/null) || HAS_SRC=0
-HAS_MIGRATION=$(echo "$FILES_CHANGED" | grep -c "db/migration" 2>/dev/null) || HAS_MIGRATION=0
-HAS_BUILD=$(echo "$FILES_CHANGED" | grep -c "build.gradle\|compose\|Dockerfile\|render" 2>/dev/null) || HAS_BUILD=0
-HAS_DOCS=$(echo "$FILES_CHANGED" | grep -c "\.md$\|docs/" 2>/dev/null) || HAS_DOCS=0
-
-if [ "$HAS_SRC" -gt 0 ] || [ "$HAS_MIGRATION" -gt 0 ]; then
-    COMMIT_TYPE="feat"
-elif [ "$HAS_BUILD" -gt 0 ]; then
-    COMMIT_TYPE="build"
-elif [ "$HAS_DOCS" -gt 0 ] && [ "$HAS_SRC" -eq 0 ]; then
-    COMMIT_TYPE="docs"
-else
-    COMMIT_TYPE="chore"
+if [ "$COMMIT_TYPE" = "fix" ] && [ -n "$EXCEPTIONS" ]; then
+    REASON_LINES="Corrige erro: $EXCEPTIONS."
 fi
 
-# Titulo descritivo em PT-BR
-if [ -n "$CORE_FILES" ]; then
-    NUM_CORE=$(echo "$CORE_FILES" | tr ',' '\n' | wc -l | xargs)
-    if [ "$NUM_CORE" -le 3 ]; then
-        TITLE="$COMMIT_TYPE: atualiza $CORE_FILES"
-    else
-        case "$HINT_SUMMARY" in
-            endpoint)    TITLE="$COMMIT_TYPE: atualiza endpoints e logica de negocio" ;;
-            servico)     TITLE="$COMMIT_TYPE: atualiza servicos e logica de negocio" ;;
-            entidade)    TITLE="$COMMIT_TYPE: atualiza entidades e modelo de dados" ;;
-            repositorio) TITLE="$COMMIT_TYPE: atualiza repositorios e queries" ;;
-            migracao)    TITLE="$COMMIT_TYPE: atualiza modelo de dados com migracao" ;;
-            *)           TITLE="$COMMIT_TYPE: atualiza $CORE_FILES" ;;
-        esac
-    fi
-    if [ "$HAS_MIGRATION" -gt 0 ] && ! echo "$TITLE" | grep -qi "migra"; then
-        TITLE="$TITLE com migracao"
-    fi
-else
-    if [ "$HAS_BUILD" -gt 0 ]; then
-        TITLE="$COMMIT_TYPE: atualiza configuracao de build"
-    elif [ "$HAS_DOCS" -gt 0 ]; then
-        TITLE="$COMMIT_TYPE: atualiza documentacao"
-    else
-        TITLE="$COMMIT_TYPE: atualiza scripts"
-    fi
+if [ -n "$REMOVED_CALLS" ] && [ -n "$ADDED_CALLS" ] && [ "$REMOVED_CALLS" != "$ADDED_CALLS" ]; then
+    REASON_LINES="$REASON_LINES Ordem de chamadas alterada: antes $REMOVED_CALLS, agora $ADDED_CALLS."
+fi
+
+if [ -n "$NEW_QUERIES" ]; then
+    REASON_LINES="$REASON_LINES Nova query SQL: $NEW_QUERIES."
 fi
 
 # ============================================
@@ -231,6 +284,12 @@ fi
 echo "$TITLE" > "$COMMIT_MSG_FILE"
 echo "" >> "$COMMIT_MSG_FILE"
 cat "$COMMIT_BODY_FILE" >> "$COMMIT_MSG_FILE"
+
+if [ -n "$REASON_LINES" ]; then
+    echo "" >> "$COMMIT_MSG_FILE"
+    echo "$REASON_LINES" >> "$COMMIT_MSG_FILE"
+fi
+
 FULL_COMMIT_MESSAGE=$(cat "$COMMIT_MSG_FILE")
 
 # ============================================
@@ -263,7 +322,7 @@ echo "✅ Commit criado"
 echo ""
 
 # Limpar temporarios
-rm -f "$COMMIT_BODY_FILE" "$COMMIT_MSG_FILE" "$TITLE_HINTS_FILE"
+rm -f "$COMMIT_BODY_FILE" "$COMMIT_MSG_FILE"
 
 echo "🚀 Push para $CURRENT_BRANCH..."
 git push origin "$CURRENT_BRANCH"
