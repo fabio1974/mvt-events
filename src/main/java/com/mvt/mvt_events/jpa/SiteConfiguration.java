@@ -139,6 +139,18 @@ public class SiteConfiguration extends BaseEntity {
     private BigDecimal creditCardFeePercentage;
 
     /**
+     * Valor fixo (em Reais) cobrado por cada parada adicional além da primeira
+     * em entregas multi-stop. Ex: 2.00 = R$ 2,00 por parada extra.
+     */
+    @NotNull(message = "Taxa de parada adicional é obrigatória")
+    @DecimalMin(value = "0.00", message = "Taxa de parada adicional não pode ser negativa")
+    @DecimalMax(value = "100.00", message = "Taxa de parada adicional não pode exceder R$ 100,00")
+    @Column(name = "additional_stop_fee", precision = 10, scale = 2, nullable = false)
+    @Visible(table = true, form = true, filter = false)
+    @Builder.Default
+    private BigDecimal additionalStopFee = new BigDecimal("2.00");
+
+    /**
      * Indica se esta configuração está ativa
      * Apenas uma configuração pode estar ativa por vez
      */

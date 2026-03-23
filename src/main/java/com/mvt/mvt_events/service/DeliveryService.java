@@ -146,13 +146,18 @@ public class DeliveryService {
             delivery.setDeliveryType(Delivery.DeliveryType.DELIVERY);
         }
 
+        // Validar multi-stop: apenas CLIENT pode ter mais de 1 stop
+        List<DeliveryStop> stops = delivery.getStops();
+        if (stops != null && stops.size() > 1 && client.getRole() != User.Role.CLIENT) {
+            throw new RuntimeException("Apenas estabelecimentos (CLIENT) podem criar entregas com múltiplas paradas");
+        }
+
         // Calcular o frete automaticamente baseado na distância e configuração ativa
         if (delivery.getDistanceKm() != null && delivery.getDistanceKm().compareTo(BigDecimal.ZERO) > 0) {
             SiteConfiguration activeConfig = siteConfigurationService.getActiveConfiguration();
             
-            // Selecionar preço por km baseado na preferência de veículo
-            BigDecimal pricePerKm = activeConfig.getPricePerKm(); // default: moto
-            BigDecimal minimumFee = activeConfig.getMinimumShippingFee(); // default: moto
+            BigDecimal pricePerKm = activeConfig.getPricePerKm();
+            BigDecimal minimumFee = activeConfig.getMinimumShippingFee();
             if (delivery.getPreferredVehicleType() == Delivery.PreferredVehicleType.CAR) {
                 pricePerKm = activeConfig.getCarPricePerKm() != null 
                     ? activeConfig.getCarPricePerKm() : activeConfig.getPricePerKm();
@@ -162,44 +167,61 @@ public class DeliveryService {
             
             BigDecimal calculatedFee = delivery.getDistanceKm().multiply(pricePerKm);
             
-            // Aplicar valor mínimo do frete (por tipo de veículo)
             if (calculatedFee.compareTo(minimumFee) < 0) {
                 calculatedFee = minimumFee;
             }
             
-            // Verificar se o destino está em uma zona especial
-            // Se houver zonas sobrepostas, aplica a taxa da zona MAIS PRÓXIMA
-            if (delivery.getToLatitude() != null && delivery.getToLongitude() != null) {
-                var nearestZone = specialZoneService.findNearestZone(
-                    delivery.getToLatitude(), 
-                    delivery.getToLongitude()
-                );
-                
-                if (nearestZone.isPresent()) {
-                    SpecialZone zone = nearestZone.get();
-                    BigDecimal additionalFeePercentage = BigDecimal.ZERO;
-                    
-                    // Aplica a taxa da zona mais próxima (independente do tipo)
+            // Zona especial: se multi-stop, a PIOR zona entre todos os destinos vence
+            BigDecimal additionalFeePercentage = BigDecimal.ZERO;
+            if (stops != null && stops.size() > 1) {
+                List<double[]> coords = stops.stream()
+                        .filter(s -> s.getLatitude() != null && s.getLongitude() != null)
+                        .map(s -> new double[]{ s.getLatitude(), s.getLongitude() })
+                        .toList();
+                var worstZone = specialZoneService.findWorstZoneAcrossStops(coords, activeConfig);
+                if (worstZone.isPresent()) {
+                    SpecialZone zone = worstZone.get();
                     if (zone.getZoneType() == SpecialZone.ZoneType.DANGER) {
                         additionalFeePercentage = activeConfig.getDangerFeePercentage();
                     } else if (zone.getZoneType() == SpecialZone.ZoneType.HIGH_INCOME) {
                         additionalFeePercentage = activeConfig.getHighIncomeFeePercentage();
                     }
-                    
-                    // Aplicar taxa adicional sobre o frete
-                    if (additionalFeePercentage.compareTo(BigDecimal.ZERO) > 0) {
-                        BigDecimal additionalFee = calculatedFee
-                            .multiply(additionalFeePercentage)
-                            .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-                        calculatedFee = calculatedFee.add(additionalFee);
+                    log.info("Multi-stop: pior zona '{}' ({}), taxa={}%",
+                            zone.getAddress(), zone.getZoneType(), additionalFeePercentage);
+                }
+            } else if (delivery.getToLatitude() != null && delivery.getToLongitude() != null) {
+                var nearestZone = specialZoneService.findNearestZone(
+                    delivery.getToLatitude(), 
+                    delivery.getToLongitude()
+                );
+                if (nearestZone.isPresent()) {
+                    SpecialZone zone = nearestZone.get();
+                    if (zone.getZoneType() == SpecialZone.ZoneType.DANGER) {
+                        additionalFeePercentage = activeConfig.getDangerFeePercentage();
+                    } else if (zone.getZoneType() == SpecialZone.ZoneType.HIGH_INCOME) {
+                        additionalFeePercentage = activeConfig.getHighIncomeFeePercentage();
                     }
                 }
             }
-            
-            // Arredondar para 2 casas decimais
-            delivery.setShippingFee(calculatedFee.setScale(2, RoundingMode.HALF_UP));
 
-            // Guardar previsão original (Google Directions) para comparativo
+            if (additionalFeePercentage.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal surcharge = calculatedFee
+                    .multiply(additionalFeePercentage)
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                calculatedFee = calculatedFee.add(surcharge);
+            }
+            
+            // Adicionar taxa fixa por parada adicional (além da primeira)
+            if (stops != null && stops.size() > 1) {
+                int extraStops = stops.size() - 1;
+                BigDecimal stopFee = activeConfig.getAdditionalStopFee()
+                        .multiply(BigDecimal.valueOf(extraStops));
+                calculatedFee = calculatedFee.add(stopFee);
+                log.info("Multi-stop: {} paradas extras × R${} = R${} adicionado ao frete",
+                        extraStops, activeConfig.getAdditionalStopFee(), stopFee);
+            }
+
+            delivery.setShippingFee(calculatedFee.setScale(2, RoundingMode.HALF_UP));
             delivery.setEstimatedDistanceKm(delivery.getDistanceKm());
             delivery.setEstimatedShippingFee(delivery.getShippingFee());
         }

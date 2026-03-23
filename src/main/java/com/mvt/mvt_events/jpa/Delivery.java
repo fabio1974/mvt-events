@@ -246,6 +246,11 @@ public class Delivery extends BaseEntity {
     @Visible(table = false, form = false, filter = false)
     private Evaluation evaluation;
 
+    @OneToMany(mappedBy = "delivery", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("stopOrder ASC")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private List<DeliveryStop> stops = new ArrayList<>();
+
     // ============================================================================
     // COMPUTED FIELDS
     // ============================================================================

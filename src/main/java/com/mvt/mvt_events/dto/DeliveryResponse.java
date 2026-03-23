@@ -78,6 +78,9 @@ public class DeliveryResponse {
 
     private String notes;
 
+    // Paradas (destinos) da entrega — ordenadas por stopOrder
+    private List<StopDTO> stops;
+
     // Pagamentos associados (lista simplificada com apenas IDs)
     private List<PaymentSummary> payments;
 
@@ -142,6 +145,26 @@ public class DeliveryResponse {
         private String color;
         private String year;
         private Boolean isActive;
+    }
+
+    /**
+     * DTO simplificado para DeliveryStop
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class StopDTO {
+        private Long id;
+        private Integer stopOrder;
+        private String address;
+        private Double latitude;
+        private Double longitude;
+        private String recipientName;
+        private String recipientPhone;
+        private String itemDescription;
+        private String status;
+        private OffsetDateTime completedAt;
     }
 
     /**

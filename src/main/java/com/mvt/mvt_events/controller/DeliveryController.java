@@ -3,6 +3,7 @@ package com.mvt.mvt_events.controller;
 import com.mvt.mvt_events.common.JwtUtil;
 import com.mvt.mvt_events.dto.*;
 import com.mvt.mvt_events.jpa.Delivery;
+import com.mvt.mvt_events.jpa.DeliveryStop;
 import com.mvt.mvt_events.jpa.SiteConfiguration;
 import com.mvt.mvt_events.jpa.SpecialZone;
 import com.mvt.mvt_events.repository.DeliveryRepository;
@@ -71,6 +72,9 @@ public class DeliveryController {
 
     @Autowired
     private com.mvt.mvt_events.repository.PaymentRepository paymentRepository;
+
+    @Autowired
+    private com.mvt.mvt_events.repository.DeliveryStopRepository deliveryStopRepository;
 
     @PostMapping
     @Operation(summary = "Criar nova delivery", description = "Requer autenticação. A delivery é criada com status PENDING.")
@@ -376,6 +380,36 @@ public class DeliveryController {
         return ResponseEntity.ok(mapToResponse(delivery));
     }
 
+    @PatchMapping("/{deliveryId}/stops/{stopId}/complete")
+    @Operation(summary = "Completar parada", description = "Courier marca uma parada individual como concluída")
+    @Transactional
+    public ResponseEntity<?> completeStop(
+            @PathVariable Long deliveryId,
+            @PathVariable Long stopId,
+            Authentication authentication) {
+        try {
+            UUID courierId = getUserIdFromAuthentication(authentication);
+            Delivery delivery = deliveryService.findById(deliveryId, null);
+            if (delivery.getCourier() == null || !delivery.getCourier().getId().equals(courierId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Apenas o courier designado pode completar paradas"));
+            }
+            int updated = deliveryStopRepository.completeStop(deliveryId, stopId);
+            if (updated == 0) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "Parada não encontrada"));
+            }
+
+            // Recarrega para retornar o estado atualizado
+            org.hibernate.Hibernate.initialize(delivery.getStops());
+            return ResponseEntity.ok(mapToResponse(delivery));
+        } catch (Exception e) {
+            log.error("Erro ao completar parada #{} da delivery #{}: {}", stopId, deliveryId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PatchMapping("/{id}/cancel")
     @Operation(summary = "Cancelar delivery", description = "ADM/ADMIN cancela a delivery")
     public ResponseEntity<DeliveryResponse> cancel(
@@ -476,22 +510,62 @@ public class DeliveryController {
 
     private Delivery mapToEntity(DeliveryCreateRequest request) {
         Delivery delivery = new Delivery();
-        // Mapear campos básicos
         delivery.setFromAddress(request.getFromAddress());
         delivery.setFromLatitude(request.getFromLatitude());
         delivery.setFromLongitude(request.getFromLongitude());
-
-        delivery.setToAddress(request.getToAddress());
-        delivery.setToLatitude(request.getToLatitude());
-        delivery.setToLongitude(request.getToLongitude());
-
-        delivery.setRecipientName(request.getRecipientName());
-        delivery.setRecipientPhone(request.getRecipientPhone());
         delivery.setTotalAmount(request.getTotalAmount());
-        delivery.setItemDescription(request.getItemDescription());
         delivery.setDistanceKm(request.getDistanceKm());
 
-        // Mapear preferência de veículo
+        if (request.hasStops()) {
+            // Multi-stop: first stop populates the legacy flat fields for backward compatibility
+            DeliveryCreateRequest.StopRequest first = request.getStops().get(0);
+            delivery.setToAddress(first.getAddress());
+            delivery.setToLatitude(first.getLatitude());
+            delivery.setToLongitude(first.getLongitude());
+            delivery.setRecipientName(first.getRecipientName());
+            delivery.setRecipientPhone(first.getRecipientPhone());
+            delivery.setItemDescription(first.getItemDescription());
+
+            List<DeliveryStop> stops = new ArrayList<>();
+            for (int i = 0; i < request.getStops().size(); i++) {
+                DeliveryCreateRequest.StopRequest sr = request.getStops().get(i);
+                DeliveryStop stop = DeliveryStop.builder()
+                        .delivery(delivery)
+                        .stopOrder(i + 1)
+                        .address(sr.getAddress())
+                        .latitude(sr.getLatitude())
+                        .longitude(sr.getLongitude())
+                        .recipientName(sr.getRecipientName())
+                        .recipientPhone(sr.getRecipientPhone())
+                        .itemDescription(sr.getItemDescription())
+                        .status(DeliveryStop.StopStatus.PENDING)
+                        .build();
+                stops.add(stop);
+            }
+            delivery.setStops(stops);
+        } else {
+            // Single-stop (legado)
+            delivery.setToAddress(request.getToAddress());
+            delivery.setToLatitude(request.getToLatitude());
+            delivery.setToLongitude(request.getToLongitude());
+            delivery.setRecipientName(request.getRecipientName());
+            delivery.setRecipientPhone(request.getRecipientPhone());
+            delivery.setItemDescription(request.getItemDescription());
+
+            DeliveryStop stop = DeliveryStop.builder()
+                    .delivery(delivery)
+                    .stopOrder(1)
+                    .address(request.getToAddress())
+                    .latitude(request.getToLatitude())
+                    .longitude(request.getToLongitude())
+                    .recipientName(request.getRecipientName())
+                    .recipientPhone(request.getRecipientPhone())
+                    .itemDescription(request.getItemDescription())
+                    .status(DeliveryStop.StopStatus.PENDING)
+                    .build();
+            delivery.setStops(new ArrayList<>(List.of(stop)));
+        }
+
         if (request.getPreferredVehicleType() != null) {
             try {
                 delivery.setPreferredVehicleType(
@@ -504,7 +578,6 @@ public class DeliveryController {
             delivery.setPreferredVehicleType(Delivery.PreferredVehicleType.ANY);
         }
 
-        // Client e Partnership serão setados no service
         return delivery;
     }
 
@@ -573,8 +646,33 @@ public class DeliveryController {
                 .cancelledAt(delivery.getCancelledAt())
                 .cancellationReason(delivery.getCancellationReason())
                 // Payments: carrega através de query JOIN para evitar StackOverflow
+                // Stops (destinos)
+                .stops(mapStops(delivery))
                 .payments(null) // Será populado pela versão sobrecarregada
                 .build();
+    }
+
+    private List<DeliveryResponse.StopDTO> mapStops(Delivery delivery) {
+        try {
+            List<DeliveryStop> stops = delivery.getStops();
+            if (stops == null || stops.isEmpty()) return Collections.emptyList();
+            return stops.stream()
+                    .map(s -> DeliveryResponse.StopDTO.builder()
+                            .id(s.getId())
+                            .stopOrder(s.getStopOrder())
+                            .address(s.getAddress())
+                            .latitude(s.getLatitude())
+                            .longitude(s.getLongitude())
+                            .recipientName(s.getRecipientName())
+                            .recipientPhone(s.getRecipientPhone())
+                            .itemDescription(s.getItemDescription())
+                            .status(s.getStatus() != null ? s.getStatus().name() : null)
+                            .completedAt(s.getCompletedAt())
+                            .build())
+                    .toList();
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
     }
 
     /**
@@ -760,17 +858,32 @@ public class DeliveryController {
     // ==================== SIMULAÇÃO DE FRETE ====================
 
     /**
-     * DTO para request de simulação de frete
+     * DTO para request de simulação de frete.
+     * Suporta single-stop (campos flat) e multi-stop (lista stops).
      */
     @Data
     public static class FreightSimulationRequest {
         private Double fromLatitude;
         private Double fromLongitude;
         private String fromAddress;
+        // Single-stop (legado)
         private Double toLatitude;
         private Double toLongitude;
         private String toAddress;
         private BigDecimal distanceKm;
+        // Multi-stop
+        private List<FreightStopRequest> stops;
+
+        public boolean hasStops() {
+            return stops != null && !stops.isEmpty();
+        }
+    }
+
+    @Data
+    public static class FreightStopRequest {
+        private Double latitude;
+        private Double longitude;
+        private String address;
     }
 
     /**
@@ -802,7 +915,7 @@ public class DeliveryController {
         private BigDecimal distanceKm;
         private String fromAddress;
         private String toAddress;
-        // Zona geográfica (comum a ambos os veículos)
+        // Zona geográfica (pior zona entre todos os destinos em multi-stop)
         private String zoneName;
         private String zoneType;
         private BigDecimal zoneFeePercentage;
@@ -811,6 +924,10 @@ public class DeliveryController {
         private VehicleFreightDetail car;
         // Taxa do cartão de crédito (informativo)
         private BigDecimal creditCardFeePercentage;
+        // Multi-stop: número de paradas e taxa por parada extra
+        private Integer stopCount;
+        private BigDecimal additionalStopFee;
+        private BigDecimal totalAdditionalStopFee;
     }
 
     /**
@@ -833,46 +950,59 @@ public class DeliveryController {
      */
     @PostMapping("/simulate-freight")
     @Operation(summary = "Simular preço do frete", 
-               description = "Calcula o frete para MOTO e AUTOMÓVEL, baseado em distância, preço/km, " +
-                             "valor mínimo, zonas geográficas e taxa de cartão de crédito.")
+               description = "Calcula o frete para MOTO e AUTOMÓVEL. Suporta single e multi-stop.")
     public ResponseEntity<?> simulateFreight(@RequestBody @Valid FreightSimulationRequest request) {
         
-        // Validar distância
         if (request.getDistanceKm() == null || request.getDistanceKm().compareTo(BigDecimal.ZERO) <= 0) {
             return ResponseEntity.badRequest().body(Map.of(
                 "error", "distanceKm é obrigatório e deve ser maior que zero"
             ));
         }
 
-        // Validar coordenadas do destino (necessárias para zona)
-        if (request.getToLatitude() == null || request.getToLongitude() == null) {
+        boolean isMultiStop = request.hasStops();
+
+        if (!isMultiStop && (request.getToLatitude() == null || request.getToLongitude() == null)) {
             return ResponseEntity.badRequest().body(Map.of(
                 "error", "toLatitude e toLongitude são obrigatórios para cálculo de zona geográfica"
             ));
         }
 
-        // Buscar configuração ativa
         SiteConfiguration config = siteConfigurationService.getActiveConfiguration();
 
-        // ---- Verificar zona especial do destino (comum a ambos os veículos) ----
+        // Zona especial: multi-stop usa pior zona; single-stop usa a zona do destino
         String zoneName = null;
         String zoneType = null;
         BigDecimal zoneFeePercentage = BigDecimal.ZERO;
 
-        var nearestZone = specialZoneService.findNearestZone(
-            request.getToLatitude(), 
-            request.getToLongitude()
-        );
-
-        if (nearestZone.isPresent()) {
-            SpecialZone zone = nearestZone.get();
-            zoneName = zone.getAddress();
-            zoneType = zone.getZoneType().name();
-
-            if (zone.getZoneType() == SpecialZone.ZoneType.DANGER) {
-                zoneFeePercentage = config.getDangerFeePercentage();
-            } else if (zone.getZoneType() == SpecialZone.ZoneType.HIGH_INCOME) {
-                zoneFeePercentage = config.getHighIncomeFeePercentage();
+        if (isMultiStop) {
+            List<double[]> coords = request.getStops().stream()
+                    .filter(s -> s.getLatitude() != null && s.getLongitude() != null)
+                    .map(s -> new double[]{ s.getLatitude(), s.getLongitude() })
+                    .toList();
+            var worstZone = specialZoneService.findWorstZoneAcrossStops(coords, config);
+            if (worstZone.isPresent()) {
+                SpecialZone zone = worstZone.get();
+                zoneName = zone.getAddress();
+                zoneType = zone.getZoneType().name();
+                if (zone.getZoneType() == SpecialZone.ZoneType.DANGER) {
+                    zoneFeePercentage = config.getDangerFeePercentage();
+                } else if (zone.getZoneType() == SpecialZone.ZoneType.HIGH_INCOME) {
+                    zoneFeePercentage = config.getHighIncomeFeePercentage();
+                }
+            }
+        } else {
+            var nearestZone = specialZoneService.findNearestZone(
+                request.getToLatitude(), request.getToLongitude()
+            );
+            if (nearestZone.isPresent()) {
+                SpecialZone zone = nearestZone.get();
+                zoneName = zone.getAddress();
+                zoneType = zone.getZoneType().name();
+                if (zone.getZoneType() == SpecialZone.ZoneType.DANGER) {
+                    zoneFeePercentage = config.getDangerFeePercentage();
+                } else if (zone.getZoneType() == SpecialZone.ZoneType.HIGH_INCOME) {
+                    zoneFeePercentage = config.getHighIncomeFeePercentage();
+                }
             }
         }
 
@@ -880,50 +1010,57 @@ public class DeliveryController {
         BigDecimal creditCardFeePercentage = config.getCreditCardFeePercentage() != null 
             ? config.getCreditCardFeePercentage() : BigDecimal.ZERO;
 
-        // ---- Calcular frete para MOTO ----
+        // Taxa por parada adicional
+        int stopCount = isMultiStop ? request.getStops().size() : 1;
+        int extraStops = Math.max(0, stopCount - 1);
+        BigDecimal additionalStopFeeUnit = config.getAdditionalStopFee() != null
+            ? config.getAdditionalStopFee() : BigDecimal.ZERO;
+        BigDecimal totalAdditionalStopFee = additionalStopFeeUnit.multiply(BigDecimal.valueOf(extraStops));
+
         VehicleFreightDetail motorcycleDetail = calculateFreightForVehicle(
             "MOTORCYCLE", "Moto", distanceKm, config.getPricePerKm(),
-            config.getMinimumShippingFee(), zoneFeePercentage, creditCardFeePercentage
+            config.getMinimumShippingFee(), zoneFeePercentage, creditCardFeePercentage,
+            totalAdditionalStopFee
         );
 
-        // ---- Calcular frete para AUTOMÓVEL ----
         BigDecimal carPricePerKm = config.getCarPricePerKm() != null 
             ? config.getCarPricePerKm() : config.getPricePerKm();
         BigDecimal carMinimumFee = config.getCarMinimumShippingFee() != null
             ? config.getCarMinimumShippingFee() : config.getMinimumShippingFee();
         VehicleFreightDetail carDetail = calculateFreightForVehicle(
             "CAR", "Automóvel", distanceKm, carPricePerKm,
-            carMinimumFee, zoneFeePercentage, creditCardFeePercentage
+            carMinimumFee, zoneFeePercentage, creditCardFeePercentage,
+            totalAdditionalStopFee
         );
+
+        String toAddress = isMultiStop ? request.getStops().get(0).getAddress() : request.getToAddress();
 
         FreightSimulationResponse response = FreightSimulationResponse.builder()
                 .distanceKm(distanceKm)
                 .fromAddress(request.getFromAddress())
-                .toAddress(request.getToAddress())
+                .toAddress(toAddress)
                 .zoneName(zoneName)
                 .zoneType(zoneType)
                 .zoneFeePercentage(zoneFeePercentage)
                 .motorcycle(motorcycleDetail)
                 .car(carDetail)
                 .creditCardFeePercentage(creditCardFeePercentage)
+                .stopCount(stopCount)
+                .additionalStopFee(additionalStopFeeUnit)
+                .totalAdditionalStopFee(totalAdditionalStopFee)
                 .build();
 
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Calcula o frete para um tipo específico de veículo
-     */
     private VehicleFreightDetail calculateFreightForVehicle(
             String vehicleType, String vehicleLabel,
             BigDecimal distanceKm, BigDecimal pricePerKm,
             BigDecimal minimumShippingFee, BigDecimal zoneFeePercentage,
-            BigDecimal creditCardFeePercentage) {
+            BigDecimal creditCardFeePercentage, BigDecimal additionalStopFee) {
 
-        // 1. Frete base
         BigDecimal baseFee = distanceKm.multiply(pricePerKm);
 
-        // 2. Aplicar mínimo
         boolean minimumApplied = false;
         BigDecimal feeBeforeZone = baseFee;
         if (baseFee.compareTo(minimumShippingFee) < 0) {
@@ -931,7 +1068,6 @@ public class DeliveryController {
             minimumApplied = true;
         }
 
-        // 3. Aplicar zona
         BigDecimal zoneSurcharge = BigDecimal.ZERO;
         BigDecimal totalFee = feeBeforeZone;
         if (zoneFeePercentage.compareTo(BigDecimal.ZERO) > 0) {
@@ -940,9 +1076,13 @@ public class DeliveryController {
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
             totalFee = feeBeforeZone.add(zoneSurcharge);
         }
+
+        // Adicionar taxa de paradas extras (após zona, antes do cartão)
+        if (additionalStopFee != null && additionalStopFee.compareTo(BigDecimal.ZERO) > 0) {
+            totalFee = totalFee.add(additionalStopFee);
+        }
         totalFee = totalFee.setScale(2, RoundingMode.HALF_UP);
 
-        // 4. Calcular taxa de cartão de crédito (informativo)
         BigDecimal creditCardFeeAmount = BigDecimal.ZERO;
         BigDecimal totalWithCreditCardFee = totalFee;
         if (creditCardFeePercentage.compareTo(BigDecimal.ZERO) > 0) {

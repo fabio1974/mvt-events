@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,6 +41,38 @@ public class SpecialZoneService {
         }
 
         return specialZoneRepository.findNearestZoneWithinRadius(latitude, longitude);
+    }
+
+    /**
+     * Para entregas multi-stop, avalia todas as paradas e retorna a zona com a PIOR
+     * (maior) taxa percentual. A taxa da pior zona é aplicada ao frete total.
+     * 
+     * @param coordinates Lista de pares [latitude, longitude] de cada parada
+     * @param config Configuração ativa (contém os percentuais de perigo e alta renda)
+     * @return A zona com a maior taxa, ou empty se nenhuma parada cair em zona especial
+     */
+    public Optional<SpecialZone> findWorstZoneAcrossStops(
+            List<double[]> coordinates,
+            com.mvt.mvt_events.jpa.SiteConfiguration config) {
+        SpecialZone worstZone = null;
+        BigDecimal worstPercentage = BigDecimal.ZERO;
+
+        for (double[] coord : coordinates) {
+            Optional<SpecialZone> zone = findNearestZone(coord[0], coord[1]);
+            if (zone.isPresent()) {
+                BigDecimal pct = BigDecimal.ZERO;
+                if (zone.get().getZoneType() == SpecialZone.ZoneType.DANGER) {
+                    pct = config.getDangerFeePercentage();
+                } else if (zone.get().getZoneType() == SpecialZone.ZoneType.HIGH_INCOME) {
+                    pct = config.getHighIncomeFeePercentage();
+                }
+                if (pct.compareTo(worstPercentage) > 0) {
+                    worstPercentage = pct;
+                    worstZone = zone.get();
+                }
+            }
+        }
+        return Optional.ofNullable(worstZone);
     }
 
     /**

@@ -8,9 +8,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
- * DTO para criação de Delivery
+ * DTO para criação de Delivery.
+ * Suporta single-stop (campos flat legados) e multi-stop (lista stops).
+ * Se stops estiver presente e não-vazio, os campos flat de destino são ignorados.
  */
 @Data
 @Builder
@@ -35,22 +38,14 @@ public class DeliveryCreateRequest {
     private String fromState;
     private String fromZipCode;
 
-    @NotBlank(message = "Endereço de destino é obrigatório")
+    // Campos flat de destino (legado, usados quando stops está vazio/null)
     private String toAddress;
-
-    @NotNull(message = "Latitude de destino é obrigatória")
     private Double toLatitude;
-
-    @NotNull(message = "Longitude de destino é obrigatória")
     private Double toLongitude;
-
     private String toCity;
     private String toState;
     private String toZipCode;
-
-    @NotBlank(message = "Nome do destinatário é obrigatório")
     private String recipientName;
-
     private String recipientPhone;
 
     @DecimalMin(value = "0.0", message = "Valor total não pode ser negativo")
@@ -69,6 +64,33 @@ public class DeliveryCreateRequest {
     private String preferredVehicleType;
 
     /**
+     * Lista de paradas (destinos) para entregas multi-stop.
+     * Se presente, sobrescreve os campos flat de destino.
+     * Apenas CLIENT pode enviar mais de 1 stop.
+     */
+    @Valid
+    private List<StopRequest> stops;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class StopRequest {
+        @NotBlank(message = "Endereço da parada é obrigatório")
+        private String address;
+
+        @NotNull(message = "Latitude da parada é obrigatória")
+        private Double latitude;
+
+        @NotNull(message = "Longitude da parada é obrigatória")
+        private Double longitude;
+
+        private String recipientName;
+        private String recipientPhone;
+        private String itemDescription;
+    }
+
+    /**
      * DTO interno para referenciar entidades por ID
      */
     @Data
@@ -78,5 +100,12 @@ public class DeliveryCreateRequest {
     public static class EntityReference {
         @NotBlank(message = "ID é obrigatório")
         private String id;
+    }
+
+    /**
+     * Retorna true se a request tem paradas explícitas (multi-stop).
+     */
+    public boolean hasStops() {
+        return stops != null && !stops.isEmpty();
     }
 }
