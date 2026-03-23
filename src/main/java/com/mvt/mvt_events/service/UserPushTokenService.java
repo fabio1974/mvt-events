@@ -55,45 +55,38 @@ public class UserPushTokenService {
                         .build();
             }
 
-            // Desativar tokens antigos PRIMEIRO (para o mesmo user/platform/device)
-            // Isso garante que não teremos múltiplos tokens ativos
+            // Desativar tokens antigos do MESMO usuário para esta plataforma/device
+            // (ex: user trocou de celular, token antigo deve ser desativado)
             int deactivatedCount = pushTokenRepository.deactivateTokens(userId, platform, deviceType);
             if (deactivatedCount > 0) {
                 log.info("Desativados {} tokens antigos para usuário {} (platform={}, deviceType={})",
                         deactivatedCount, userId, platform, deviceType);
             }
 
-            // UPSERT atômico: insere ou atualiza se já existir
-            // Resolve race conditions de múltiplas requisições simultâneas
-            try {
-                int affected = pushTokenRepository.upsertPushToken(
-                    userId, 
-                    request.getToken(), 
-                    platform.name(), 
-                    deviceType.name()
-                );
+            // UPSERT atômico usando partial unique index (token) WHERE is_active = true
+            // Se o token já está ativo para OUTRO usuário (celular compartilhado),
+            // automaticamente transfere a propriedade para o novo usuário.
+            int affected = pushTokenRepository.upsertPushToken(
+                userId, 
+                request.getToken(), 
+                platform.name(), 
+                deviceType.name()
+            );
+            
+            if (affected > 0) {
+                log.info("Token push registrado/atualizado com sucesso via UPSERT: userId={}, platform={}, deviceType={}",
+                        userId, platform, deviceType);
                 
-                if (affected > 0) {
-                    log.info("Token push registrado/atualizado com sucesso via UPSERT: userId={}, platform={}, deviceType={}",
-                            userId, platform, deviceType);
-                    
-                    return PushTokenResponse.builder()
-                            .success(true)
-                            .message("Token registrado com sucesso")
-                            .build();
-                } else {
-                    log.warn("UPSERT não afetou nenhuma linha: userId={}, token={}", userId, request.getToken());
-                    return PushTokenResponse.builder()
-                            .success(false)
-                            .message("Erro ao registrar token")
-                            .build();
-                }
-                
-            } catch (org.springframework.dao.DataIntegrityViolationException e) {
-                // Se mesmo assim der erro de constraint, significa que há um problema estrutural
-                log.error("Erro de constraint violation mesmo após UPSERT - possível problema no índice: {}", 
-                          e.getMessage());
-                throw e;
+                return PushTokenResponse.builder()
+                        .success(true)
+                        .message("Token registrado com sucesso")
+                        .build();
+            } else {
+                log.warn("UPSERT não afetou nenhuma linha: userId={}, token={}", userId, request.getToken());
+                return PushTokenResponse.builder()
+                        .success(false)
+                        .message("Erro ao registrar token")
+                        .build();
             }
 
         } catch (Exception e) {
