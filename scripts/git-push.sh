@@ -1,7 +1,9 @@
 #!/bin/bash
 
-# 📤 Git Push - Commit automatico com mensagem descritiva em PT-BR
-# Analisa git diff e gera mensagem de commit explicativa para mvt-events (Spring Boot)
+# 📤 Git Push — commit automático em PT-BR, estilo changelog
+# Título orientado a domínio (entrega, pagamento, push, etc.) e corpo com:
+#   - "Contexto" narrando impacto em produto/API quando detectável
+#   - detalhes por camada (service, controller, migration) em linguagem acessível
 
 set -e
 cd "$(dirname "$0")/.."
@@ -31,6 +33,21 @@ FULL_DIFF=$(git diff; git diff --cached)
 COMMIT_BODY_FILE="/tmp/git-commit-body-events-$$"
 COMMIT_MSG_FILE="/tmp/git-commit-message-events-$$"
 > "$COMMIT_BODY_FILE"
+
+# Opcional: mensagem via OpenAI / Anthropic / Ollama (ver scripts/git-commit-ai-lib.sh)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+USE_AI=0
+if [ -f "$SCRIPT_DIR/git-commit-ai-lib.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$SCRIPT_DIR/git-commit-ai-lib.sh"
+  if git_commit_ai_fill "$COMMIT_MSG_FILE" "mvt-events (Spring Boot)" "$FILES_CHANGED" "$FULL_DIFF"; then
+    USE_AI=1
+    TITLE=$(head -n1 "$COMMIT_MSG_FILE")
+    FULL_COMMIT_MESSAGE=$(cat "$COMMIT_MSG_FILE")
+  fi
+fi
+
+if [ "$USE_AI" != 1 ]; then
 
 # ============================================
 # DETECTAR TIPO DE COMMIT
@@ -76,6 +93,29 @@ else
 fi
 
 # ============================================
+# NARRATIVA / CONTEXTO DE FEATURE (backend)
+# ============================================
+NARRATIVE=""
+if echo "$FILES_CHANGED" | grep -q "delivery_stops\|DeliveryStop"; then
+    NARRATIVE="${NARRATIVE}• Entregas multi-stop: modelo de paradas, taxa por destino extra ou conclusão/pulo por parada.\n"
+fi
+if echo "$FULL_DIFF" | grep -qE "planned_route|plannedRoute|PlannedRoute"; then
+    NARRATIVE="${NARRATIVE}• Rota planejada: armazena no banco a polyline calculada no app para exibir na corrida sem novas chamadas ao Google.\n"
+fi
+if echo "$FILES_CHANGED" | grep -q "UserPushToken\|push.token\|push_token"; then
+    NARRATIVE="${NARRATIVE}• Push: registro/upsert de token, desativação ou correção de constraints para evitar duplicatas.\n"
+fi
+if echo "$FULL_DIFF" | grep -qE "skipStop|completeStop|DeliveryStopRepository"; then
+    NARRATIVE="${NARRATIVE}• API de paradas: endpoints para marcar entrega ou pular destino individual na mesma corrida.\n"
+fi
+if echo "$FULL_DIFF" | grep -qE "getPlannedRouteAsGeoJson|plannedRoute"; then
+    NARRATIVE="${NARRATIVE}• Tracking: expõe a rota planejada junto com status e posição do motoboy.\n"
+fi
+if echo "$FILES_CHANGED" | grep -q "SiteConfiguration\|additional_stop\|additionalStop"; then
+    NARRATIVE="${NARRATIVE}• Configuração global: taxa adicional por parada ou parâmetros de frete.\n"
+fi
+
+# ============================================
 # GERAR TITULO
 # ============================================
 
@@ -99,38 +139,36 @@ elif echo "$FILES_CHANGED" | grep -q "location\|Location"; then
     MAIN_AREA="localizacao"
 fi
 
-# Detectar o que mudou para o titulo
-CHANGED_WHAT=""
-
-# Metodo principal removido (o "antes")
-OLD_METHOD=$(echo "$FULL_DIFF" | grep "^-" | grep -v "^---" | \
-    grep -oE "(public|private|protected) [^ ]+ [a-z][A-Za-z]+\(" | \
-    sed 's/(.*//' | awk '{print $NF}' | head -1) || true
-
-# Metodo principal adicionado (o "depois")
-NEW_METHOD=$(echo "$FULL_DIFF" | grep "^+" | grep -v "^+++" | \
-    grep -oE "(public|private|protected) [^ ]+ [a-z][A-Za-z]+\(" | \
-    sed 's/(.*//' | awk '{print $NF}' | head -1) || true
-
 # Deteccao de migracao nova
 MIGRATION_NAMES=$(echo "$FILES_CHANGED" | grep "db/migration" | \
     sed 's/.*V[0-9]*__//' | sed 's/\.sql$//' | tr '_' ' ' | head -2 | tr '\n' '; ' | sed 's/; $//') || true
 
-# Montar titulo
-if [ -n "$MAIN_AREA" ] && [ -n "$MIGRATION_NAMES" ]; then
-    TITLE="$COMMIT_TYPE: $MAIN_AREA - $MIGRATION_NAMES"
+# Título enriquecido quando o tema é claro
+TITLE_OVERRIDE=""
+if echo "$FULL_DIFF" | grep -q "planned_route\|plannedRoute"; then
+    TITLE_OVERRIDE="$COMMIT_TYPE(entrega): persiste rota planejada (PostGIS) e devolve no tracking"
+elif echo "$FILES_CHANGED" | grep -q "delivery_stops" || echo "$FULL_DIFF" | grep -q "DeliveryStop"; then
+    TITLE_OVERRIDE="$COMMIT_TYPE(entrega): paradas múltiplas, API de completar/pular e regras de frete associadas"
+elif echo "$FULL_DIFF" | grep -qE "UserPushToken|push.token|duplicate.*token"; then
+    TITLE_OVERRIDE="$COMMIT_TYPE(push): ajusta registro de token e consistência no banco"
+fi
+
+if [ -n "$TITLE_OVERRIDE" ]; then
+    TITLE="$TITLE_OVERRIDE"
+elif [ -n "$MAIN_AREA" ] && [ -n "$MIGRATION_NAMES" ]; then
+    TITLE="$COMMIT_TYPE($MAIN_AREA): evolução do schema e regras — $MIGRATION_NAMES"
 elif [ -n "$MAIN_AREA" ] && [ -n "$CORE_FILES" ]; then
-    TITLE="$COMMIT_TYPE: $MAIN_AREA em $CORE_FILES"
+    TITLE="$COMMIT_TYPE($MAIN_AREA): altera $CORE_FILES e comportamento da API relacionado"
 elif [ -n "$MIGRATION_NAMES" ]; then
-    TITLE="$COMMIT_TYPE: $MIGRATION_NAMES"
+    TITLE="$COMMIT_TYPE: migração e dados — $MIGRATION_NAMES"
 elif [ -n "$CORE_FILES" ]; then
-    TITLE="$COMMIT_TYPE: atualiza $CORE_FILES"
+    TITLE="$COMMIT_TYPE: atualiza $CORE_FILES (serviços e contratos da API)"
 elif [ "$HAS_BUILD" -gt 0 ]; then
-    TITLE="$COMMIT_TYPE: atualiza configuracao de build"
+    TITLE="$COMMIT_TYPE: atualiza Gradle, dependências ou empacotamento"
 elif [ "$HAS_SCRIPTS" -gt 0 ]; then
-    TITLE="$COMMIT_TYPE: atualiza scripts"
+    TITLE="$COMMIT_TYPE: atualiza scripts de build ou deploy"
 else
-    TITLE="$COMMIT_TYPE: atualiza $TOTAL_FILES arquivo(s)"
+    TITLE="$COMMIT_TYPE: conjunto de alterações no backend ($TOTAL_FILES arquivo(s))"
 fi
 
 # ============================================
@@ -162,6 +200,14 @@ NEW_QUERIES=$(echo "$FULL_DIFF" | grep "^+" | grep -v "^+++" | \
     head -2 | sed 's/[[:space:]]\+/ /g' | tr '\n' '; ' | sed 's/; $//') || true
 
 # --- Construir corpo narrativo ---
+
+if [ -n "$NARRATIVE" ]; then
+    echo "Contexto (objetivo das mudanças, gerado a partir do diff):" >> "$COMMIT_BODY_FILE"
+    printf '%b' "$NARRATIVE" >> "$COMMIT_BODY_FILE"
+    echo "" >> "$COMMIT_BODY_FILE"
+    echo "" >> "$COMMIT_BODY_FILE"
+fi
+echo "Detalhes por arquivo ou migration:" >> "$COMMIT_BODY_FILE"
 
 # Bloco 1: contexto das classes alteradas
 for file in $FILES_CHANGED; do
@@ -205,27 +251,27 @@ for file in $FILES_CHANGED; do
     case "$file" in
         src/main/java/*/service/*)
             if [ -n "$FILE_REMOVED" ] && [ -n "$FILE_ADDED" ]; then
-                LINE="- $BNAME (service): reordena logica de $FILE_REMOVED / adiciona $FILE_ADDED"
+                LINE="- $BNAME (service): evolui regras de negócio — métodos $FILE_REMOVED em transição para $FILE_ADDED"
             elif [ -n "$FILE_ADDED" ]; then
-                LINE="- $BNAME (service): adiciona $FILE_ADDED"
+                LINE="- $BNAME (service): inclui comportamento em $FILE_ADDED (novos fluxos ou validações)"
             elif [ -n "$FILE_REMOVED" ]; then
-                LINE="- $BNAME (service): refatora $FILE_REMOVED"
+                LINE="- $BNAME (service): simplifica ou remove trechos em $FILE_REMOVED"
             else
-                LINE="- $BNAME (service): altera logica (+$ADDS/-$DELS linhas)"
+                LINE="- $BNAME (service): ajusta regras de domínio (+$ADDS/-$DELS linhas no diff)"
             fi
             ;;
         src/main/java/*/repository/*)
             if [ -n "$FILE_ADDED" ]; then
-                LINE="- $BNAME (repository): adiciona query $FILE_ADDED"
+                LINE="- $BNAME (repository): novas consultas ou atualizações em banco ($FILE_ADDED)"
             else
-                LINE="- $BNAME (repository): altera queries (+$ADDS/-$DELS linhas)"
+                LINE="- $BNAME (repository): refina queries ou mapeamento JPA (+$ADDS/-$DELS linhas)"
             fi
             ;;
         src/main/java/*/controller/*)
             if [ -n "$FILE_ADDED" ]; then
-                LINE="- $BNAME (controller): adiciona endpoint $FILE_ADDED"
+                LINE="- $BNAME (controller): expõe ou altera endpoints REST ($FILE_ADDED)"
             else
-                LINE="- $BNAME (controller): altera endpoints (+$ADDS/-$DELS linhas)"
+                LINE="- $BNAME (controller): ajusta contratos HTTP ou parâmetros (+$ADDS/-$DELS linhas)"
             fi
             ;;
         src/main/java/*/jpa/*|src/main/java/*/entity/*)
@@ -235,12 +281,12 @@ for file in $FILES_CHANGED; do
             if [ -n "$NEW_FIELDS" ]; then
                 LINE="- $BNAME (entidade): adiciona campos $NEW_FIELDS"
             else
-                LINE="- $BNAME (entidade): altera propriedades (+$ADDS/-$DELS linhas)"
+                LINE="- $BNAME (entidade): ajusta modelo de dados ou relacionamentos (+$ADDS/-$DELS linhas)"
             fi
             ;;
         src/main/resources/db/migration/*)
             MIGRATION_DESC=$(basename "$file" | sed 's/^V[0-9]*__//' | sed 's/\.sql$//' | tr '_' ' ')
-            LINE="- Migration $BNAME: $MIGRATION_DESC"
+            LINE="- Migration $BNAME: $MIGRATION_DESC (evolução de schema alinhada ao domínio)"
             ;;
         build.gradle|settings.gradle)
             NEW_DEPS=$(echo "$FILE_DIFF" | grep "^+" | grep -v "^+++" | \
@@ -256,7 +302,7 @@ for file in $FILES_CHANGED; do
             LINE="- $(basename "$file"): atualiza documentacao"
             ;;
         *)
-            LINE="- $BNAME: altera conteudo (+$ADDS/-$DELS linhas)"
+            LINE="- $BNAME: alterações diversas (+$ADDS/-$DELS linhas no diff)"
             ;;
     esac
 
@@ -267,15 +313,15 @@ done
 REASON_LINES=""
 
 if [ "$COMMIT_TYPE" = "fix" ] && [ -n "$EXCEPTIONS" ]; then
-    REASON_LINES="Corrige erro: $EXCEPTIONS."
+    REASON_LINES="Motivo do fix: trata falha ou constraint relacionada a $EXCEPTIONS."
 fi
 
 if [ -n "$REMOVED_CALLS" ] && [ -n "$ADDED_CALLS" ] && [ "$REMOVED_CALLS" != "$ADDED_CALLS" ]; then
-    REASON_LINES="$REASON_LINES Ordem de chamadas alterada: antes $REMOVED_CALLS, agora $ADDED_CALLS."
+    REASON_LINES="$REASON_LINES Camada de persistência: chamadas de repositório passam de $REMOVED_CALLS para $ADDED_CALLS."
 fi
 
 if [ -n "$NEW_QUERIES" ]; then
-    REASON_LINES="$REASON_LINES Nova query SQL: $NEW_QUERIES."
+    REASON_LINES="$REASON_LINES SQL relevante no diff: $NEW_QUERIES."
 fi
 
 # ============================================
@@ -291,6 +337,9 @@ if [ -n "$REASON_LINES" ]; then
 fi
 
 FULL_COMMIT_MESSAGE=$(cat "$COMMIT_MSG_FILE")
+
+fi
+# ========== fim heurística (USE_AI=0) ==========
 
 # ============================================
 # EXIBIR E EXECUTAR
