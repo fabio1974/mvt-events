@@ -24,7 +24,8 @@ echo "🔍 Analisando mudancas..."
 echo ""
 
 # Capturar arquivos modificados (sem duplicatas)
-FILES_CHANGED=$(( git diff --name-only; git diff --cached --name-only; git ls-files --others --exclude-standard ) | sort -u | grep -v "^$")
+# Nota: usar $( ( ... ) ) e não $(( ... )) — o segundo é aritmética e quebra a lista de arquivos.
+FILES_CHANGED=$( ( git diff --name-only; git diff --cached --name-only; git ls-files --others --exclude-standard ) | sort -u | grep -v "^$")
 TOTAL_FILES=$(echo "$FILES_CHANGED" | wc -l | xargs)
 
 # Capturar diff completo para analise semantica
@@ -35,6 +36,8 @@ COMMIT_MSG_FILE="/tmp/git-commit-message-events-$$"
 > "$COMMIT_BODY_FILE"
 
 # Opcional: mensagem via OpenAI / Anthropic / Ollama (ver scripts/git-commit-ai-lib.sh)
+# Por padrão: só heurística (mensagem alinhada ao diff). Para LLM: GIT_COMMIT_AI=1 ./scripts/git-push.sh
+export GIT_COMMIT_AI="${GIT_COMMIT_AI:-0}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 USE_AI=0
 if [ -f "$SCRIPT_DIR/git-commit-ai-lib.sh" ]; then
@@ -60,7 +63,7 @@ REFACTOR_SCORE=0
 
 # Indicadores de fix no diff
 echo "$FULL_DIFF" | grep -qiE "\+.*(Exception|Error|constraint|duplicate|violation|rollback|invalid|npe|nullpointer|NPE|fix|corrige|bug|falha)" && FIX_SCORE=$((FIX_SCORE + 3)) || true
-echo "$FULL_DIFF" | grep -qiE "-(.*ON CONFLICT|.*upsert|.*deactivat|.*isActive)" && FIX_SCORE=$((FIX_SCORE + 2)) || true
+echo "$FULL_DIFF" | grep -qiE -- '-(.*ON CONFLICT|.*upsert|.*deactivat|.*isActive)' && FIX_SCORE=$((FIX_SCORE + 2)) || true
 echo "$FULL_DIFF" | grep -qiE "\+.*(ON CONFLICT|upsert|deactivat|isActive)" && FIX_SCORE=$((FIX_SCORE + 2)) || true
 echo "$FILES_CHANGED" | grep -qiE "V[0-9]+__cleanup|V[0-9]+__fix|V[0-9]+__drop|V[0-9]+__remove|V[0-9]+__simplify" && FIX_SCORE=$((FIX_SCORE + 2)) || true
 
@@ -72,11 +75,11 @@ echo "$FULL_DIFF" | grep -qiE "^\+.*(public [A-Z][a-zA-Z]+ [a-z][a-zA-Z]+\(|@Pos
 echo "$FULL_DIFF" | grep -qiE "^\-.*(public|private|protected).*\(" && REFACTOR_SCORE=$((REFACTOR_SCORE + 1)) || true
 echo "$FULL_DIFF" | grep -qiE "^\+.*(public|private|protected).*\(" && REFACTOR_SCORE=$((REFACTOR_SCORE + 1)) || true
 
-HAS_SRC=$(echo "$FILES_CHANGED" | grep -c "src/main/java" 2>/dev/null || echo 0)
-HAS_MIGRATION=$(echo "$FILES_CHANGED" | grep -c "db/migration" 2>/dev/null || echo 0)
-HAS_BUILD=$(echo "$FILES_CHANGED" | grep -c "build.gradle\|compose\|Dockerfile\|render" 2>/dev/null || echo 0)
-HAS_DOCS=$(echo "$FILES_CHANGED" | grep -c "\.md$\|docs/" 2>/dev/null || echo 0)
-HAS_SCRIPTS=$(echo "$FILES_CHANGED" | grep -c "scripts/\|\.sh$" 2>/dev/null || echo 0)
+HAS_SRC=$(echo "$FILES_CHANGED" | grep -c "src/main/java" 2>/dev/null || true); HAS_SRC=${HAS_SRC:-0}
+HAS_MIGRATION=$(echo "$FILES_CHANGED" | grep -c "db/migration" 2>/dev/null || true); HAS_MIGRATION=${HAS_MIGRATION:-0}
+HAS_BUILD=$(echo "$FILES_CHANGED" | grep -c "build.gradle\|compose\|Dockerfile\|render" 2>/dev/null || true); HAS_BUILD=${HAS_BUILD:-0}
+HAS_DOCS=$(echo "$FILES_CHANGED" | grep -c "\.md$\|docs/" 2>/dev/null || true); HAS_DOCS=${HAS_DOCS:-0}
+HAS_SCRIPTS=$(echo "$FILES_CHANGED" | grep -c "scripts/\|\.sh$" 2>/dev/null || true); HAS_SCRIPTS=${HAS_SCRIPTS:-0}
 
 if [ "$FIX_SCORE" -gt "$FEAT_SCORE" ] && [ "$FIX_SCORE" -gt 2 ]; then
     COMMIT_TYPE="fix"
@@ -123,19 +126,20 @@ fi
 CORE_FILES=$(echo "$FILES_CHANGED" | grep "src/main/java" | xargs -I{} basename {} .java 2>/dev/null | \
     grep -v "Config\|Application\|Test" | head -3 | tr '\n' ', ' | sed 's/,$//' | sed 's/,/, /g') || true
 
-# Detectar area principal de mudanca
+# Detectar area principal de mudanca (ignora .cursor/ e git-push-* — evita falso positivo no nome do script)
+FILES_FOR_AREA=$(echo "$FILES_CHANGED" | grep -v '^\.cursor/' | grep -vF 'git-push' || true)
 MAIN_AREA=""
-if echo "$FILES_CHANGED" | grep -q "push\|Push\|notification\|Notification"; then
+if echo "$FILES_FOR_AREA" | grep -q "push\|Push\|notification\|Notification"; then
     MAIN_AREA="push notification"
-elif echo "$FILES_CHANGED" | grep -q "payment\|Payment"; then
+elif echo "$FILES_FOR_AREA" | grep -q "payment\|Payment"; then
     MAIN_AREA="pagamento"
-elif echo "$FILES_CHANGED" | grep -q "delivery\|Delivery"; then
+elif echo "$FILES_FOR_AREA" | grep -q "delivery\|Delivery"; then
     MAIN_AREA="entrega"
-elif echo "$FILES_CHANGED" | grep -q "user\|User"; then
+elif echo "$FILES_FOR_AREA" | grep -q "user\|User"; then
     MAIN_AREA="usuario"
-elif echo "$FILES_CHANGED" | grep -q "auth\|Auth"; then
+elif echo "$FILES_FOR_AREA" | grep -q "auth\|Auth"; then
     MAIN_AREA="autenticacao"
-elif echo "$FILES_CHANGED" | grep -q "location\|Location"; then
+elif echo "$FILES_FOR_AREA" | grep -q "location\|Location"; then
     MAIN_AREA="localizacao"
 fi
 
