@@ -608,6 +608,8 @@ public class DeliveryController {
             delivery.setPreferredVehicleType(Delivery.PreferredVehicleType.ANY);
         }
 
+        delivery.setPlannedRouteCoordinates(request.getPlannedRouteCoordinates());
+
         return delivery;
     }
 

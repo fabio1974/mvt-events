@@ -233,10 +233,10 @@ public class DeliveryService {
         }
 
         // Persistir rota planejada (calculada no wizard, evita chamadas Google durante corridas)
-        if (request.getPlannedRouteCoordinates() != null && request.getPlannedRouteCoordinates().size() >= 2) {
+        if (delivery.getPlannedRouteCoordinates() != null && delivery.getPlannedRouteCoordinates().size() >= 2) {
             try {
                 GeometryFactory gf = new GeometryFactory(new PrecisionModel(), 4326);
-                Coordinate[] coords = request.getPlannedRouteCoordinates().stream()
+                Coordinate[] coords = delivery.getPlannedRouteCoordinates().stream()
                         .filter(p -> p != null && p.size() >= 2)
                         .map(p -> new Coordinate(p.get(1), p.get(0))) // [lat,lng] → Coordinate(lng,lat)
                         .toArray(Coordinate[]::new);

@@ -232,6 +232,14 @@ public class Delivery extends BaseEntity {
     @com.fasterxml.jackson.annotation.JsonIgnore
     private LineString plannedRoute;
 
+    /**
+     * Pontos [lat, lng] vindos do app na criação; convertidos em {@link #plannedRoute} em
+     * {@code DeliveryService.create} — não coluna de banco.
+     */
+    @Transient
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private List<List<Double>> plannedRouteCoordinates;
+
     @Column(name = "cancellation_reason", columnDefinition = "TEXT")
     @Visible(table = false, form = true, filter = false)
     @Size(max = 200, message = "Motivo de cancelamento deve ter no máximo 200 caracteres")
