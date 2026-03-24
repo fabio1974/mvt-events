@@ -314,8 +314,14 @@ for file in $FILES_CHANGED; do
 done
 
 # Bloco 2: nota explicativa sobre o motivo (quando detectavel)
+# Só em src/main ou migrations — diff de .sh contém strings tipo ON CONFLICT/grep e vira falso positivo
 REASON_LINES=""
+APP_DIFF_REASON=0
+if [ "$HAS_SRC" -gt 0 ] || [ "$HAS_MIGRATION" -gt 0 ]; then
+    APP_DIFF_REASON=1
+fi
 
+if [ "$APP_DIFF_REASON" -eq 1 ]; then
 if [ "$COMMIT_TYPE" = "fix" ] && [ -n "$EXCEPTIONS" ]; then
     REASON_LINES="Motivo do fix: trata falha ou constraint relacionada a $EXCEPTIONS."
 fi
@@ -326,6 +332,7 @@ fi
 
 if [ -n "$NEW_QUERIES" ]; then
     REASON_LINES="$REASON_LINES SQL relevante no diff: $NEW_QUERIES."
+fi
 fi
 
 # ============================================
