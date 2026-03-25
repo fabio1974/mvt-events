@@ -476,11 +476,26 @@ public interface DeliveryRepository
         // ============================================================================
 
         /**
-         * Initialize the route with the first GPS point (called on pickup/IN_TRANSIT)
+         * Inicializa approach_route no ACCEPTED com a posição GPS atual do entregador.
+         * Sobrescreve accepted_at com o timestamp exato da captura GPS — alinha ponto A com tempo A para cálculo de ETA.
+         */
+        @Modifying
+        @Query(value = "UPDATE deliveries SET approach_route = ST_MakeLine(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)), accepted_at = NOW() WHERE id = :deliveryId", nativeQuery = true)
+        void initializeApproachRoute(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng);
+
+        /**
+         * Adiciona ponto GPS à approach_route (fase ACCEPTED).
+         */
+        @Modifying
+        @Query(value = "UPDATE deliveries SET approach_route = ST_AddPoint(approach_route, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)) WHERE id = :deliveryId AND approach_route IS NOT NULL", nativeQuery = true)
+        void appendApproachRoutePoint(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng);
+
+        /**
+         * Inicializa actual_route do zero no PICKUP, descartando qualquer ponto da aproximação.
          */
         @Modifying
         @Query(value = "UPDATE deliveries SET actual_route = ST_MakeLine(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)) WHERE id = :deliveryId", nativeQuery = true)
-        void initializeRoute(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng);
+        void initializeActualRoute(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng);
 
         /**
          * Append a GPS point to the existing route
@@ -495,8 +510,31 @@ public interface DeliveryRepository
         @Query(value = "SELECT ST_AsGeoJSON(actual_route) FROM deliveries WHERE id = :deliveryId AND actual_route IS NOT NULL", nativeQuery = true)
         String getRouteAsGeoJson(@Param("deliveryId") Long deliveryId);
 
+        @Query(value = "SELECT ST_AsGeoJSON(approach_route) FROM deliveries WHERE id = :deliveryId AND approach_route IS NOT NULL", nativeQuery = true)
+        String getApproachRouteAsGeoJson(@Param("deliveryId") Long deliveryId);
+
+        @Query(value = "SELECT ST_Y(ST_StartPoint(approach_route)) FROM deliveries WHERE id = :deliveryId AND approach_route IS NOT NULL", nativeQuery = true)
+        Double getApproachRouteStartLat(@Param("deliveryId") Long deliveryId);
+
+        @Query(value = "SELECT ST_X(ST_StartPoint(approach_route)) FROM deliveries WHERE id = :deliveryId AND approach_route IS NOT NULL", nativeQuery = true)
+        Double getApproachRouteStartLng(@Param("deliveryId") Long deliveryId);
+
         @Query(value = "SELECT ST_AsGeoJSON(planned_route) FROM deliveries WHERE id = :deliveryId AND planned_route IS NOT NULL", nativeQuery = true)
         String getPlannedRouteAsGeoJson(@Param("deliveryId") Long deliveryId);
+
+        /**
+         * Updates planned_route from a WKT LINESTRING (e.g. "LINESTRING(lng lat, lng lat, ...)").
+         */
+        @Modifying
+        @Query(value = "UPDATE deliveries SET planned_route = ST_GeomFromText(:wkt, 4326) WHERE id = :deliveryId", nativeQuery = true)
+        void updatePlannedRoute(@Param("deliveryId") Long deliveryId, @Param("wkt") String wkt);
+
+        /**
+         * Returns the distance (meters) from the given point to the nearest point on planned_route.
+         * Uses PostGIS geography type for accurate geodetic distance.
+         */
+        @Query(value = "SELECT ST_Distance(planned_route::geography, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) FROM deliveries WHERE id = :deliveryId AND planned_route IS NOT NULL", nativeQuery = true)
+        Double getDistanceFromPlannedRouteMeters(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng);
 
         /**
          * Comprimento da {@code actual_route} em metros (geodésico).
@@ -512,11 +550,5 @@ public interface DeliveryRepository
         @Query(value = "SELECT ST_NPoints(actual_route) FROM deliveries WHERE id = :deliveryId AND actual_route IS NOT NULL", nativeQuery = true)
         Integer getRoutePointCount(@Param("deliveryId") Long deliveryId);
 
-        /**
-         * Substitui {@code actual_route} pela rota real de billing antes do recálculo de frete na conclusão.
-         */
-        @Modifying(clearAutomatically = true, flushAutomatically = true)
-        @Query(value = "UPDATE deliveries SET actual_route = ST_GeomFromText(:wkt, 4326) WHERE id = :deliveryId", nativeQuery = true)
-        void updateActualRouteFromWkt(@Param("deliveryId") Long deliveryId, @Param("wkt") String wkt);
 }
 

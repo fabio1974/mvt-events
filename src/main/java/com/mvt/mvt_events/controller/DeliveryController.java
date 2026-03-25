@@ -394,7 +394,8 @@ public class DeliveryController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("error", "Apenas o courier designado pode completar paradas"));
             }
-            int updated = deliveryStopRepository.completeStop(deliveryId, stopId);
+            int nextOrder = deliveryStopRepository.maxCompletionOrder(deliveryId) + 1;
+            int updated = deliveryStopRepository.completeStop(deliveryId, stopId, nextOrder);
             if (updated == 0) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of("error", "Parada não encontrada"));

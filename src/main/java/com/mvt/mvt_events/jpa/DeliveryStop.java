@@ -67,6 +67,15 @@ public class DeliveryStop extends BaseEntity {
     @Column(name = "completed_at")
     private OffsetDateTime completedAt;
 
+    /**
+     * Ordem de visita desta parada.
+     * COMPLETED: valor incremental (1, 2, 3…) atribuído na conclusão. Imutável após set.
+     * SKIPPED: 0. Imutável após set.
+     * PENDING: sequência planejada pelo nearest-neighbor; atualizada a cada recálculo de rota.
+     */
+    @Column(name = "completion_order")
+    private Integer completionOrder;
+
     public enum StopStatus {
         PENDING,
         COMPLETED,

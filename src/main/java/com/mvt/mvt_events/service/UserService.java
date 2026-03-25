@@ -67,6 +67,9 @@ public class UserService {
     @Autowired
     private com.mvt.mvt_events.repository.DeliveryRepository deliveryRepository;
 
+    @Autowired
+    private PlannedRouteService plannedRouteService;
+
     public List<User> findAll() {
         return userRepository.findAll();
     }
@@ -534,14 +537,25 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
 
-        // 📍 ROUTE TRACKING: If courier has active delivery (ACCEPTED or IN_TRANSIT), append point to route
+        // 📍 ROUTE TRACKING: ACCEPTED → approach_route | IN_TRANSIT → actual_route
         if (savedUser.getCurrentDeliveryId() != null) {
             try {
-                deliveryRepository.findById(savedUser.getCurrentDeliveryId()).ifPresent(delivery -> {
+                deliveryRepository.findByIdWithJoins(savedUser.getCurrentDeliveryId()).ifPresent(delivery -> {
                     var status = delivery.getStatus();
-                    if (status == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.ACCEPTED
-                            || status == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.IN_TRANSIT) {
+                    if (status == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.ACCEPTED) {
+                        // Initialize approach_route on first GPS update after accept
+                        String existingApproach = deliveryRepository.getApproachRouteAsGeoJson(delivery.getId());
+                        if (existingApproach == null) {
+                            deliveryRepository.initializeApproachRoute(delivery.getId(), latitude, longitude);
+                        } else {
+                            deliveryRepository.appendApproachRoutePoint(delivery.getId(), latitude, longitude);
+                        }
+                        // Update planned_route via Google Directions
+                        plannedRouteService.handleApproachRouteUpdate(delivery, latitude, longitude);
+                    } else if (status == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.IN_TRANSIT) {
                         deliveryRepository.appendRoutePoint(delivery.getId(), latitude, longitude);
+                        // Update planned_route via Google Directions
+                        plannedRouteService.handleDeliveryRouteUpdate(delivery, latitude, longitude);
                     }
                 });
             } catch (Exception e) {

@@ -22,6 +22,7 @@ import java.util.List;
  */
 @Entity
 @Table(name = "deliveries")
+@org.hibernate.annotations.DynamicUpdate
 @Getter
 @Setter
 @NoArgsConstructor
@@ -227,7 +228,12 @@ public class Delivery extends BaseEntity {
     @com.fasterxml.jackson.annotation.JsonIgnore
     private LineString actualRoute;
 
-    /** Rota planejada calculada no wizard (Google Directions), persistida uma única vez */
+    /** Rota de aproximação do entregador (fase ACCEPTED → PICKUP). Não usada para billing. */
+    @Column(name = "approach_route", columnDefinition = "geometry(LineString, 4326)")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private LineString approachRoute;
+
+    /** Rota planejada — persistida uma única vez na criação da corrida */
     @Column(name = "planned_route", columnDefinition = "geometry(LineString, 4326)")
     @com.fasterxml.jackson.annotation.JsonIgnore
     private LineString plannedRoute;

@@ -17,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.PrecisionModel;
 
 import java.math.BigDecimal;
@@ -34,9 +33,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.locationtech.jts.io.WKTWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,7 +92,7 @@ public class DeliveryService {
     private PushNotificationService pushNotificationService;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private DeliveryStopRepository deliveryStopRepository;
 
     // TODO: ADMProfileRepository não mais usado após remoção de CourierADMLink
     // @Autowired
@@ -241,7 +237,7 @@ public class DeliveryService {
             delivery.setEstimatedShippingFee(delivery.getShippingFee());
         }
 
-        // Persistir rota planejada (calculada no wizard, evita chamadas Google durante corridas)
+        // Persistir rota planejada se enviada pelo app
         if (delivery.getPlannedRouteCoordinates() != null && delivery.getPlannedRouteCoordinates().size() >= 2) {
             try {
                 GeometryFactory gf = new GeometryFactory(new PrecisionModel(), 4326);
@@ -577,14 +573,14 @@ public class DeliveryService {
             courierUser.setCurrentDeliveryId(saved.getId());
             userRepository.save(courierUser);
 
-            // � ROUTE TRACKING: Initialize route on ACCEPTED with courier's current GPS position
+            // 📍 ROUTE TRACKING: Inicializa approach_route no ACCEPTED
             try {
                 if (courierUser.getGpsLatitude() != null && courierUser.getGpsLongitude() != null) {
-                    deliveryRepository.initializeRoute(saved.getId(), courierUser.getGpsLatitude(), courierUser.getGpsLongitude());
-                    System.out.println("📍 Route initialized on ACCEPTED for delivery " + saved.getId());
+                    deliveryRepository.initializeApproachRoute(saved.getId(), courierUser.getGpsLatitude(), courierUser.getGpsLongitude());
+                    System.out.println("📍 approach_route iniciada no ACCEPTED para delivery " + saved.getId());
                 }
             } catch (Exception e) {
-                System.err.println("⚠️ Failed to initialize route on ACCEPTED for delivery " + saved.getId() + ": " + e.getMessage());
+                System.err.println("⚠️ Falha ao inicializar approach_route no ACCEPTED para delivery " + saved.getId() + ": " + e.getMessage());
             }
 
             // �💳 PAGAMENTO AUTOMÁTICO CLIENT: somente se preferência for CREDIT_CARD
@@ -629,15 +625,15 @@ public class DeliveryService {
             courierUser.setCurrentDeliveryId(saved.getId());
             userRepository.save(courierUser);
 
-            // � ROUTE TRACKING: Initialize route on ACCEPTED (only if not WAITING_PAYMENT)
+            // 📍 ROUTE TRACKING: Inicializa approach_route no ACCEPTED (não se for WAITING_PAYMENT)
             if (saved.getStatus() == Delivery.DeliveryStatus.ACCEPTED) {
                 try {
                     if (courierUser.getGpsLatitude() != null && courierUser.getGpsLongitude() != null) {
-                        deliveryRepository.initializeRoute(saved.getId(), courierUser.getGpsLatitude(), courierUser.getGpsLongitude());
-                        System.out.println("📍 Route initialized on ACCEPTED for delivery " + saved.getId());
+                        deliveryRepository.initializeApproachRoute(saved.getId(), courierUser.getGpsLatitude(), courierUser.getGpsLongitude());
+                        System.out.println("📍 approach_route iniciada no ACCEPTED para delivery " + saved.getId());
                     }
                 } catch (Exception e) {
-                    System.err.println("⚠️ Failed to initialize route on ACCEPTED for delivery " + saved.getId() + ": " + e.getMessage());
+                    System.err.println("⚠️ Falha ao inicializar approach_route no ACCEPTED para delivery " + saved.getId() + ": " + e.getMessage());
                 }
             }
 
@@ -679,19 +675,15 @@ public class DeliveryService {
 
         Delivery saved = deliveryRepository.save(delivery);
 
-        // 📍 ROUTE TRACKING: Fallback - initialize route if not already done on ACCEPTED
+        // 📍 ROUTE TRACKING: Inicializa actual_route do zero no PICKUP (fase de entrega começa aqui)
         try {
             User courier = delivery.getCourier();
             if (courier != null && courier.getGpsLatitude() != null && courier.getGpsLongitude() != null) {
-                // Only initialize if route was not already created on ACCEPTED
-                String existingRoute = deliveryRepository.getRouteAsGeoJson(saved.getId());
-                if (existingRoute == null || existingRoute.isEmpty()) {
-                    deliveryRepository.initializeRoute(saved.getId(), courier.getGpsLatitude(), courier.getGpsLongitude());
-                    System.out.println("📍 Route initialized (fallback on IN_TRANSIT) for delivery " + saved.getId());
-                }
+                deliveryRepository.initializeActualRoute(saved.getId(), courier.getGpsLatitude(), courier.getGpsLongitude());
+                System.out.println("📍 actual_route iniciada no PICKUP para delivery " + saved.getId());
             }
         } catch (Exception e) {
-            System.err.println("⚠️ Failed to initialize route for delivery " + saved.getId() + ": " + e.getMessage());
+            System.err.println("⚠️ Falha ao inicializar actual_route no PICKUP para delivery " + saved.getId() + ": " + e.getMessage());
         }
 
         // �💳 PAGAMENTO CUSTOMER CARTÃO: Criar pagamento por cartão ao entrar em trânsito (DELIVERY e RIDE)
@@ -721,195 +713,6 @@ public class DeliveryService {
         return confirmPickup(deliveryId, courierId);
     }
 
-    private static double haversineDistanceMeters(double lat1, double lon1, double lat2, double lon2) {
-        final double R = 6371000;
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                        * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
-
-    /**
-     * Último destino para cortar a trilha GPS: paradas já COMPLETED (maior completedAt), senão maior stopOrder
-     * entre não-SKIPPED, senão toLatitude/toLongitude.
-     */
-    private Optional<double[]> resolveFinalDestinationForRouteTrim(Delivery d) {
-        List<DeliveryStop> stops = d.getStops();
-        if (stops != null && !stops.isEmpty()) {
-            List<DeliveryStop> completed = stops.stream()
-                    .filter(s -> s.getStatus() == DeliveryStop.StopStatus.COMPLETED
-                            && s.getLatitude() != null && s.getLongitude() != null)
-                    .toList();
-            if (!completed.isEmpty()) {
-                DeliveryStop last = completed.stream()
-                        .max(Comparator
-                                .comparing((DeliveryStop s) -> s.getCompletedAt() != null
-                                        ? s.getCompletedAt()
-                                        : OffsetDateTime.MIN)
-                                .thenComparing(DeliveryStop::getStopOrder, Comparator.nullsLast(Comparator.naturalOrder())))
-                        .orElseThrow();
-                return Optional.of(new double[] { last.getLatitude(), last.getLongitude() });
-            }
-            Optional<DeliveryStop> plannedLast = stops.stream()
-                    .filter(s -> s.getStatus() != DeliveryStop.StopStatus.SKIPPED
-                            && s.getLatitude() != null && s.getLongitude() != null)
-                    .max(Comparator.comparing(DeliveryStop::getStopOrder, Comparator.nullsLast(Comparator.naturalOrder())));
-            if (plannedLast.isPresent()) {
-                DeliveryStop s = plannedLast.get();
-                return Optional.of(new double[] { s.getLatitude(), s.getLongitude() });
-            }
-        }
-        if (d.getToLatitude() != null && d.getToLongitude() != null) {
-            return Optional.of(new double[] { d.getToLatitude(), d.getToLongitude() });
-        }
-        return Optional.empty();
-    }
-
-    private List<double[]> parseLineStringGeoJsonCoordinates(String geoJson) throws Exception {
-        JsonNode root = objectMapper.readTree(geoJson);
-        if (!"LineString".equals(root.path("type").asText())) {
-            return List.of();
-        }
-        JsonNode coords = root.get("coordinates");
-        if (coords == null || !coords.isArray()) {
-            return List.of();
-        }
-        List<double[]> out = new ArrayList<>();
-        for (JsonNode p : coords) {
-            if (p.isArray() && p.size() >= 2) {
-                out.add(new double[] { p.get(0).asDouble(), p.get(1).asDouble() });
-            }
-        }
-        return out;
-    }
-
-    /**
-     * Monta a rota real para billing: origem → primeiro GPS pós-pickup → trilha → último GPS → destino.
-     * <p>Lógica: varre a trilha inteira e encontra o <strong>último</strong> ponto dentro da zona do pickup
-     * (≤ raio). O ponto seguinte é o início efetivo da rota de entrega. Isso funciona tanto para dados
-     * brutos (accept longe → approach → zona do pickup → saída) quanto para dados já processados
-     * anteriormente (com origem prepended).
-     * <p>Fallback (GPS nunca entrou na zona): ponto mais próximo da origem.
-     */
-    private List<double[]> buildBillingActualRouteLngLat(List<double[]> lngLat, double originLat, double originLng,
-            double destLat, double destLng, double leftPickupRadiusM, double destSnapM) {
-        if (lngLat.size() < 2) {
-            return lngLat;
-        }
-        int lastNearPickupIdx = -1;
-        for (int i = 0; i < lngLat.size(); i++) {
-            double[] p = lngLat.get(i);
-            if (haversineDistanceMeters(p[1], p[0], originLat, originLng) <= leftPickupRadiusM) {
-                lastNearPickupIdx = i;
-            }
-        }
-
-        int startIdx;
-        if (lastNearPickupIdx >= 0 && lastNearPickupIdx + 1 < lngLat.size()) {
-            startIdx = lastNearPickupIdx + 1;
-        } else if (lastNearPickupIdx < 0) {
-            startIdx = 0;
-            double bestDist = Double.MAX_VALUE;
-            for (int i = 0; i < lngLat.size(); i++) {
-                double[] p = lngLat.get(i);
-                double d = haversineDistanceMeters(p[1], p[0], originLat, originLng);
-                if (d < bestDist) {
-                    bestDist = d;
-                    startIdx = i;
-                }
-            }
-        } else {
-            startIdx = lastNearPickupIdx;
-        }
-
-        int endIdx = lngLat.size() - 1;
-        if (startIdx > endIdx) {
-            return lngLat;
-        }
-
-        List<double[]> out = new ArrayList<>();
-        out.add(new double[] { originLng, originLat });
-        List<double[]> middle = lngLat.subList(startIdx, endIdx + 1);
-        out.addAll(middle);
-
-        double[] last = out.get(out.size() - 1);
-        if (haversineDistanceMeters(last[1], last[0], destLat, destLng) > destSnapM) {
-            out.add(new double[] { destLng, destLat });
-        }
-
-        if (out.size() < 2) {
-            return lngLat;
-        }
-        return out;
-    }
-
-    private String lineStringLngLatToWkt(List<double[]> lngLat) {
-        GeometryFactory gf = new GeometryFactory(new PrecisionModel(), 4326);
-        Coordinate[] arr = lngLat.stream()
-                .map(p -> new Coordinate(p[0], p[1]))
-                .toArray(Coordinate[]::new);
-        LineString ls = gf.createLineString(arr);
-        return new WKTWriter().write(ls);
-    }
-
-    /**
-     * Normaliza e persiste em {@code actual_route} a rota real de billing: começa na origem (pickup),
-     * liga ao primeiro ponto GPS após sair da zona de coleta, segue toda a trilha até o último ponto
-     * gravado (fim do rastreio na conclusão) e fecha ligando ao destino final.
-     * <p>Essa geometria é a usada por {@link DeliveryRepository#getRouteDistanceMeters} e pelo recálculo
-     * de frete em {@link #complete(Long, UUID)}. Mesmo algoritmo no backfill {@link #trimActualRouteInDatabase(Long)}.
-     */
-    private void trimAndPersistActualRouteForBilling(Delivery delivery) {
-        Long id = delivery.getId();
-        if (delivery.getFromLatitude() == null || delivery.getFromLongitude() == null) {
-            return;
-        }
-        Optional<double[]> destOpt = resolveFinalDestinationForRouteTrim(delivery);
-        if (destOpt.isEmpty()) {
-            return;
-        }
-        double destLat = destOpt.get()[0];
-        double destLng = destOpt.get()[1];
-
-        String geoJson = deliveryRepository.getRouteAsGeoJson(id);
-        if (geoJson == null || geoJson.isBlank()) {
-            return;
-        }
-        try {
-            List<double[]> points = parseLineStringGeoJsonCoordinates(geoJson);
-            if (points.size() < 2) {
-                return;
-            }
-            final double leftPickupM = 200;
-            final double destSnapM = 5;
-            List<double[]> billingRoute = buildBillingActualRouteLngLat(points,
-                    delivery.getFromLatitude(), delivery.getFromLongitude(),
-                    destLat, destLng, leftPickupM, destSnapM);
-            if (billingRoute.size() < 2) {
-                return;
-            }
-            String wkt = lineStringLngLatToWkt(billingRoute);
-            deliveryRepository.updateActualRouteFromWkt(id, wkt);
-            log.info("📏 Delivery #{} actual_route (billing: origem→pós-pickup→…→último GPS→destino): {} → {} pontos",
-                    id, points.size(), billingRoute.size());
-        } catch (Exception e) {
-            log.warn("⚠️ Falha ao cortar actual_route da delivery #{} antes do frete: {}", id, e.getMessage());
-        }
-    }
-
-    /**
-     * Atualiza no banco a {@code actual_route} com a rota real de billing (origem → … → último GPS → destino).
-     * Para corridas já concluídas (ex.: backfill): só a geometria; não altera {@code shippingFee}/{@code distanceKm}.
-     * Corridas novas: em {@link #complete} a normalização é aplicada antes do recálculo de frete.
-     */
-    public void trimActualRouteInDatabase(Long deliveryId) {
-        Delivery d = deliveryRepository.findByIdWithJoins(deliveryId)
-                .orElseThrow(() -> new RuntimeException("Delivery não encontrada: " + deliveryId));
-        trimAndPersistActualRouteForBilling(d);
-    }
-
     /**
      * Completa delivery e recalcula frete com base na rota real normalizada em {@code actual_route}
      * (origem, primeiro GPS após o pickup, trilha até o último ponto de rastreio, destino).
@@ -929,9 +732,7 @@ public class DeliveryService {
         delivery.setStatus(Delivery.DeliveryStatus.COMPLETED);
         delivery.setCompletedAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")));
 
-        trimAndPersistActualRouteForBilling(delivery);
-
-        // Recálculo pela rota real (PostGIS) — distância já sobre trilha cortada
+        // Recálculo pela rota real (PostGIS) — actual_route já é somente a fase IN_TRANSIT
         try {
             Double realDistanceMeters = deliveryRepository.getRouteDistanceMeters(deliveryId);
             if (realDistanceMeters != null && realDistanceMeters > 0) {
@@ -1010,10 +811,12 @@ public class DeliveryService {
         // Marcar todos os stops pendentes como COMPLETED junto com a delivery
         if (delivery.getStops() != null) {
             OffsetDateTime now = OffsetDateTime.now(ZoneId.of("America/Fortaleza"));
+            int nextOrder = deliveryStopRepository.maxCompletionOrder(delivery.getId()) + 1;
             for (DeliveryStop stop : delivery.getStops()) {
                 if (stop.getStatus() == DeliveryStop.StopStatus.PENDING) {
                     stop.setStatus(DeliveryStop.StopStatus.COMPLETED);
                     stop.setCompletedAt(now);
+                    stop.setCompletionOrder(nextOrder++);
                 }
             }
         }
@@ -1105,6 +908,17 @@ public class DeliveryService {
                 delivery.setPickedUpAt(null);
                 delivery.setInTransitAt(null);
                 delivery.setCompletedAt(null);
+                // Inicializar approach_route se courier tiver GPS (ex.: transição WAITING_PAYMENT → ACCEPTED via admin)
+                if (delivery.getCourier() != null
+                        && delivery.getCourier().getGpsLatitude() != null
+                        && delivery.getCourier().getGpsLongitude() != null) {
+                    try {
+                        deliveryRepository.initializeApproachRoute(delivery.getId(),
+                                delivery.getCourier().getGpsLatitude(), delivery.getCourier().getGpsLongitude());
+                    } catch (Exception e) {
+                        log.warn("⚠️ Falha ao inicializar approach_route no updateStatus ACCEPTED para delivery #{}: {}", delivery.getId(), e.getMessage());
+                    }
+                }
                 break;
 
             case IN_TRANSIT:
@@ -1116,6 +930,17 @@ public class DeliveryService {
                     delivery.setPickedUpAt(now);
                 }
                 delivery.setInTransitAt(now);
+                // Inicializar actual_route se courier tiver GPS (ex.: transição manual via admin)
+                if (delivery.getCourier() != null
+                        && delivery.getCourier().getGpsLatitude() != null
+                        && delivery.getCourier().getGpsLongitude() != null) {
+                    try {
+                        deliveryRepository.initializeActualRoute(delivery.getId(),
+                                delivery.getCourier().getGpsLatitude(), delivery.getCourier().getGpsLongitude());
+                    } catch (Exception e) {
+                        log.warn("⚠️ Falha ao inicializar actual_route no updateStatus IN_TRANSIT para delivery #{}: {}", delivery.getId(), e.getMessage());
+                    }
+                }
                 // Limpar timestamp posterior
                 delivery.setCompletedAt(null);
                 break;
@@ -2292,15 +2117,92 @@ public class DeliveryService {
             result.put("courierLocation", null);
         }
 
-        // Actual route (PostGIS GeoJSON) — caminho real percorrido pelo courier
-        String geoJson = deliveryRepository.getRouteAsGeoJson(deliveryId);
+        // Rota GPS: approach_route (ACCEPTED) ou actual_route (IN_TRANSIT/COMPLETED)
+        Delivery.DeliveryStatus status = delivery.getStatus();
+        String geoJson;
+        if (status == Delivery.DeliveryStatus.ACCEPTED || status == Delivery.DeliveryStatus.WAITING_PAYMENT) {
+            geoJson = deliveryRepository.getApproachRouteAsGeoJson(deliveryId);
+        } else {
+            geoJson = deliveryRepository.getRouteAsGeoJson(deliveryId);
+        }
         result.put("route", geoJson);
 
-        // Planned route (PostGIS GeoJSON) — rota calculada no wizard, usada para o polyline azul
+        // Dados de ETA para fase de aproximação (ACCEPTED)
+        if (status == Delivery.DeliveryStatus.ACCEPTED) {
+            result.put("etaMinutes", calculateApproachEta(delivery));
+            Double acceptLat = deliveryRepository.getApproachRouteStartLat(deliveryId);
+            Double acceptLng = deliveryRepository.getApproachRouteStartLng(deliveryId);
+            if (acceptLat != null && acceptLng != null) {
+                Map<String, Object> acceptPoint = new LinkedHashMap<>();
+                acceptPoint.put("latitude", acceptLat);
+                acceptPoint.put("longitude", acceptLng);
+                result.put("acceptPoint", acceptPoint);
+            }
+            result.put("acceptedAt", delivery.getAcceptedAt());
+        }
+
+        // Rota planejada
         String plannedGeoJson = deliveryRepository.getPlannedRouteAsGeoJson(deliveryId);
         result.put("plannedRoute", plannedGeoJson);
 
         return result;
+    }
+
+    /**
+     * ETA da fase de aproximação (ACCEPTED → PICKUP).
+     * Velocidade média = haversine(A→C) / tempo_decorrido, fallback 50 km/h.
+     * ETA = haversine(C→O) / velocidade_média.
+     *
+     * A = primeiro ponto da approach_route (posição no accept, gravada junto com accepted_at)
+     * C = posição atual do courier
+     * O = origem da entrega (fromLatitude/fromLongitude)
+     */
+    private Double calculateApproachEta(Delivery delivery) {
+        try {
+            if (delivery.getCourier() == null) return null;
+            Double cLat = delivery.getCourier().getGpsLatitude();
+            Double cLng = delivery.getCourier().getGpsLongitude();
+            if (cLat == null || cLng == null) return null;
+            if (delivery.getFromLatitude() == null || delivery.getFromLongitude() == null) return null;
+
+            double oLat = delivery.getFromLatitude();
+            double oLng = delivery.getFromLongitude();
+
+            final double DEFAULT_SPEED_KMH = 50.0;
+            double speedKmh = DEFAULT_SPEED_KMH;
+
+            Double aLat = deliveryRepository.getApproachRouteStartLat(delivery.getId());
+            Double aLng = deliveryRepository.getApproachRouteStartLng(delivery.getId());
+            if (aLat != null && aLng != null && delivery.getAcceptedAt() != null) {
+                double elapsedHours = java.time.Duration.between(delivery.getAcceptedAt(), OffsetDateTime.now())
+                        .toSeconds() / 3600.0;
+                if (elapsedHours > (5.0 / 3600.0)) { // mínimo 5 segundos decorridos
+                    double distancedKm = haversineKm(aLat, aLng, cLat, cLng);
+                    if (distancedKm > 0.01) { // mínimo 10m percorridos para evitar divisão espúria
+                        speedKmh = distancedKm / elapsedHours;
+                        // limita entre 5 e 150 km/h para filtrar ruídos
+                        speedKmh = Math.max(5.0, Math.min(150.0, speedKmh));
+                    }
+                }
+            }
+
+            double remainingKm = haversineKm(cLat, cLng, oLat, oLng);
+            double etaMinutes = (remainingKm / speedKmh) * 60.0;
+            return Math.round(etaMinutes * 10.0) / 10.0; // 1 casa decimal
+        } catch (Exception e) {
+            log.warn("⚠️ Falha ao calcular ETA de aproximação para delivery #{}: {}", delivery.getId(), e.getMessage());
+            return null;
+        }
+    }
+
+    private static double haversineKm(double lat1, double lon1, double lat2, double lon2) {
+        final double R = 6371.0;
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                        * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
     /**
