@@ -54,10 +54,12 @@ public class GoogleDirectionsService {
             UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(DIRECTIONS_URL)
                     .queryParam("origin", origin)
                     .queryParam("destination", destination)
+                    .queryParam("mode", "driving")
+                    .queryParam("language", "pt-BR")
                     .queryParam("key", apiKey);
 
             if (waypoints != null && !waypoints.isEmpty()) {
-                StringBuilder wp = new StringBuilder("optimize:false");
+                StringBuilder wp = new StringBuilder("optimize:true");
                 for (double[] pt : waypoints) {
                     wp.append("|").append(pt[0]).append(",").append(pt[1]);
                 }
@@ -76,12 +78,20 @@ public class GoogleDirectionsService {
                 return List.of();
             }
 
-            String encodedPolyline = root
-                    .path("routes").get(0)
-                    .path("overview_polyline")
-                    .path("points").asText();
+            JsonNode route = root.path("routes").get(0);
+            JsonNode legs = route.path("legs");
 
-            return decodePolyline(encodedPolyline);
+            List<double[]> allCoords = new ArrayList<>();
+            for (JsonNode leg : legs) {
+                for (JsonNode step : leg.path("steps")) {
+                    String encoded = step.path("polyline").path("points").asText();
+                    if (!encoded.isBlank()) {
+                        allCoords.addAll(decodePolyline(encoded));
+                    }
+                }
+            }
+
+            return allCoords;
 
         } catch (Exception e) {
             log.warn("⚠️ Failed to fetch Google Directions route: {}", e.getMessage());
