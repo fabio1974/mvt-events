@@ -108,11 +108,16 @@ public class PlannedRouteService {
     private void recalculateApproach(Long deliveryId, double courierLat, double courierLng,
                                      double originLat, double originLng) {
         log.info("🗺️ Recalculating approach_planned_route for delivery #{}", deliveryId);
+        // Claim cooldown slot BEFORE the API call to prevent concurrent threads from
+        // both passing shouldRecalculateApproach() and triggering a double Google API request.
+        lastApproachRecalculation.put(deliveryId, Instant.now());
         List<double[]> coords = googleDirectionsService.getRoute(
                 courierLat, courierLng, originLat, originLng, List.of());
         if (coords.size() >= 2) {
             persistApproachPlannedRoute(deliveryId, coords);
-            lastApproachRecalculation.put(deliveryId, Instant.now());
+        } else {
+            // Release cooldown so next GPS update can retry
+            lastApproachRecalculation.remove(deliveryId);
         }
     }
 
@@ -120,6 +125,9 @@ public class PlannedRouteService {
                                      List<DeliveryStop> orderedStops) {
         log.info("🗺️ Recalculating in-transit planned_route for delivery #{} ({} stops)",
                 deliveryId, orderedStops.size());
+
+        // Claim cooldown slot BEFORE the API call (same rationale as recalculateApproach)
+        lastRecalculation.put(deliveryId, Instant.now());
 
         DeliveryStop lastStop = orderedStops.get(orderedStops.size() - 1);
         double destLat = lastStop.getLatitude();
@@ -135,9 +143,11 @@ public class PlannedRouteService {
                 courierLat, courierLng, destLat, destLng, waypoints);
         if (coords.size() >= 2) {
             persistPlannedRoute(deliveryId, coords);
-            lastRecalculation.put(deliveryId, Instant.now());
             // Update planned completionOrder for PENDING stops based on the new visit sequence
             updatePlannedCompletionOrders(deliveryId, orderedStops);
+        } else {
+            // Release cooldown so next GPS update can retry
+            lastRecalculation.remove(deliveryId);
         }
     }
 
