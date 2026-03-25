@@ -2141,9 +2141,15 @@ public class DeliveryService {
             result.put("acceptedAt", delivery.getAcceptedAt());
         }
 
-        // Rota planejada
+        // Rota planejada principal (pickup → paradas; persistida na criação, recalculada em IN_TRANSIT)
         String plannedGeoJson = deliveryRepository.getPlannedRouteAsGeoJson(deliveryId);
         result.put("plannedRoute", plannedGeoJson);
+
+        // Rota planejada de aproximação (courier → pickup; recalculada em ACCEPTED)
+        if (status == Delivery.DeliveryStatus.ACCEPTED) {
+            String approachPlannedGeoJson = deliveryRepository.getApproachPlannedRouteAsGeoJson(deliveryId);
+            result.put("approachPlannedRoute", approachPlannedGeoJson);
+        }
 
         return result;
     }

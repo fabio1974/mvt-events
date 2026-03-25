@@ -31,8 +31,11 @@ public class PlannedRouteService {
     private static final double DEVIATION_THRESHOLD_METERS = 100.0;
     private static final long COOLDOWN_SECONDS = 60L;
 
-    /** Last recalculation timestamp per delivery ID. */
+    /** Last recalculation timestamp for planned_route (IN_TRANSIT) per delivery ID. */
     private final ConcurrentHashMap<Long, Instant> lastRecalculation = new ConcurrentHashMap<>();
+
+    /** Last recalculation timestamp for approach_planned_route (ACCEPTED) per delivery ID. */
+    private final ConcurrentHashMap<Long, Instant> lastApproachRecalculation = new ConcurrentHashMap<>();
 
     @Autowired
     private DeliveryRepository deliveryRepository;
@@ -49,7 +52,8 @@ public class PlannedRouteService {
 
     /**
      * Called for every GPS update while delivery is ACCEPTED.
-     * Creates planned_route on first call; recalculates on deviation.
+     * Creates/recalculates approach_planned_route (courier → pickup).
+     * Never touches planned_route (the main delivery route).
      */
     @Transactional
     public void handleApproachRouteUpdate(Delivery delivery, double lat, double lng) {
@@ -59,16 +63,14 @@ public class PlannedRouteService {
 
         if (originLat == null || originLng == null) return;
 
-        String existing = deliveryRepository.getPlannedRouteAsGeoJson(deliveryId);
+        String existing = deliveryRepository.getApproachPlannedRouteAsGeoJson(deliveryId);
 
         if (existing == null) {
-            // First GPS after accept — create planned route
             recalculateApproach(deliveryId, lat, lng, originLat, originLng);
             return;
         }
 
-        // Check deviation and cooldown
-        if (shouldRecalculate(deliveryId, lat, lng)) {
+        if (shouldRecalculateApproach(deliveryId, lat, lng)) {
             recalculateApproach(deliveryId, lat, lng, originLat, originLng);
         }
     }
@@ -105,12 +107,12 @@ public class PlannedRouteService {
 
     private void recalculateApproach(Long deliveryId, double courierLat, double courierLng,
                                      double originLat, double originLng) {
-        log.info("🗺️ Recalculating approach planned_route for delivery #{}", deliveryId);
+        log.info("🗺️ Recalculating approach_planned_route for delivery #{}", deliveryId);
         List<double[]> coords = googleDirectionsService.getRoute(
                 courierLat, courierLng, originLat, originLng, List.of());
         if (coords.size() >= 2) {
-            persistPlannedRoute(deliveryId, coords);
-            lastRecalculation.put(deliveryId, Instant.now());
+            persistApproachPlannedRoute(deliveryId, coords);
+            lastApproachRecalculation.put(deliveryId, Instant.now());
         }
     }
 
@@ -152,19 +154,15 @@ public class PlannedRouteService {
     }
 
     /**
-     * Returns true if the courier has deviated beyond the threshold AND cooldown has elapsed.
+     * Returns true if the courier has deviated from planned_route (IN_TRANSIT) beyond the threshold AND cooldown has elapsed.
      */
     private boolean shouldRecalculate(Long deliveryId, double lat, double lng) {
-        // Cooldown check
         Instant last = lastRecalculation.get(deliveryId);
         if (last != null && Instant.now().minusSeconds(COOLDOWN_SECONDS).isBefore(last)) {
             return false;
         }
-
-        // Distance-from-planned-route check (PostGIS)
         Double distanceMeters = deliveryRepository.getDistanceFromPlannedRouteMeters(deliveryId, lat, lng);
-        if (distanceMeters == null) return true; // no route yet → recalculate
-
+        if (distanceMeters == null) return true;
         boolean deviated = distanceMeters > DEVIATION_THRESHOLD_METERS;
         if (deviated) {
             log.info("📍 Courier deviated {}m from planned route on delivery #{} — recalculating",
@@ -173,15 +171,40 @@ public class PlannedRouteService {
         return deviated;
     }
 
+    /**
+     * Returns true if the courier has deviated from approach_planned_route (ACCEPTED) beyond the threshold AND cooldown has elapsed.
+     */
+    private boolean shouldRecalculateApproach(Long deliveryId, double lat, double lng) {
+        Instant last = lastApproachRecalculation.get(deliveryId);
+        if (last != null && Instant.now().minusSeconds(COOLDOWN_SECONDS).isBefore(last)) {
+            return false;
+        }
+        Double distanceMeters = deliveryRepository.getDistanceFromApproachPlannedRouteMeters(deliveryId, lat, lng);
+        if (distanceMeters == null) return true;
+        boolean deviated = distanceMeters > DEVIATION_THRESHOLD_METERS;
+        if (deviated) {
+            log.info("📍 Courier deviated {}m from approach planned route on delivery #{} — recalculating",
+                    Math.round(distanceMeters), deliveryId);
+        }
+        return deviated;
+    }
+
     private void persistPlannedRoute(Long deliveryId, List<double[]> coords) {
+        deliveryRepository.updatePlannedRoute(deliveryId, buildWkt(coords));
+    }
+
+    private void persistApproachPlannedRoute(Long deliveryId, List<double[]> coords) {
+        deliveryRepository.updateApproachPlannedRoute(deliveryId, buildWkt(coords));
+    }
+
+    private static String buildWkt(List<double[]> coords) {
         StringBuilder wkt = new StringBuilder("LINESTRING(");
         for (int i = 0; i < coords.size(); i++) {
             if (i > 0) wkt.append(",");
-            // WKT uses lng lat order
-            wkt.append(coords.get(i)[1]).append(" ").append(coords.get(i)[0]);
+            wkt.append(coords.get(i)[1]).append(" ").append(coords.get(i)[0]); // WKT: lng lat
         }
         wkt.append(")");
-        deliveryRepository.updatePlannedRoute(deliveryId, wkt.toString());
+        return wkt.toString();
     }
 
     /** Returns stops whose status is not COMPLETED and not SKIPPED. */
@@ -235,5 +258,6 @@ public class PlannedRouteService {
     /** Cleans up cooldown state when a delivery completes/cancels. */
     public void clearCooldown(Long deliveryId) {
         lastRecalculation.remove(deliveryId);
+        lastApproachRecalculation.remove(deliveryId);
     }
 }

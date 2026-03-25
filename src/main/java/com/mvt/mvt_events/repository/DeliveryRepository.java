@@ -536,6 +536,18 @@ public interface DeliveryRepository
         @Query(value = "SELECT ST_Distance(planned_route::geography, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) FROM deliveries WHERE id = :deliveryId AND planned_route IS NOT NULL", nativeQuery = true)
         Double getDistanceFromPlannedRouteMeters(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng);
 
+        // ── approach_planned_route ──────────────────────────────────────────────
+
+        @Query(value = "SELECT ST_AsGeoJSON(approach_planned_route) FROM deliveries WHERE id = :deliveryId AND approach_planned_route IS NOT NULL", nativeQuery = true)
+        String getApproachPlannedRouteAsGeoJson(@Param("deliveryId") Long deliveryId);
+
+        @Modifying
+        @Query(value = "UPDATE deliveries SET approach_planned_route = ST_GeomFromText(:wkt, 4326) WHERE id = :deliveryId", nativeQuery = true)
+        void updateApproachPlannedRoute(@Param("deliveryId") Long deliveryId, @Param("wkt") String wkt);
+
+        @Query(value = "SELECT ST_Distance(approach_planned_route::geography, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) FROM deliveries WHERE id = :deliveryId AND approach_planned_route IS NOT NULL", nativeQuery = true)
+        Double getDistanceFromApproachPlannedRouteMeters(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng);
+
         /**
          * Comprimento da {@code actual_route} em metros (geodésico).
          * Após {@code complete()}, a geometria é a rota real de billing (origem, pós-pickup, trilha,

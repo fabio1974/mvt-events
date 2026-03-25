@@ -238,6 +238,11 @@ public class Delivery extends BaseEntity {
     @com.fasterxml.jackson.annotation.JsonIgnore
     private LineString plannedRoute;
 
+    /** Rota planejada da fase de aproximação (courier → pickup). Recalculada pelo PlannedRouteService enquanto ACCEPTED. */
+    @Column(name = "approach_planned_route", columnDefinition = "geometry(LineString, 4326)")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private LineString approachPlannedRoute;
+
     /**
      * Pontos [lat, lng] vindos do app na criação; convertidos em {@link #plannedRoute} em
      * {@code DeliveryService.create} — não coluna de banco.
