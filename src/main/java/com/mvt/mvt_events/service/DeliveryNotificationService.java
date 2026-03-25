@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
  * Nível 2: Motoboys de outras organizações conectadas ao cliente
  * Nível 3: Todos os motoboys próximos geograficamente
  * 
- * Escalação geográfica: 5km → 10km se não houver motoboys
+ * Escalação geográfica: 5km → 30km (temp. testes; depois 10km) se não houver motoboys
  * Intervalos de tempo: 2 minutos entre cada nível
  */
 @Service
@@ -54,7 +54,8 @@ public class DeliveryNotificationService {
 
     // Configurações do sistema de notificação
     private static final double INITIAL_RADIUS_KM = 5.0;
-    private static final double EXTENDED_RADIUS_KM = 10.0;
+    /** TODO(teste): voltar para 10.0 após testes em campo */
+    private static final double EXTENDED_RADIUS_KM = 30.0;
     private static final long LEVEL_TIMEOUT_MINUTES = 2;
 
     /**

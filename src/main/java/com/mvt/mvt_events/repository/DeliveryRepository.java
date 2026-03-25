@@ -499,7 +499,9 @@ public interface DeliveryRepository
         String getPlannedRouteAsGeoJson(@Param("deliveryId") Long deliveryId);
 
         /**
-         * Get the total route distance in meters (geodesic calculation)
+         * Comprimento da {@code actual_route} em metros (geodésico).
+         * Após {@code complete()}, a geometria é a rota real de billing (origem, pós-pickup, trilha,
+         * último GPS e fechamento ao destino); o valor alimenta o recálculo de frete.
          */
         @Query(value = "SELECT ST_Length(actual_route::geography) FROM deliveries WHERE id = :deliveryId AND actual_route IS NOT NULL", nativeQuery = true)
         Double getRouteDistanceMeters(@Param("deliveryId") Long deliveryId);
@@ -509,5 +511,12 @@ public interface DeliveryRepository
          */
         @Query(value = "SELECT ST_NPoints(actual_route) FROM deliveries WHERE id = :deliveryId AND actual_route IS NOT NULL", nativeQuery = true)
         Integer getRoutePointCount(@Param("deliveryId") Long deliveryId);
+
+        /**
+         * Substitui {@code actual_route} pela rota real de billing antes do recálculo de frete na conclusão.
+         */
+        @Modifying(clearAutomatically = true, flushAutomatically = true)
+        @Query(value = "UPDATE deliveries SET actual_route = ST_GeomFromText(:wkt, 4326) WHERE id = :deliveryId", nativeQuery = true)
+        void updateActualRouteFromWkt(@Param("deliveryId") Long deliveryId, @Param("wkt") String wkt);
 }
 

@@ -26,11 +26,17 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.locationtech.jts.io.WKTWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,6 +94,9 @@ public class DeliveryService {
     
     @Autowired
     private PushNotificationService pushNotificationService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     // TODO: ADMProfileRepository não mais usado após remoção de CourierADMLink
     // @Autowired
@@ -712,9 +721,198 @@ public class DeliveryService {
         return confirmPickup(deliveryId, courierId);
     }
 
+    private static double haversineDistanceMeters(double lat1, double lon1, double lat2, double lon2) {
+        final double R = 6371000;
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                        * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
     /**
-     * Completa delivery
-     * Atualiza métricas do courier
+     * Último destino para cortar a trilha GPS: paradas já COMPLETED (maior completedAt), senão maior stopOrder
+     * entre não-SKIPPED, senão toLatitude/toLongitude.
+     */
+    private Optional<double[]> resolveFinalDestinationForRouteTrim(Delivery d) {
+        List<DeliveryStop> stops = d.getStops();
+        if (stops != null && !stops.isEmpty()) {
+            List<DeliveryStop> completed = stops.stream()
+                    .filter(s -> s.getStatus() == DeliveryStop.StopStatus.COMPLETED
+                            && s.getLatitude() != null && s.getLongitude() != null)
+                    .toList();
+            if (!completed.isEmpty()) {
+                DeliveryStop last = completed.stream()
+                        .max(Comparator
+                                .comparing((DeliveryStop s) -> s.getCompletedAt() != null
+                                        ? s.getCompletedAt()
+                                        : OffsetDateTime.MIN)
+                                .thenComparing(DeliveryStop::getStopOrder, Comparator.nullsLast(Comparator.naturalOrder())))
+                        .orElseThrow();
+                return Optional.of(new double[] { last.getLatitude(), last.getLongitude() });
+            }
+            Optional<DeliveryStop> plannedLast = stops.stream()
+                    .filter(s -> s.getStatus() != DeliveryStop.StopStatus.SKIPPED
+                            && s.getLatitude() != null && s.getLongitude() != null)
+                    .max(Comparator.comparing(DeliveryStop::getStopOrder, Comparator.nullsLast(Comparator.naturalOrder())));
+            if (plannedLast.isPresent()) {
+                DeliveryStop s = plannedLast.get();
+                return Optional.of(new double[] { s.getLatitude(), s.getLongitude() });
+            }
+        }
+        if (d.getToLatitude() != null && d.getToLongitude() != null) {
+            return Optional.of(new double[] { d.getToLatitude(), d.getToLongitude() });
+        }
+        return Optional.empty();
+    }
+
+    private List<double[]> parseLineStringGeoJsonCoordinates(String geoJson) throws Exception {
+        JsonNode root = objectMapper.readTree(geoJson);
+        if (!"LineString".equals(root.path("type").asText())) {
+            return List.of();
+        }
+        JsonNode coords = root.get("coordinates");
+        if (coords == null || !coords.isArray()) {
+            return List.of();
+        }
+        List<double[]> out = new ArrayList<>();
+        for (JsonNode p : coords) {
+            if (p.isArray() && p.size() >= 2) {
+                out.add(new double[] { p.get(0).asDouble(), p.get(1).asDouble() });
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Monta a rota real para billing: origem → primeiro GPS pós-pickup → trilha → último GPS → destino.
+     * <p>Lógica: varre a trilha inteira e encontra o <strong>último</strong> ponto dentro da zona do pickup
+     * (≤ raio). O ponto seguinte é o início efetivo da rota de entrega. Isso funciona tanto para dados
+     * brutos (accept longe → approach → zona do pickup → saída) quanto para dados já processados
+     * anteriormente (com origem prepended).
+     * <p>Fallback (GPS nunca entrou na zona): ponto mais próximo da origem.
+     */
+    private List<double[]> buildBillingActualRouteLngLat(List<double[]> lngLat, double originLat, double originLng,
+            double destLat, double destLng, double leftPickupRadiusM, double destSnapM) {
+        if (lngLat.size() < 2) {
+            return lngLat;
+        }
+        int lastNearPickupIdx = -1;
+        for (int i = 0; i < lngLat.size(); i++) {
+            double[] p = lngLat.get(i);
+            if (haversineDistanceMeters(p[1], p[0], originLat, originLng) <= leftPickupRadiusM) {
+                lastNearPickupIdx = i;
+            }
+        }
+
+        int startIdx;
+        if (lastNearPickupIdx >= 0 && lastNearPickupIdx + 1 < lngLat.size()) {
+            startIdx = lastNearPickupIdx + 1;
+        } else if (lastNearPickupIdx < 0) {
+            startIdx = 0;
+            double bestDist = Double.MAX_VALUE;
+            for (int i = 0; i < lngLat.size(); i++) {
+                double[] p = lngLat.get(i);
+                double d = haversineDistanceMeters(p[1], p[0], originLat, originLng);
+                if (d < bestDist) {
+                    bestDist = d;
+                    startIdx = i;
+                }
+            }
+        } else {
+            startIdx = lastNearPickupIdx;
+        }
+
+        int endIdx = lngLat.size() - 1;
+        if (startIdx > endIdx) {
+            return lngLat;
+        }
+
+        List<double[]> out = new ArrayList<>();
+        out.add(new double[] { originLng, originLat });
+        List<double[]> middle = lngLat.subList(startIdx, endIdx + 1);
+        out.addAll(middle);
+
+        double[] last = out.get(out.size() - 1);
+        if (haversineDistanceMeters(last[1], last[0], destLat, destLng) > destSnapM) {
+            out.add(new double[] { destLng, destLat });
+        }
+
+        if (out.size() < 2) {
+            return lngLat;
+        }
+        return out;
+    }
+
+    private String lineStringLngLatToWkt(List<double[]> lngLat) {
+        GeometryFactory gf = new GeometryFactory(new PrecisionModel(), 4326);
+        Coordinate[] arr = lngLat.stream()
+                .map(p -> new Coordinate(p[0], p[1]))
+                .toArray(Coordinate[]::new);
+        LineString ls = gf.createLineString(arr);
+        return new WKTWriter().write(ls);
+    }
+
+    /**
+     * Normaliza e persiste em {@code actual_route} a rota real de billing: começa na origem (pickup),
+     * liga ao primeiro ponto GPS após sair da zona de coleta, segue toda a trilha até o último ponto
+     * gravado (fim do rastreio na conclusão) e fecha ligando ao destino final.
+     * <p>Essa geometria é a usada por {@link DeliveryRepository#getRouteDistanceMeters} e pelo recálculo
+     * de frete em {@link #complete(Long, UUID)}. Mesmo algoritmo no backfill {@link #trimActualRouteInDatabase(Long)}.
+     */
+    private void trimAndPersistActualRouteForBilling(Delivery delivery) {
+        Long id = delivery.getId();
+        if (delivery.getFromLatitude() == null || delivery.getFromLongitude() == null) {
+            return;
+        }
+        Optional<double[]> destOpt = resolveFinalDestinationForRouteTrim(delivery);
+        if (destOpt.isEmpty()) {
+            return;
+        }
+        double destLat = destOpt.get()[0];
+        double destLng = destOpt.get()[1];
+
+        String geoJson = deliveryRepository.getRouteAsGeoJson(id);
+        if (geoJson == null || geoJson.isBlank()) {
+            return;
+        }
+        try {
+            List<double[]> points = parseLineStringGeoJsonCoordinates(geoJson);
+            if (points.size() < 2) {
+                return;
+            }
+            final double leftPickupM = 200;
+            final double destSnapM = 5;
+            List<double[]> billingRoute = buildBillingActualRouteLngLat(points,
+                    delivery.getFromLatitude(), delivery.getFromLongitude(),
+                    destLat, destLng, leftPickupM, destSnapM);
+            if (billingRoute.size() < 2) {
+                return;
+            }
+            String wkt = lineStringLngLatToWkt(billingRoute);
+            deliveryRepository.updateActualRouteFromWkt(id, wkt);
+            log.info("📏 Delivery #{} actual_route (billing: origem→pós-pickup→…→último GPS→destino): {} → {} pontos",
+                    id, points.size(), billingRoute.size());
+        } catch (Exception e) {
+            log.warn("⚠️ Falha ao cortar actual_route da delivery #{} antes do frete: {}", id, e.getMessage());
+        }
+    }
+
+    /**
+     * Atualiza no banco a {@code actual_route} com a rota real de billing (origem → … → último GPS → destino).
+     * Para corridas já concluídas (ex.: backfill): só a geometria; não altera {@code shippingFee}/{@code distanceKm}.
+     * Corridas novas: em {@link #complete} a normalização é aplicada antes do recálculo de frete.
+     */
+    public void trimActualRouteInDatabase(Long deliveryId) {
+        Delivery d = deliveryRepository.findByIdWithJoins(deliveryId)
+                .orElseThrow(() -> new RuntimeException("Delivery não encontrada: " + deliveryId));
+        trimAndPersistActualRouteForBilling(d);
+    }
+
+    /**
+     * Completa delivery e recalcula frete com base na rota real normalizada em {@code actual_route}
+     * (origem, primeiro GPS após o pickup, trilha até o último ponto de rastreio, destino).
      */
     public Delivery complete(Long deliveryId, UUID courierId) {
         Delivery delivery = deliveryRepository.findByIdWithJoins(deliveryId)
@@ -731,7 +929,9 @@ public class DeliveryService {
         delivery.setStatus(Delivery.DeliveryStatus.COMPLETED);
         delivery.setCompletedAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")));
 
-        // Recálculo pela rota real (PostGIS)
+        trimAndPersistActualRouteForBilling(delivery);
+
+        // Recálculo pela rota real (PostGIS) — distância já sobre trilha cortada
         try {
             Double realDistanceMeters = deliveryRepository.getRouteDistanceMeters(deliveryId);
             if (realDistanceMeters != null && realDistanceMeters > 0) {
