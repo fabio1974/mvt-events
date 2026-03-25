@@ -157,6 +157,14 @@ public class PlannedRouteService {
             }
         }
 
+        // Fallback: chain individual point-to-point calls (mirrors mobile chainRouteThroughStops).
+        // Handles regions where optimize:true waypoints cause NOT_FOUND (e.g. Ubajara-CE).
+        if (bestCoords.isEmpty()) {
+            log.info("🔗 Open-route failed — falling back to chained routing for delivery #{}", deliveryId);
+            bestCoords = chainRoute(courierLat, courierLng, orderedStops);
+            bestOrder = orderedStops;
+        }
+
         if (bestCoords.size() >= 2) {
             persistPlannedRoute(deliveryId, bestCoords);
             updatePlannedCompletionOrders(deliveryId, bestOrder);
@@ -164,6 +172,33 @@ public class PlannedRouteService {
             // Release cooldown so next GPS update can retry
             lastRecalculation.remove(deliveryId);
         }
+    }
+
+    /**
+     * Chains individual courier→stop1, stop1→stop2, ... calls without waypoints.
+     * Fallback for regions where optimize:true waypoints cause NOT_FOUND.
+     */
+    private List<double[]> chainRoute(double fromLat, double fromLng, List<DeliveryStop> orderedStops) {
+        List<double[]> chain = new ArrayList<>();
+        double curLat = fromLat;
+        double curLng = fromLng;
+        for (DeliveryStop stop : orderedStops) {
+            List<double[]> leg = googleDirectionsService.getRoute(
+                    curLat, curLng, stop.getLatitude(), stop.getLongitude(), List.of());
+            if (leg.size() < 2) {
+                log.warn("⚠️ Chain leg failed: ({},{})→({},{})", curLat, curLng,
+                        stop.getLatitude(), stop.getLongitude());
+                return List.of();
+            }
+            if (chain.isEmpty()) {
+                chain.addAll(leg);
+            } else {
+                chain.addAll(leg.subList(1, leg.size())); // avoid duplicate junction point
+            }
+            curLat = stop.getLatitude();
+            curLng = stop.getLongitude();
+        }
+        return chain;
     }
 
     /**
