@@ -129,22 +129,37 @@ public class PlannedRouteService {
         // Claim cooldown slot BEFORE the API call (same rationale as recalculateApproach)
         lastRecalculation.put(deliveryId, Instant.now());
 
-        DeliveryStop lastStop = orderedStops.get(orderedStops.size() - 1);
-        double destLat = lastStop.getLatitude();
-        double destLng = lastStop.getLongitude();
+        // Open-route strategy (mirrors mobile routeService.getOptimizedRoute):
+        // Try each stop as the final destination, others as waypoints. Pick the first
+        // successful result. This handles cases where a specific coordinate is not
+        // routable as a final destination but works as an intermediate waypoint.
+        List<double[]> bestCoords = List.of();
+        List<DeliveryStop> bestOrder = List.of();
 
-        List<double[]> waypoints = new ArrayList<>();
-        for (int i = 0; i < orderedStops.size() - 1; i++) {
-            DeliveryStop s = orderedStops.get(i);
-            waypoints.add(new double[]{s.getLatitude(), s.getLongitude()});
+        for (int finalIdx = 0; finalIdx < orderedStops.size(); finalIdx++) {
+            DeliveryStop dest = orderedStops.get(finalIdx);
+            List<double[]> waypoints = new ArrayList<>();
+            List<DeliveryStop> candidateOrder = new ArrayList<>();
+            for (int i = 0; i < orderedStops.size(); i++) {
+                if (i != finalIdx) {
+                    waypoints.add(new double[]{orderedStops.get(i).getLatitude(), orderedStops.get(i).getLongitude()});
+                    candidateOrder.add(orderedStops.get(i));
+                }
+            }
+            candidateOrder.add(dest);
+
+            List<double[]> coords = googleDirectionsService.getRoute(
+                    courierLat, courierLng, dest.getLatitude(), dest.getLongitude(), waypoints);
+            if (coords.size() >= 2) {
+                bestCoords = coords;
+                bestOrder = candidateOrder;
+                break;
+            }
         }
 
-        List<double[]> coords = googleDirectionsService.getRoute(
-                courierLat, courierLng, destLat, destLng, waypoints);
-        if (coords.size() >= 2) {
-            persistPlannedRoute(deliveryId, coords);
-            // Update planned completionOrder for PENDING stops based on the new visit sequence
-            updatePlannedCompletionOrders(deliveryId, orderedStops);
+        if (bestCoords.size() >= 2) {
+            persistPlannedRoute(deliveryId, bestCoords);
+            updatePlannedCompletionOrders(deliveryId, bestOrder);
         } else {
             // Release cooldown so next GPS update can retry
             lastRecalculation.remove(deliveryId);
