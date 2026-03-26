@@ -68,6 +68,10 @@ sql/
 *.jar
 *.war
 
+### macOS ###
+.DS_Store
+**/.DS_Store
+
 ### Temporary files ###
 *.tmp
 *.swp
