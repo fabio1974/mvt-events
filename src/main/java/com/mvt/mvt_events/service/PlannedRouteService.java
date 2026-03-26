@@ -29,7 +29,7 @@ public class PlannedRouteService {
     private static final Logger log = LoggerFactory.getLogger(PlannedRouteService.class);
 
     private static final double DEVIATION_THRESHOLD_METERS = 100.0;
-    private static final long COOLDOWN_SECONDS = 60L;
+    private static final long COOLDOWN_SECONDS = 20L;
 
     /** Last recalculation timestamp for planned_route (IN_TRANSIT) per delivery ID. */
     private final ConcurrentHashMap<Long, Instant> lastRecalculation = new ConcurrentHashMap<>();
