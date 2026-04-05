@@ -477,6 +477,7 @@ public class AuthController {
     }
 
     @PostMapping("/change-password")
+    @Transactional
     public ResponseEntity<?> changePassword(Authentication authentication,
             @RequestBody ChangePasswordRequest request) {
         try {
@@ -498,9 +499,8 @@ public class AuthController {
                 return ResponseEntity.badRequest().body("New password must be at least 4 characters long");
             }
 
-            // Update password
-            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-            userRepository.save(user);
+            // Update password via query direta (evita revalidação de todos os campos da entity)
+            userRepository.updatePasswordByUsername(username, passwordEncoder.encode(request.getNewPassword()));
 
             Map<String, String> response = new HashMap<>();
             response.put("message", "Password changed successfully");
@@ -508,6 +508,7 @@ public class AuthController {
 
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
+            log.error("❌ Erro ao alterar senha para {}: {}", authentication.getName(), e.getMessage(), e);
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
