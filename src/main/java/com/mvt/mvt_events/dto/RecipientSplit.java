@@ -38,7 +38,7 @@ public class RecipientSplit {
     
     public enum RecipientType {
         COURIER,    // Motoboy
-        MANAGER,    // Gerente
+        ORGANIZER,  // Gerente/Organizador
         PLATFORM    // Plataforma (conta master)
     }
 }

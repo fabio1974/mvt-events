@@ -98,7 +98,7 @@ public class PagarMeConfig {
          * Percentual do gerente (em centavos)
          * Exemplo: 500 = 5%
          */
-        private Integer managerPercentage;
+        private Integer organizerPercentage;
 
         /**
          * Se o entregador é liable (responsável por chargebacks)
@@ -113,7 +113,7 @@ public class PagarMeConfig {
         /**
          * Se o gerente paga taxa de processamento
          */
-        private Boolean managerChargeProcessingFee;
+        private Boolean organizerChargeProcessingFee;
     }
 
     @Getter

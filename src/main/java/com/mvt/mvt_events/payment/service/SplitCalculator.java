@@ -28,8 +28,8 @@ public class SplitCalculator {
     @Value("${pagarme.split.courier-percentage:8700}")
     private Integer courierPercentage; // 8700 = 87.00%
 
-    @Value("${pagarme.split.manager-percentage:500}")
-    private Integer managerPercentage; // 500 = 5.00%
+    @Value("${pagarme.split.organizer-percentage:500}")
+    private Integer organizerPercentage; // 500 = 5.00%
 
     @Value("${pagarme.split.courier-liable:false}")
     private Boolean courierLiable; // false - plataforma é liable
@@ -37,8 +37,8 @@ public class SplitCalculator {
     @Value("${pagarme.split.courier-charge-processing-fee:false}")
     private Boolean courierChargeFee; // false - plataforma paga
 
-    @Value("${pagarme.split.manager-charge-processing-fee:false}")
-    private Boolean managerChargeFee; // false - plataforma paga
+    @Value("${pagarme.split.organizer-charge-processing-fee:false}")
+    private Boolean organizerChargeFee; // false - plataforma paga
 
     /**
      * Calcula o split de pagamento para Pagar.me
@@ -78,7 +78,7 @@ public class SplitCalculator {
 
         // Calcular percentuais
         // Se não há organizer, plataforma incorpora os 5% dele (total 13%)
-        int effectiveManagerPercentage = hasOrganizer ? managerPercentage : 0;
+        int effectiveManagerPercentage = hasOrganizer ? organizerPercentage : 0;
         
         // Validação: soma dos splits não pode ultrapassar 100%
         int totalPercentage = courierPercentage + effectiveManagerPercentage;
@@ -115,19 +115,19 @@ public class SplitCalculator {
             throw new IllegalStateException("Courier is missing");
         }
 
-        // 2. Split do MANAGER (5%) - APENAS SE EXISTIR
+        // 2. Split do ORGANIZER (5%) - APENAS SE EXISTIR
         // Quando não há organizer (delivery criada por CUSTOMER direto), 
         // a plataforma incorpora os 5% automaticamente (fica com 13%)
         if (hasOrganizer) {
             String managerRecipientId = delivery.getOrganizer().getPagarmeRecipientId();
 
             PagarMeSplitRequest managerSplit = PagarMeSplitRequest.builder()
-                .amount(managerPercentage) // 500 = 5%
+                .amount(organizerPercentage) // 500 = 5%
                 .recipientId(managerRecipientId)
                 .type("percentage")
                 .options(PagarMeSplitRequest.SplitOptions.builder()
                     .liable(false) // false - plataforma é liable
-                    .chargeProcessingFee(managerChargeFee) // false - plataforma paga
+                    .chargeProcessingFee(organizerChargeFee) // false - plataforma paga
                     .chargeRemainderFee(false)
                     .build())
                 .build();
@@ -254,20 +254,20 @@ public class SplitCalculator {
 
         // Calcula valores em centavos
         long courierAmount = (totalAmount * courierPercentage) / 10000;
-        long managerAmount = hasOrganizer ? (totalAmount * managerPercentage) / 10000 : 0;
-        long platformAmount = totalAmount - courierAmount - managerAmount; // Resto = 8% ou 13%
+        long organizerAmount = hasOrganizer ? (totalAmount * organizerPercentage) / 10000 : 0;
+        long platformAmount = totalAmount - courierAmount - organizerAmount; // Resto = 8% ou 13%
 
         int effectivePlatformPercentage = hasOrganizer 
-            ? (10000 - courierPercentage - managerPercentage) 
+            ? (10000 - courierPercentage - organizerPercentage) 
             : (10000 - courierPercentage);
 
         return SplitBreakdown.builder()
             .totalAmount(totalAmount)
             .courierAmount(courierAmount)
-            .managerAmount(managerAmount)
+            .organizerAmount(organizerAmount)
             .platformAmount(platformAmount)
             .courierPercentage(new BigDecimal(courierPercentage).divide(new BigDecimal(100)))
-            .managerPercentage(hasOrganizer ? new BigDecimal(managerPercentage).divide(new BigDecimal(100)) : BigDecimal.ZERO)
+            .organizerPercentage(hasOrganizer ? new BigDecimal(organizerPercentage).divide(new BigDecimal(100)) : BigDecimal.ZERO)
             .platformPercentage(new BigDecimal(effectivePlatformPercentage).divide(new BigDecimal(100)))
             .hasOrganizer(hasOrganizer)
             .build();
@@ -281,10 +281,10 @@ public class SplitCalculator {
     public static class SplitBreakdown {
         private Long totalAmount;
         private Long courierAmount;
-        private Long managerAmount;
+        private Long organizerAmount;
         private Long platformAmount;
         private BigDecimal courierPercentage;
-        private BigDecimal managerPercentage;
+        private BigDecimal organizerPercentage;
         private BigDecimal platformPercentage;
         private Boolean hasOrganizer;
     }
