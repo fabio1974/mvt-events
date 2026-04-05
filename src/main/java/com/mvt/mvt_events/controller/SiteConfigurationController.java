@@ -144,6 +144,7 @@ public class SiteConfigurationController {
         existingConfig.setDangerFeePercentage(updatedConfig.getDangerFeePercentage());
         existingConfig.setHighIncomeFeePercentage(updatedConfig.getHighIncomeFeePercentage());
         existingConfig.setCreditCardFeePercentage(updatedConfig.getCreditCardFeePercentage());
+        existingConfig.setAdditionalStopFee(updatedConfig.getAdditionalStopFee());
         existingConfig.setIsActive(updatedConfig.getIsActive());
         existingConfig.setNotes(updatedConfig.getNotes());
         existingConfig.setPaymentHistoryDays(updatedConfig.getPaymentHistoryDays());
