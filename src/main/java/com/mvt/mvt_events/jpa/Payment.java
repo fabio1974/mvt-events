@@ -287,7 +287,7 @@ public class Payment extends BaseEntity {
     /**
      * Calcula o valor que o gestor deve receber (5% do total)
      */
-    public BigDecimal getManagerShare() {
+    public BigDecimal getOrganizerShare() {
         if (amount == null) return BigDecimal.ZERO;
         return amount.multiply(new BigDecimal("0.05")).setScale(2, RoundingMode.HALF_UP);
     }

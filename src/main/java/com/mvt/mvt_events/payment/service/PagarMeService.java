@@ -422,7 +422,7 @@ public class PagarMeService {
         // Manager recebe 5% apenas se existir
         int managerAmount = 0;
         if (hasManager) {
-            managerAmount = (amountInCents * config.getSplit().getManagerPercentage()) / 10000;
+            managerAmount = (amountInCents * config.getSplit().getOrganizerPercentage()) / 10000;
         }
         
         // Plataforma recebe o resto (8% ou 13% se não houver manager)
@@ -460,7 +460,7 @@ public class PagarMeService {
                     .recipientId(managerRecipientId)
                     .options(OrderRequest.SplitOptionsRequest.builder()
                             .liable(false)
-                            .chargeProcessingFee(config.getSplit().getManagerChargeProcessingFee())
+                            .chargeProcessingFee(config.getSplit().getOrganizerChargeProcessingFee())
                             .chargeRemainderFee(false)
                             .build())
                     .build());
@@ -639,7 +639,7 @@ public class PagarMeService {
         // Organizer recebe 5% apenas se existir
         int organizerAmount = 0;
         if (hasOrganizer) {
-            organizerAmount = (amountInCents * config.getSplit().getManagerPercentage()) / 10000;
+            organizerAmount = (amountInCents * config.getSplit().getOrganizerPercentage()) / 10000;
         }
         
         // Plataforma recebe o resto (8% ou 13% se não houver organizer)
