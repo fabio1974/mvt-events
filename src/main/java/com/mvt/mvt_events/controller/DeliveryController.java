@@ -395,13 +395,19 @@ public class DeliveryController {
                         .body(Map.of("error", "Apenas o courier designado pode completar paradas"));
             }
             int nextOrder = deliveryStopRepository.maxCompletionOrder(deliveryId) + 1;
-            int updated = deliveryStopRepository.completeStop(deliveryId, stopId, nextOrder);
+            int updated = deliveryStopRepository.completeStop(deliveryId, stopId, nextOrder, java.time.OffsetDateTime.now());
             if (updated == 0) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of("error", "Parada não encontrada"));
             }
 
-            delivery = deliveryService.findById(deliveryId, null);
+            // Auto-completar delivery quando não restam paradas pendentes
+            if (deliveryStopRepository.countPendingStops(deliveryId) == 0
+                    && delivery.getStatus() == Delivery.DeliveryStatus.IN_TRANSIT) {
+                delivery = deliveryService.complete(deliveryId, courierId);
+            } else {
+                delivery = deliveryService.findById(deliveryId, null);
+            }
             org.hibernate.Hibernate.initialize(delivery.getStops());
             return ResponseEntity.ok(mapToResponse(delivery));
         } catch (Exception e) {
@@ -425,17 +431,93 @@ public class DeliveryController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("error", "Apenas o courier designado pode pular paradas"));
             }
-            int updated = deliveryStopRepository.skipStop(deliveryId, stopId);
+            int updated = deliveryStopRepository.skipStop(deliveryId, stopId, java.time.OffsetDateTime.now());
             if (updated == 0) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of("error", "Parada não encontrada ou já finalizada"));
             }
 
-            delivery = deliveryService.findById(deliveryId, null);
+            // Auto-completar delivery quando não restam paradas pendentes
+            if (deliveryStopRepository.countPendingStops(deliveryId) == 0
+                    && delivery.getStatus() == Delivery.DeliveryStatus.IN_TRANSIT) {
+                delivery = deliveryService.complete(deliveryId, courierId);
+            } else {
+                delivery = deliveryService.findById(deliveryId, null);
+            }
             org.hibernate.Hibernate.initialize(delivery.getStops());
             return ResponseEntity.ok(mapToResponse(delivery));
         } catch (Exception e) {
             log.error("Erro ao pular parada #{} da delivery #{}: {}", stopId, deliveryId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{id}/planned-route")
+    @Operation(summary = "Atualizar rota planejada", description = "Mobile envia rota recalculada para persistir no banco")
+    @Transactional
+    public ResponseEntity<?> updatePlannedRoute(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body,
+            Authentication authentication) {
+        try {
+            UUID courierId = getUserIdFromAuthentication(authentication);
+            Delivery delivery = deliveryService.findById(id, null);
+            if (delivery.getCourier() == null || !delivery.getCourier().getId().equals(courierId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Apenas o courier designado pode atualizar a rota"));
+            }
+            @SuppressWarnings("unchecked")
+            List<List<Number>> coords = (List<List<Number>>) body.get("coordinates");
+            if (coords == null || coords.size() < 2) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Mínimo 2 coordenadas"));
+            }
+            StringBuilder wkt = new StringBuilder("LINESTRING(");
+            for (int i = 0; i < coords.size(); i++) {
+                if (i > 0) wkt.append(",");
+                wkt.append(coords.get(i).get(1)).append(" ").append(coords.get(i).get(0)); // WKT: lng lat
+            }
+            wkt.append(")");
+            deliveryRepository.updatePlannedRoute(id, wkt.toString());
+            log.info("📤 Rota planejada atualizada pelo mobile para delivery #{} ({} pontos)", id, coords.size());
+            return ResponseEntity.ok(Map.of("success", true, "points", coords.size()));
+        } catch (Exception e) {
+            log.error("Erro ao atualizar rota planejada da delivery #{}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{id}/approach-planned-route")
+    @Operation(summary = "Atualizar rota de aproximação", description = "Mobile envia rota de aproximação recalculada")
+    @Transactional
+    public ResponseEntity<?> updateApproachPlannedRoute(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body,
+            Authentication authentication) {
+        try {
+            UUID courierId = getUserIdFromAuthentication(authentication);
+            Delivery delivery = deliveryService.findById(id, null);
+            if (delivery.getCourier() == null || !delivery.getCourier().getId().equals(courierId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Apenas o courier designado pode atualizar a rota"));
+            }
+            @SuppressWarnings("unchecked")
+            List<List<Number>> coords = (List<List<Number>>) body.get("coordinates");
+            if (coords == null || coords.size() < 2) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Mínimo 2 coordenadas"));
+            }
+            StringBuilder wkt = new StringBuilder("LINESTRING(");
+            for (int i = 0; i < coords.size(); i++) {
+                if (i > 0) wkt.append(",");
+                wkt.append(coords.get(i).get(1)).append(" ").append(coords.get(i).get(0));
+            }
+            wkt.append(")");
+            deliveryRepository.updateApproachPlannedRoute(id, wkt.toString());
+            log.info("📤 Rota de aproximação atualizada pelo mobile para delivery #{} ({} pontos)", id, coords.size());
+            return ResponseEntity.ok(Map.of("success", true, "points", coords.size()));
+        } catch (Exception e) {
+            log.error("Erro ao atualizar rota de aproximação da delivery #{}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", e.getMessage()));
         }
