@@ -115,7 +115,10 @@ public class PlannedRouteService {
                 courierLat, courierLng, originLat, originLng, List.of());
         if (coords.size() >= 2) {
             persistApproachPlannedRoute(deliveryId, coords);
+            log.info("✅ Approach route recalculated for delivery #{}: {} points", deliveryId, coords.size());
         } else {
+            log.warn("❌ Approach route recalculation FAILED for delivery #{}: no route from ({}, {}) to origin ({}, {})",
+                    deliveryId, courierLat, courierLng, originLat, originLng);
             // Release cooldown so next GPS update can retry
             lastApproachRecalculation.remove(deliveryId);
         }
@@ -168,7 +171,11 @@ public class PlannedRouteService {
         if (bestCoords.size() >= 2) {
             persistPlannedRoute(deliveryId, bestCoords);
             updatePlannedCompletionOrders(deliveryId, bestOrder);
+            log.info("✅ Planned route recalculated for delivery #{}: {} points, from courier ({}, {}) to {} stop(s)",
+                    deliveryId, bestCoords.size(), courierLat, courierLng, bestOrder.size());
         } else {
+            log.warn("❌ Planned route recalculation FAILED for delivery #{}: Google Directions returned no route from ({}, {}) to {} stop(s)",
+                    deliveryId, courierLat, courierLng, orderedStops.size());
             // Release cooldown so next GPS update can retry
             lastRecalculation.remove(deliveryId);
         }

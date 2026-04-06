@@ -550,12 +550,13 @@ public class UserService {
                         } else {
                             deliveryRepository.appendApproachRoutePoint(delivery.getId(), latitude, longitude);
                         }
-                        // Update planned_route via Google Directions
-                        plannedRouteService.handleApproachRouteUpdate(delivery, latitude, longitude);
+                        // Recálculo de rota planejada agora é feito no mobile (routeDeviationService)
+                        // Backend apenas persiste o GPS. Mobile envia rota recalculada via PUT /planned-route.
+                        // plannedRouteService.handleApproachRouteUpdate(delivery, latitude, longitude);
                     } else if (status == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.IN_TRANSIT) {
                         deliveryRepository.appendRoutePoint(delivery.getId(), latitude, longitude);
-                        // Update planned_route via Google Directions
-                        plannedRouteService.handleDeliveryRouteUpdate(delivery, latitude, longitude);
+                        // Recálculo agora é feito no mobile
+                        // plannedRouteService.handleDeliveryRouteUpdate(delivery, latitude, longitude);
                     }
                 });
             } catch (Exception e) {

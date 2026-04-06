@@ -240,6 +240,31 @@ public class UserController {
         return ResponseEntity.ok(new UserResponse(updatedUser));
     }
 
+    @PutMapping("/{id}/location/batch")
+    @Operation(summary = "Enviar lote de pontos GPS offline",
+               description = "Recebe array de pontos GPS capturados offline e aplica na ordem ao actual_route da corrida ativa")
+    public ResponseEntity<?> updateLocationBatch(
+            @PathVariable UUID id,
+            @RequestBody @Valid java.util.List<LocationUpdateRequest> points,
+            Authentication authentication) {
+        if (points == null || points.isEmpty()) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", "Lista de pontos vazia"));
+        }
+        // Ordena por timestamp para garantir ordem cronológica
+        points.sort((a, b) -> {
+            if (a.getUpdatedAt() == null || b.getUpdatedAt() == null) return 0;
+            return a.getUpdatedAt().compareTo(b.getUpdatedAt());
+        });
+        // Aplica cada ponto sequencialmente (o último atualiza a posição do courier)
+        User updatedUser = null;
+        for (LocationUpdateRequest point : points) {
+            updatedUser = userService.updateUserLocation(id, point.getGpsLatitude(), point.getGpsLongitude(),
+                    point.getUpdatedAt(), authentication);
+        }
+        System.out.println("📍 Batch GPS: " + points.size() + " pontos offline aplicados para user " + id);
+        return ResponseEntity.ok(new UserResponse(updatedUser));
+    }
+
     // ============================================================================
     // HELPER METHODS
     // ============================================================================
