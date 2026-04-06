@@ -226,21 +226,25 @@ public class Delivery extends BaseEntity {
 
     @Column(name = "actual_route", columnDefinition = "geometry(LineString, 4326)")
     @com.fasterxml.jackson.annotation.JsonIgnore
+    @Visible(table = false, form = false, filter = false)
     private LineString actualRoute;
 
     /** Rota de aproximação do entregador (fase ACCEPTED → PICKUP). Não usada para billing. */
     @Column(name = "approach_route", columnDefinition = "geometry(LineString, 4326)")
     @com.fasterxml.jackson.annotation.JsonIgnore
+    @Visible(table = false, form = false, filter = false)
     private LineString approachRoute;
 
     /** Rota planejada — persistida uma única vez na criação da corrida */
     @Column(name = "planned_route", columnDefinition = "geometry(LineString, 4326)")
     @com.fasterxml.jackson.annotation.JsonIgnore
+    @Visible(table = false, form = false, filter = false)
     private LineString plannedRoute;
 
     /** Rota planejada da fase de aproximação (courier → pickup). Recalculada pelo PlannedRouteService enquanto ACCEPTED. */
     @Column(name = "approach_planned_route", columnDefinition = "geometry(LineString, 4326)")
     @com.fasterxml.jackson.annotation.JsonIgnore
+    @Visible(table = false, form = false, filter = false)
     private LineString approachPlannedRoute;
 
     /**
@@ -249,6 +253,7 @@ public class Delivery extends BaseEntity {
      */
     @Transient
     @com.fasterxml.jackson.annotation.JsonIgnore
+    @Visible(table = false, form = false, filter = false)
     private List<List<Double>> plannedRouteCoordinates;
 
     @Column(name = "cancellation_reason", columnDefinition = "TEXT")
