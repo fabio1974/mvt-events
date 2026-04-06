@@ -180,7 +180,7 @@ public class Delivery extends BaseEntity {
      */
     @NotNull(message = "Status de pagamento é obrigatório")
     @Column(name = "payment_completed", nullable = false)
-    @Visible(table = true, form = false, filter = true)
+    @Visible(table = false, form = false, filter = false)
     private Boolean paymentCompleted = false;
 
     /**
