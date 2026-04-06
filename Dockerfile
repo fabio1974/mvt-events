@@ -11,8 +11,8 @@ COPY gradle gradle
 # Copy source code
 COPY src src
 
-# Build the application
-RUN gradle build --no-daemon -x test
+# Run tests and build the application (tests must pass for deploy)
+RUN gradle build --no-daemon
 
 # Runtime stage
 FROM amazoncorretto:17-alpine
