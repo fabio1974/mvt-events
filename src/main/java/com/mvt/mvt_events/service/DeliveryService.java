@@ -725,6 +725,11 @@ public class DeliveryService {
             throw new RuntimeException("Delivery não pertence a este courier");
         }
 
+        // Idempotente: se já está COMPLETED, retorna sem erro
+        if (delivery.getStatus() == Delivery.DeliveryStatus.COMPLETED) {
+            return delivery;
+        }
+
         if (delivery.getStatus() != Delivery.DeliveryStatus.IN_TRANSIT) {
             throw new RuntimeException("Status inválido para completar");
         }
@@ -791,12 +796,17 @@ public class DeliveryService {
                     calculatedFee = calculatedFee.add(surcharge);
                 }
 
-                // Taxa por paradas extras (multi-stop)
-                if (completeStops != null && completeStops.size() > 1) {
-                    int extraStops = completeStops.size() - 1;
-                    BigDecimal stopFee = activeConfig.getAdditionalStopFee()
-                            .multiply(BigDecimal.valueOf(extraStops));
-                    calculatedFee = calculatedFee.add(stopFee);
+                // Taxa por paradas extras (multi-stop) — SKIPPED não contam
+                if (completeStops != null) {
+                    long completedCount = completeStops.stream()
+                            .filter(s -> s.getStatus() == DeliveryStop.StopStatus.COMPLETED)
+                            .count();
+                    if (completedCount > 1) {
+                        long extraStops = completedCount - 1;
+                        BigDecimal stopFee = activeConfig.getAdditionalStopFee()
+                                .multiply(BigDecimal.valueOf(extraStops));
+                        calculatedFee = calculatedFee.add(stopFee);
+                    }
                 }
 
                 delivery.setShippingFee(calculatedFee.setScale(2, RoundingMode.HALF_UP));
