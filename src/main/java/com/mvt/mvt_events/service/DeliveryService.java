@@ -576,7 +576,7 @@ public class DeliveryService {
             // 📍 ROUTE TRACKING: Inicializa approach_route no ACCEPTED
             try {
                 if (courierUser.getGpsLatitude() != null && courierUser.getGpsLongitude() != null) {
-                    deliveryRepository.initializeApproachRoute(saved.getId(), courierUser.getGpsLatitude(), courierUser.getGpsLongitude());
+                    deliveryRepository.initializeApproachRoute(saved.getId(), courierUser.getGpsLatitude(), courierUser.getGpsLongitude(), (double) java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza")).toEpochSecond());
                     System.out.println("📍 approach_route iniciada no ACCEPTED para delivery " + saved.getId());
                 }
             } catch (Exception e) {
@@ -629,7 +629,7 @@ public class DeliveryService {
             if (saved.getStatus() == Delivery.DeliveryStatus.ACCEPTED) {
                 try {
                     if (courierUser.getGpsLatitude() != null && courierUser.getGpsLongitude() != null) {
-                        deliveryRepository.initializeApproachRoute(saved.getId(), courierUser.getGpsLatitude(), courierUser.getGpsLongitude());
+                        deliveryRepository.initializeApproachRoute(saved.getId(), courierUser.getGpsLatitude(), courierUser.getGpsLongitude(), (double) java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza")).toEpochSecond());
                         System.out.println("📍 approach_route iniciada no ACCEPTED para delivery " + saved.getId());
                     }
                 } catch (Exception e) {
@@ -679,7 +679,8 @@ public class DeliveryService {
         try {
             User courier = delivery.getCourier();
             if (courier != null && courier.getGpsLatitude() != null && courier.getGpsLongitude() != null) {
-                deliveryRepository.initializeActualRoute(saved.getId(), courier.getGpsLatitude(), courier.getGpsLongitude());
+                double epochNow = java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza")).toEpochSecond();
+                deliveryRepository.initializeActualRoute(saved.getId(), courier.getGpsLatitude(), courier.getGpsLongitude(), epochNow);
                 System.out.println("📍 actual_route iniciada no PICKUP para delivery " + saved.getId());
             }
         } catch (Exception e) {
@@ -924,7 +925,8 @@ public class DeliveryService {
                         && delivery.getCourier().getGpsLongitude() != null) {
                     try {
                         deliveryRepository.initializeApproachRoute(delivery.getId(),
-                                delivery.getCourier().getGpsLatitude(), delivery.getCourier().getGpsLongitude());
+                                delivery.getCourier().getGpsLatitude(), delivery.getCourier().getGpsLongitude(),
+                                (double) java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza")).toEpochSecond());
                     } catch (Exception e) {
                         log.warn("⚠️ Falha ao inicializar approach_route no updateStatus ACCEPTED para delivery #{}: {}", delivery.getId(), e.getMessage());
                     }
@@ -945,8 +947,9 @@ public class DeliveryService {
                         && delivery.getCourier().getGpsLatitude() != null
                         && delivery.getCourier().getGpsLongitude() != null) {
                     try {
+                        double epochNow = java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza")).toEpochSecond();
                         deliveryRepository.initializeActualRoute(delivery.getId(),
-                                delivery.getCourier().getGpsLatitude(), delivery.getCourier().getGpsLongitude());
+                                delivery.getCourier().getGpsLatitude(), delivery.getCourier().getGpsLongitude(), epochNow);
                     } catch (Exception e) {
                         log.warn("⚠️ Falha ao inicializar actual_route no updateStatus IN_TRANSIT para delivery #{}: {}", delivery.getId(), e.getMessage());
                     }
@@ -2090,9 +2093,9 @@ public class DeliveryService {
      * Called by UserService when a courier updates their location during an IN_TRANSIT delivery.
      */
     @Transactional
-    public void appendRoutePoint(Long deliveryId, double latitude, double longitude) {
+    public void appendRoutePoint(Long deliveryId, double latitude, double longitude, double epochSec) {
         try {
-            deliveryRepository.appendRoutePoint(deliveryId, latitude, longitude);
+            deliveryRepository.appendRoutePoint(deliveryId, latitude, longitude, epochSec);
         } catch (Exception e) {
             System.err.println("⚠️ Failed to append route point to delivery " + deliveryId + ": " + e.getMessage());
         }
@@ -2130,12 +2133,16 @@ public class DeliveryService {
         // Rota GPS: approach_route (ACCEPTED) ou actual_route (IN_TRANSIT/COMPLETED)
         Delivery.DeliveryStatus status = delivery.getStatus();
         String geoJson;
+        String routeWithTimestamps;
         if (status == Delivery.DeliveryStatus.ACCEPTED || status == Delivery.DeliveryStatus.WAITING_PAYMENT) {
             geoJson = deliveryRepository.getApproachRouteAsGeoJson(deliveryId);
+            routeWithTimestamps = deliveryRepository.getApproachRouteWithTimestamps(deliveryId);
         } else {
             geoJson = deliveryRepository.getRouteAsGeoJson(deliveryId);
+            routeWithTimestamps = deliveryRepository.getRouteWithTimestamps(deliveryId);
         }
         result.put("route", geoJson);
+        result.put("routeWithTimestamps", routeWithTimestamps);
 
         // Dados de ETA para fase de aproximação (ACCEPTED)
         if (status == Delivery.DeliveryStatus.ACCEPTED) {

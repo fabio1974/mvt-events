@@ -224,13 +224,13 @@ public class Delivery extends BaseEntity {
     @Visible(table = false, form = false, filter = false)
     private OffsetDateTime cancelledAt;
 
-    @Column(name = "actual_route", columnDefinition = "geometry(LineString, 4326)")
+    @Column(name = "actual_route", columnDefinition = "geometry(LineStringM, 4326)")
     @com.fasterxml.jackson.annotation.JsonIgnore
     @Visible(table = false, form = false, filter = false)
     private LineString actualRoute;
 
     /** Rota de aproximação do entregador (fase ACCEPTED → PICKUP). Não usada para billing. */
-    @Column(name = "approach_route", columnDefinition = "geometry(LineString, 4326)")
+    @Column(name = "approach_route", columnDefinition = "geometry(LineStringM, 4326)")
     @com.fasterxml.jackson.annotation.JsonIgnore
     @Visible(table = false, form = false, filter = false)
     private LineString approachRoute;

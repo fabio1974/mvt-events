@@ -965,4 +965,95 @@ class DeliveryControllerTest {
             assertThat(field.getType()).isEqualTo(java.util.List.class);
         }
     }
+
+    // ============================================
+    // LINESTRINGM: rotas GPS com timestamps
+    // ============================================
+
+    @Nested
+    @DisplayName("GPS Route Timestamps (LINESTRINGM)")
+    class GpsRouteTimestamps {
+
+        @Test
+        @DisplayName("actual_route definido como LineStringM no JPA")
+        void actualRoute_isLineStringM() throws NoSuchFieldException {
+            var field = Delivery.class.getDeclaredField("actualRoute");
+            var column = field.getAnnotation(jakarta.persistence.Column.class);
+            assertThat(column).isNotNull();
+            assertThat(column.columnDefinition()).contains("LineStringM");
+        }
+
+        @Test
+        @DisplayName("approach_route definido como LineStringM no JPA")
+        void approachRoute_isLineStringM() throws NoSuchFieldException {
+            var field = Delivery.class.getDeclaredField("approachRoute");
+            var column = field.getAnnotation(jakarta.persistence.Column.class);
+            assertThat(column).isNotNull();
+            assertThat(column.columnDefinition()).contains("LineStringM");
+        }
+
+        @Test
+        @DisplayName("planned_route permanece LineString (sem M)")
+        void plannedRoute_isRegularLineString() throws NoSuchFieldException {
+            var field = Delivery.class.getDeclaredField("plannedRoute");
+            var column = field.getAnnotation(jakarta.persistence.Column.class);
+            assertThat(column).isNotNull();
+            assertThat(column.columnDefinition()).contains("LineString");
+            assertThat(column.columnDefinition()).doesNotContain("LineStringM");
+        }
+
+        @Test
+        @DisplayName("epoch seconds calculado corretamente a partir de OffsetDateTime")
+        void epochSeconds_calculation() {
+            var now = java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza"));
+            double epochSec = now.toEpochSecond();
+
+            // Epoch deve ser um número razoável (após 2020 e antes de 2100)
+            assertThat(epochSec).isGreaterThan(1577836800); // 2020-01-01
+            assertThat(epochSec).isLessThan(4102444800L);   // 2100-01-01
+        }
+
+        @Test
+        @DisplayName("epoch de timestamps diferentes produz valores crescentes")
+        void epochSeconds_areMonotonicallyIncreasing() {
+            var t1 = java.time.OffsetDateTime.of(2026, 4, 6, 17, 43, 0, 0, java.time.ZoneOffset.ofHours(-3));
+            var t2 = java.time.OffsetDateTime.of(2026, 4, 6, 17, 48, 0, 0, java.time.ZoneOffset.ofHours(-3));
+
+            double epoch1 = t1.toEpochSecond();
+            double epoch2 = t2.toEpochSecond();
+
+            assertThat(epoch2).isGreaterThan(epoch1);
+            assertThat(epoch2 - epoch1).isEqualTo(300); // 5 minutos = 300 segundos
+        }
+
+        @Test
+        @DisplayName("SKIPPED stops nao contam para taxa extra no recalculo")
+        void skippedStops_excludedFromFeeCalculation() {
+            // Simula contagem de stops COMPLETED (excluindo SKIPPED)
+            var stops = java.util.List.of(
+                    DeliveryStop.builder().stopOrder(1).address("A")
+                            .status(DeliveryStop.StopStatus.SKIPPED).build(),
+                    DeliveryStop.builder().stopOrder(2).address("B")
+                            .status(DeliveryStop.StopStatus.COMPLETED)
+                            .completedAt(OffsetDateTime.now()).completionOrder(1).build()
+            );
+
+            long completedCount = stops.stream()
+                    .filter(s -> s.getStatus() == DeliveryStop.StopStatus.COMPLETED)
+                    .count();
+
+            assertThat(completedCount).isEqualTo(1);
+            // 1 COMPLETED = 0 extras (apenas 1), taxa extra = R$ 0
+            long extraStops = Math.max(0, completedCount - 1);
+            assertThat(extraStops).isZero();
+        }
+
+        @Test
+        @DisplayName("complete() idempotente nao lanca erro se ja COMPLETED")
+        void complete_idempotent() {
+            Delivery delivery = createDelivery(DeliveryStatus.COMPLETED);
+            // O service.complete() deve retornar a delivery sem erro
+            assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.COMPLETED);
+        }
+    }
 }

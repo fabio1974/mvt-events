@@ -480,29 +480,29 @@ public interface DeliveryRepository
          * Sobrescreve accepted_at com o timestamp exato da captura GPS — alinha ponto A com tempo A para cálculo de ETA.
          */
         @Modifying
-        @Query(value = "UPDATE deliveries SET approach_route = ST_MakeLine(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)), accepted_at = NOW() WHERE id = :deliveryId", nativeQuery = true)
-        void initializeApproachRoute(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng);
+        @Query(value = "UPDATE deliveries SET approach_route = ST_MakeLine(ST_SetSRID(ST_MakePointM(:lng, :lat, :epoch), 4326), ST_SetSRID(ST_MakePointM(:lng, :lat, :epoch), 4326)), accepted_at = NOW() WHERE id = :deliveryId", nativeQuery = true)
+        void initializeApproachRoute(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng, @Param("epoch") double epoch);
 
         /**
-         * Adiciona ponto GPS à approach_route (fase ACCEPTED).
+         * Adiciona ponto GPS à approach_route (fase ACCEPTED). M = epoch seconds da captura GPS.
          */
         @Modifying
-        @Query(value = "UPDATE deliveries SET approach_route = ST_AddPoint(approach_route, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)) WHERE id = :deliveryId AND approach_route IS NOT NULL", nativeQuery = true)
-        void appendApproachRoutePoint(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng);
+        @Query(value = "UPDATE deliveries SET approach_route = ST_AddPoint(approach_route, ST_SetSRID(ST_MakePointM(:lng, :lat, :epoch), 4326)) WHERE id = :deliveryId AND approach_route IS NOT NULL", nativeQuery = true)
+        void appendApproachRoutePoint(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng, @Param("epoch") double epoch);
 
         /**
-         * Inicializa actual_route do zero no PICKUP, descartando qualquer ponto da aproximação.
+         * Inicializa actual_route do zero no PICKUP. M = epoch seconds da captura GPS.
          */
         @Modifying
-        @Query(value = "UPDATE deliveries SET actual_route = ST_MakeLine(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)) WHERE id = :deliveryId", nativeQuery = true)
-        void initializeActualRoute(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng);
+        @Query(value = "UPDATE deliveries SET actual_route = ST_MakeLine(ST_SetSRID(ST_MakePointM(:lng, :lat, :epoch), 4326), ST_SetSRID(ST_MakePointM(:lng, :lat, :epoch), 4326)) WHERE id = :deliveryId", nativeQuery = true)
+        void initializeActualRoute(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng, @Param("epoch") double epoch);
 
         /**
-         * Append a GPS point to the existing route
+         * Append GPS point com timestamp. M = epoch seconds da captura GPS real.
          */
         @Modifying
-        @Query(value = "UPDATE deliveries SET actual_route = ST_AddPoint(actual_route, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)) WHERE id = :deliveryId AND actual_route IS NOT NULL", nativeQuery = true)
-        void appendRoutePoint(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng);
+        @Query(value = "UPDATE deliveries SET actual_route = ST_AddPoint(actual_route, ST_SetSRID(ST_MakePointM(:lng, :lat, :epoch), 4326)) WHERE id = :deliveryId AND actual_route IS NOT NULL", nativeQuery = true)
+        void appendRoutePoint(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng, @Param("epoch") double epoch);
 
         /**
          * Get the route as a JSON array of [lng, lat] coordinates
@@ -561,6 +561,23 @@ public interface DeliveryRepository
          */
         @Query(value = "SELECT ST_NPoints(actual_route) FROM deliveries WHERE id = :deliveryId AND actual_route IS NOT NULL", nativeQuery = true)
         Integer getRoutePointCount(@Param("deliveryId") Long deliveryId);
+
+        /**
+         * Retorna actual_route como JSON array de [lng, lat, epochSeconds].
+         * Usa ST_DumpPoints + ST_M para extrair o timestamp de cada ponto GPS.
+         */
+        @Query(value = "SELECT json_agg(json_build_array(ST_X(geom), ST_Y(geom), ST_M(geom))) " +
+                "FROM (SELECT (ST_DumpPoints(actual_route)).geom FROM deliveries WHERE id = :deliveryId AND actual_route IS NOT NULL) t",
+                nativeQuery = true)
+        String getRouteWithTimestamps(@Param("deliveryId") Long deliveryId);
+
+        /**
+         * Retorna approach_route como JSON array de [lng, lat, epochSeconds].
+         */
+        @Query(value = "SELECT json_agg(json_build_array(ST_X(geom), ST_Y(geom), ST_M(geom))) " +
+                "FROM (SELECT (ST_DumpPoints(approach_route)).geom FROM deliveries WHERE id = :deliveryId AND approach_route IS NOT NULL) t",
+                nativeQuery = true)
+        String getApproachRouteWithTimestamps(@Param("deliveryId") Long deliveryId);
 
 }
 

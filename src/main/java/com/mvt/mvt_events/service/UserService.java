@@ -538,25 +538,21 @@ public class UserService {
         User savedUser = userRepository.save(user);
 
         // 📍 ROUTE TRACKING: ACCEPTED → approach_route | IN_TRANSIT → actual_route
+        // M = epoch seconds do timestamp real de captura GPS
         if (savedUser.getCurrentDeliveryId() != null) {
             try {
+                double epochSec = savedUser.getUpdatedAt().toEpochSecond();
                 deliveryRepository.findByIdWithJoins(savedUser.getCurrentDeliveryId()).ifPresent(delivery -> {
                     var status = delivery.getStatus();
                     if (status == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.ACCEPTED) {
-                        // Initialize approach_route on first GPS update after accept
                         String existingApproach = deliveryRepository.getApproachRouteAsGeoJson(delivery.getId());
                         if (existingApproach == null) {
-                            deliveryRepository.initializeApproachRoute(delivery.getId(), latitude, longitude);
+                            deliveryRepository.initializeApproachRoute(delivery.getId(), latitude, longitude, epochSec);
                         } else {
-                            deliveryRepository.appendApproachRoutePoint(delivery.getId(), latitude, longitude);
+                            deliveryRepository.appendApproachRoutePoint(delivery.getId(), latitude, longitude, epochSec);
                         }
-                        // Recálculo de rota planejada agora é feito no mobile (routeDeviationService)
-                        // Backend apenas persiste o GPS. Mobile envia rota recalculada via PUT /planned-route.
-                        // plannedRouteService.handleApproachRouteUpdate(delivery, latitude, longitude);
                     } else if (status == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.IN_TRANSIT) {
-                        deliveryRepository.appendRoutePoint(delivery.getId(), latitude, longitude);
-                        // Recálculo agora é feito no mobile
-                        // plannedRouteService.handleDeliveryRouteUpdate(delivery, latitude, longitude);
+                        deliveryRepository.appendRoutePoint(delivery.getId(), latitude, longitude, epochSec);
                     }
                 });
             } catch (Exception e) {
