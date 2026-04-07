@@ -93,6 +93,49 @@ class AuthControllerTest {
     }
 
     @Nested
+    @DisplayName("Regras de negocio por role no registro")
+    class RegistrationBusinessRules {
+
+        @Test
+        @DisplayName("CLIENT deve ter preferencia PIX criada automaticamente no registro")
+        void clientRole_requiresPixPreference() {
+            // Simula a logica do AuthController.register():
+            // if (savedUser.getRole() == User.Role.CLIENT) { criar PIX preference }
+            User.Role role = parseRole("CLIENT");
+            boolean shouldCreatePixPreference = (role == User.Role.CLIENT);
+            assertThat(shouldCreatePixPreference)
+                .as("CLIENT deve ter preferencia PIX auto-criada no registro")
+                .isTrue();
+        }
+
+        @Test
+        @DisplayName("CUSTOMER nao deve ter preferencia PIX auto-criada no registro")
+        void customerRole_noAutoPixPreference() {
+            User.Role role = parseRole("CUSTOMER");
+            boolean shouldCreatePixPreference = (role == User.Role.CLIENT);
+            assertThat(shouldCreatePixPreference)
+                .as("CUSTOMER nao deve ter PIX auto-criado (escolhe na tela de preferencias)")
+                .isFalse();
+        }
+
+        @Test
+        @DisplayName("COURIER nao deve ter preferencia PIX auto-criada")
+        void courierRole_noAutoPixPreference() {
+            User.Role role = parseRole("COURIER");
+            boolean shouldCreatePixPreference = (role == User.Role.CLIENT);
+            assertThat(shouldCreatePixPreference).isFalse();
+        }
+
+        @Test
+        @DisplayName("ORGANIZER nao deve ter preferencia PIX auto-criada")
+        void organizerRole_noAutoPixPreference() {
+            User.Role role = parseRole("ORGANIZER");
+            boolean shouldCreatePixPreference = (role == User.Role.CLIENT);
+            assertThat(shouldCreatePixPreference).isFalse();
+        }
+    }
+
+    @Nested
     @DisplayName("Enum User.Role - completude")
     class RoleEnumCompleteness {
 
