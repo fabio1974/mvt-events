@@ -39,7 +39,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/metadata", "/api/metadata/**").permitAll() // Permitir acesso público aos
                                                                                           // metadados
                         .requestMatchers("/api/banks", "/api/banks/**").permitAll() // Permitir acesso público à lista de bancos
-                        .requestMatchers("/api/events/public", "/api/events/public/**").permitAll()
                         .requestMatchers("/api/webhooks/**").permitAll() // Permitir todos os webhooks
                         .requestMatchers("/api/payments/webhooks/**").permitAll() // Permitir webhooks de pagamento
                         .requestMatchers("/webhooks/**").permitAll() // Permitir webhooks (path sem /api)

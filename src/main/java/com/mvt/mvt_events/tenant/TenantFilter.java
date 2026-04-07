@@ -30,7 +30,6 @@ public class TenantFilter extends OncePerRequestFilter {
         // Skip tenant filtering for auth endpoints and public endpoints
         return path.startsWith("/api/auth/") ||
                 path.startsWith("/api/metadata") ||
-                path.startsWith("/api/events/public") ||
                 path.startsWith("/api/webhooks/") ||
                 path.startsWith("/webhooks/") || // Novo path sem /api
                 path.startsWith("/api/payments/webhooks/") ||

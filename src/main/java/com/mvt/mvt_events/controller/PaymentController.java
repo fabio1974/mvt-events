@@ -115,19 +115,19 @@ public class PaymentController {
     )
     public Page<PaymentResponse> list(
             @RequestParam(required = false) UUID payerId,
-            @RequestParam(required = false) PaymentStatus status,
+            @RequestParam(required = false) String status,
             @RequestParam(required = false) String transactionId,
             @RequestParam(required = false, defaultValue = "false") boolean recent,
             @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             jakarta.servlet.http.HttpServletRequest request) {
-        
+
         // Extrair role e userId do token JWT
         String token = extractTokenFromRequest(request);
         String role = jwtUtil.getRoleFromToken(token);
         UUID userIdFromToken = UUID.fromString(jwtUtil.getUserIdFromToken(token));
-        
+
         Specification<Payment> spec = (root, query, cb) -> cb.conjunction();
-        
+
         // Filtro por data: recent=true usa paymentHistoryDays do site_configurations
         if (recent) {
             int days = siteConfigurationService.getActiveConfiguration().getPaymentHistoryDays();
@@ -156,9 +156,20 @@ public class PaymentController {
             // ADMIN pode filtrar por payerId se desejado
             spec = spec.and((root, query, cb) -> cb.equal(root.get("payer").get("id"), payerId));
         }
-        
-        if (status != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+
+        // Suporta múltiplos status separados por vírgula (ex: status=PENDING,PAID)
+        if (status != null && !status.isBlank()) {
+            String[] statusValues = status.split(",");
+            if (statusValues.length == 1) {
+                PaymentStatus ps = PaymentStatus.valueOf(statusValues[0].trim());
+                spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), ps));
+            } else {
+                java.util.List<PaymentStatus> statuses = java.util.Arrays.stream(statusValues)
+                        .map(String::trim)
+                        .map(PaymentStatus::valueOf)
+                        .toList();
+                spec = spec.and((root, query, cb) -> root.get("status").in(statuses));
+            }
         }
         if (transactionId != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("transactionId"), transactionId));

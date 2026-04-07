@@ -42,35 +42,11 @@ public class JpaMetadataExtractor {
 
         // ==================== DATAS ====================
         FIELD_TRANSLATIONS.put("date", "Data");
-        FIELD_TRANSLATIONS.put("eventDate", "Data do Evento");
-        FIELD_TRANSLATIONS.put("registrationDate", "Data de Inscrição");
         FIELD_TRANSLATIONS.put("startDate", "Data de Início");
         FIELD_TRANSLATIONS.put("endDate", "Data de Término");
-        FIELD_TRANSLATIONS.put("registrationStartDate", "Início das Inscrições");
-        FIELD_TRANSLATIONS.put("registrationEndDate", "Fim das Inscrições");
         FIELD_TRANSLATIONS.put("dateOfBirth", "Data de Nascimento");
         FIELD_TRANSLATIONS.put("processedAt", "Processado em");
         FIELD_TRANSLATIONS.put("refundedAt", "Reembolsado em");
-
-        // ==================== EVENT ====================
-        FIELD_TRANSLATIONS.put("eventType", "Tipo de Evento");
-        FIELD_TRANSLATIONS.put("location", "Local");
-        FIELD_TRANSLATIONS.put("maxParticipants", "Máximo de Participantes");
-        FIELD_TRANSLATIONS.put("currentParticipants", "Participantes Atuais");
-        FIELD_TRANSLATIONS.put("registrationOpen", "Inscrições Abertas");
-        FIELD_TRANSLATIONS.put("categories", "Categorias");
-        FIELD_TRANSLATIONS.put("currency", "Moeda");
-        FIELD_TRANSLATIONS.put("termsAndConditions", "Termos e Condições");
-        FIELD_TRANSLATIONS.put("platformFeePercentage", "Taxa da Plataforma (%)");
-        FIELD_TRANSLATIONS.put("transferFrequency", "Frequência de Transferência");
-
-        // ==================== EVENT CATEGORY ====================
-        FIELD_TRANSLATIONS.put("gender", "Gênero");
-        FIELD_TRANSLATIONS.put("minAge", "Idade Mínima");
-        FIELD_TRANSLATIONS.put("maxAge", "Idade Máxima");
-        FIELD_TRANSLATIONS.put("distance", "Distância");
-        FIELD_TRANSLATIONS.put("distanceUnit", "Unidade de Distância");
-        FIELD_TRANSLATIONS.put("observations", "Observações");
 
         // ==================== FINANCEIRO/PAYMENT ====================
         FIELD_TRANSLATIONS.put("price", "Preço");
@@ -87,7 +63,7 @@ public class JpaMetadataExtractor {
 
         // ==================== PAGAR.ME / BANK ACCOUNT ====================
         FIELD_TRANSLATIONS.put("pagarmeRecipientId", "ID Recipient Pagar.me");
-        FIELD_TRANSLATIONS.put("providerPaymentId", "ID Provider Payment");
+        FIELD_TRANSLATIONS.put("providerPaymentId", "ID da Transação");
         FIELD_TRANSLATIONS.put("pagarmeStatus", "Status Pagar.me");
         FIELD_TRANSLATIONS.put("pixQrCode", "Código PIX");
         FIELD_TRANSLATIONS.put("pixQrCodeUrl", "QR Code PIX (URL)");
@@ -199,7 +175,7 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("recipientName", "Nome do Destinatário");
         FIELD_TRANSLATIONS.put("recipientPhone", "Telefone do Destinatário");
         FIELD_TRANSLATIONS.put("shippingFee", "Valor do Frete");
-        FIELD_TRANSLATIONS.put("totalAmount", "Valor Total");
+        FIELD_TRANSLATIONS.put("totalAmount", "Valor do Pedido");
         FIELD_TRANSLATIONS.put("scheduledPickupAt", "Data/Hora Retirada");
         FIELD_TRANSLATIONS.put("acceptedAt", "Aceita em");
         FIELD_TRANSLATIONS.put("pickedUpAt", "Coletada em");
@@ -208,6 +184,9 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("cancellationReason", "Motivo do Cancelamento");
         FIELD_TRANSLATIONS.put("preferredVehicleType", "Preferência de Veículo");
         FIELD_TRANSLATIONS.put("vehicle", "Veículo");
+        FIELD_TRANSLATIONS.put("stops", "Entregas");
+        FIELD_TRANSLATIONS.put("stopOrder", "Ordem da Entrega");
+        FIELD_TRANSLATIONS.put("completionOrder", "Ordem de Conclusão");
         FIELD_TRANSLATIONS.put("partnership", "Parceria Municipal");
 
         // ==================== ZAPI10 - COURIER PROFILE ====================
@@ -277,39 +256,16 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("recipient", "Destinatário");
 
         // ==================== RELACIONAMENTOS ====================
-        FIELD_TRANSLATIONS.put("event", "Evento");
         FIELD_TRANSLATIONS.put("user", "Usuário");
-        FIELD_TRANSLATIONS.put("registration", "Inscrição");
         FIELD_TRANSLATIONS.put("payments", "Pagamentos");
-        FIELD_TRANSLATIONS.put("category", "Categoria");
     }
 
     // Mapa de traduções para valores de ENUMS
     private static final Map<String, String> ENUM_TRANSLATIONS = new HashMap<>();
 
     static {
-        // ==================== EVENT TYPE ====================
-        ENUM_TRANSLATIONS.put("RUNNING", "Corrida");
-        ENUM_TRANSLATIONS.put("CYCLING", "Ciclismo");
-        ENUM_TRANSLATIONS.put("TRIATHLON", "Triatlo");
-        ENUM_TRANSLATIONS.put("SWIMMING", "Natação");
-        ENUM_TRANSLATIONS.put("WALKING", "Caminhada");
-        ENUM_TRANSLATIONS.put("TRAIL_RUNNING", "Trail Running");
-        ENUM_TRANSLATIONS.put("MOUNTAIN_BIKING", "Mountain Bike");
-        ENUM_TRANSLATIONS.put("ROAD_CYCLING", "Ciclismo de Estrada");
-        ENUM_TRANSLATIONS.put("MARATHON", "Maratona");
-        ENUM_TRANSLATIONS.put("HALF_MARATHON", "Meia Maratona");
-        ENUM_TRANSLATIONS.put("ULTRA_MARATHON", "Ultra Maratona");
-        ENUM_TRANSLATIONS.put("OBSTACLE_RACE", "Corrida de Obstáculos");
-        ENUM_TRANSLATIONS.put("DUATHLON", "Duatlo");
-        ENUM_TRANSLATIONS.put("HIKING", "Caminhada");
-        ENUM_TRANSLATIONS.put("ADVENTURE_RACE", "Corrida de Aventura");
-
-        // ==================== STATUS (Event, Payment, Registration)
-        // ====================
-        ENUM_TRANSLATIONS.put("DRAFT", "Rascunho");
-        ENUM_TRANSLATIONS.put("PUBLISHED", "Publicado");
-        ENUM_TRANSLATIONS.put("CANCELLED", "Cancelado");
+        // ==================== STATUS ====================
+        ENUM_TRANSLATIONS.put("CANCELLED", "Cancelada");
         ENUM_TRANSLATIONS.put("PAID", "Pago");
         ENUM_TRANSLATIONS.put("COMPLETED", "Concluída");
         ENUM_TRANSLATIONS.put("PENDING", "Pendente");
@@ -318,17 +274,6 @@ public class JpaMetadataExtractor {
         ENUM_TRANSLATIONS.put("FAILED", "Falhou");
         ENUM_TRANSLATIONS.put("REFUNDED", "Reembolsado");
         ENUM_TRANSLATIONS.put("EXPIRED", "Expirado");
-
-        // ==================== GENDER ====================
-        ENUM_TRANSLATIONS.put("MALE", "Masculino");
-        ENUM_TRANSLATIONS.put("FEMALE", "Feminino");
-        ENUM_TRANSLATIONS.put("MIXED", "Misto");
-        ENUM_TRANSLATIONS.put("OTHER", "Outro");
-
-        // ==================== DISTANCE UNIT ====================
-        ENUM_TRANSLATIONS.put("KM", "Quilômetros (km)");
-        ENUM_TRANSLATIONS.put("MILES", "Milhas (mi)");
-        ENUM_TRANSLATIONS.put("METERS", "Metros (m)");
 
         // ==================== TRANSFER FREQUENCY ====================
         ENUM_TRANSLATIONS.put("IMMEDIATE", "Imediato");

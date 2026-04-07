@@ -745,6 +745,7 @@ public class DeliveryController {
                 // Vehicle (objeto aninhado)
                 .vehicle(delivery.getVehicle() != null ? DeliveryResponse.VehicleDTO.builder()
                         .id(delivery.getVehicle().getId())
+                        .name(delivery.getVehicle().getShortDescription())
                         .type(delivery.getVehicle().getType() != null ? delivery.getVehicle().getType().name() : null)
                         .plate(delivery.getVehicle().getPlate())
                         .brand(delivery.getVehicle().getBrand())

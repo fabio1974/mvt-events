@@ -87,26 +87,6 @@ public class FormMetadataController {
                 field.setPlaceholder("Digite " + field.getLabel().toLowerCase());
             }
 
-            // Customizações específicas por entidade
-            if (entityName.equals("event")) {
-                switch (field.getName()) {
-                    case "name":
-                        field.setPlaceholder("Digite o nome do evento");
-                        break;
-                    case "location":
-                        field.setPlaceholder("Digite o local do evento");
-                        break;
-                    case "description":
-                        field.setPlaceholder("Descreva o evento");
-                        break;
-                    case "eventType":
-                        field.setPlaceholder("Selecione o esporte");
-                        break;
-                    case "status":
-                        field.setPlaceholder("Selecione o status");
-                        break;
-                }
-            }
         });
     }
 

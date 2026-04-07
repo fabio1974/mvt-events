@@ -201,7 +201,7 @@ public class Delivery extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vehicle_id")
     @com.fasterxml.jackson.annotation.JsonIgnore
-    @Visible(table = true, form = true, filter = true, readonly = true)
+    @Visible(table = true, form = false, filter = false, readonly = true)
     private Vehicle vehicle;
 
     @Column(name = "accepted_at")

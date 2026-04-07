@@ -21,12 +21,10 @@ public class EntityFilterHelper {
     };
 
     // Mapeamento de nomes especiais (campo -> entidade)
-    private static final Map<String, String> SPECIAL_MAPPINGS = Map.of(
-            "category", "EventCategory");
+    private static final Map<String, String> SPECIAL_MAPPINGS = Map.of();
 
     // Mapeamento de endpoints especiais (entityName -> endpoint)
-    private static final Map<String, String> ENDPOINT_MAPPINGS = Map.of(
-            "category", "/api/event-categories");
+    private static final Map<String, String> ENDPOINT_MAPPINGS = Map.of();
 
     /**
      * Configuração de tipo de renderização por entidade.
@@ -36,12 +34,9 @@ public class EntityFilterHelper {
      */
     private static final Map<String, String> RENDER_TYPE_CONFIG = Map.of(
             "user", "typeahead", // Usuários: muitos registros
-            "event", "select", // Eventos: poucos registros
             "organization", "select", // Organizações: poucos registros
-            "category", "select", // Categorias: poucos registros
-            "eventCategory", "select", // Categorias de evento: poucos registros
             "payment", "select", // Pagamentos: contexto específico
-            "registration", "select" // Inscrições: contexto específico
+            "vehicle", "typeahead" // Veículos: muitos registros
     );
 
     /**
@@ -49,12 +44,10 @@ public class EntityFilterHelper {
      */
     private static final Map<String, String> HUMAN_NAMES = Map.of(
             "user", "usuário",
-            "event", "evento",
             "organization", "organização",
-            "category", "categoria",
-            "eventCategory", "categoria de evento",
             "payment", "pagamento",
-            "registration", "inscrição");
+            "vehicle", "veículo",
+            "delivery", "entrega");
 
     /**
      * Cria EntityFilterConfig para um filtro de relacionamento.

@@ -138,6 +138,7 @@ public class DeliveryResponse {
     @AllArgsConstructor
     public static class VehicleDTO {
         private Long id;
+        private String name; // "marca/modelo - placa" para exibição em tabelas
         private String type;
         private String plate;
         private String brand;

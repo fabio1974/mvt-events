@@ -22,9 +22,9 @@ public class OpenAPIConfig {
                                                 .title("MVT Events API")
                                                 .version("1.0.0")
                                                 .description("""
-                                                                # API Completa para Gerenciamento de Eventos Esportivos
+                                                                # Zapi10 — API de Mobilidade e Entregas
 
-                                                                ## 🎯 Recursos Principais
+                                                                ## Recursos Principais
 
                                                                 - **Autenticação JWT**: Todas as rotas protegidas requerem token Bearer
                                                                 - **Multi-tenant**: Isolamento automático por organização
@@ -32,81 +32,46 @@ public class OpenAPIConfig {
                                                                 - **Paginação**: Suporte a `page`, `size` e `sort` em todas as listagens
                                                                 - **Metadata Automático**: Endpoint `/api/{entity}/metadata` com campos, tipos e traduções PT-BR
 
-                                                                ## 🔍 Sistema de Filtros
+                                                                ## Sistema de Filtros
 
-                                                                Cada entidade suporta filtros por **TODOS os seus campos** via query parameters:
+                                                                Cada entidade suporta filtros por **TODOS os seus campos** via query parameters.
 
-                                                                ### Events (`/api/events`)
-                                                                - **Texto**: `name`, `slug`, `description`, `location`
-                                                                - **Enums**: `eventType` (RUNNING, CYCLING, SWIMMING, TRIATHLON, WALKING, OTHER), `status` (DRAFT, PUBLISHED, CANCELLED, COMPLETED), `currency` (BRL, USD, EUR), `transferFrequency`
-                                                                - **Relacionamentos**: `organization` (ID), `category` (ID), `city` (nome ou ID), `state` (sigla)
-                                                                - **Datas**: `eventDate`, `registrationStartDate`, `registrationEndDate`
-                                                                - **Numéricos**: `maxParticipants`, `price`
-                                                                - **Booleanos**: `registrationOpen`
-
-                                                                ### Registrations (`/api/registrations`)
-                                                                - **Relacionamentos**: `user` (UUID), `event` (ID)
-                                                                - **Enums**: `status` (PENDING, CONFIRMED, CANCELLED, WAITLISTED)
-                                                                - **Datas**: `registrationDate`
-                                                                - **Texto**: `notes`
-
-                                                                ### Event Categories (`/api/event-categories`)
-                                                                - **Relacionamentos**: `event` (ID)
-                                                                - **Texto**: `name`
-                                                                - **Enums**: `gender` (MALE, FEMALE, MIXED), `distanceUnit` (METERS, KILOMETERS, MILES)
-                                                                - **Numéricos**: `minAge`, `maxAge`, `distance`, `price`, `maxParticipants`, `currentParticipants`
+                                                                ### Deliveries (`/api/deliveries`)
+                                                                - **Enums**: `status` (PENDING, WAITING_PAYMENT, ACCEPTED, IN_TRANSIT, COMPLETED, CANCELLED), `deliveryType` (DELIVERY, RIDE), `preferredVehicleType` (MOTORCYCLE, CAR, ANY)
+                                                                - **Relacionamentos**: `client` (UUID), `courier` (UUID), `organizer` (UUID), `vehicle` (ID)
+                                                                - **Texto**: `fromAddress`, `toAddress`
 
                                                                 ### Payments (`/api/payments`)
-                                                                - **Relacionamentos**: `registration` (ID)
-                                                                - **Enums**: `status` (PENDING, COMPLETED, FAILED, REFUNDED), `paymentMethod` (CREDIT_CARD, DEBIT_CARD, PIX, BOLETO, PAYPAL), `currency`
-                                                                - **Numéricos**: `amount`, `gatewayFee`, `refundAmount`
-                                                                - **Texto**: `gatewayProvider`, `gatewayPaymentId`, `refundReason`
-                                                                - **Datas**: `processedAt`, `refundedAt`
+                                                                - **Enums**: `status` (PENDING, PAID, FAILED, REFUNDED, CANCELLED), `paymentMethod` (CREDIT_CARD, PIX, CASH)
+                                                                - **Numéricos**: `amount`
 
-                                                                ### Organizations (`/api/organizations`)
-                                                                - **Texto**: `name`, `contactEmail`, `contactPhone`, `website`
-                                                                - **Enums**: `type` (SPORTS_CLUB, EVENT_ORGANIZER, FEDERATION, GOVERNMENT, NGO, PRIVATE_COMPANY, OTHER)
-                                                                - **Booleanos**: `active`
+                                                                ### Users (`/api/users`)
+                                                                - **Enums**: `role` (ADMIN, CLIENT, CUSTOMER, COURIER, ORGANIZER)
+                                                                - **Texto**: `name`, `email`, `documentNumber`
 
-                                                                ## 📝 Exemplos de Uso
+                                                                ## Exemplos de Uso
 
                                                                 ```
-                                                                # Filtrar eventos por tipo e nome
-                                                                GET /api/events?eventType=RUNNING&name=maratona
+                                                                # Filtrar entregas por status
+                                                                GET /api/deliveries?status=PENDING&page=0&size=20
 
-                                                                # Filtrar por cidade, estado e status
-                                                                GET /api/events?city=São Paulo&state=SP&status=PUBLISHED
-
-                                                                # Combinar múltiplos filtros
-                                                                GET /api/events?eventType=RUNNING&registrationOpen=true&organization=5
-
-                                                                # Paginação e ordenação
-                                                                GET /api/events?page=0&size=20&sort=eventDate,desc
-
-                                                                # Filtrar registrations por usuário e status
-                                                                GET /api/registrations?user=742f58ea-5bc1-4bb5-84dc-5ea463d15044&status=CONFIRMED
-
-                                                                # Filtrar payments por status e valor
-                                                                GET /api/payments?status=COMPLETED&amount=100.00
-
-                                                                # Buscar organizações ativas
-                                                                GET /api/organizations?active=true&type=SPORTS_CLUB
+                                                                # Filtrar entregas de um cliente
+                                                                GET /api/deliveries?client=uuid-do-cliente
 
                                                                 # Obter metadata de uma entidade
-                                                                GET /api/events/metadata
+                                                                GET /api/deliveries/metadata
                                                                 ```
 
-                                                                ## 🔐 Autenticação
+                                                                ## Autenticação
 
                                                                 1. Fazer login em `/api/auth/login` com email e senha
                                                                 2. Copiar o token JWT retornado
-                                                                3. Clicar em "Authorize" 🔓 no topo da página
+                                                                3. Clicar em "Authorize" no topo da página
                                                                 4. Colar o token (sem 'Bearer ')
-                                                                5. Testar os endpoints
                                                                 """)
                                                 .contact(new Contact()
-                                                                .name("MVT Events Team")
-                                                                .email("support@mvt-events.com"))
+                                                                .name("Zapi10")
+                                                                .email("suporte@zapi10.com.br"))
                                                 .license(new License()
                                                                 .name("Apache 2.0")
                                                                 .url("https://www.apache.org/licenses/LICENSE-2.0.html")))

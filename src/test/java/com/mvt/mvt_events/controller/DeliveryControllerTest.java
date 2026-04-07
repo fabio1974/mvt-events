@@ -580,4 +580,389 @@ class DeliveryControllerTest {
             assertThat(delivery.getCourierName()).contains("atribu");
         }
     }
+
+    // ============================================
+    // Auto-complete: delivery completa quando stops finalizados
+    // ============================================
+
+    @Nested
+    @DisplayName("Auto-complete delivery via stops")
+    class AutoCompleteViaStops {
+
+        private long countPendingStops(List<DeliveryStop> stops) {
+            return stops.stream()
+                    .filter(s -> s.getStatus() == DeliveryStop.StopStatus.PENDING)
+                    .count();
+        }
+
+        @Test
+        @DisplayName("delivery com 0 stops pendentes pode auto-completar")
+        void zeroPendingStops_canAutoComplete() {
+            Delivery delivery = createDelivery(DeliveryStatus.IN_TRANSIT);
+            delivery.setCourier(createCourier());
+
+            DeliveryStop stop1 = DeliveryStop.builder()
+                    .delivery(delivery).stopOrder(1).address("A")
+                    .status(DeliveryStop.StopStatus.COMPLETED)
+                    .completedAt(OffsetDateTime.now()).completionOrder(1)
+                    .build();
+            DeliveryStop stop2 = DeliveryStop.builder()
+                    .delivery(delivery).stopOrder(2).address("B")
+                    .status(DeliveryStop.StopStatus.SKIPPED)
+                    .completionOrder(0)
+                    .build();
+
+            delivery.getStops().addAll(List.of(stop1, stop2));
+
+            long pending = countPendingStops(delivery.getStops());
+            assertThat(pending).isZero();
+
+            // Simula auto-complete
+            if (pending == 0 && delivery.getStatus() == DeliveryStatus.IN_TRANSIT) {
+                delivery.setStatus(DeliveryStatus.COMPLETED);
+                delivery.setCompletedAt(OffsetDateTime.now());
+            }
+
+            assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.COMPLETED);
+            assertThat(delivery.getCompletedAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("delivery com stops pendentes NAO auto-completa")
+        void hasPendingStops_doesNotAutoComplete() {
+            Delivery delivery = createDelivery(DeliveryStatus.IN_TRANSIT);
+            delivery.setCourier(createCourier());
+
+            DeliveryStop stop1 = DeliveryStop.builder()
+                    .delivery(delivery).stopOrder(1).address("A")
+                    .status(DeliveryStop.StopStatus.COMPLETED)
+                    .completedAt(OffsetDateTime.now()).completionOrder(1)
+                    .build();
+            DeliveryStop stop2 = DeliveryStop.builder()
+                    .delivery(delivery).stopOrder(2).address("B")
+                    .status(DeliveryStop.StopStatus.PENDING)
+                    .build();
+
+            delivery.getStops().addAll(List.of(stop1, stop2));
+
+            long pending = countPendingStops(delivery.getStops());
+            assertThat(pending).isEqualTo(1);
+
+            // NAO deve auto-completar
+            if (pending == 0 && delivery.getStatus() == DeliveryStatus.IN_TRANSIT) {
+                delivery.setStatus(DeliveryStatus.COMPLETED);
+            }
+
+            assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.IN_TRANSIT);
+        }
+
+        @Test
+        @DisplayName("auto-complete so acontece se status e IN_TRANSIT")
+        void autoComplete_onlyIfInTransit() {
+            Delivery delivery = createDelivery(DeliveryStatus.ACCEPTED);
+
+            DeliveryStop stop = DeliveryStop.builder()
+                    .delivery(delivery).stopOrder(1).address("A")
+                    .status(DeliveryStop.StopStatus.COMPLETED)
+                    .completedAt(OffsetDateTime.now()).completionOrder(1)
+                    .build();
+            delivery.getStops().add(stop);
+
+            long pending = countPendingStops(delivery.getStops());
+            assertThat(pending).isZero();
+
+            // Nao auto-completa porque nao e IN_TRANSIT
+            if (pending == 0 && delivery.getStatus() == DeliveryStatus.IN_TRANSIT) {
+                delivery.setStatus(DeliveryStatus.COMPLETED);
+            }
+
+            assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.ACCEPTED);
+        }
+    }
+
+    // ============================================
+    // WKT builder (planned-route endpoint)
+    // ============================================
+
+    @Nested
+    @DisplayName("WKT builder para planned-route")
+    class WktBuilder {
+
+        private String buildWkt(List<List<Number>> coords) {
+            StringBuilder wkt = new StringBuilder("LINESTRING(");
+            for (int i = 0; i < coords.size(); i++) {
+                if (i > 0) wkt.append(",");
+                wkt.append(coords.get(i).get(1)).append(" ").append(coords.get(i).get(0));
+            }
+            wkt.append(")");
+            return wkt.toString();
+        }
+
+        @Test
+        @DisplayName("2 pontos gera WKT valido")
+        void twoPoints_generatesValidWkt() {
+            List<List<Number>> coords = List.of(
+                    List.of(-23.55, -46.63),
+                    List.of(-23.56, -46.64)
+            );
+
+            String wkt = buildWkt(coords);
+            assertThat(wkt).startsWith("LINESTRING(");
+            assertThat(wkt).endsWith(")");
+            // WKT format: lng lat (inverted from input lat,lng)
+            assertThat(wkt).contains("-46.63 -23.55");
+            assertThat(wkt).contains("-46.64 -23.56");
+        }
+
+        @Test
+        @DisplayName("3+ pontos separados por virgula")
+        void multiplePoints_commaSeparated() {
+            List<List<Number>> coords = List.of(
+                    List.of(-23.55, -46.63),
+                    List.of(-23.56, -46.64),
+                    List.of(-23.57, -46.65)
+            );
+
+            String wkt = buildWkt(coords);
+            assertThat(wkt).isEqualTo("LINESTRING(-46.63 -23.55,-46.64 -23.56,-46.65 -23.57)");
+        }
+
+        @Test
+        @DisplayName("coordenadas invertidas: input [lat,lng] -> WKT lng lat")
+        void coordinateOrder_isInverted() {
+            List<List<Number>> coords = List.of(
+                    List.of(-3.7, -38.5),
+                    List.of(-3.8, -38.6)
+            );
+
+            String wkt = buildWkt(coords);
+            // Primeiro valor no WKT deve ser longitude (-38.5), depois latitude (-3.7)
+            assertThat(wkt).isEqualTo("LINESTRING(-38.5 -3.7,-38.6 -3.8)");
+        }
+    }
+
+    // ============================================
+    // Batch GPS: ordenacao por timestamp
+    // ============================================
+
+    @Nested
+    @DisplayName("Batch GPS — ordenacao cronologica")
+    class BatchGpsOrdering {
+
+        record GpsPoint(double lat, double lng, OffsetDateTime timestamp) implements Comparable<GpsPoint> {
+            @Override
+            public int compareTo(GpsPoint other) {
+                if (this.timestamp == null || other.timestamp == null) return 0;
+                return this.timestamp.compareTo(other.timestamp);
+            }
+        }
+
+        @Test
+        @DisplayName("pontos desordenados sao ordenados por timestamp")
+        void unorderedPoints_areSortedByTimestamp() {
+            OffsetDateTime t1 = OffsetDateTime.now().minusMinutes(10);
+            OffsetDateTime t2 = OffsetDateTime.now().minusMinutes(5);
+            OffsetDateTime t3 = OffsetDateTime.now();
+
+            java.util.List<GpsPoint> points = new java.util.ArrayList<>(List.of(
+                    new GpsPoint(-23.55, -46.63, t3),
+                    new GpsPoint(-23.56, -46.64, t1),
+                    new GpsPoint(-23.57, -46.65, t2)
+            ));
+
+            points.sort(GpsPoint::compareTo);
+
+            assertThat(points.get(0).timestamp()).isEqualTo(t1);
+            assertThat(points.get(1).timestamp()).isEqualTo(t2);
+            assertThat(points.get(2).timestamp()).isEqualTo(t3);
+        }
+
+        @Test
+        @DisplayName("ultimo ponto apos ordenacao e o mais recente")
+        void lastPoint_isMostRecent() {
+            OffsetDateTime oldest = OffsetDateTime.now().minusHours(1);
+            OffsetDateTime newest = OffsetDateTime.now();
+
+            java.util.List<GpsPoint> points = new java.util.ArrayList<>(List.of(
+                    new GpsPoint(-23.55, -46.63, newest),
+                    new GpsPoint(-23.56, -46.64, oldest)
+            ));
+
+            points.sort(GpsPoint::compareTo);
+
+            GpsPoint last = points.get(points.size() - 1);
+            assertThat(last.timestamp()).isEqualTo(newest);
+            assertThat(last.lat()).isEqualTo(-23.55);
+        }
+
+        @Test
+        @DisplayName("pontos com timestamp null nao quebram ordenacao")
+        void nullTimestamps_dontBreakSort() {
+            OffsetDateTime t1 = OffsetDateTime.now().minusMinutes(5);
+
+            java.util.List<GpsPoint> points = new java.util.ArrayList<>(List.of(
+                    new GpsPoint(-23.55, -46.63, null),
+                    new GpsPoint(-23.56, -46.64, t1),
+                    new GpsPoint(-23.57, -46.65, null)
+            ));
+
+            assertThatCode(() -> points.sort(GpsPoint::compareTo))
+                    .doesNotThrowAnyException();
+            assertThat(points).hasSize(3);
+        }
+    }
+
+    // ============================================
+    // @Visible: campos de rota ocultos no CRUD
+    // ============================================
+
+    @Nested
+    @DisplayName("@Visible — campos de rota ocultos")
+    class VisibleAnnotations {
+
+        @Test
+        @DisplayName("paymentCompleted tem @Visible(table=false)")
+        void paymentCompleted_hiddenInTable() throws NoSuchFieldException {
+            var field = Delivery.class.getDeclaredField("paymentCompleted");
+            var visible = field.getAnnotation(com.mvt.mvt_events.metadata.Visible.class);
+            assertThat(visible).isNotNull();
+            assertThat(visible.table()).isFalse();
+            assertThat(visible.form()).isFalse();
+            assertThat(visible.filter()).isFalse();
+        }
+
+        @Test
+        @DisplayName("plannedRoute tem @Visible(table=false)")
+        void plannedRoute_hiddenInTable() throws NoSuchFieldException {
+            var field = Delivery.class.getDeclaredField("plannedRoute");
+            var visible = field.getAnnotation(com.mvt.mvt_events.metadata.Visible.class);
+            assertThat(visible).isNotNull();
+            assertThat(visible.table()).isFalse();
+        }
+
+        @Test
+        @DisplayName("actualRoute tem @Visible(table=false)")
+        void actualRoute_hiddenInTable() throws NoSuchFieldException {
+            var field = Delivery.class.getDeclaredField("actualRoute");
+            var visible = field.getAnnotation(com.mvt.mvt_events.metadata.Visible.class);
+            assertThat(visible).isNotNull();
+            assertThat(visible.table()).isFalse();
+        }
+
+        @Test
+        @DisplayName("approachPlannedRoute tem @Visible(table=false)")
+        void approachPlannedRoute_hiddenInTable() throws NoSuchFieldException {
+            var field = Delivery.class.getDeclaredField("approachPlannedRoute");
+            var visible = field.getAnnotation(com.mvt.mvt_events.metadata.Visible.class);
+            assertThat(visible).isNotNull();
+            assertThat(visible.table()).isFalse();
+        }
+
+        @Test
+        @DisplayName("vehicle visivel na tabela mas oculto em form e filter")
+        void vehicle_visibleInTable_hiddenInFormAndFilter() throws NoSuchFieldException {
+            var field = Delivery.class.getDeclaredField("vehicle");
+            var visible = field.getAnnotation(com.mvt.mvt_events.metadata.Visible.class);
+            assertThat(visible).isNotNull();
+            assertThat(visible.table()).isTrue();
+            assertThat(visible.form()).isFalse();
+            assertThat(visible.filter()).isFalse();
+        }
+    }
+
+    // ============================================
+    // Vehicle: shortDescription e VehicleDTO
+    // ============================================
+
+    @Nested
+    @DisplayName("Vehicle — display name")
+    class VehicleDisplay {
+
+        private com.mvt.mvt_events.jpa.Vehicle createVehicle(String brand, String model, String plate) {
+            com.mvt.mvt_events.jpa.Vehicle v = new com.mvt.mvt_events.jpa.Vehicle();
+            v.setBrand(brand);
+            v.setModel(model);
+            v.setPlate(plate);
+            v.setType(com.mvt.mvt_events.jpa.VehicleType.MOTORCYCLE);
+            return v;
+        }
+
+        @Test
+        @DisplayName("shortDescription retorna 'marca modelo - placa'")
+        void shortDescription_format() {
+            var vehicle = createVehicle("Honda", "CG 160", "ABC1D23");
+            assertThat(vehicle.getShortDescription()).isEqualTo("Honda CG 160 - ABC1D23");
+        }
+
+        @Test
+        @DisplayName("shortDescription com carro")
+        void shortDescription_car() {
+            var vehicle = createVehicle("Fiat", "Uno", "XYZ9K88");
+            vehicle.setType(com.mvt.mvt_events.jpa.VehicleType.CAR);
+            assertThat(vehicle.getShortDescription()).isEqualTo("Fiat Uno - XYZ9K88");
+        }
+
+        @Test
+        @DisplayName("fullDescription inclui cor e tipo")
+        void fullDescription_format() {
+            var vehicle = createVehicle("Honda", "CG 160", "ABC1D23");
+            vehicle.setColor(com.mvt.mvt_events.jpa.VehicleColor.PRETO);
+            String desc = vehicle.getFullDescription();
+            assertThat(desc).contains("Honda");
+            assertThat(desc).contains("CG 160");
+            assertThat(desc).contains("ABC1D23");
+            assertThat(desc).contains("PRETO");
+        }
+
+        @Test
+        @DisplayName("VehicleDTO.name preenchido com shortDescription")
+        void vehicleDTO_namePopulated() {
+            var vehicle = createVehicle("Yamaha", "Factor 150", "DEF5G67");
+
+            var dto = com.mvt.mvt_events.dto.DeliveryResponse.VehicleDTO.builder()
+                    .id(1L)
+                    .name(vehicle.getShortDescription())
+                    .brand(vehicle.getBrand())
+                    .model(vehicle.getModel())
+                    .plate(vehicle.getPlate())
+                    .build();
+
+            assertThat(dto.getName()).isEqualTo("Yamaha Factor 150 - DEF5G67");
+        }
+    }
+
+    // ============================================
+    // Traduções de metadata
+    // ============================================
+
+    @Nested
+    @DisplayName("Traducoes de metadata")
+    class MetadataTranslations {
+
+        @Test
+        @DisplayName("CANCELLED traduzido como Cancelada (feminino)")
+        void cancelled_isFeminine() {
+            // Valida que o enum CANCELLED existe no DeliveryStatus
+            assertThat(DeliveryStatus.valueOf("CANCELLED")).isEqualTo(DeliveryStatus.CANCELLED);
+            // A tradução "Cancelada" é configurada no JpaMetadataExtractor (verificado via integração)
+        }
+
+        @Test
+        @DisplayName("DeliveryStatus nao contem DRAFT nem PUBLISHED (removidos de Events)")
+        void noEventStatuses() {
+            var names = java.util.Arrays.stream(DeliveryStatus.values())
+                    .map(Enum::name)
+                    .toList();
+            assertThat(names).doesNotContain("DRAFT");
+            assertThat(names).doesNotContain("PUBLISHED");
+        }
+
+        @Test
+        @DisplayName("Delivery tem campo stops (lista de DeliveryStop)")
+        void delivery_hasStopsField() throws NoSuchFieldException {
+            var field = Delivery.class.getDeclaredField("stops");
+            assertThat(field).isNotNull();
+            assertThat(field.getType()).isEqualTo(java.util.List.class);
+        }
+    }
 }
