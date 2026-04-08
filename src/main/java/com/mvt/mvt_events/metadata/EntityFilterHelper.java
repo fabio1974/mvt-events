@@ -47,7 +47,7 @@ public class EntityFilterHelper {
             "organization", "organização",
             "payment", "pagamento",
             "vehicle", "veículo",
-            "delivery", "entrega");
+            "delivery", "corrida");
 
     /**
      * Cria EntityFilterConfig para um filtro de relacionamento.

@@ -233,7 +233,7 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("serviceType", "Tipo de Serviço");
 
         // ==================== ZAPI10 - EVALUATION ====================
-        FIELD_TRANSLATIONS.put("delivery", "Entrega");
+        FIELD_TRANSLATIONS.put("delivery", "Corrida");
         FIELD_TRANSLATIONS.put("evaluator", "Avaliador");
         FIELD_TRANSLATIONS.put("evaluated", "Avaliado");
         FIELD_TRANSLATIONS.put("rating", "Nota");
