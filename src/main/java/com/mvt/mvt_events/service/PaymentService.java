@@ -647,8 +647,9 @@ public class PaymentService {
             throw new IllegalArgumentException("Delivery não pertence ao cliente autenticado");
         }
         
-        // 3. Validar status - cliente só pode pagar após motoboy aceitar
+        // 3. Validar status - cliente pode pagar em WAITING_PAYMENT (PIX), ACCEPTED, IN_TRANSIT ou COMPLETED
         List<Delivery.DeliveryStatus> allowedStatuses = List.of(
+            Delivery.DeliveryStatus.WAITING_PAYMENT,
             Delivery.DeliveryStatus.ACCEPTED,
             Delivery.DeliveryStatus.IN_TRANSIT,
             Delivery.DeliveryStatus.COMPLETED
