@@ -255,6 +255,9 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("processedAt", "Processado em");
         FIELD_TRANSLATIONS.put("recipient", "Destinatário");
 
+        // ==================== DADOS PESSOAIS ====================
+        FIELD_TRANSLATIONS.put("gender", "Gênero");
+
         // ==================== RELACIONAMENTOS ====================
         FIELD_TRANSLATIONS.put("user", "Usuário");
         FIELD_TRANSLATIONS.put("payments", "Pagamentos");
@@ -366,6 +369,10 @@ public class JpaMetadataExtractor {
         // ACTIVE já existe na seção STATUS acima
         // SUSPENDED já existe na seção ORGANIZATION STATUS acima
         // CANCELLED já existe na seção DELIVERY STATUS acima
+
+        // ==================== GÊNERO ====================
+        ENUM_TRANSLATIONS.put("MALE", "Masculino");
+        ENUM_TRANSLATIONS.put("FEMALE", "Feminino");
 
         // ==================== GENERIC ====================
         ENUM_TRANSLATIONS.put("OTHER", "Outro");
