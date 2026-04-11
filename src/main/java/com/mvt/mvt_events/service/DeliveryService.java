@@ -152,6 +152,10 @@ public class DeliveryService {
         delivery.setClient(client);
         delivery.setStatus(Delivery.DeliveryStatus.PENDING);
 
+        // Gera token de rastreamento público (compartilhável via WhatsApp)
+        delivery.setTrackingToken(java.util.UUID.randomUUID());
+        delivery.setTrackingTokenExpiresAt(java.time.OffsetDateTime.now().plusHours(48));
+
         // CLIENT sempre cria entregas do tipo DELIVERY (nunca RIDE)
         if (client.getRole() == User.Role.CLIENT) {
             delivery.setDeliveryType(Delivery.DeliveryType.DELIVERY);

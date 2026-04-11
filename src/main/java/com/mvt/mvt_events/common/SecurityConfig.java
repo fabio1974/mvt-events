@@ -46,6 +46,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/payments/calculate-fee").permitAll() // Permitir cálculo de taxa
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll() // Swagger
                         .requestMatchers("/api/debug/**").permitAll() // Debug endpoints
+                        .requestMatchers("/api/tracking/**").permitAll() // Rastreamento público (link WhatsApp)
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
                         .requestMatchers("/api/**").authenticated()

@@ -78,6 +78,9 @@ public class DeliveryResponse {
 
     private String notes;
 
+    // Token de rastreamento público (para compartilhar via WhatsApp)
+    private String trackingToken;
+
     // Paradas (destinos) da entrega — ordenadas por stopOrder
     private List<StopDTO> stops;
 

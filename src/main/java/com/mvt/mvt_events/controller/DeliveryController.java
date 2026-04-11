@@ -764,6 +764,7 @@ public class DeliveryController {
                 // Payments: carrega através de query JOIN para evitar StackOverflow
                 // Stops (destinos)
                 .stops(mapStops(delivery))
+                .trackingToken(delivery.getTrackingToken() != null ? delivery.getTrackingToken().toString() : null)
                 .payments(null) // Será populado pela versão sobrecarregada
                 .build();
     }

@@ -11,6 +11,7 @@ import java.time.OffsetDateTime;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Entidade CORE do Zapi10 - representa uma entrega/delivery.
@@ -279,6 +280,18 @@ public class Delivery extends BaseEntity {
     @OrderBy("stopOrder ASC")
     @com.fasterxml.jackson.annotation.JsonIgnore
     private List<DeliveryStop> stops = new ArrayList<>();
+
+    // ============================================================================
+    // TRACKING (link público para rastreamento via WhatsApp)
+    // ============================================================================
+
+    @Column(name = "tracking_token", columnDefinition = "UUID")
+    @Visible(table = false, form = false, filter = false)
+    private UUID trackingToken;
+
+    @Column(name = "tracking_token_expires_at")
+    @Visible(table = false, form = false, filter = false)
+    private OffsetDateTime trackingTokenExpiresAt;
 
     // ============================================================================
     // COMPUTED FIELDS

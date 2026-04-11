@@ -579,5 +579,15 @@ public interface DeliveryRepository
                 nativeQuery = true)
         String getApproachRouteWithTimestamps(@Param("deliveryId") Long deliveryId);
 
+        /**
+         * Busca delivery por token de rastreamento público
+         */
+        @Query("SELECT d FROM Delivery d " +
+               "LEFT JOIN FETCH d.courier " +
+               "LEFT JOIN FETCH d.vehicle " +
+               "LEFT JOIN FETCH d.stops s " +
+               "WHERE d.trackingToken = :token")
+        java.util.Optional<Delivery> findByTrackingToken(@Param("token") UUID token);
+
 }
 
