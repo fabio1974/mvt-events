@@ -162,6 +162,16 @@ public class AuthController {
 
         User savedUser = userRepository.save(user);
 
+        // Se for ORGANIZER, criar Organization automaticamente com owner = este usuário
+        if (savedUser.getRole() == User.Role.ORGANIZER) {
+            Organization organization = new Organization();
+            organization.setName("Grupo de " + savedUser.getName());
+            organization.setOwner(savedUser);
+            organizationRepository.save(organization);
+            log.info("✅ Organization criada automaticamente para ORGANIZER: {} → org '{}'",
+                    savedUser.getUsername(), organization.getName());
+        }
+
         // Se for CLIENT, criar automaticamente preferência de pagamento como PIX
         if (savedUser.getRole() == User.Role.CLIENT) {
             com.mvt.mvt_events.jpa.CustomerPaymentPreference preference = 

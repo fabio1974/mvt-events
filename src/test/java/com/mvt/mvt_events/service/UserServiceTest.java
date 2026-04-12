@@ -155,7 +155,7 @@ class UserServiceTest {
         }
 
         @Test
-        @DisplayName("ADMIN cria ORGANIZER com sucesso")
+        @DisplayName("ADMIN cria ORGANIZER com sucesso — Organization criada automaticamente")
         void adminCriaOrganizer() {
             UserCreateRequest req = makeCreateRequest("gerente@email.com", "Ana Gerente", "ORGANIZER");
 
@@ -166,10 +166,16 @@ class UserServiceTest {
                 u.setId(organizerId);
                 return u;
             });
+            when(organizationRepository.save(any(Organization.class))).thenAnswer(inv -> inv.getArgument(0));
 
             User result = userService.createUser(req, adminAuth);
 
             assertThat(result.getRole()).isEqualTo(User.Role.ORGANIZER);
+            // Verifica que Organization foi criada com owner = este ORGANIZER
+            verify(organizationRepository).save(argThat(org ->
+                    org.getOwner().getId().equals(organizerId) &&
+                    org.getName().contains("Ana Gerente")
+            ));
         }
 
         @Test

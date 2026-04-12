@@ -225,16 +225,24 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
 
+        // Se for ORGANIZER, criar Organization automaticamente com owner = este usuário
+        if (savedUser.getRole() == User.Role.ORGANIZER) {
+            com.mvt.mvt_events.jpa.Organization organization = new com.mvt.mvt_events.jpa.Organization();
+            organization.setName("Grupo de " + savedUser.getName());
+            organization.setOwner(savedUser);
+            organizationRepository.save(organization);
+            System.out.println("✅ Organization criada automaticamente para ORGANIZER: " + savedUser.getUsername() + " → org '" + organization.getName() + "'");
+        }
+
         // Se for CLIENT, criar automaticamente preferência de pagamento como PIX
         if (savedUser.getRole() == User.Role.CLIENT) {
-            com.mvt.mvt_events.jpa.CustomerPaymentPreference preference = 
+            com.mvt.mvt_events.jpa.CustomerPaymentPreference preference =
                 com.mvt.mvt_events.jpa.CustomerPaymentPreference.builder()
                     .user(savedUser)
                     .preferredPaymentType(com.mvt.mvt_events.jpa.CustomerPaymentPreference.PreferredPaymentType.PIX)
                     .defaultCard(null)
                     .build();
             customerPaymentPreferenceRepository.save(preference);
-            // Log para debug
             System.out.println("✅ Preferência de pagamento PIX criada automaticamente para CLIENT: " + savedUser.getUsername());
         }
 
