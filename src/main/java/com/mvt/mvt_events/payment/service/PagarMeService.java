@@ -212,7 +212,7 @@ public class PagarMeService {
                         .holderDocument(document)
                         .bank(bankAccount.getBankCode())
                         .branchNumber(bankAccount.getAgency())
-                        .branchCheckDigit(bankAccount.getAgencyDigit() != null ? bankAccount.getAgencyDigit() : "")
+                        .branchCheckDigit(bankAccount.getAgencyDigit() != null && !bankAccount.getAgencyDigit().isBlank() ? bankAccount.getAgencyDigit() : null)
                         .accountNumber(bankAccount.getAccountNumber())
                         .accountCheckDigit(bankAccount.getAccountDigit())
                         .type(bankAccount.getAccountType() == BankAccount.AccountType.CHECKING ? "checking" : "savings")
@@ -1125,7 +1125,9 @@ public class PagarMeService {
             bankData.put("holder_document", user.getDocumentClean());
             bankData.put("bank", bankAccount.getBankCode());
             bankData.put("branch_number", bankAccount.getAgency());
-            bankData.put("branch_check_digit", bankAccount.getAgencyDigit() != null ? bankAccount.getAgencyDigit() : "");
+            if (bankAccount.getAgencyDigit() != null && !bankAccount.getAgencyDigit().isBlank()) {
+                bankData.put("branch_check_digit", bankAccount.getAgencyDigit());
+            }
             bankData.put("account_number", bankAccount.getAccountNumber());
             bankData.put("account_check_digit", bankAccount.getAccountDigit());
             bankData.put("type", bankAccount.getAccountType() == BankAccount.AccountType.CHECKING ? "checking" : "savings");

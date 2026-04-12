@@ -238,7 +238,7 @@ public class BankAccountService {
         boolean bankDataChanged = !bankAccount.getBankCode().equals(request.bankCode()) ||
                                   !bankAccount.getBankName().equals(request.bankName()) ||
                                   !bankAccount.getAgency().equals(request.agency()) ||
-                                  !bankAccount.getAgencyDigit().equals(request.agencyDigit()) ||
+                                  !java.util.Objects.equals(bankAccount.getAgencyDigit(), request.agencyDigit()) ||
                                   !bankAccount.getAccountNumber().equals(request.accountNumber()) ||
                                   !bankAccount.getAccountDigit().equals(request.accountDigit()) ||
                                   !bankAccount.getAccountType().equals(request.accountType());
