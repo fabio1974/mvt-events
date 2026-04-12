@@ -1,0 +1,28 @@
+package com.mvt.mvt_events.repository;
+
+import com.mvt.mvt_events.jpa.FoodOrder;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Repository
+public interface FoodOrderRepository extends JpaRepository<FoodOrder, Long> {
+
+    @Query("SELECT o FROM FoodOrder o LEFT JOIN FETCH o.items WHERE o.id = :id")
+    Optional<FoodOrder> findByIdWithItems(@Param("id") Long id);
+
+    List<FoodOrder> findByCustomerIdOrderByCreatedAtDesc(UUID customerId);
+
+    List<FoodOrder> findByClientIdOrderByCreatedAtDesc(UUID clientId);
+
+    List<FoodOrder> findByClientIdAndStatusOrderByCreatedAtDesc(UUID clientId, FoodOrder.OrderStatus status);
+
+    List<FoodOrder> findByClientIdAndStatusInOrderByCreatedAtDesc(UUID clientId, List<FoodOrder.OrderStatus> statuses);
+
+    Optional<FoodOrder> findByDeliveryId(Long deliveryId);
+}

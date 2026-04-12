@@ -314,19 +314,34 @@ PATCH  /api/orders/{id}/cancel                    — Cancelar (CLIENT ou CUSTOM
 
 ---
 
-## 7. Configurações do Restaurante
+## 7. Perfil da Loja (tabela separada)
 
-Campos adicionais no `users` (ou nova tabela `store_settings`):
+Tabela `store_profiles` — relação 1:1 com `users` (apenas CLIENTs com catálogo):
 
 ```sql
-ALTER TABLE users ADD COLUMN store_open BOOLEAN DEFAULT false;
-ALTER TABLE users ADD COLUMN store_opening_hours JSONB;
--- Exemplo: {"seg": ["11:00-14:00", "18:00-22:00"], "ter": ["11:00-14:00", "18:00-22:00"], ...}
-ALTER TABLE users ADD COLUMN store_min_order NUMERIC(10,2);
-ALTER TABLE users ADD COLUMN store_avg_preparation_minutes INT;
-ALTER TABLE users ADD COLUMN store_logo_url VARCHAR(500);
-ALTER TABLE users ADD COLUMN store_cover_url VARCHAR(500);
+CREATE TABLE store_profiles (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id),
+    is_open BOOLEAN DEFAULT false,
+    opening_hours JSONB,
+    -- Exemplo: {"seg": ["11:00-14:00", "18:00-22:00"], "dom": ["11:00-15:00"]}
+    min_order NUMERIC(10,2),
+    avg_preparation_minutes INT,
+    logo_url VARCHAR(500),
+    cover_url VARCHAR(500),
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_store_profiles_user ON store_profiles(user_id);
+CREATE INDEX idx_store_profiles_open ON store_profiles(is_open) WHERE is_open = true;
 ```
+
+Vantagens:
+- Tabela `users` não cresce (já tem 27 colunas)
+- Apenas CLIENTs tipo RESTAURANT/PHARMACY/etc têm store_profile
+- COURIER, CUSTOMER, ADMIN não são afetados
 
 ---
 
