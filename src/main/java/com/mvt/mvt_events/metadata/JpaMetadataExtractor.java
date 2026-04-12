@@ -663,6 +663,16 @@ public class JpaMetadataExtractor {
         String targetEntityName = toEntityName(targetEntity.getSimpleName());
         String targetEndpoint = "/api/" + toKebabCase(toPlural(targetEntity.getSimpleName()));
 
+        // Override de endpoint para campos User com role específico
+        // (para TypeAhead filtrar por role no FE)
+        if (targetEntity == com.mvt.mvt_events.jpa.User.class) {
+            if ("courier".equals(fieldName)) {
+                targetEndpoint = "/api/users/search/couriers";
+            } else if ("client".equals(fieldName)) {
+                targetEndpoint = "/api/users/search/clients";
+            }
+        }
+
         RelationshipMetadata relationship = new RelationshipMetadata(
                 "MANY_TO_ONE",
                 targetEntityName,
