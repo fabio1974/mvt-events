@@ -7,9 +7,31 @@ buildscript {
 plugins {
 	id 'java'
 	id 'war'
+	id 'jacoco'
 	id 'org.springframework.boot' version '3.5.6'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'org.flywaydb.flyway' version '11.7.2'
+}
+
+jacocoTestReport {
+	dependsOn test
+	reports {
+		xml.required = false
+		html.required = true
+	}
+	afterEvaluate {
+		classDirectories = files(classDirectories.files.collect {
+			fileTree(dir: it, exclude: [
+				'**/jpa/**',           // Entidades JPA (getters/setters Lombok)
+				'**/dto/**',           // DTOs
+				'**/config/**',        // Configurações
+				'**/common/**',        // Security config etc
+				'**/tenant/**',        // Tenant filter
+				'**/specification/**', // JPA Specifications
+				'**/metadata/**',      // Metadata extractor
+			])
+		})
+	}
 }
 
 group = 'com.mvt'
