@@ -115,6 +115,20 @@ public class FoodOrder {
         try { return customer != null ? customer.getUsername() : null; } catch (Exception e) { return null; }
     }
 
+    @com.fasterxml.jackson.annotation.JsonGetter("customerPhone")
+    public String getCustomerPhone() {
+        try {
+            if (customer == null) return null;
+            String ddd = customer.getPhoneDdd();
+            String num = customer.getPhoneNumber();
+            if (ddd == null || num == null) return null;
+            if (num.length() == 9) {
+                return String.format("(%s) %s-%s", ddd, num.substring(0, 5), num.substring(5));
+            }
+            return String.format("(%s) %s", ddd, num);
+        } catch (Exception e) { return null; }
+    }
+
     @com.fasterxml.jackson.annotation.JsonGetter("deliveryIdValue")
     public Long getDeliveryIdValue() {
         try { return delivery != null ? delivery.getId() : null; } catch (Exception e) { return null; }

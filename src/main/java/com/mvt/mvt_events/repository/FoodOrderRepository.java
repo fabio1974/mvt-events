@@ -13,7 +13,7 @@ import java.util.UUID;
 @Repository
 public interface FoodOrderRepository extends JpaRepository<FoodOrder, Long> {
 
-    @Query("SELECT o FROM FoodOrder o LEFT JOIN FETCH o.items WHERE o.id = :id")
+    @Query("SELECT o FROM FoodOrder o LEFT JOIN FETCH o.customer LEFT JOIN FETCH o.client LEFT JOIN FETCH o.items i LEFT JOIN FETCH i.product WHERE o.id = :id")
     Optional<FoodOrder> findByIdWithItems(@Param("id") Long id);
 
     List<FoodOrder> findByCustomerIdOrderByCreatedAtDesc(UUID customerId);

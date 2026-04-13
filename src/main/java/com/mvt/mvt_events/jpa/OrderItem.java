@@ -49,6 +49,16 @@ public class OrderItem {
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
+    @com.fasterxml.jackson.annotation.JsonGetter("productName")
+    public String getProductName() {
+        try { return product != null ? product.getName() : null; } catch (Exception e) { return null; }
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("productId")
+    public Long getProductId() {
+        try { return product != null ? product.getId() : null; } catch (Exception e) { return null; }
+    }
+
     @PrePersist
     protected void onCreate() {
         createdAt = OffsetDateTime.now();
