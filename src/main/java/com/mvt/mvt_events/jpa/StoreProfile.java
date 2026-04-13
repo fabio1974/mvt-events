@@ -28,6 +28,7 @@ public class StoreProfile {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private User user;
 
     @Builder.Default

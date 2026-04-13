@@ -239,6 +239,22 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("rating", "Nota");
         FIELD_TRANSLATIONS.put("comment", "Comentário");
 
+        // ==================== ZAPI-FOOD ====================
+        FIELD_TRANSLATIONS.put("subtotal", "Subtotal");
+        FIELD_TRANSLATIONS.put("deliveryFee", "Taxa de Entrega");
+        FIELD_TRANSLATIONS.put("total", "Total");
+        FIELD_TRANSLATIONS.put("estimatedPreparationMinutes", "Tempo de Preparo (min)");
+        FIELD_TRANSLATIONS.put("deliveryAddress", "Endereço de Entrega");
+        FIELD_TRANSLATIONS.put("deliveryLatitude", "Latitude de Entrega");
+        FIELD_TRANSLATIONS.put("deliveryLongitude", "Longitude de Entrega");
+        FIELD_TRANSLATIONS.put("acceptedAt", "Aceito em");
+        FIELD_TRANSLATIONS.put("preparingAt", "Preparo Iniciado em");
+        FIELD_TRANSLATIONS.put("readyAt", "Pronto em");
+        FIELD_TRANSLATIONS.put("cancellationReason", "Motivo do Cancelamento");
+        FIELD_TRANSLATIONS.put("customerName", "Cliente");
+        FIELD_TRANSLATIONS.put("customerEmail", "Email do Cliente");
+        FIELD_TRANSLATIONS.put("deliveryIdValue", "Corrida");
+
         // ==================== ZAPI10 - MUNICIPAL PARTNERSHIP ====================
         FIELD_TRANSLATIONS.put("partnershipName", "Nome da Parceria");
         FIELD_TRANSLATIONS.put("municipality", "Município");
@@ -277,6 +293,13 @@ public class JpaMetadataExtractor {
         ENUM_TRANSLATIONS.put("FAILED", "Falhou");
         ENUM_TRANSLATIONS.put("REFUNDED", "Reembolsado");
         ENUM_TRANSLATIONS.put("EXPIRED", "Expirado");
+
+        // ==================== ZAPI-FOOD ORDER STATUS ====================
+        ENUM_TRANSLATIONS.put("PLACED", "Novo");
+        ENUM_TRANSLATIONS.put("ACCEPTED", "Aceita");
+        ENUM_TRANSLATIONS.put("PREPARING", "Preparando");
+        ENUM_TRANSLATIONS.put("READY", "Pronto");
+        ENUM_TRANSLATIONS.put("DELIVERING", "Entregando");
 
         // ==================== TRANSFER FREQUENCY ====================
         ENUM_TRANSLATIONS.put("IMMEDIATE", "Imediato");

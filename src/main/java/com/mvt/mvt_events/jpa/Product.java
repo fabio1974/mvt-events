@@ -28,11 +28,19 @@ public class Product {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private User client;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
+    @Getter(lombok.AccessLevel.NONE)
+    @Setter(lombok.AccessLevel.NONE)
     private ProductCategory category;
+
+    // Getter/setter manuais (Lombok excluído para controle de Jackson)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public ProductCategory getCategory() { return category; }
+    public void setCategory(ProductCategory category) { this.category = category; }
 
     @NotBlank
     @Size(max = 200)
@@ -65,6 +73,31 @@ public class Product {
 
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    // Output: retorna categoryId e categoryName como campos planos no JSON
+    @com.fasterxml.jackson.annotation.JsonGetter("categoryId")
+    public Long serializeCategoryId() {
+        return category != null ? category.getId() : null;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("categoryName")
+    public String serializeCategoryName() {
+        try {
+            return category != null ? category.getName() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // Input: aceita { "category": { "id": N } } no request JSON
+    @com.fasterxml.jackson.annotation.JsonSetter("category")
+    public void setCategoryFromJson(java.util.Map<String, Object> catMap) {
+        if (catMap != null && catMap.get("id") != null) {
+            ProductCategory cat = new ProductCategory();
+            cat.setId(((Number) catMap.get("id")).longValue());
+            this.category = cat;
+        }
+    }
 
     @PrePersist
     protected void onCreate() {

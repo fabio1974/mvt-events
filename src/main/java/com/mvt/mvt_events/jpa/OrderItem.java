@@ -26,10 +26,12 @@ public class OrderItem {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private FoodOrder order;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Product product;
 
     @Builder.Default

@@ -33,6 +33,9 @@ public class MetadataService {
         ENTITIES.put("evaluation", new EntityConfig(Evaluation.class, "Avaliações", "/api/evaluations"));
         ENTITIES.put("clientContract", new EntityConfig(ClientContract.class, "Contrato de Serviço", "/api/client-contracts"));
         ENTITIES.put("employmentContract", new EntityConfig(EmploymentContract.class, "Contrato de Motoboy", "/api/employment-contracts"));
+
+        // ==================== Zapi-Food ====================
+        ENTITIES.put("foodOrder", new EntityConfig(FoodOrder.class, "Pedidos", "/api/orders"));
     }
 
     public Map<String, EntityMetadata> getAllEntitiesMetadata() {

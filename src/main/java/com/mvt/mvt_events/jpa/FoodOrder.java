@@ -28,14 +28,20 @@ public class FoodOrder {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
     private User customer;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
     private User client;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "delivery_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
     private Delivery delivery;
 
     @Builder.Default
@@ -58,6 +64,17 @@ public class FoodOrder {
     @Column(name = "estimated_preparation_minutes")
     private Integer estimatedPreparationMinutes;
 
+    @Column(name = "delivery_address", columnDefinition = "TEXT")
+    private String deliveryAddress;
+
+    @Column(name = "delivery_latitude")
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
+    private Double deliveryLatitude;
+
+    @Column(name = "delivery_longitude")
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
+    private Double deliveryLongitude;
+
     @Column(name = "accepted_at")
     private OffsetDateTime acceptedAt;
 
@@ -78,6 +95,7 @@ public class FoodOrder {
 
     @Builder.Default
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
     private List<OrderItem> items = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -85,6 +103,22 @@ public class FoodOrder {
 
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    // Campos computed para serialização (tabela/view)
+    @com.fasterxml.jackson.annotation.JsonGetter("customerName")
+    public String getCustomerName() {
+        try { return customer != null ? customer.getName() : null; } catch (Exception e) { return null; }
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("customerEmail")
+    public String getCustomerEmail() {
+        try { return customer != null ? customer.getUsername() : null; } catch (Exception e) { return null; }
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("deliveryIdValue")
+    public Long getDeliveryIdValue() {
+        try { return delivery != null ? delivery.getId() : null; } catch (Exception e) { return null; }
+    }
 
     @PrePersist
     protected void onCreate() {

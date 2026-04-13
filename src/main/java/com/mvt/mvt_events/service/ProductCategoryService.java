@@ -41,6 +41,12 @@ public class ProductCategoryService {
         if (client.getRole() != User.Role.CLIENT) {
             throw new RuntimeException("Apenas CLIENTs podem criar categorias");
         }
+        // Verificar duplicidade (case-insensitive)
+        boolean exists = categoryRepository.findByClientIdOrderByDisplayOrderAsc(clientId).stream()
+                .anyMatch(c -> c.getName().equalsIgnoreCase(category.getName().trim()));
+        if (exists) {
+            throw new RuntimeException("Já existe uma categoria com o nome '" + category.getName().trim() + "'");
+        }
         category.setClient(client);
         return categoryRepository.save(category);
     }

@@ -31,17 +31,20 @@ public class FoodOrderService {
     private final UserRepository userRepository;
     private final StoreProfileRepository storeProfileRepository;
     private final DeliveryService deliveryService;
+    private final DeliveryStopRepository deliveryStopRepository;
     private final PushNotificationService pushNotificationService;
     private final SiteConfigurationService siteConfigurationService;
 
     public FoodOrderService(FoodOrderRepository orderRepository, ProductRepository productRepository,
                             UserRepository userRepository, StoreProfileRepository storeProfileRepository,
-                            DeliveryService deliveryService, PushNotificationService pushNotificationService,
+                            DeliveryService deliveryService, DeliveryStopRepository deliveryStopRepository,
+                            PushNotificationService pushNotificationService,
                             SiteConfigurationService siteConfigurationService) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
         this.storeProfileRepository = storeProfileRepository;
+        this.deliveryStopRepository = deliveryStopRepository;
         this.deliveryService = deliveryService;
         this.pushNotificationService = pushNotificationService;
         this.siteConfigurationService = siteConfigurationService;
@@ -51,7 +54,8 @@ public class FoodOrderService {
     // CRIAR PEDIDO (CUSTOMER)
     // ================================================================
 
-    public FoodOrder create(UUID customerId, UUID clientId, List<OrderItemRequest> items, String notes) {
+    public FoodOrder create(UUID customerId, UUID clientId, List<OrderItemRequest> items, String notes,
+                            String deliveryAddress, Double deliveryLat, Double deliveryLng) {
         User customer = userRepository.findById(customerId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
         if (customer.getRole() != User.Role.CUSTOMER && customer.getRole() != User.Role.CLIENT) {
@@ -70,12 +74,32 @@ public class FoodOrderService {
             throw new RuntimeException("Este restaurante está fechado no momento");
         }
 
+        // Coordenadas de entrega: usa endereço informado ou GPS do customer
+        Double destLat = deliveryLat != null ? deliveryLat : customer.getGpsLatitude();
+        Double destLng = deliveryLng != null ? deliveryLng : customer.getGpsLongitude();
+        String destAddr = deliveryAddress != null ? deliveryAddress : customer.getName();
+
+        // Validar distância mínima entre destino e restaurante (200m)
+        if (destLat != null && destLng != null
+                && client.getGpsLatitude() != null && client.getGpsLongitude() != null) {
+            double distMeters = haversineKm(destLat, destLng,
+                    client.getGpsLatitude(), client.getGpsLongitude()) * 1000;
+            if (distMeters < 200) {
+                throw new RuntimeException("O endereço de entrega está muito próximo do restaurante (" + Math.round(distMeters) + "m). Escolha outro endereço.");
+            }
+        } else if (destLat == null || destLng == null) {
+            throw new RuntimeException("Informe o endereço de entrega para fazer pedidos.");
+        }
+
         // Montar itens e calcular subtotal
         FoodOrder order = new FoodOrder();
         order.setCustomer(customer);
         order.setClient(client);
         order.setNotes(notes);
         order.setStatus(FoodOrder.OrderStatus.PLACED);
+        order.setDeliveryAddress(destAddr);
+        order.setDeliveryLatitude(destLat);
+        order.setDeliveryLongitude(destLng);
 
         BigDecimal subtotal = BigDecimal.ZERO;
         int maxPrepTime = 0;
@@ -111,8 +135,8 @@ public class FoodOrderService {
             throw new RuntimeException("Pedido mínimo é R$ " + store.getMinOrder().setScale(2, RoundingMode.HALF_UP));
         }
 
-        // Calcular taxa de entrega (baseado na distância customer ↔ restaurante)
-        BigDecimal deliveryFee = calculateDeliveryFee(customer, client);
+        // Calcular taxa de entrega (baseado na distância destino ↔ restaurante)
+        BigDecimal deliveryFee = calculateDeliveryFee(destLat, destLng, client);
 
         order.setSubtotal(subtotal.setScale(2, RoundingMode.HALF_UP));
         order.setDeliveryFee(deliveryFee);
@@ -167,6 +191,8 @@ public class FoodOrderService {
         return orderRepository.save(order);
     }
 
+    private static final int GROUPING_WINDOW_MINUTES = 10;
+
     public FoodOrder markReady(Long orderId, UUID clientId) {
         FoodOrder order = findAndValidateClient(orderId, clientId);
         if (order.getStatus() != FoodOrder.OrderStatus.ACCEPTED && order.getStatus() != FoodOrder.OrderStatus.PREPARING) {
@@ -177,20 +203,117 @@ public class FoodOrderService {
         order.setReadyAt(OffsetDateTime.now(ZONE));
         FoodOrder saved = orderRepository.save(order);
 
-        // Criar Delivery automaticamente
         try {
-            Delivery delivery = createDeliveryFromOrder(saved);
-            saved.setDelivery(delivery);
-            saved.setStatus(FoodOrder.OrderStatus.DELIVERING);
-            saved = orderRepository.save(saved);
-            log.info("🚀 Pedido #{} pronto → Delivery #{} criada", orderId, delivery.getId());
+            // Tentar agrupar com Delivery existente (PENDING ou ACCEPTED, últimos 5 min)
+            Delivery groupedDelivery = tryGroupWithExistingDelivery(saved);
+
+            if (groupedDelivery != null) {
+                saved.setDelivery(groupedDelivery);
+                saved.setStatus(FoodOrder.OrderStatus.DELIVERING);
+                saved = orderRepository.save(saved);
+                log.info("📦 Pedido #{} agrupado na Delivery #{} (multi-stop)", orderId, groupedDelivery.getId());
+            } else {
+                // Criar nova Delivery
+                Delivery delivery = createDeliveryFromOrder(saved);
+                saved.setDelivery(delivery);
+                saved.setStatus(FoodOrder.OrderStatus.DELIVERING);
+                saved = orderRepository.save(saved);
+                log.info("🚀 Pedido #{} pronto → Delivery #{} criada", orderId, delivery.getId());
+            }
         } catch (Exception e) {
-            log.error("❌ Falha ao criar delivery para pedido #{}: {}", orderId, e.getMessage());
+            log.error("❌ Falha ao criar/agrupar delivery para pedido #{}: {}", orderId, e.getMessage());
         }
 
         notifyCustomer(saved, "🏍️ Pedido saindo", "Seu pedido #" + orderId + " está saindo para entrega");
 
         return saved;
+    }
+
+    private static final double COURIER_NEAR_STORE_METERS = 200;
+
+    /**
+     * Tenta agrupar o pedido com uma Delivery existente do mesmo restaurante.
+     *
+     * Regras de agrupamento:
+     * - PENDING: agrupa sempre (courier ainda não aceitou)
+     * - ACCEPTED: agrupa se courier está a menos de 200m do restaurante
+     *   e chegou há menos de 5 minutos (ainda está coletando)
+     * - IN_TRANSIT: nunca agrupa (courier já saiu)
+     */
+    private Delivery tryGroupWithExistingDelivery(FoodOrder order) {
+        OffsetDateTime since = OffsetDateTime.now(ZONE).minusMinutes(GROUPING_WINDOW_MINUTES);
+        List<FoodOrder> recentOrders = orderRepository.findRecentDeliveringByClient(
+                order.getClient().getId(), since);
+
+        if (recentOrders.isEmpty()) return null;
+
+        User restaurant = order.getClient();
+        Double storeLat = restaurant.getGpsLatitude();
+        Double storeLng = restaurant.getGpsLongitude();
+
+        for (FoodOrder recentOrder : recentOrders) {
+            Delivery candidate = recentOrder.getDelivery();
+            if (candidate == null) continue;
+
+            // Recarregar delivery
+            candidate = deliveryService.findById(candidate.getId(), null);
+
+            if (candidate.getStatus() == Delivery.DeliveryStatus.PENDING) {
+                // PENDING: sempre agrupável
+                return addStopToDelivery(candidate, order);
+            }
+
+            if (candidate.getStatus() == Delivery.DeliveryStatus.ACCEPTED) {
+                // ACCEPTED: só se courier está perto do restaurante
+                User courier = candidate.getCourier();
+                if (courier == null) continue;
+
+                if (storeLat != null && storeLng != null
+                        && courier.getGpsLatitude() != null && courier.getGpsLongitude() != null) {
+                    double distMeters = haversineKm(storeLat, storeLng,
+                            courier.getGpsLatitude(), courier.getGpsLongitude()) * 1000;
+                    if (distMeters <= COURIER_NEAR_STORE_METERS) {
+                        log.info("📦 Courier está a {}m do restaurante — agrupando pedido #{}",
+                                Math.round(distMeters), order.getId());
+                        return addStopToDelivery(candidate, order);
+                    } else {
+                        log.info("🚫 Courier está a {}m do restaurante (> {}m) — não agrupa pedido #{}",
+                                Math.round(distMeters), COURIER_NEAR_STORE_METERS, order.getId());
+                    }
+                }
+            }
+            // IN_TRANSIT: nunca agrupa
+        }
+
+        return null;
+    }
+
+    private Delivery addStopToDelivery(Delivery delivery, FoodOrder order) {
+        User customer = order.getCustomer();
+        Double destLat = order.getDeliveryLatitude() != null ? order.getDeliveryLatitude() : customer.getGpsLatitude();
+        Double destLng = order.getDeliveryLongitude() != null ? order.getDeliveryLongitude() : customer.getGpsLongitude();
+        String destAddr = order.getDeliveryAddress() != null ? order.getDeliveryAddress() : customer.getName();
+        int nextOrder = delivery.getStops() != null ? delivery.getStops().size() + 1 : 2;
+
+        DeliveryStop newStop = DeliveryStop.builder()
+                .delivery(delivery)
+                .stopOrder(nextOrder)
+                .address(destAddr)
+                .latitude(destLat)
+                .longitude(destLng)
+                .recipientName(customer.getName())
+                .recipientPhone(customer.getPhoneDdd() != null && customer.getPhoneNumber() != null
+                        ? customer.getPhoneDdd() + customer.getPhoneNumber() : null)
+                .itemDescription("Pedido #" + order.getId())
+                .status(DeliveryStop.StopStatus.PENDING)
+                .build();
+
+        deliveryStopRepository.save(newStop);
+
+        log.info("📦 Stop #{} adicionado à Delivery #{} — pedido #{} agrupado",
+                nextOrder, delivery.getId(), order.getId());
+
+        return delivery;
     }
 
     public FoodOrder cancel(Long orderId, UUID userId, String reason) {
@@ -284,13 +407,18 @@ public class FoodOrderService {
         User client = order.getClient();
         User customer = order.getCustomer();
 
+        // Usa coordenadas de entrega da Order (selecionadas pelo customer)
+        Double destLat = order.getDeliveryLatitude() != null ? order.getDeliveryLatitude() : customer.getGpsLatitude();
+        Double destLng = order.getDeliveryLongitude() != null ? order.getDeliveryLongitude() : customer.getGpsLongitude();
+        String destAddr = order.getDeliveryAddress() != null ? order.getDeliveryAddress() : customer.getName();
+
         Delivery delivery = new Delivery();
-        delivery.setFromAddress(client.getName()); // endereço do restaurante
+        delivery.setFromAddress(client.getName());
         delivery.setFromLatitude(client.getGpsLatitude());
         delivery.setFromLongitude(client.getGpsLongitude());
-        delivery.setToAddress(customer.getName()); // endereço do customer
-        delivery.setToLatitude(customer.getGpsLatitude());
-        delivery.setToLongitude(customer.getGpsLongitude());
+        delivery.setToAddress(destAddr);
+        delivery.setToLatitude(destLat);
+        delivery.setToLongitude(destLng);
         delivery.setRecipientName(customer.getName());
         delivery.setRecipientPhone(customer.getPhoneDdd() != null && customer.getPhoneNumber() != null
                 ? customer.getPhoneDdd() + customer.getPhoneNumber() : null);
@@ -301,24 +429,23 @@ public class FoodOrderService {
 
         // Calcular distância
         if (client.getGpsLatitude() != null && client.getGpsLongitude() != null
-                && customer.getGpsLatitude() != null && customer.getGpsLongitude() != null) {
+                && destLat != null && destLng != null) {
             double distKm = haversineKm(client.getGpsLatitude(), client.getGpsLongitude(),
-                    customer.getGpsLatitude(), customer.getGpsLongitude());
+                    destLat, destLng);
             delivery.setDistanceKm(BigDecimal.valueOf(distKm).setScale(2, RoundingMode.HALF_UP));
         }
 
         return deliveryService.create(delivery, client.getId(), client.getId());
     }
 
-    private BigDecimal calculateDeliveryFee(User customer, User client) {
-        if (customer.getGpsLatitude() == null || customer.getGpsLongitude() == null
+    private BigDecimal calculateDeliveryFee(Double destLat, Double destLng, User client) {
+        if (destLat == null || destLng == null
                 || client.getGpsLatitude() == null || client.getGpsLongitude() == null) {
-            // Sem coordenadas → taxa mínima
             SiteConfiguration config = siteConfigurationService.getActiveConfiguration();
             return config.getMinimumShippingFee();
         }
 
-        double distKm = haversineKm(customer.getGpsLatitude(), customer.getGpsLongitude(),
+        double distKm = haversineKm(destLat, destLng,
                 client.getGpsLatitude(), client.getGpsLongitude());
 
         SiteConfiguration config = siteConfigurationService.getActiveConfiguration();

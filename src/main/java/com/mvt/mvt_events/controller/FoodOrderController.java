@@ -2,9 +2,12 @@ package com.mvt.mvt_events.controller;
 
 import com.mvt.mvt_events.jpa.FoodOrder;
 import com.mvt.mvt_events.jpa.User;
+import com.mvt.mvt_events.repository.FoodOrderRepository;
 import com.mvt.mvt_events.service.FoodOrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -20,9 +23,26 @@ import java.util.UUID;
 public class FoodOrderController {
 
     private final FoodOrderService orderService;
+    private final FoodOrderRepository orderRepository;
 
-    public FoodOrderController(FoodOrderService orderService) {
+    public FoodOrderController(FoodOrderService orderService, FoodOrderRepository orderRepository) {
         this.orderService = orderService;
+        this.orderRepository = orderRepository;
+    }
+
+    // ================================================================
+    // GENÉRICO — EntityCRUD usa GET paginado
+    // ================================================================
+
+    @GetMapping
+    @Operation(summary = "Listar pedidos (paginado)", description = "Para EntityCRUD genérico. CLIENT vê seus pedidos, ADMIN vê todos.")
+    public ResponseEntity<Page<FoodOrder>> listPaged(Authentication authentication, Pageable pageable) {
+        User user = (User) authentication.getPrincipal();
+        if (user.getRole() == User.Role.ADMIN) {
+            return ResponseEntity.ok(orderRepository.findAll(pageable));
+        }
+        // CLIENT vê pedidos do seu restaurante
+        return ResponseEntity.ok(orderRepository.findByClientId(user.getId(), pageable));
     }
 
     // ================================================================
@@ -33,7 +53,10 @@ public class FoodOrderController {
     @Operation(summary = "Criar pedido", description = "CUSTOMER cria pedido para um restaurante")
     public ResponseEntity<FoodOrder> create(Authentication authentication, @RequestBody CreateOrderRequest request) {
         User user = (User) authentication.getPrincipal();
-        FoodOrder order = orderService.create(user.getId(), request.clientId, request.items, request.notes);
+        Double deliveryLat = request.deliveryAddress != null ? request.deliveryAddress.latitude : null;
+        Double deliveryLng = request.deliveryAddress != null ? request.deliveryAddress.longitude : null;
+        String deliveryAddr = request.deliveryAddress != null ? request.deliveryAddress.address : null;
+        FoodOrder order = orderService.create(user.getId(), request.clientId, request.items, request.notes, deliveryAddr, deliveryLat, deliveryLng);
         return ResponseEntity.status(HttpStatus.CREATED).body(order);
     }
 
@@ -109,5 +132,12 @@ public class FoodOrderController {
         public UUID clientId;
         public List<FoodOrderService.OrderItemRequest> items;
         public String notes;
+        public DeliveryAddress deliveryAddress;
+    }
+
+    public static class DeliveryAddress {
+        public String address;
+        public Double latitude;
+        public Double longitude;
     }
 }

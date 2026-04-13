@@ -10,6 +10,7 @@ import com.mvt.mvt_events.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -38,23 +39,72 @@ public class StoreController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar restaurantes", description = "Lista restaurantes abertos com perfil de loja. Filtros: serviceType, open")
+    @Operation(summary = "Listar restaurantes", description = "Lista restaurantes próximos com perfil de loja. Filtros: serviceType, open, lat/lng/radius")
     public ResponseEntity<List<Map<String, Object>>> listStores(
             @RequestParam(required = false) String serviceType,
-            @RequestParam(required = false, defaultValue = "true") boolean openOnly) {
+            @RequestParam(required = false, defaultValue = "true") boolean openOnly,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lng,
+            @RequestParam(required = false, defaultValue = "5") double radiusKm,
+            Authentication authentication) {
 
-        // Busca CLIENTs com store_profile
+        // Busca CLIENTs com store_profile (JOIN FETCH user)
         List<StoreProfile> profiles = openOnly
                 ? storeProfileRepository.findByIsOpenTrue()
-                : storeProfileRepository.findAll();
+                : storeProfileRepository.findAllWithUser();
+
+        // Se não recebeu lat/lng, tenta pegar do usuário logado
+        Double userLat = lat;
+        Double userLng = lng;
+        if (userLat == null || userLng == null) {
+            if (authentication != null && authentication.getPrincipal() instanceof User) {
+                User currentUser = (User) authentication.getPrincipal();
+                userLat = currentUser.getGpsLatitude();
+                userLng = currentUser.getGpsLongitude();
+            }
+        }
+
+        final Double finalLat = userLat;
+        final Double finalLng = userLng;
 
         List<Map<String, Object>> stores = profiles.stream()
                 .filter(p -> p.getUser() != null && p.getUser().getRole() == User.Role.CLIENT)
                 .filter(p -> serviceType == null || (p.getUser().getServiceType() != null && serviceType.equalsIgnoreCase(p.getUser().getServiceType().name())))
-                .map(this::mapStoreToResponse)
+                // Filtro por distância (Haversine)
+                .filter(p -> {
+                    if (finalLat == null || finalLng == null) return true; // sem coordenadas → mostra tudo
+                    Double storeLat = p.getUser().getGpsLatitude();
+                    Double storeLng = p.getUser().getGpsLongitude();
+                    if (storeLat == null || storeLng == null) return true; // sem coords do store → mostra
+                    return haversineKm(finalLat, finalLng, storeLat, storeLng) <= radiusKm;
+                })
+                .map(p -> {
+                    Map<String, Object> store = mapStoreToResponse(p);
+                    // Adiciona distância se possível
+                    if (finalLat != null && finalLng != null && p.getUser().getGpsLatitude() != null && p.getUser().getGpsLongitude() != null) {
+                        double dist = haversineKm(finalLat, finalLng, p.getUser().getGpsLatitude(), p.getUser().getGpsLongitude());
+                        store.put("distanceKm", Math.round(dist * 10.0) / 10.0);
+                    }
+                    return store;
+                })
+                .sorted((a, b) -> {
+                    Double da = (Double) a.getOrDefault("distanceKm", 999.0);
+                    Double db = (Double) b.getOrDefault("distanceKm", 999.0);
+                    return Double.compare(da, db);
+                })
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(stores);
+    }
+
+    private double haversineKm(double lat1, double lon1, double lat2, double lon2) {
+        double R = 6371.0;
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
     @GetMapping("/{clientId}")

@@ -46,7 +46,7 @@ public class ProductService {
     }
 
     public Product findById(Long id) {
-        return productRepository.findById(id)
+        return productRepository.findByIdWithCategory(id)
                 .orElseThrow(() -> new RuntimeException("Produto não encontrado"));
     }
 
@@ -69,7 +69,8 @@ public class ProductService {
             product.setCategory(category);
         }
 
-        return productRepository.save(product);
+        Product saved = productRepository.save(product);
+        return productRepository.findByIdWithCategory(saved.getId()).orElse(saved);
     }
 
     public Product update(Long id, UUID clientId, Product updates) {
@@ -94,14 +95,16 @@ public class ProductService {
             product.setCategory(category);
         }
 
-        return productRepository.save(product);
+        Product saved = productRepository.save(product);
+        return productRepository.findByIdWithCategory(saved.getId()).orElse(saved);
     }
 
     public Product toggleAvailability(Long id, UUID clientId) {
         Product product = findById(id);
         validateOwner(product, clientId);
         product.setAvailable(!product.getAvailable());
-        return productRepository.save(product);
+        Product saved = productRepository.save(product);
+        return productRepository.findByIdWithCategory(saved.getId()).orElse(saved);
     }
 
     public void delete(Long id, UUID clientId) {

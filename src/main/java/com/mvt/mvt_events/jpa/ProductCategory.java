@@ -28,6 +28,7 @@ public class ProductCategory {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private User client;
 
     @NotBlank
@@ -52,6 +53,7 @@ public class ProductCategory {
     @OneToMany(mappedBy = "category", fetch = FetchType.LAZY)
     @Builder.Default
     @OrderBy("displayOrder ASC")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<Product> products = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
