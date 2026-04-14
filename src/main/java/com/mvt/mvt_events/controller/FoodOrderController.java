@@ -125,6 +125,23 @@ public class FoodOrderController {
     }
 
     // ================================================================
+    // WAITER — criar pedido de mesa
+    // ================================================================
+
+    @PostMapping("/table")
+    @Operation(summary = "Criar pedido de mesa", description = "WAITER cria pedido vinculado a uma mesa")
+    public ResponseEntity<FoodOrder> createTableOrder(Authentication authentication,
+                                                       @RequestBody CreateTableOrderRequest request) {
+        User user = (User) authentication.getPrincipal();
+        if (user.getRole() != User.Role.WAITER && user.getRole() != User.Role.CLIENT && user.getRole() != User.Role.ADMIN) {
+            throw new RuntimeException("Apenas garçons, estabelecimentos ou admins podem criar pedidos de mesa");
+        }
+        FoodOrder order = orderService.createTableOrder(
+                user.getId(), request.clientId, request.tableId, request.items, request.notes);
+        return ResponseEntity.status(HttpStatus.CREATED).body(order);
+    }
+
+    // ================================================================
     // REQUEST DTO
     // ================================================================
 
@@ -133,6 +150,13 @@ public class FoodOrderController {
         public List<FoodOrderService.OrderItemRequest> items;
         public String notes;
         public DeliveryAddress deliveryAddress;
+    }
+
+    public static class CreateTableOrderRequest {
+        public UUID clientId;
+        public Long tableId;
+        public List<FoodOrderService.OrderItemRequest> items;
+        public String notes;
     }
 
     public static class DeliveryAddress {

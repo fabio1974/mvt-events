@@ -54,6 +54,10 @@ public class StoreProfile {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Builder.Default
+    @Column(name = "table_orders_enabled", nullable = false)
+    private Boolean tableOrdersEnabled = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

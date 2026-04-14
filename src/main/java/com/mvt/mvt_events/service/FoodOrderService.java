@@ -35,13 +35,15 @@ public class FoodOrderService implements DeliveryStatusCallback {
     private final PushNotificationService pushNotificationService;
     private final SiteConfigurationService siteConfigurationService;
     private final GoogleDirectionsService googleDirectionsService;
+    private final RestaurantTableRepository restaurantTableRepository;
 
     public FoodOrderService(FoodOrderRepository orderRepository, ProductRepository productRepository,
                             UserRepository userRepository, StoreProfileRepository storeProfileRepository,
                             DeliveryService deliveryService, DeliveryStopRepository deliveryStopRepository,
                             PushNotificationService pushNotificationService,
                             SiteConfigurationService siteConfigurationService,
-                            GoogleDirectionsService googleDirectionsService) {
+                            GoogleDirectionsService googleDirectionsService,
+                            RestaurantTableRepository restaurantTableRepository) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
@@ -51,6 +53,7 @@ public class FoodOrderService implements DeliveryStatusCallback {
         this.pushNotificationService = pushNotificationService;
         this.siteConfigurationService = siteConfigurationService;
         this.googleDirectionsService = googleDirectionsService;
+        this.restaurantTableRepository = restaurantTableRepository;
     }
 
     // ================================================================
@@ -165,6 +168,107 @@ public class FoodOrderService implements DeliveryStatusCallback {
     }
 
     // ================================================================
+    // CRIAR PEDIDO DE MESA (WAITER)
+    // ================================================================
+
+    public FoodOrder createTableOrder(UUID waiterId, UUID clientId, Long tableId,
+                                      List<OrderItemRequest> items, String notes) {
+        User waiter = userRepository.findById(waiterId)
+                .orElseThrow(() -> new RuntimeException("Garçom não encontrado"));
+        if (waiter.getRole() != User.Role.WAITER) {
+            throw new RuntimeException("Apenas garçons podem criar pedidos de mesa");
+        }
+
+        User client = userRepository.findById(clientId)
+                .orElseThrow(() -> new RuntimeException("Restaurante não encontrado"));
+        if (client.getRole() != User.Role.CLIENT) {
+            throw new RuntimeException("Destinatário do pedido deve ser um CLIENT (restaurante)");
+        }
+
+        // Verificar se módulo de mesas está habilitado
+        StoreProfile store = storeProfileRepository.findByUserId(clientId).orElse(null);
+        if (store == null || !store.getTableOrdersEnabled()) {
+            throw new RuntimeException("Módulo de mesas não está habilitado para este estabelecimento");
+        }
+
+        // Verificar mesa
+        RestaurantTable table = null;
+        if (tableId != null) {
+            table = restaurantTableRepository.findById(tableId)
+                    .orElseThrow(() -> new RuntimeException("Mesa não encontrada"));
+            if (!table.getClient().getId().equals(clientId)) {
+                throw new RuntimeException("Mesa não pertence a este estabelecimento");
+            }
+            if (!table.getActive()) {
+                throw new RuntimeException("Mesa #" + table.getNumber() + " está desativada");
+            }
+        }
+
+        // Montar itens e calcular subtotal
+        FoodOrder order = new FoodOrder();
+        order.setCustomer(waiter); // garçom age em nome do cliente da mesa
+        order.setClient(client);
+        order.setWaiter(waiter);
+        order.setTable(table);
+        order.setOrderType(FoodOrder.OrderType.TABLE);
+        order.setNotes(notes);
+        order.setStatus(FoodOrder.OrderStatus.PLACED);
+
+        BigDecimal subtotal = BigDecimal.ZERO;
+        int maxPrepTime = 0;
+
+        for (OrderItemRequest itemReq : items) {
+            Product product = productRepository.findById(itemReq.productId)
+                    .orElseThrow(() -> new RuntimeException("Produto não encontrado: " + itemReq.productId));
+
+            if (!product.getClient().getId().equals(clientId)) {
+                throw new RuntimeException("Produto " + product.getName() + " não pertence a este restaurante");
+            }
+            if (!product.getAvailable()) {
+                throw new RuntimeException("Produto " + product.getName() + " não está disponível no momento");
+            }
+
+            OrderItem item = new OrderItem();
+            item.setOrder(order);
+            item.setProduct(product);
+            item.setQuantity(itemReq.quantity);
+            item.setUnitPrice(product.getPrice());
+            item.setNotes(itemReq.notes);
+            order.getItems().add(item);
+
+            subtotal = subtotal.add(product.getPrice().multiply(BigDecimal.valueOf(itemReq.quantity)));
+
+            if (product.getPreparationTimeMinutes() != null && product.getPreparationTimeMinutes() > maxPrepTime) {
+                maxPrepTime = product.getPreparationTimeMinutes();
+            }
+        }
+
+        order.setSubtotal(subtotal.setScale(2, RoundingMode.HALF_UP));
+        order.setDeliveryFee(BigDecimal.ZERO); // sem taxa de entrega em pedido de mesa
+        order.setTotal(subtotal.setScale(2, RoundingMode.HALF_UP));
+        order.setEstimatedPreparationMinutes(maxPrepTime > 0 ? maxPrepTime : null);
+
+        FoodOrder saved = orderRepository.save(order);
+
+        // Notificar restaurante (cozinha)
+        try {
+            pushNotificationService.sendNotificationToUser(
+                    client.getId(),
+                    "🍽️ Pedido mesa #" + (order.getTable() != null ? order.getTable().getNumber() : "?"),
+                    "Pedido #" + saved.getId() + " — R$ " + saved.getTotal(),
+                    null
+            );
+        } catch (Exception e) {
+            log.warn("Falha ao notificar restaurante sobre pedido de mesa #{}: {}", saved.getId(), e.getMessage());
+        }
+
+        log.info("🍽️ Pedido de mesa #{} criado: garçom {} → mesa {} do {}, R$ {}",
+                saved.getId(), waiter.getName(),
+                tableId, client.getName(), saved.getTotal());
+        return saved;
+    }
+
+    // ================================================================
     // AÇÕES DO RESTAURANTE (CLIENT)
     // ================================================================
 
@@ -206,31 +310,37 @@ public class FoodOrderService implements DeliveryStatusCallback {
         order.setReadyAt(OffsetDateTime.now(ZONE));
         FoodOrder saved = orderRepository.save(order);
 
-        try {
-            // Tentar agrupar com Delivery existente (PENDING ou ACCEPTED, últimos 5 min)
-            Delivery groupedDelivery = tryGroupWithExistingDelivery(saved);
-
-            if (groupedDelivery != null) {
-                // Vincular pedido à delivery existente (multi-stop)
-                groupedDelivery.setOrder(saved);
-                // Se a delivery agrupada já tem courier, pedido vai pra DELIVERING
-                if (groupedDelivery.getStatus() == Delivery.DeliveryStatus.ACCEPTED
-                        || groupedDelivery.getStatus() == Delivery.DeliveryStatus.IN_TRANSIT) {
-                    saved.setStatus(FoodOrder.OrderStatus.DELIVERING);
-                    saved = orderRepository.save(saved);
-                }
-                log.info("📦 Pedido #{} agrupado na Delivery #{} (multi-stop)", orderId, groupedDelivery.getId());
-            } else {
-                // Criar nova Delivery (status PENDING — pedido permanece READY)
-                // delivery.setOrder(saved) é feito dentro de createDeliveryFromOrder
-                Delivery delivery = createDeliveryFromOrder(saved);
-                log.info("🚀 Pedido #{} pronto → Delivery #{} criada (PENDING, aguardando courier)", orderId, delivery.getId());
+        if (saved.getOrderType() == FoodOrder.OrderType.TABLE) {
+            // Pedido de mesa: não cria delivery — notifica garçom para servir
+            if (saved.getWaiter() != null) {
+                notifyWaiter(saved, "📦 Pedido pronto!",
+                        "Mesa " + (saved.getTable() != null ? "#" + saved.getTable().getNumber() : "") +
+                        " — pedido #" + orderId + " pronto para servir");
             }
-        } catch (Exception e) {
-            log.error("❌ Falha ao criar/agrupar delivery para pedido #{}: {}", orderId, e.getMessage());
-        }
+            log.info("📦 Pedido de mesa #{} pronto (sem delivery)", orderId);
+        } else {
+            // Pedido de delivery: criar ou agrupar delivery
+            try {
+                Delivery groupedDelivery = tryGroupWithExistingDelivery(saved);
 
-        notifyCustomer(saved, "📦 Pedido pronto", "Seu pedido #" + orderId + " está pronto e aguardando entregador");
+                if (groupedDelivery != null) {
+                    groupedDelivery.setOrder(saved);
+                    if (groupedDelivery.getStatus() == Delivery.DeliveryStatus.ACCEPTED
+                            || groupedDelivery.getStatus() == Delivery.DeliveryStatus.IN_TRANSIT) {
+                        saved.setStatus(FoodOrder.OrderStatus.DELIVERING);
+                        saved = orderRepository.save(saved);
+                    }
+                    log.info("📦 Pedido #{} agrupado na Delivery #{} (multi-stop)", orderId, groupedDelivery.getId());
+                } else {
+                    Delivery delivery = createDeliveryFromOrder(saved);
+                    log.info("🚀 Pedido #{} pronto → Delivery #{} criada (PENDING, aguardando courier)", orderId, delivery.getId());
+                }
+            } catch (Exception e) {
+                log.error("❌ Falha ao criar/agrupar delivery para pedido #{}: {}", orderId, e.getMessage());
+            }
+
+            notifyCustomer(saved, "📦 Pedido pronto", "Seu pedido #" + orderId + " está pronto e aguardando entregador");
+        }
 
         return saved;
     }
@@ -548,6 +658,16 @@ public class FoodOrderService implements DeliveryStatusCallback {
             pushNotificationService.sendNotificationToUser(order.getCustomer().getId(), title, body, null);
         } catch (Exception e) {
             log.warn("Falha ao notificar customer: {}", e.getMessage());
+        }
+    }
+
+    private void notifyWaiter(FoodOrder order, String title, String body) {
+        try {
+            if (order.getWaiter() != null) {
+                pushNotificationService.sendNotificationToUser(order.getWaiter().getId(), title, body, null);
+            }
+        } catch (Exception e) {
+            log.warn("Falha ao notificar garçom: {}", e.getMessage());
         }
     }
 

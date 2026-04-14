@@ -56,6 +56,23 @@ public class FoodOrder {
     }
 
     @Builder.Default
+    @Column(name = "order_type", nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
+    private OrderType orderType = OrderType.DELIVERY;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "waiter_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
+    private User waiter;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "table_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
+    private RestaurantTable table;
+
+    @Builder.Default
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     private OrderStatus status = OrderStatus.PLACED;
@@ -148,6 +165,21 @@ public class FoodOrder {
         } catch (Exception e) { return null; }
     }
 
+    @com.fasterxml.jackson.annotation.JsonGetter("waiterName")
+    public String getWaiterName() {
+        try { return waiter != null ? waiter.getName() : null; } catch (Exception e) { return null; }
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("tableNumber")
+    public Integer getTableNumber() {
+        try { return table != null ? table.getNumber() : null; } catch (Exception e) { return null; }
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("tableLabel")
+    public String getTableLabel() {
+        try { return table != null ? table.getLabel() : null; } catch (Exception e) { return null; }
+    }
+
     @PrePersist
     protected void onCreate() {
         createdAt = OffsetDateTime.now();
@@ -167,9 +199,14 @@ public class FoodOrder {
         PLACED,     // Pedido criado, aguardando restaurante
         ACCEPTED,   // Restaurante aceitou
         PREPARING,  // Em preparo
-        READY,      // Pronto para retirada → cria Delivery
-        DELIVERING, // Courier coletou, em trânsito
-        COMPLETED,  // Entregue
+        READY,      // Pronto para retirada → cria Delivery (DELIVERY) ou notifica garçom (TABLE)
+        DELIVERING, // Courier coletou, em trânsito (apenas DELIVERY)
+        COMPLETED,  // Entregue / servido na mesa
         CANCELLED   // Cancelado (por cliente ou restaurante)
+    }
+
+    public enum OrderType {
+        DELIVERY,   // Pedido de entrega (food delivery)
+        TABLE       // Pedido de mesa (atendimento no local)
     }
 }

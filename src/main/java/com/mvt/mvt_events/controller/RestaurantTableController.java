@@ -1,0 +1,116 @@
+package com.mvt.mvt_events.controller;
+
+import com.mvt.mvt_events.jpa.RestaurantTable;
+import com.mvt.mvt_events.jpa.User;
+import com.mvt.mvt_events.service.RestaurantTableService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.Data;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/tables")
+@Tag(name = "Mesas", description = "Gerenciamento de mesas do estabelecimento")
+public class RestaurantTableController {
+
+    private final RestaurantTableService tableService;
+
+    public RestaurantTableController(RestaurantTableService tableService) {
+        this.tableService = tableService;
+    }
+
+    @GetMapping
+    @Operation(summary = "Listar mesas do estabelecimento")
+    public List<RestaurantTable> list(
+            @RequestParam(required = false) UUID clientId,
+            @RequestParam(required = false, defaultValue = "false") boolean activeOnly,
+            Authentication authentication) {
+        UUID resolvedClientId = resolveClientId(clientId, authentication);
+        return activeOnly
+                ? tableService.findActiveByClient(resolvedClientId)
+                : tableService.findByClient(resolvedClientId);
+    }
+
+    @PostMapping
+    @Operation(summary = "Criar mesa")
+    public ResponseEntity<RestaurantTable> create(
+            @RequestBody CreateTableRequest request,
+            Authentication authentication) {
+        UUID clientId = resolveClientId(request.clientId, authentication);
+        RestaurantTable table = tableService.create(clientId, request.number, request.label, request.seats);
+        return ResponseEntity.status(HttpStatus.CREATED).body(table);
+    }
+
+    @PostMapping("/batch")
+    @Operation(summary = "Criar mesas em lote (de N a M)")
+    public ResponseEntity<List<RestaurantTable>> createBatch(
+            @RequestBody CreateBatchRequest request,
+            Authentication authentication) {
+        UUID clientId = resolveClientId(request.clientId, authentication);
+        List<RestaurantTable> tables = tableService.createBatch(clientId, request.from, request.to, request.seats);
+        return ResponseEntity.status(HttpStatus.CREATED).body(tables);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Atualizar mesa")
+    public RestaurantTable update(
+            @PathVariable Long id,
+            @RequestBody UpdateTableRequest request,
+            Authentication authentication) {
+        UUID clientId = resolveClientId(null, authentication);
+        return tableService.update(id, clientId, request.label, request.seats, request.active);
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Remover mesa")
+    public ResponseEntity<Void> delete(
+            @PathVariable Long id,
+            Authentication authentication) {
+        UUID clientId = resolveClientId(null, authentication);
+        tableService.delete(id, clientId);
+        return ResponseEntity.noContent().build();
+    }
+
+    private UUID resolveClientId(UUID clientId, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        if (user.getRole() == User.Role.CLIENT) {
+            return user.getId(); // CLIENT sempre usa seu próprio ID
+        }
+        if (user.getRole() == User.Role.ADMIN && clientId != null) {
+            return clientId;
+        }
+        if (user.getRole() == User.Role.WAITER && clientId != null) {
+            return clientId; // WAITER precisa informar qual estabelecimento
+        }
+        throw new RuntimeException("clientId é obrigatório para esta role");
+    }
+
+    @Data
+    public static class CreateTableRequest {
+        private UUID clientId;
+        private Integer number;
+        private String label;
+        private Integer seats;
+    }
+
+    @Data
+    public static class CreateBatchRequest {
+        private UUID clientId;
+        private int from;
+        private int to;
+        private Integer seats;
+    }
+
+    @Data
+    public static class UpdateTableRequest {
+        private String label;
+        private Integer seats;
+        private Boolean active;
+    }
+}

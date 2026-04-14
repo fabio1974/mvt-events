@@ -303,7 +303,8 @@ public class User implements UserDetails {
         ADMIN, // Admin do sistema
         CLIENT, // Cliente corporativo que solicita entregas (vinculado a Organization)
         COURIER, // Motoboy que realiza entregas
-        CUSTOMER // Cliente avulso/consumidor final (sem vínculo com Organization)
+        CUSTOMER, // Cliente avulso/consumidor final (sem vínculo com Organization)
+        WAITER // Garçom — atende mesas em estabelecimentos (N:N com CLIENT)
     }
 
     public enum Gender {
