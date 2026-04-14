@@ -94,6 +94,19 @@ public class DeliveryService {
     @Autowired
     private DeliveryStopRepository deliveryStopRepository;
 
+    @Autowired(required = false)
+    private java.util.List<DeliveryStatusCallback> statusCallbacks = java.util.Collections.emptyList();
+
+    private void fireStatusChanged(Delivery delivery) {
+        for (DeliveryStatusCallback cb : statusCallbacks) {
+            try {
+                cb.onDeliveryStatusChanged(delivery);
+            } catch (Exception e) {
+                log.warn("⚠️ Callback de status falhou para delivery #{}: {}", delivery.getId(), e.getMessage());
+            }
+        }
+    }
+
     // TODO: ADMProfileRepository não mais usado após remoção de CourierADMLink
     // @Autowired
     // private ADMProfileRepository admProfileRepository;
@@ -599,7 +612,9 @@ public class DeliveryService {
                 createAutomaticCreditCardPayment(saved, delivery.getClient());
             }
 
-            return deliveryRepository.findByIdWithJoins(saved.getId()).orElse(saved);
+            Delivery result = deliveryRepository.findByIdWithJoins(saved.getId()).orElse(saved);
+            fireStatusChanged(result);
+            return result;
 
         } else {
             // ─── FLUXO CUSTOMER (app mobile): sem organização, pagamento no aceite (PIX) ou trânsito (cartão) ───
@@ -647,7 +662,9 @@ public class DeliveryService {
                 createPixPaymentForCustomer(saved, delivery.getClient());
             }
 
-            return deliveryRepository.findByIdWithJoins(saved.getId()).orElse(saved);
+            Delivery result = deliveryRepository.findByIdWithJoins(saved.getId()).orElse(saved);
+            fireStatusChanged(result);
+            return result;
         }
     }
 
@@ -703,8 +720,9 @@ public class DeliveryService {
         }
         
         // Recarregar com joins
-        return deliveryRepository.findByIdWithJoins(saved.getId())
-                .orElse(saved);
+        Delivery result = deliveryRepository.findByIdWithJoins(saved.getId()).orElse(saved);
+        fireStatusChanged(result);
+        return result;
     }
 
     /**
@@ -844,10 +862,11 @@ public class DeliveryService {
         }
 
         Delivery saved = deliveryRepository.save(delivery);
-        
+
         // Recarregar com joins
-        return deliveryRepository.findByIdWithJoins(saved.getId())
-                .orElse(saved);
+        Delivery result = deliveryRepository.findByIdWithJoins(saved.getId()).orElse(saved);
+        fireStatusChanged(result);
+        return result;
     }
 
     /**
@@ -878,7 +897,9 @@ public class DeliveryService {
             delivery.setOrganizer(null);
         }
 
-        return deliveryRepository.save(delivery);
+        Delivery cancelled = deliveryRepository.save(delivery);
+        fireStatusChanged(cancelled);
+        return cancelled;
     }
 
     /**
@@ -1002,7 +1023,9 @@ public class DeliveryService {
                 break;
         }
 
-        return deliveryRepository.save(delivery);
+        Delivery updated = deliveryRepository.save(delivery);
+        fireStatusChanged(updated);
+        return updated;
     }
 
     /**

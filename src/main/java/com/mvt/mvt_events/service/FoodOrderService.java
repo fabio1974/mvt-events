@@ -21,7 +21,7 @@ import java.util.UUID;
  */
 @Service
 @Transactional
-public class FoodOrderService {
+public class FoodOrderService implements DeliveryStatusCallback {
 
     private static final Logger log = LoggerFactory.getLogger(FoodOrderService.class);
     private static final ZoneId ZONE = ZoneId.of("America/Fortaleza");
@@ -34,12 +34,14 @@ public class FoodOrderService {
     private final DeliveryStopRepository deliveryStopRepository;
     private final PushNotificationService pushNotificationService;
     private final SiteConfigurationService siteConfigurationService;
+    private final GoogleDirectionsService googleDirectionsService;
 
     public FoodOrderService(FoodOrderRepository orderRepository, ProductRepository productRepository,
                             UserRepository userRepository, StoreProfileRepository storeProfileRepository,
                             DeliveryService deliveryService, DeliveryStopRepository deliveryStopRepository,
                             PushNotificationService pushNotificationService,
-                            SiteConfigurationService siteConfigurationService) {
+                            SiteConfigurationService siteConfigurationService,
+                            GoogleDirectionsService googleDirectionsService) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
@@ -48,6 +50,7 @@ public class FoodOrderService {
         this.deliveryService = deliveryService;
         this.pushNotificationService = pushNotificationService;
         this.siteConfigurationService = siteConfigurationService;
+        this.googleDirectionsService = googleDirectionsService;
     }
 
     // ================================================================
@@ -208,23 +211,26 @@ public class FoodOrderService {
             Delivery groupedDelivery = tryGroupWithExistingDelivery(saved);
 
             if (groupedDelivery != null) {
-                saved.setDelivery(groupedDelivery);
-                saved.setStatus(FoodOrder.OrderStatus.DELIVERING);
-                saved = orderRepository.save(saved);
+                // Vincular pedido à delivery existente (multi-stop)
+                groupedDelivery.setOrder(saved);
+                // Se a delivery agrupada já tem courier, pedido vai pra DELIVERING
+                if (groupedDelivery.getStatus() == Delivery.DeliveryStatus.ACCEPTED
+                        || groupedDelivery.getStatus() == Delivery.DeliveryStatus.IN_TRANSIT) {
+                    saved.setStatus(FoodOrder.OrderStatus.DELIVERING);
+                    saved = orderRepository.save(saved);
+                }
                 log.info("📦 Pedido #{} agrupado na Delivery #{} (multi-stop)", orderId, groupedDelivery.getId());
             } else {
-                // Criar nova Delivery
+                // Criar nova Delivery (status PENDING — pedido permanece READY)
+                // delivery.setOrder(saved) é feito dentro de createDeliveryFromOrder
                 Delivery delivery = createDeliveryFromOrder(saved);
-                saved.setDelivery(delivery);
-                saved.setStatus(FoodOrder.OrderStatus.DELIVERING);
-                saved = orderRepository.save(saved);
-                log.info("🚀 Pedido #{} pronto → Delivery #{} criada", orderId, delivery.getId());
+                log.info("🚀 Pedido #{} pronto → Delivery #{} criada (PENDING, aguardando courier)", orderId, delivery.getId());
             }
         } catch (Exception e) {
             log.error("❌ Falha ao criar/agrupar delivery para pedido #{}: {}", orderId, e.getMessage());
         }
 
-        notifyCustomer(saved, "🏍️ Pedido saindo", "Seu pedido #" + orderId + " está saindo para entrega");
+        notifyCustomer(saved, "📦 Pedido pronto", "Seu pedido #" + orderId + " está pronto e aguardando entregador");
 
         return saved;
     }
@@ -252,7 +258,7 @@ public class FoodOrderService {
         Double storeLng = restaurant.getGpsLongitude();
 
         for (FoodOrder recentOrder : recentOrders) {
-            Delivery candidate = recentOrder.getDelivery();
+            Delivery candidate = recentOrder.getActiveDelivery();
             if (candidate == null) continue;
 
             // Recarregar delivery
@@ -338,10 +344,11 @@ public class FoodOrderService {
         order.setCancelledAt(OffsetDateTime.now(ZONE));
         order.setCancellationReason(reason);
 
-        // Cancelar delivery associada se existir
-        if (order.getDelivery() != null) {
+        // Cancelar delivery ativa associada se existir
+        Delivery activeDelivery = order.getActiveDelivery();
+        if (activeDelivery != null) {
             try {
-                deliveryService.cancel(order.getDelivery().getId(), null, "Pedido cancelado: " + reason);
+                deliveryService.cancel(activeDelivery.getId(), null, "Pedido cancelado: " + reason);
             } catch (Exception e) {
                 log.warn("Falha ao cancelar delivery do pedido #{}: {}", orderId, e.getMessage());
             }
@@ -407,33 +414,88 @@ public class FoodOrderService {
         User client = order.getClient();
         User customer = order.getCustomer();
 
-        // Usa coordenadas de entrega da Order (selecionadas pelo customer)
+        // Origem: endereço cadastrado do restaurante (fallback para GPS/nome)
+        Address clientAddr = client.getAddress();
+        String fromAddress = clientAddr != null ? clientAddr.getFullAddress() : client.getName();
+        Double fromLat = clientAddr != null && clientAddr.getLatitude() != null
+                ? clientAddr.getLatitude() : client.getGpsLatitude();
+        Double fromLng = clientAddr != null && clientAddr.getLongitude() != null
+                ? clientAddr.getLongitude() : client.getGpsLongitude();
+
+        // Destino: coordenadas de entrega da Order (selecionadas pelo customer)
         Double destLat = order.getDeliveryLatitude() != null ? order.getDeliveryLatitude() : customer.getGpsLatitude();
         Double destLng = order.getDeliveryLongitude() != null ? order.getDeliveryLongitude() : customer.getGpsLongitude();
         String destAddr = order.getDeliveryAddress() != null ? order.getDeliveryAddress() : customer.getName();
 
+        // Dados do destinatário
+        String recipientName = customer.getName();
+        String recipientPhone = customer.getPhoneDdd() != null && customer.getPhoneNumber() != null
+                ? customer.getPhoneDdd() + customer.getPhoneNumber() : null;
+        // Descrição dos itens: "2x Tex Bacon, 1x Heineken, 1x Panqueca de Frango"
+        String itemDesc = order.getItems().stream()
+                .map(i -> i.getQuantity() + "x " + (i.getProduct() != null ? i.getProduct().getName() : "Item"))
+                .reduce((a, b) -> a + ", " + b)
+                .map(desc -> "Pedido #" + order.getId() + " — " + desc)
+                .orElse("Pedido #" + order.getId());
+
         Delivery delivery = new Delivery();
-        delivery.setFromAddress(client.getName());
-        delivery.setFromLatitude(client.getGpsLatitude());
-        delivery.setFromLongitude(client.getGpsLongitude());
+        delivery.setFromAddress(fromAddress);
+        delivery.setFromLatitude(fromLat);
+        delivery.setFromLongitude(fromLng);
         delivery.setToAddress(destAddr);
         delivery.setToLatitude(destLat);
         delivery.setToLongitude(destLng);
-        delivery.setRecipientName(customer.getName());
-        delivery.setRecipientPhone(customer.getPhoneDdd() != null && customer.getPhoneNumber() != null
-                ? customer.getPhoneDdd() + customer.getPhoneNumber() : null);
-        delivery.setItemDescription("Pedido #" + order.getId());
+        delivery.setRecipientName(recipientName);
+        delivery.setRecipientPhone(recipientPhone);
+        delivery.setItemDescription(itemDesc);
         delivery.setTotalAmount(order.getSubtotal());
-        delivery.setShippingFee(order.getDeliveryFee());
+        // shippingFee NÃO é pré-setado — DeliveryService.create() calcula a partir do distanceKm
+        // (Google Directions), derivando shippingFee, estimatedShippingFee e estimatedDistanceKm
         delivery.setDeliveryType(Delivery.DeliveryType.DELIVERY);
+        delivery.setPreferredVehicleType(Delivery.PreferredVehicleType.MOTORCYCLE);
 
-        // Calcular distância
-        if (client.getGpsLatitude() != null && client.getGpsLongitude() != null
-                && destLat != null && destLng != null) {
-            double distKm = haversineKm(client.getGpsLatitude(), client.getGpsLongitude(),
-                    destLat, destLng);
-            delivery.setDistanceKm(BigDecimal.valueOf(distKm).setScale(2, RoundingMode.HALF_UP));
+        // Calcular rota e distância via Google Directions (mesma fonte que o CRUD)
+        if (fromLat != null && fromLng != null && destLat != null && destLng != null) {
+            List<double[]> route = googleDirectionsService.getRoute(fromLat, fromLng, destLat, destLng, null);
+            if (!route.isEmpty()) {
+                // Distância real pela rota (soma dos segmentos)
+                double totalKm = 0;
+                for (int i = 1; i < route.size(); i++) {
+                    totalKm += haversineKm(route.get(i - 1)[0], route.get(i - 1)[1],
+                            route.get(i)[0], route.get(i)[1]);
+                }
+                delivery.setDistanceKm(BigDecimal.valueOf(totalKm).setScale(2, RoundingMode.HALF_UP));
+                // Converter para formato esperado pelo DeliveryService.create()
+                List<List<Double>> coords = route.stream()
+                        .map(p -> List.of(p[0], p[1]))
+                        .toList();
+                delivery.setPlannedRouteCoordinates(coords);
+                log.info("📍 Rota Google calculada para pedido: {} km, {} pontos",
+                        String.format("%.2f", totalKm), route.size());
+            } else {
+                // Fallback: haversine
+                double distKm = haversineKm(fromLat, fromLng, destLat, destLng);
+                delivery.setDistanceKm(BigDecimal.valueOf(distKm).setScale(2, RoundingMode.HALF_UP));
+                log.info("📍 Rota Google indisponível, usando haversine: {} km", String.format("%.2f", distKm));
+            }
         }
+
+        // Criar DeliveryStop (alinhado com fluxo CRUD que sempre cria pelo menos 1 stop)
+        DeliveryStop stop = DeliveryStop.builder()
+                .delivery(delivery)
+                .stopOrder(1)
+                .address(destAddr)
+                .latitude(destLat)
+                .longitude(destLng)
+                .recipientName(recipientName)
+                .recipientPhone(recipientPhone)
+                .itemDescription(itemDesc)
+                .status(DeliveryStop.StopStatus.PENDING)
+                .build();
+        delivery.setStops(new java.util.ArrayList<>(List.of(stop)));
+
+        // Vincular delivery ao pedido (FK no lado da delivery)
+        delivery.setOrder(order);
 
         return deliveryService.create(delivery, client.getId(), client.getId());
     }
@@ -495,6 +557,43 @@ public class FoodOrderService {
         } catch (Exception e) {
             log.warn("Falha ao notificar restaurante: {}", e.getMessage());
         }
+    }
+
+    // ================================================================
+    // CALLBACK: sincroniza status do pedido quando a delivery muda
+    // ================================================================
+
+    @Override
+    public void onDeliveryStatusChanged(Delivery delivery) {
+        orderRepository.findByDeliveryId(delivery.getId()).ifPresent(order -> {
+            FoodOrder.OrderStatus newStatus = mapDeliveryStatusToOrderStatus(delivery.getStatus());
+            if (newStatus != null && order.getStatus() != newStatus) {
+                FoodOrder.OrderStatus oldStatus = order.getStatus();
+                order.setStatus(newStatus);
+
+                // Sincronizar timestamps
+                if (newStatus == FoodOrder.OrderStatus.COMPLETED) {
+                    order.setCompletedAt(delivery.getCompletedAt());
+                } else if (newStatus == FoodOrder.OrderStatus.CANCELLED) {
+                    order.setCancelledAt(delivery.getCancelledAt());
+                    order.setCancellationReason(delivery.getCancellationReason());
+                }
+
+                orderRepository.save(order);
+                log.info("🔄 Pedido #{} status sincronizado: {} → {} (delivery #{} → {})",
+                        order.getId(), oldStatus, newStatus, delivery.getId(), delivery.getStatus());
+            }
+        });
+    }
+
+    private FoodOrder.OrderStatus mapDeliveryStatusToOrderStatus(Delivery.DeliveryStatus deliveryStatus) {
+        return switch (deliveryStatus) {
+            case PENDING -> FoodOrder.OrderStatus.READY;
+            case WAITING_PAYMENT -> null;                       // sem mudança no pedido
+            case ACCEPTED, IN_TRANSIT -> FoodOrder.OrderStatus.DELIVERING;
+            case COMPLETED -> FoodOrder.OrderStatus.COMPLETED;
+            case CANCELLED -> FoodOrder.OrderStatus.READY;     // delivery cancelada = pedido volta pra READY
+        };
     }
 
     // ================================================================

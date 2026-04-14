@@ -54,6 +54,12 @@ public class Delivery extends BaseEntity {
     @Visible(table = true, form = false, filter = true)
     private User organizer;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @Visible(table = false, form = false, filter = false)
+    private FoodOrder order;
+
     // ============================================================================
     // ORIGIN (FROM)
     // ============================================================================

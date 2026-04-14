@@ -26,16 +26,17 @@ public interface FoodOrderRepository extends JpaRepository<FoodOrder, Long> {
 
     List<FoodOrder> findByClientIdAndStatusInOrderByCreatedAtDesc(UUID clientId, List<FoodOrder.OrderStatus> statuses);
 
-    Optional<FoodOrder> findByDeliveryId(Long deliveryId);
+    @Query("SELECT o FROM FoodOrder o WHERE o.id = (SELECT d.order.id FROM Delivery d WHERE d.id = :deliveryId)")
+    Optional<FoodOrder> findByDeliveryId(@Param("deliveryId") Long deliveryId);
 
     /**
-     * Busca pedidos DELIVERING do mesmo restaurante nos últimos N minutos,
+     * Busca pedidos READY ou DELIVERING do mesmo restaurante nos últimos N minutos,
      * cuja Delivery ainda está PENDING ou ACCEPTED (courier não saiu).
      */
     @Query("SELECT o FROM FoodOrder o " +
-           "JOIN FETCH o.delivery d " +
+           "JOIN Delivery d ON d.order = o " +
            "WHERE o.client.id = :clientId " +
-           "AND o.status = 'DELIVERING' " +
+           "AND o.status IN ('READY', 'DELIVERING') " +
            "AND d.status IN ('PENDING', 'ACCEPTED') " +
            "AND o.readyAt >= :since " +
            "ORDER BY o.readyAt ASC")

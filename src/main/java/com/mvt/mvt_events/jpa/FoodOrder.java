@@ -38,11 +38,22 @@ public class FoodOrder {
     @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
     private User client;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "delivery_id")
+    @Builder.Default
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY)
     @com.fasterxml.jackson.annotation.JsonIgnore
     @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
-    private Delivery delivery;
+    private List<Delivery> deliveries = new ArrayList<>();
+
+    /**
+     * Retorna a delivery ativa (não-cancelada) mais recente, ou null.
+     */
+    public Delivery getActiveDelivery() {
+        if (deliveries == null || deliveries.isEmpty()) return null;
+        return deliveries.stream()
+                .filter(d -> d.getStatus() != Delivery.DeliveryStatus.CANCELLED)
+                .max(java.util.Comparator.comparingLong(Delivery::getId))
+                .orElse(null);
+    }
 
     @Builder.Default
     @Column(nullable = false, length = 20)
@@ -131,7 +142,10 @@ public class FoodOrder {
 
     @com.fasterxml.jackson.annotation.JsonGetter("deliveryIdValue")
     public Long getDeliveryIdValue() {
-        try { return delivery != null ? delivery.getId() : null; } catch (Exception e) { return null; }
+        try {
+            Delivery active = getActiveDelivery();
+            return active != null ? active.getId() : null;
+        } catch (Exception e) { return null; }
     }
 
     @PrePersist
