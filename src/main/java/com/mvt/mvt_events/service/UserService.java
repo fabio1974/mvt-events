@@ -1053,6 +1053,144 @@ public class UserService {
         clientContractRepository.delete(contract);
     }
 
+    // ============================================================================
+    // WAITER MANAGEMENT (CLIENT ↔ WAITER direto)
+    // ============================================================================
+
+    @Autowired
+    private com.mvt.mvt_events.repository.ClientWaiterRepository clientWaiterRepository;
+
+    /** Busca garçons que ainda não estão vinculados ao CLIENT logado */
+    public java.util.List<com.mvt.mvt_events.controller.UserController.WaiterSearchResponse> searchWaitersForTypeahead(
+            String search, Integer limit, Authentication authentication) {
+
+        String currentUsername = authentication.getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado"));
+
+        java.util.List<User> waiters = userRepository.searchWaitersNotLinkedToClient(
+                search != null ? search.toLowerCase().trim() : "",
+                currentUser.getId(),
+                limit != null ? limit : 10);
+
+        return waiters.stream()
+                .map(com.mvt.mvt_events.controller.UserController.WaiterSearchResponse::new)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /** Lista garçons ativos do CLIENT logado */
+    @Transactional(readOnly = true)
+    public java.util.List<com.mvt.mvt_events.controller.UserController.WaiterForClientResponse> getWaitersForLoggedClient(
+            Authentication authentication) {
+
+        String currentUsername = authentication.getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado"));
+
+        if (currentUser.getRole() != User.Role.CLIENT && !currentUser.isAdmin()) {
+            throw new RuntimeException("Apenas estabelecimentos (CLIENT) podem listar seus garçons");
+        }
+
+        java.util.List<com.mvt.mvt_events.jpa.ClientWaiter> links =
+                clientWaiterRepository.findActiveByClientId(currentUser.getId());
+
+        return links.stream()
+                .map(link -> new com.mvt.mvt_events.controller.UserController.WaiterForClientResponse(
+                        link.getWaiter(), link))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /** CLIENT adiciona garçom ao seu estabelecimento */
+    public com.mvt.mvt_events.controller.UserController.WaiterForClientResponse addWaiterToClient(
+            UUID waiterId, Authentication authentication) {
+
+        String currentUsername = authentication.getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado"));
+
+        if (currentUser.getRole() != User.Role.CLIENT && !currentUser.isAdmin()) {
+            throw new RuntimeException("Apenas estabelecimentos (CLIENT) podem adicionar garçons");
+        }
+
+        User waiter = userRepository.findById(waiterId)
+                .orElseThrow(() -> new RuntimeException("Garçom não encontrado"));
+
+        if (waiter.getRole() != User.Role.WAITER) {
+            throw new RuntimeException("Usuário não é um garçom (WAITER)");
+        }
+
+        java.util.Optional<com.mvt.mvt_events.jpa.ClientWaiter> existing =
+                clientWaiterRepository.findByClientAndWaiter(currentUser, waiter);
+
+        com.mvt.mvt_events.jpa.ClientWaiter link;
+
+        if (existing.isPresent()) {
+            link = existing.get();
+            if (link.isActive()) {
+                throw new RuntimeException("Garçom já está vinculado ao seu estabelecimento");
+            }
+            link.setActive(true);
+            link = clientWaiterRepository.save(link);
+        } else {
+            link = new com.mvt.mvt_events.jpa.ClientWaiter();
+            link.setClient(currentUser);
+            link.setWaiter(waiter);
+            link.setActive(true);
+            link = clientWaiterRepository.save(link);
+        }
+
+        return new com.mvt.mvt_events.controller.UserController.WaiterForClientResponse(waiter, link);
+    }
+
+    /** CLIENT remove garçom do seu estabelecimento */
+    public void removeWaiterFromClient(UUID waiterId, Authentication authentication) {
+
+        String currentUsername = authentication.getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado"));
+
+        if (currentUser.getRole() != User.Role.CLIENT && !currentUser.isAdmin()) {
+            throw new RuntimeException("Apenas estabelecimentos (CLIENT) podem remover garçons");
+        }
+
+        User waiter = userRepository.findById(waiterId)
+                .orElseThrow(() -> new RuntimeException("Garçom não encontrado"));
+
+        com.mvt.mvt_events.jpa.ClientWaiter link =
+                clientWaiterRepository.findByClientAndWaiter(currentUser, waiter)
+                .orElseThrow(() -> new RuntimeException("Garçom não está vinculado ao seu estabelecimento"));
+
+        clientWaiterRepository.delete(link);
+    }
+
+    /** Retorna os CLIENTs (estabelecimentos) vinculados diretamente ao WAITER logado */
+    @Transactional(readOnly = true)
+    public java.util.List<com.mvt.mvt_events.controller.UserController.ClientForOrganizerResponse> getEstablishmentsForWaiter(
+            Authentication authentication) {
+
+        String currentUsername = authentication.getName();
+        User waiter = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado"));
+
+        if (waiter.getRole() != User.Role.WAITER) {
+            throw new RuntimeException("Apenas garçons podem acessar este endpoint");
+        }
+
+        java.util.List<com.mvt.mvt_events.jpa.ClientWaiter> links =
+                clientWaiterRepository.findActiveByWaiterId(waiter.getId());
+
+        return links.stream()
+                .map(link -> {
+                    // Busca o ClientContract para manter compatibilidade com ClientForOrganizerResponse
+                    java.util.List<com.mvt.mvt_events.jpa.ClientContract> contracts =
+                            clientContractRepository.findActiveByClientId(link.getClient().getId());
+                    com.mvt.mvt_events.jpa.ClientContract cc = contracts.isEmpty() ? null : contracts.get(0);
+                    return new com.mvt.mvt_events.controller.UserController.ClientForOrganizerResponse(
+                            link.getClient(), cc);
+                })
+                .collect(java.util.stream.Collectors.toList());
+    }
+
     /**
      * Retorna o status de ativação do usuário, detalhando o que está faltando
      * para ele estar completamente habilitado no sistema.

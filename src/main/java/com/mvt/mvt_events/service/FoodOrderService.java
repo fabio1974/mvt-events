@@ -4,6 +4,7 @@ import com.mvt.mvt_events.jpa.*;
 import com.mvt.mvt_events.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,7 +40,7 @@ public class FoodOrderService implements DeliveryStatusCallback {
 
     public FoodOrderService(FoodOrderRepository orderRepository, ProductRepository productRepository,
                             UserRepository userRepository, StoreProfileRepository storeProfileRepository,
-                            DeliveryService deliveryService, DeliveryStopRepository deliveryStopRepository,
+                            @Lazy DeliveryService deliveryService, DeliveryStopRepository deliveryStopRepository,
                             PushNotificationService pushNotificationService,
                             SiteConfigurationService siteConfigurationService,
                             GoogleDirectionsService googleDirectionsService,
@@ -266,6 +267,114 @@ public class FoodOrderService implements DeliveryStatusCallback {
                 saved.getId(), waiter.getName(),
                 tableId, client.getName(), saved.getTotal());
         return saved;
+    }
+
+    // ================================================================
+    // ADICIONAR ITENS A PEDIDO EXISTENTE (nova rodada)
+    // ================================================================
+
+    public FoodOrder addItemsToOrder(Long orderId, UUID waiterId, List<OrderItemRequest> newItems) {
+        FoodOrder order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));
+
+        // Validar que o pedido não está finalizado
+        if (order.getStatus() == FoodOrder.OrderStatus.COMPLETED || order.getStatus() == FoodOrder.OrderStatus.CANCELLED) {
+            throw new RuntimeException("Pedido já está " + order.getStatus().name());
+        }
+
+        UUID clientId = order.getClient().getId();
+
+        // Calcular próxima rodada
+        int nextRound = order.getItems().stream()
+                .mapToInt(OrderItem::getRound)
+                .max()
+                .orElse(0) + 1;
+
+        BigDecimal addedSubtotal = BigDecimal.ZERO;
+
+        for (OrderItemRequest itemReq : newItems) {
+            Product product = productRepository.findById(itemReq.productId)
+                    .orElseThrow(() -> new RuntimeException("Produto não encontrado: " + itemReq.productId));
+
+            if (!product.getClient().getId().equals(clientId)) {
+                throw new RuntimeException("Produto " + product.getName() + " não pertence a este restaurante");
+            }
+
+            OrderItem item = new OrderItem();
+            item.setOrder(order);
+            item.setProduct(product);
+            item.setQuantity(itemReq.quantity);
+            item.setUnitPrice(product.getPrice());
+            item.setNotes(itemReq.notes);
+            item.setRound(nextRound);
+            item.setSentAt(OffsetDateTime.now());
+            order.getItems().add(item);
+
+            addedSubtotal = addedSubtotal.add(product.getPrice().multiply(BigDecimal.valueOf(itemReq.quantity)));
+        }
+
+        // Atualizar totais
+        order.setSubtotal(order.getSubtotal().add(addedSubtotal).setScale(2, RoundingMode.HALF_UP));
+        order.setTotal(order.getSubtotal().add(order.getDeliveryFee()).setScale(2, RoundingMode.HALF_UP));
+
+        // Se o pedido já foi aceito/preparando/pronto, volta para PREPARING
+        if (order.getStatus() != FoodOrder.OrderStatus.PLACED) {
+            order.setStatus(FoodOrder.OrderStatus.PREPARING);
+            order.setPreparingAt(OffsetDateTime.now());
+        }
+
+        FoodOrder saved = orderRepository.save(order);
+
+        // Notificar restaurante sobre novos itens
+        try {
+            pushNotificationService.sendNotificationToUser(
+                    clientId,
+                    "🍽️ Novos itens — Mesa #" + (order.getTable() != null ? order.getTable().getNumber() : "?"),
+                    "Rodada " + nextRound + " — +" + newItems.size() + " itens no pedido #" + orderId,
+                    null
+            );
+        } catch (Exception e) {
+            log.warn("Falha ao notificar sobre novos itens do pedido #{}: {}", orderId, e.getMessage());
+        }
+
+        log.info("🍽️ Pedido #{} — rodada {} adicionada: +{} itens, novo total R$ {}",
+                orderId, nextRound, newItems.size(), saved.getTotal());
+        return saved;
+    }
+
+    // ================================================================
+    // REMOVER ITEM DO PEDIDO
+    // ================================================================
+
+    public FoodOrder removeItemFromOrder(Long orderId, Long itemId) {
+        FoodOrder order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));
+
+        if (order.getStatus() == FoodOrder.OrderStatus.COMPLETED || order.getStatus() == FoodOrder.OrderStatus.CANCELLED) {
+            throw new RuntimeException("Pedido já está " + order.getStatus().name());
+        }
+
+        OrderItem item = order.getItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Item não encontrado no pedido"));
+
+        BigDecimal itemTotal = item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+        order.getItems().remove(item);
+
+        // Recalcular totais
+        order.setSubtotal(order.getSubtotal().subtract(itemTotal).setScale(2, RoundingMode.HALF_UP));
+        order.setTotal(order.getSubtotal().add(order.getDeliveryFee()).setScale(2, RoundingMode.HALF_UP));
+
+        // Se ficou sem itens, cancela o pedido
+        if (order.getItems().isEmpty()) {
+            order.setStatus(FoodOrder.OrderStatus.CANCELLED);
+            order.setCancellationReason("Todos os itens removidos");
+            order.setCancelledAt(OffsetDateTime.now());
+        }
+
+        log.info("🗑️ Item #{} removido do pedido #{}, novo total R$ {}", itemId, orderId, order.getTotal());
+        return orderRepository.save(order);
     }
 
     // ================================================================
@@ -514,6 +623,34 @@ public class FoodOrderService implements DeliveryStatusCallback {
                 List.of(FoodOrder.OrderStatus.PLACED, FoodOrder.OrderStatus.ACCEPTED,
                         FoodOrder.OrderStatus.PREPARING, FoodOrder.OrderStatus.READY,
                         FoodOrder.OrderStatus.DELIVERING));
+    }
+
+    /** Pedidos ativos do garçom em um estabelecimento */
+    public List<FoodOrder> findActiveByWaiter(UUID waiterId, UUID clientId) {
+        return orderRepository.findActiveByWaiterAndClient(waiterId, clientId);
+    }
+
+    /** Pedidos ativos de uma mesa */
+    public List<FoodOrder> findActiveByTable(Long tableId) {
+        return orderRepository.findActiveByTable(tableId);
+    }
+
+    /** Todos os pedidos de uma mesa */
+    public List<FoodOrder> findByTable(Long tableId) {
+        return orderRepository.findByTableId(tableId);
+    }
+
+    /** Mapa tableId → status do pedido ativo para todas as mesas de um client */
+    @Transactional(readOnly = true)
+    public java.util.Map<Long, String> getTablesOrderStatus(java.util.UUID clientId) {
+        List<FoodOrder> activeOrders = orderRepository.findActiveByClientId(clientId);
+        java.util.Map<Long, String> result = new java.util.HashMap<>();
+        for (FoodOrder order : activeOrders) {
+            if (order.getTable() != null) {
+                result.put(order.getTable().getId(), order.getStatus().name());
+            }
+        }
+        return result;
     }
 
     // ================================================================

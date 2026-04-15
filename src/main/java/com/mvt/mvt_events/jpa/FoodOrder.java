@@ -47,6 +47,7 @@ public class FoodOrder {
     /**
      * Retorna a delivery ativa (não-cancelada) mais recente, ou null.
      */
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public Delivery getActiveDelivery() {
         if (deliveries == null || deliveries.isEmpty()) return null;
         return deliveries.stream()

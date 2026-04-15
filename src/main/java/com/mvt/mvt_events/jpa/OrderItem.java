@@ -46,6 +46,15 @@ public class OrderItem {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    /** Rodada de envio à cozinha (1 = pedido original, 2+ = itens adicionados depois) */
+    @Builder.Default
+    @Column(nullable = false)
+    private Integer round = 1;
+
+    /** Quando o item foi enviado à cozinha */
+    @Column(name = "sent_at")
+    private OffsetDateTime sentAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -62,5 +71,6 @@ public class OrderItem {
     @PrePersist
     protected void onCreate() {
         createdAt = OffsetDateTime.now();
+        if (sentAt == null) sentAt = createdAt;
     }
 }

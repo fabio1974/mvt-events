@@ -110,6 +110,67 @@ public class UserController {
     }
 
     // ============================================================================
+    // WAITER MANAGEMENT (CLIENT ↔ WAITER direto)
+    // ============================================================================
+
+    @GetMapping("/search/waiters")
+    @Operation(summary = "Buscar garçons para typeahead",
+               description = "Busca garçons por nome ou email. Exclui os já vinculados ao CLIENT logado.")
+    @Transactional(readOnly = true)
+    public List<WaiterSearchResponse> searchWaiters(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "10") Integer limit,
+            Authentication authentication) {
+        return userService.searchWaitersForTypeahead(search, limit, authentication);
+    }
+
+    @GetMapping("/my-waiters")
+    @Operation(summary = "Listar garçons do meu estabelecimento",
+               description = "CLIENT: retorna garçons vinculados diretamente ao estabelecimento.")
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<WaiterForClientResponse>> listMyWaiters(Authentication authentication) {
+        List<WaiterForClientResponse> waiters = userService.getWaitersForLoggedClient(authentication);
+        return ResponseEntity.ok(waiters);
+    }
+
+    @PostMapping("/my-waiters/{waiterId}")
+    @Operation(summary = "Adicionar garçom ao meu estabelecimento",
+               description = "CLIENT: vincula garçom diretamente ao estabelecimento.")
+    public ResponseEntity<?> addWaiterToMyGroup(
+            @PathVariable UUID waiterId,
+            Authentication authentication) {
+        try {
+            WaiterForClientResponse response = userService.addWaiterToClient(waiterId, authentication);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/my-waiters/{waiterId}")
+    @Operation(summary = "Remover garçom do meu estabelecimento",
+               description = "CLIENT: remove vínculo do garçom com o estabelecimento.")
+    public ResponseEntity<?> removeWaiterFromMyGroup(
+            @PathVariable UUID waiterId,
+            Authentication authentication) {
+        try {
+            userService.removeWaiterFromClient(waiterId, authentication);
+            return ResponseEntity.ok(java.util.Map.of("message", "Garçom removido com sucesso"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/waiter/my-establishments")
+    @Operation(summary = "Estabelecimentos do garçom",
+               description = "WAITER: lista CLIENTs vinculados diretamente ao garçom.")
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<ClientForOrganizerResponse>> waiterEstablishments(Authentication authentication) {
+        List<ClientForOrganizerResponse> clients = userService.getEstablishmentsForWaiter(authentication);
+        return ResponseEntity.ok(clients);
+    }
+
+    // ============================================================================
     // CLIENT GROUP MANAGEMENT (my-clients)
     // ============================================================================
 
@@ -690,6 +751,54 @@ public class UserController {
             if (contract != null) {
                 this.isActive = contract.isActive();
                 this.linkedAt = contract.getLinkedAt() != null ? contract.getLinkedAt().toString() : null;
+            }
+        }
+    }
+
+    // ============================================================================
+    // WAITER GROUP DTOs
+    // ============================================================================
+
+    @Data
+    @NoArgsConstructor
+    public static class WaiterSearchResponse {
+        private UUID id;
+        private String name;
+        private String email;
+        private String phone;
+
+        public WaiterSearchResponse(User user) {
+            this.id = user.getId();
+            this.name = user.getName();
+            this.email = user.getUsername();
+            if (user.getPhoneDdd() != null && user.getPhoneNumber() != null) {
+                this.phone = "(" + user.getPhoneDdd() + ") " + user.getPhoneNumber();
+            }
+        }
+    }
+
+    @Data
+    @NoArgsConstructor
+    public static class WaiterForClientResponse {
+        private UUID id;
+        private String name;
+        private String email;
+        private String phone;
+        private String documentNumber;
+        private Boolean isActive;
+        private String linkedAt;
+
+        public WaiterForClientResponse(User waiter, com.mvt.mvt_events.jpa.ClientWaiter link) {
+            this.id = waiter.getId();
+            this.name = waiter.getName();
+            this.email = waiter.getUsername();
+            if (waiter.getPhoneDdd() != null && waiter.getPhoneNumber() != null) {
+                this.phone = "(" + waiter.getPhoneDdd() + ") " + waiter.getPhoneNumber();
+            }
+            this.documentNumber = waiter.getDocumentFormatted();
+            if (link != null) {
+                this.isActive = link.isActive();
+                this.linkedAt = link.getCreatedAt() != null ? link.getCreatedAt().toString() : null;
             }
         }
     }

@@ -74,6 +74,7 @@ public class Organization extends BaseEntity {
     @JsonIgnore
     private List<ClientContract> clientContracts;
 
+
     // ============================================================================
     // RELATIONSHIP HELPER METHODS
     // ============================================================================
@@ -115,4 +116,5 @@ public class Organization extends BaseEntity {
                 .filter(EmploymentContract::isActive)
                 .count();
     }
+
 }

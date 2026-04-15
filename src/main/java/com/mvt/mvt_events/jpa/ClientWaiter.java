@@ -1,74 +1,45 @@
 package com.mvt.mvt_events.jpa;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.mvt.mvt_events.metadata.Visible;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
+/**
+ * Vínculo direto N:N entre CLIENT (estabelecimento) e WAITER (garçom).
+ * O CLIENT gerencia seus garçons diretamente.
+ */
 @Entity
-@Table(name = "client_waiters",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"client_id", "waiter_id"}),
-                @UniqueConstraint(columnNames = {"client_id", "pin"})
-        })
+@Table(name = "client_waiters", uniqueConstraints = @UniqueConstraint(columnNames = {"client_id", "waiter_id"}))
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class ClientWaiter {
+@EqualsAndHashCode(callSuper = true)
+public class ClientWaiter extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
+    @NotNull(message = "Cliente é obrigatório")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
-    @com.fasterxml.jackson.annotation.JsonIgnore
+    @JsonIgnore
+    @Visible(table = true, form = true, filter = true)
     private User client;
 
+    @NotNull(message = "Garçom é obrigatório")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "waiter_id", nullable = false)
-    @com.fasterxml.jackson.annotation.JsonIgnore
+    @JsonIgnore
+    @Visible(table = true, form = true, filter = true)
     private User waiter;
 
-    @Column(length = 6)
-    private String pin;
-
-    @Builder.Default
-    @Column(nullable = false)
-    private Boolean active = true;
+    @Column(name = "active", nullable = false)
+    @Visible(table = true, form = true, filter = true)
+    private boolean active = true;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
-
-    @com.fasterxml.jackson.annotation.JsonGetter("clientId")
-    public String getClientIdValue() {
-        return client != null ? client.getId().toString() : null;
-    }
-
-    @com.fasterxml.jackson.annotation.JsonGetter("clientName")
-    public String getClientName() {
-        try { return client != null ? client.getName() : null; } catch (Exception e) { return null; }
-    }
-
-    @com.fasterxml.jackson.annotation.JsonGetter("waiterId")
-    public String getWaiterIdValue() {
-        return waiter != null ? waiter.getId().toString() : null;
-    }
-
-    @com.fasterxml.jackson.annotation.JsonGetter("waiterName")
-    public String getWaiterName() {
-        try { return waiter != null ? waiter.getName() : null; } catch (Exception e) { return null; }
-    }
-
-    @com.fasterxml.jackson.annotation.JsonGetter("waiterEmail")
-    public String getWaiterEmail() {
-        try { return waiter != null ? waiter.getUsername() : null; } catch (Exception e) { return null; }
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = OffsetDateTime.now();
-    }
+    private OffsetDateTime createdAt = OffsetDateTime.now(ZoneId.of("America/Fortaleza"));
 }

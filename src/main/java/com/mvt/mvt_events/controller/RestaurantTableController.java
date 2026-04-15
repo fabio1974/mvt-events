@@ -1,7 +1,9 @@
 package com.mvt.mvt_events.controller;
 
+import com.mvt.mvt_events.jpa.FoodOrder;
 import com.mvt.mvt_events.jpa.RestaurantTable;
 import com.mvt.mvt_events.jpa.User;
+import com.mvt.mvt_events.repository.FoodOrderRepository;
 import com.mvt.mvt_events.service.RestaurantTableService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,7 +13,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -20,9 +24,11 @@ import java.util.UUID;
 public class RestaurantTableController {
 
     private final RestaurantTableService tableService;
+    private final FoodOrderRepository foodOrderRepository;
 
-    public RestaurantTableController(RestaurantTableService tableService) {
+    public RestaurantTableController(RestaurantTableService tableService, FoodOrderRepository foodOrderRepository) {
         this.tableService = tableService;
+        this.foodOrderRepository = foodOrderRepository;
     }
 
     @GetMapping
@@ -65,6 +71,21 @@ public class RestaurantTableController {
             Authentication authentication) {
         UUID clientId = resolveClientId(null, authentication);
         return tableService.update(id, clientId, request.label, request.seats, request.active);
+    }
+
+    @GetMapping("/order-status")
+    @Operation(summary = "Status dos pedidos ativos por mesa")
+    public Map<Long, String> orderStatusByTable(Authentication authentication) {
+        UUID clientId = resolveClientId(null, authentication);
+        List<FoodOrder> activeOrders = foodOrderRepository.findActiveTableOrders(clientId);
+        Map<Long, String> result = new HashMap<>();
+        for (FoodOrder order : activeOrders) {
+            if (order.getTable() != null) {
+                // Primeiro pedido encontrado por mesa (mais recente, pelo ORDER BY)
+                result.putIfAbsent(order.getTable().getId(), order.getStatus().name());
+            }
+        }
+        return result;
     }
 
     @DeleteMapping("/{id}")

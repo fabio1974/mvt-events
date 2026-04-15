@@ -204,6 +204,23 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
                                           @Param("limit") Integer limit);
 
        // ============================================================================
+       // WAITER SEARCH (typeahead para mobile)
+       // ============================================================================
+
+       /**
+        * Busca garçons por nome ou email que NÃO estão vinculados ao CLIENT especificado
+        */
+       @Query(value = "SELECT * FROM users u WHERE u.role = 'WAITER' " +
+              "AND u.enabled = true AND u.blocked = false " +
+              "AND (immutable_unaccent(LOWER(u.name)) LIKE immutable_unaccent(LOWER(CONCAT('%', :search, '%'))) OR immutable_unaccent(LOWER(u.username)) LIKE immutable_unaccent(LOWER(CONCAT('%', :search, '%')))) " +
+              "AND NOT EXISTS (SELECT 1 FROM client_waiters cw WHERE cw.waiter_id = u.id AND cw.client_id = :clientId AND cw.active = true) " +
+              "ORDER BY u.name ASC " +
+              "LIMIT :limit", nativeQuery = true)
+       List<User> searchWaitersNotLinkedToClient(@Param("search") String search,
+                                                  @Param("clientId") java.util.UUID clientId,
+                                                  @Param("limit") Integer limit);
+
+       // ============================================================================
        // CLIENT SEARCH (typeahead para mobile)
        // ============================================================================
 

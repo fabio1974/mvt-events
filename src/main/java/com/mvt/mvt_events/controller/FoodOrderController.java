@@ -35,8 +35,14 @@ public class FoodOrderController {
     // ================================================================
 
     @GetMapping
-    @Operation(summary = "Listar pedidos (paginado)", description = "Para EntityCRUD genérico. CLIENT vê seus pedidos, ADMIN vê todos.")
+    @Operation(summary = "Listar pedidos (paginado)", description = "Para EntityCRUD genérico. CLIENT vê seus pedidos, ADMIN vê todos. Default: createdAt DESC.")
     public ResponseEntity<Page<FoodOrder>> listPaged(Authentication authentication, Pageable pageable) {
+        // Força ordenação por createdAt DESC se nenhum sort foi especificado
+        if (pageable.getSort().isUnsorted()) {
+            pageable = org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(), pageable.getPageSize(),
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        }
         User user = (User) authentication.getPrincipal();
         if (user.getRole() == User.Role.ADMIN) {
             return ResponseEntity.ok(orderRepository.findAll(pageable));
@@ -125,8 +131,35 @@ public class FoodOrderController {
     }
 
     // ================================================================
-    // WAITER — criar pedido de mesa
+    // WAITER — pedidos de mesa
     // ================================================================
+
+    @GetMapping("/waiter/my-orders")
+    @Operation(summary = "Pedidos ativos do garçom", description = "WAITER: pedidos ativos no estabelecimento")
+    public ResponseEntity<List<FoodOrder>> waiterActiveOrders(
+            Authentication authentication,
+            @RequestParam UUID clientId) {
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(orderService.findActiveByWaiter(user.getId(), clientId));
+    }
+
+    @GetMapping("/tables-status")
+    @Operation(summary = "Status dos pedidos por mesa", description = "Retorna mapa tableId → status do pedido ativo para todas as mesas de um client")
+    public ResponseEntity<java.util.Map<Long, String>> tablesOrderStatus(@RequestParam java.util.UUID clientId) {
+        java.util.Map<Long, String> result = orderService.getTablesOrderStatus(clientId);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/by-table/{tableId}")
+    @Operation(summary = "Pedidos de uma mesa", description = "Pedidos ativos de uma mesa específica")
+    public ResponseEntity<List<FoodOrder>> ordersByTable(
+            @PathVariable Long tableId,
+            @RequestParam(defaultValue = "true") boolean activeOnly) {
+        if (activeOnly) {
+            return ResponseEntity.ok(orderService.findActiveByTable(tableId));
+        }
+        return ResponseEntity.ok(orderService.findByTable(tableId));
+    }
 
     @PostMapping("/table")
     @Operation(summary = "Criar pedido de mesa", description = "WAITER cria pedido vinculado a uma mesa")
@@ -139,6 +172,39 @@ public class FoodOrderController {
         FoodOrder order = orderService.createTableOrder(
                 user.getId(), request.clientId, request.tableId, request.items, request.notes);
         return ResponseEntity.status(HttpStatus.CREATED).body(order);
+    }
+
+    @PostMapping("/{orderId}/add-items")
+    @Operation(summary = "Adicionar itens a pedido existente", description = "WAITER adiciona nova rodada de itens a um pedido de mesa aberto")
+    public ResponseEntity<?> addItemsToOrder(
+            @PathVariable Long orderId,
+            @RequestBody AddItemsRequest request,
+            Authentication authentication) {
+        try {
+            User user = (User) authentication.getPrincipal();
+            FoodOrder order = orderService.addItemsToOrder(orderId, user.getId(), request.items);
+            return ResponseEntity.ok(order);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{orderId}/items/{itemId}")
+    @Operation(summary = "Remover item do pedido", description = "WAITER remove um item do pedido (qualquer rodada)")
+    public ResponseEntity<?> removeItemFromOrder(
+            @PathVariable Long orderId,
+            @PathVariable Long itemId,
+            Authentication authentication) {
+        try {
+            FoodOrder order = orderService.removeItemFromOrder(orderId, itemId);
+            return ResponseEntity.ok(order);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    public static class AddItemsRequest {
+        public List<FoodOrderService.OrderItemRequest> items;
     }
 
     // ================================================================

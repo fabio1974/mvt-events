@@ -29,6 +29,41 @@ public interface FoodOrderRepository extends JpaRepository<FoodOrder, Long> {
     @Query("SELECT o FROM FoodOrder o WHERE o.id = (SELECT d.order.id FROM Delivery d WHERE d.id = :deliveryId)")
     Optional<FoodOrder> findByDeliveryId(@Param("deliveryId") Long deliveryId);
 
+    /** Pedidos ativos (não finalizados) por mesa de um estabelecimento */
+    @Query("SELECT o FROM FoodOrder o WHERE o.client.id = :clientId " +
+           "AND o.table IS NOT NULL " +
+           "AND o.status NOT IN ('COMPLETED', 'CANCELLED') " +
+           "ORDER BY o.createdAt DESC")
+    List<FoodOrder> findActiveTableOrders(@Param("clientId") UUID clientId);
+
+    /** Pedidos ativos do garçom em um estabelecimento */
+    @Query("SELECT o FROM FoodOrder o LEFT JOIN FETCH o.items i LEFT JOIN FETCH i.product " +
+           "WHERE o.waiter.id = :waiterId AND o.client.id = :clientId " +
+           "AND o.status NOT IN ('COMPLETED', 'CANCELLED') " +
+           "ORDER BY o.createdAt DESC")
+    List<FoodOrder> findActiveByWaiterAndClient(@Param("waiterId") UUID waiterId, @Param("clientId") UUID clientId);
+
+    /** Pedidos de uma mesa específica (ativos) */
+    @Query("SELECT o FROM FoodOrder o LEFT JOIN FETCH o.items i LEFT JOIN FETCH i.product " +
+           "WHERE o.table.id = :tableId " +
+           "AND o.status NOT IN ('COMPLETED', 'CANCELLED') " +
+           "ORDER BY o.createdAt DESC")
+    List<FoodOrder> findActiveByTable(@Param("tableId") Long tableId);
+
+    /** Pedidos ativos de um client (para mapa de status das mesas) */
+    @Query("SELECT o FROM FoodOrder o LEFT JOIN FETCH o.table " +
+           "WHERE o.client.id = :clientId " +
+           "AND o.table IS NOT NULL " +
+           "AND o.status NOT IN ('COMPLETED', 'CANCELLED') " +
+           "ORDER BY o.createdAt DESC")
+    List<FoodOrder> findActiveByClientId(@Param("clientId") UUID clientId);
+
+    /** Todos os pedidos de uma mesa (incluindo finalizados) */
+    @Query("SELECT o FROM FoodOrder o LEFT JOIN FETCH o.items i LEFT JOIN FETCH i.product " +
+           "WHERE o.table.id = :tableId " +
+           "ORDER BY o.createdAt DESC")
+    List<FoodOrder> findByTableId(@Param("tableId") Long tableId);
+
     /**
      * Busca pedidos READY ou DELIVERING do mesmo restaurante nos últimos N minutos,
      * cuja Delivery ainda está PENDING ou ACCEPTED (courier não saiu).

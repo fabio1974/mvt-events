@@ -1,6 +1,7 @@
 package com.mvt.mvt_events.repository;
 
 import com.mvt.mvt_events.jpa.ClientWaiter;
+import com.mvt.mvt_events.jpa.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,20 +14,14 @@ import java.util.UUID;
 @Repository
 public interface ClientWaiterRepository extends JpaRepository<ClientWaiter, Long> {
 
-    List<ClientWaiter> findByClientId(UUID clientId);
+    Optional<ClientWaiter> findByClientAndWaiter(User client, User waiter);
 
-    List<ClientWaiter> findByClientIdAndActive(UUID clientId, Boolean active);
-
-    List<ClientWaiter> findByWaiterId(UUID waiterId);
-
-    List<ClientWaiter> findByWaiterIdAndActive(UUID waiterId, Boolean active);
-
-    Optional<ClientWaiter> findByClientIdAndWaiterId(UUID clientId, UUID waiterId);
-
-    Optional<ClientWaiter> findByClientIdAndPin(UUID clientId, String pin);
-
-    boolean existsByClientIdAndWaiterId(UUID clientId, UUID waiterId);
+    @Query("SELECT cw FROM ClientWaiter cw WHERE cw.client.id = :clientId AND cw.active = true")
+    List<ClientWaiter> findActiveByClientId(@Param("clientId") UUID clientId);
 
     @Query("SELECT cw FROM ClientWaiter cw JOIN FETCH cw.client WHERE cw.waiter.id = :waiterId AND cw.active = true")
-    List<ClientWaiter> findActiveEstablishmentsByWaiter(@Param("waiterId") UUID waiterId);
+    List<ClientWaiter> findActiveByWaiterId(@Param("waiterId") UUID waiterId);
+
+    @Query("SELECT COUNT(cw) > 0 FROM ClientWaiter cw WHERE cw.client.id = :clientId AND cw.waiter.id = :waiterId AND cw.active = true")
+    boolean hasActiveLink(@Param("clientId") UUID clientId, @Param("waiterId") UUID waiterId);
 }
