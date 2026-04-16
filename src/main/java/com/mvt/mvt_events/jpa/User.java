@@ -277,6 +277,12 @@ public class User implements UserDetails {
     @Visible(table = false, form = false, filter = false)
     private BankAccount bankAccount;
 
+    // Perfil da loja (apenas para CLIENT)
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    @Visible(table = false, form = true, filter = false)
+    private StoreProfile storeProfile;
+
     // ============================================================================
     // N:M RELATIONSHIPS
     // ============================================================================

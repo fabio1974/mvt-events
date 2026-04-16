@@ -49,7 +49,7 @@ public class RestaurantTableController {
             @RequestBody CreateTableRequest request,
             Authentication authentication) {
         UUID clientId = resolveClientId(request.clientId, authentication);
-        RestaurantTable table = tableService.create(clientId, request.number, request.label, request.seats);
+        RestaurantTable table = tableService.create(clientId, request.number, request.seats);
         return ResponseEntity.status(HttpStatus.CREATED).body(table);
     }
 
@@ -70,7 +70,7 @@ public class RestaurantTableController {
             @RequestBody UpdateTableRequest request,
             Authentication authentication) {
         UUID clientId = resolveClientId(null, authentication);
-        return tableService.update(id, clientId, request.label, request.seats, request.active);
+        return tableService.update(id, clientId, request.seats, request.active, request.status);
     }
 
     @GetMapping("/order-status")
@@ -86,6 +86,18 @@ public class RestaurantTableController {
             }
         }
         return result;
+    }
+
+    @PatchMapping("/{id}/status")
+    @Operation(summary = "Alterar status da mesa", description = "WAITER/CLIENT: trocar status (AVAILABLE, RESERVED, OCCUPIED, UNAVAILABLE)")
+    public RestaurantTable changeStatus(
+            @PathVariable Long id,
+            @RequestBody ChangeStatusRequest request,
+            Authentication authentication) {
+        // Busca o clientId da própria mesa (WAITER não precisa informar)
+        RestaurantTable table = tableService.findById(id);
+        UUID clientId = table.getClient().getId();
+        return tableService.changeStatus(id, clientId, request.status);
     }
 
     @DeleteMapping("/{id}")
@@ -116,7 +128,6 @@ public class RestaurantTableController {
     public static class CreateTableRequest {
         private UUID clientId;
         private Integer number;
-        private String label;
         private Integer seats;
     }
 
@@ -130,8 +141,13 @@ public class RestaurantTableController {
 
     @Data
     public static class UpdateTableRequest {
-        private String label;
         private Integer seats;
         private Boolean active;
+        private String status;
+    }
+
+    @Data
+    public static class ChangeStatusRequest {
+        private String status; // AVAILABLE, RESERVED, OCCUPIED, UNAVAILABLE
     }
 }

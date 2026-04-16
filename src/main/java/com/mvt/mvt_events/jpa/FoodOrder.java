@@ -122,6 +122,16 @@ public class FoodOrder {
     @Column(name = "cancellation_reason", columnDefinition = "TEXT")
     private String cancellationReason;
 
+    /** Forma de pagamento informada ao fechar a conta */
+    @Column(name = "table_payment_method", length = 20)
+    @Enumerated(EnumType.STRING)
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
+    private PaymentMethod tablePaymentMethod;
+
+    @Column(name = "paid_at")
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
+    private OffsetDateTime paidAt;
+
     @Builder.Default
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
@@ -176,11 +186,6 @@ public class FoodOrder {
         try { return table != null ? table.getNumber() : null; } catch (Exception e) { return null; }
     }
 
-    @com.fasterxml.jackson.annotation.JsonGetter("tableLabel")
-    public String getTableLabel() {
-        try { return table != null ? table.getLabel() : null; } catch (Exception e) { return null; }
-    }
-
     @PrePersist
     protected void onCreate() {
         createdAt = OffsetDateTime.now();
@@ -197,13 +202,14 @@ public class FoodOrder {
     // ============================================================================
 
     public enum OrderStatus {
-        PLACED,     // Pedido criado, aguardando restaurante
-        ACCEPTED,   // Restaurante aceitou
-        PREPARING,  // Em preparo
-        READY,      // Pronto para retirada → cria Delivery (DELIVERY) ou notifica garçom (TABLE)
-        DELIVERING, // Courier coletou, em trânsito (apenas DELIVERY)
-        COMPLETED,  // Entregue / servido na mesa
-        CANCELLED   // Cancelado (por cliente ou restaurante)
+        PLACED,             // Pedido criado, aguardando restaurante
+        ACCEPTED,           // Restaurante aceitou
+        PREPARING,          // Em preparo
+        READY,              // Pronto para retirada / servir
+        DELIVERING,         // Em entrega (delivery) / Servido na mesa (table)
+        AWAITING_PAYMENT,   // Conta fechada, aguardando pagamento
+        COMPLETED,          // Pago e concluído
+        CANCELLED           // Cancelado
     }
 
     public enum OrderType {

@@ -35,7 +35,7 @@ public class RestaurantTableService {
                 .orElseThrow(() -> new RuntimeException("Mesa não encontrada"));
     }
 
-    public RestaurantTable create(UUID clientId, Integer number, String label, Integer seats) {
+    public RestaurantTable create(UUID clientId, Integer number, Integer seats) {
         User client = userRepository.findById(clientId)
                 .orElseThrow(() -> new RuntimeException("Estabelecimento não encontrado"));
         if (client.getRole() != User.Role.CLIENT) {
@@ -48,7 +48,6 @@ public class RestaurantTableService {
         RestaurantTable table = RestaurantTable.builder()
                 .client(client)
                 .number(number)
-                .label(label)
                 .seats(seats)
                 .active(true)
                 .build();
@@ -77,14 +76,33 @@ public class RestaurantTableService {
         return tables;
     }
 
-    public RestaurantTable update(Long id, UUID clientId, String label, Integer seats, Boolean active) {
+    public RestaurantTable update(Long id, UUID clientId, Integer seats, Boolean active, String status) {
         RestaurantTable table = findById(id);
         if (!table.getClient().getId().equals(clientId)) {
             throw new RuntimeException("Mesa não pertence a este estabelecimento");
         }
-        if (label != null) table.setLabel(label);
         if (seats != null) table.setSeats(seats);
         if (active != null) table.setActive(active);
+        if (status != null) {
+            try {
+                table.setStatus(RestaurantTable.TableStatus.valueOf(status.toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Status inválido: " + status);
+            }
+        }
+        return tableRepository.save(table);
+    }
+
+    public RestaurantTable changeStatus(Long id, UUID clientId, String statusStr) {
+        RestaurantTable table = findById(id);
+        if (!table.getClient().getId().equals(clientId)) {
+            throw new RuntimeException("Mesa não pertence a este estabelecimento");
+        }
+        try {
+            table.setStatus(RestaurantTable.TableStatus.valueOf(statusStr.toUpperCase()));
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Status inválido: " + statusStr + ". Use: AVAILABLE, RESERVED, OCCUPIED, UNAVAILABLE");
+        }
         return tableRepository.save(table);
     }
 

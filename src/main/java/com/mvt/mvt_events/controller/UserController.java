@@ -3,6 +3,7 @@ package com.mvt.mvt_events.controller;
 import com.mvt.mvt_events.dto.common.CityDTO;
 import com.mvt.mvt_events.dto.common.OrganizationDTO;
 import com.mvt.mvt_events.dto.mapper.DTOMapper;
+import com.mvt.mvt_events.jpa.StoreProfile;
 import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,7 +41,7 @@ public class UserController {
             @RequestParam(required = false) Long organizationId,
             @RequestParam(required = false) Boolean enabled,
             @RequestParam(required = false) String search,
-            Pageable pageable) {
+            @org.springframework.data.web.PageableDefault(sort = "createdAt", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
         Page<User> users = userService.listWithFilters(role, organizationId, enabled, search, pageable);
         return users.map(UserResponse::new);
     }
@@ -506,6 +507,43 @@ public class UserController {
         // Ativação (admin only)
         private Boolean enabled;       // regras de preenchimento mínimo por role
         private Boolean blocked;       // bloqueio de segurança (impede login)
+
+        // Perfil da loja (nested OneToOne — apenas para CLIENT)
+        private StoreProfileUpdateRequest storeProfile;
+    }
+
+    @Data
+    @NoArgsConstructor
+    public static class StoreProfileUpdateRequest {
+        private Boolean isOpen;
+        private Boolean tableOrdersEnabled;
+        private String description;
+        private java.math.BigDecimal minOrder;
+        private Integer avgPreparationMinutes;
+        private String logoUrl;
+        private String coverUrl;
+    }
+
+    @Data
+    @NoArgsConstructor
+    public static class StoreProfileResponse {
+        private Boolean isOpen;
+        private Boolean tableOrdersEnabled;
+        private String description;
+        private java.math.BigDecimal minOrder;
+        private Integer avgPreparationMinutes;
+        private String logoUrl;
+        private String coverUrl;
+
+        public StoreProfileResponse(StoreProfile sp) {
+            this.isOpen = sp.getIsOpen();
+            this.tableOrdersEnabled = sp.getTableOrdersEnabled();
+            this.description = sp.getDescription();
+            this.minOrder = sp.getMinOrder();
+            this.avgPreparationMinutes = sp.getAvgPreparationMinutes();
+            this.logoUrl = sp.getLogoUrl();
+            this.coverUrl = sp.getCoverUrl();
+        }
     }
 
     // DTO para atualização de localização
@@ -535,7 +573,7 @@ public class UserController {
         private String number;
         private String complement;
         private String neighborhood;
-        private String city;
+        private CityDTO city;
         private String state;
         private String zipCode;
         private String referencePoint;
@@ -550,7 +588,7 @@ public class UserController {
             this.number = address.getNumber();
             this.complement = address.getComplement();
             this.neighborhood = address.getNeighborhood();
-            this.city = address.getCityName();
+            this.city = address.getCity() != null ? DTOMapper.toDTO(address.getCity()) : null;
             this.state = address.getState();
             this.zipCode = address.getZipCode();
             this.referencePoint = address.getReferencePoint();
@@ -594,6 +632,9 @@ public class UserController {
         private java.util.List<EmploymentContractForUserResponse> employmentContracts;
         private java.util.List<ClientContractForUserResponse> clientContracts;
 
+        // Perfil da loja (nested OneToOne — apenas para CLIENT)
+        private StoreProfileResponse storeProfile;
+
         public UserResponse(User user) {
             this.id = user.getId();
             this.username = user.getUsername();
@@ -635,6 +676,17 @@ public class UserController {
 
             this.enabled = user.getEnabled();
             this.blocked = user.isBlocked();
+
+            // Perfil da loja (nested OneToOne)
+            try {
+                StoreProfile sp = user.getStoreProfile();
+                if (sp != null) {
+                    this.storeProfile = new StoreProfileResponse(sp);
+                }
+            } catch (Exception e) {
+                // Lazy loading exception — storeProfile não carregado
+                this.storeProfile = null;
+            }
             this.currentDeliveryId = user.getCurrentDeliveryId();
 
             // Inicializar listas vazias (serão preenchidas no controller se necessário)

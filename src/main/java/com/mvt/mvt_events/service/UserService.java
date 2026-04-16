@@ -57,6 +57,9 @@ public class UserService {
     
     @Autowired
     private com.mvt.mvt_events.repository.BankAccountRepository bankAccountRepository;
+
+    @Autowired
+    private com.mvt.mvt_events.repository.StoreProfileRepository storeProfileRepository;
     
     @Autowired
     private com.mvt.mvt_events.repository.CustomerCardRepository customerCardRepository;
@@ -378,6 +381,27 @@ public class UserService {
         // Blocked — bloqueio de segurança (impede login)
         if (request.getBlocked() != null) {
             user.setBlocked(request.getBlocked());
+        }
+
+        // Perfil da loja (nested OneToOne — apenas para CLIENT)
+        if (request.getStoreProfile() != null && user.getRole() == User.Role.CLIENT) {
+            var spReq = request.getStoreProfile();
+            com.mvt.mvt_events.jpa.StoreProfile store = storeProfileRepository.findByUserId(user.getId())
+                    .orElseGet(() -> {
+                        var sp = new com.mvt.mvt_events.jpa.StoreProfile();
+                        sp.setUser(user);
+                        return sp;
+                    });
+
+            if (spReq.getIsOpen() != null) store.setIsOpen(spReq.getIsOpen());
+            if (spReq.getTableOrdersEnabled() != null) store.setTableOrdersEnabled(spReq.getTableOrdersEnabled());
+            if (spReq.getDescription() != null) store.setDescription(spReq.getDescription());
+            if (spReq.getMinOrder() != null) store.setMinOrder(spReq.getMinOrder());
+            if (spReq.getAvgPreparationMinutes() != null) store.setAvgPreparationMinutes(spReq.getAvgPreparationMinutes());
+            if (spReq.getLogoUrl() != null) store.setLogoUrl(spReq.getLogoUrl());
+            if (spReq.getCoverUrl() != null) store.setCoverUrl(spReq.getCoverUrl());
+
+            storeProfileRepository.save(store);
         }
 
         // Processar array de endereços (sincronização: update, insert, delete)
@@ -1180,8 +1204,13 @@ public class UserService {
                 clientWaiterRepository.findActiveByWaiterId(waiter.getId());
 
         return links.stream()
+                .filter(link -> {
+                    // Só retorna estabelecimentos com módulo de mesas habilitado
+                    return storeProfileRepository.findByUserId(link.getClient().getId())
+                            .map(sp -> Boolean.TRUE.equals(sp.getTableOrdersEnabled()))
+                            .orElse(false);
+                })
                 .map(link -> {
-                    // Busca o ClientContract para manter compatibilidade com ClientForOrganizerResponse
                     java.util.List<com.mvt.mvt_events.jpa.ClientContract> contracts =
                             clientContractRepository.findActiveByClientId(link.getClient().getId());
                     com.mvt.mvt_events.jpa.ClientContract cc = contracts.isEmpty() ? null : contracts.get(0);

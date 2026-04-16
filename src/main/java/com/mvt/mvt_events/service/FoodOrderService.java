@@ -13,6 +13,7 @@ import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -203,6 +204,9 @@ public class FoodOrderService implements DeliveryStatusCallback {
             if (!table.getActive()) {
                 throw new RuntimeException("Mesa #" + table.getNumber() + " está desativada");
             }
+            // Auto-transição: mesa fica OCCUPIED ao criar pedido
+            table.setStatus(RestaurantTable.TableStatus.OCCUPIED);
+            restaurantTableRepository.save(table);
         }
 
         // Montar itens e calcular subtotal
@@ -213,7 +217,9 @@ public class FoodOrderService implements DeliveryStatusCallback {
         order.setTable(table);
         order.setOrderType(FoodOrder.OrderType.TABLE);
         order.setNotes(notes);
-        order.setStatus(FoodOrder.OrderStatus.PLACED);
+        // Mesa: vai direto pra PREPARING (garçom já é o restaurante, não precisa de aceite)
+        order.setStatus(FoodOrder.OrderStatus.PREPARING);
+        order.setPreparingAt(OffsetDateTime.now(ZONE));
 
         BigDecimal subtotal = BigDecimal.ZERO;
         int maxPrepTime = 0;
@@ -300,15 +306,24 @@ public class FoodOrderService implements DeliveryStatusCallback {
                 throw new RuntimeException("Produto " + product.getName() + " não pertence a este restaurante");
             }
 
-            OrderItem item = new OrderItem();
-            item.setOrder(order);
-            item.setProduct(product);
-            item.setQuantity(itemReq.quantity);
-            item.setUnitPrice(product.getPrice());
-            item.setNotes(itemReq.notes);
-            item.setRound(nextRound);
-            item.setSentAt(OffsetDateTime.now());
-            order.getItems().add(item);
+            // Verificar se já existe um OrderItem do mesmo produto — incrementa quantidade
+            Optional<OrderItem> existingItem = order.getItems().stream()
+                    .filter(i -> i.getProduct().getId().equals(product.getId()))
+                    .findFirst();
+
+            if (existingItem.isPresent()) {
+                existingItem.get().setQuantity(existingItem.get().getQuantity() + itemReq.quantity);
+            } else {
+                OrderItem item = new OrderItem();
+                item.setOrder(order);
+                item.setProduct(product);
+                item.setQuantity(itemReq.quantity);
+                item.setUnitPrice(product.getPrice());
+                item.setNotes(itemReq.notes);
+                item.setRound(nextRound);
+                item.setSentAt(OffsetDateTime.now());
+                order.getItems().add(item);
+            }
 
             addedSubtotal = addedSubtotal.add(product.getPrice().multiply(BigDecimal.valueOf(itemReq.quantity)));
         }
@@ -359,21 +374,32 @@ public class FoodOrderService implements DeliveryStatusCallback {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Item não encontrado no pedido"));
 
-        BigDecimal itemTotal = item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
-        order.getItems().remove(item);
+        BigDecimal unitPrice = item.getUnitPrice();
 
-        // Recalcular totais
-        order.setSubtotal(order.getSubtotal().subtract(itemTotal).setScale(2, RoundingMode.HALF_UP));
+        if (item.getQuantity() > 1) {
+            // Decrementa quantidade ao invés de remover o item inteiro
+            item.setQuantity(item.getQuantity() - 1);
+        } else {
+            // Quantidade é 1 — remove o item
+            order.getItems().remove(item);
+        }
+
+        // Recalcular totais (subtrai apenas 1 unidade)
+        order.setSubtotal(order.getSubtotal().subtract(unitPrice).setScale(2, RoundingMode.HALF_UP));
         order.setTotal(order.getSubtotal().add(order.getDeliveryFee()).setScale(2, RoundingMode.HALF_UP));
 
-        // Se ficou sem itens, cancela o pedido
+        // Se ficou sem itens, cancela o pedido e libera a mesa
         if (order.getItems().isEmpty()) {
             order.setStatus(FoodOrder.OrderStatus.CANCELLED);
             order.setCancellationReason("Todos os itens removidos");
             order.setCancelledAt(OffsetDateTime.now());
+            if (order.getTable() != null) {
+                order.getTable().setStatus(RestaurantTable.TableStatus.AVAILABLE);
+                restaurantTableRepository.save(order.getTable());
+            }
         }
 
-        log.info("🗑️ Item #{} removido do pedido #{}, novo total R$ {}", itemId, orderId, order.getTotal());
+        log.info("🗑️ 1x item #{} removido do pedido #{}, novo total R$ {}", itemId, orderId, order.getTotal());
         return orderRepository.save(order);
     }
 
@@ -539,6 +565,79 @@ public class FoodOrderService implements DeliveryStatusCallback {
                 nextOrder, delivery.getId(), order.getId());
 
         return delivery;
+    }
+
+    /**
+     * Fecha a conta de uma mesa: marca COMPLETED + registra forma de pagamento.
+     */
+    public FoodOrder closeTableOrder(Long orderId, UUID waiterId, String paymentMethodStr) {
+        FoodOrder order = orderRepository.findByIdWithItems(orderId)
+                .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));
+
+        if (order.getOrderType() != FoodOrder.OrderType.TABLE) {
+            throw new RuntimeException("Só é possível fechar conta de pedidos de mesa");
+        }
+
+        if (order.getStatus() == FoodOrder.OrderStatus.COMPLETED) {
+            throw new RuntimeException("Conta já foi fechada");
+        }
+        if (order.getStatus() == FoodOrder.OrderStatus.CANCELLED) {
+            throw new RuntimeException("Pedido está cancelado");
+        }
+
+        // Registrar forma de pagamento
+        if (paymentMethodStr != null && !paymentMethodStr.isEmpty()) {
+            try {
+                order.setTablePaymentMethod(PaymentMethod.valueOf(paymentMethodStr.toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Forma de pagamento inválida: " + paymentMethodStr);
+            }
+        }
+
+        order.setStatus(FoodOrder.OrderStatus.AWAITING_PAYMENT);
+        order.setCompletedAt(OffsetDateTime.now(ZONE));
+
+        return orderRepository.save(order);
+    }
+
+    /**
+     * Confirma pagamento: AWAITING_PAYMENT → COMPLETED.
+     * Se o pedido ainda não está em AWAITING_PAYMENT, marca direto como COMPLETED (pagou antes de fechar).
+     */
+    public FoodOrder confirmPayment(Long orderId, String paymentMethodStr) {
+        FoodOrder order = orderRepository.findByIdWithItems(orderId)
+                .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));
+
+        if (order.getStatus() == FoodOrder.OrderStatus.COMPLETED) {
+            throw new RuntimeException("Pagamento já foi confirmado");
+        }
+        if (order.getStatus() == FoodOrder.OrderStatus.CANCELLED) {
+            throw new RuntimeException("Pedido está cancelado");
+        }
+
+        // Registrar forma de pagamento (se não foi informada no fechar conta)
+        if (paymentMethodStr != null && !paymentMethodStr.isEmpty()) {
+            try {
+                order.setTablePaymentMethod(PaymentMethod.valueOf(paymentMethodStr.toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Forma de pagamento inválida: " + paymentMethodStr);
+            }
+        }
+
+        order.setStatus(FoodOrder.OrderStatus.COMPLETED);
+        order.setPaidAt(OffsetDateTime.now(ZONE));
+        if (order.getCompletedAt() == null) {
+            order.setCompletedAt(OffsetDateTime.now(ZONE));
+        }
+
+        // Auto-transição: mesa volta a AVAILABLE ao confirmar pagamento
+        if (order.getTable() != null) {
+            RestaurantTable table = order.getTable();
+            table.setStatus(RestaurantTable.TableStatus.AVAILABLE);
+            restaurantTableRepository.save(table);
+        }
+
+        return orderRepository.save(order);
     }
 
     public FoodOrder cancel(Long orderId, UUID userId, String reason) {

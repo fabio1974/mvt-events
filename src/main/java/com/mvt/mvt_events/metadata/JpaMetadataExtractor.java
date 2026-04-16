@@ -273,6 +273,61 @@ public class JpaMetadataExtractor {
 
         // ==================== DADOS PESSOAIS ====================
         FIELD_TRANSLATIONS.put("gender", "Gênero");
+        FIELD_TRANSLATIONS.put("blocked", "Bloqueado");
+        FIELD_TRANSLATIONS.put("confirmed", "Email Confirmado");
+        FIELD_TRANSLATIONS.put("currentDeliveryId", "Entrega Atual");
+        FIELD_TRANSLATIONS.put("deletedAt", "Deletado em");
+
+        // ==================== ZAPI-FOOD - STORE PROFILE ====================
+        FIELD_TRANSLATIONS.put("storeProfile", "Perfil da Loja");
+        FIELD_TRANSLATIONS.put("isOpen", "Loja Aberta");
+        FIELD_TRANSLATIONS.put("openingHours", "Horário de Funcionamento");
+        FIELD_TRANSLATIONS.put("minOrder", "Pedido Mínimo");
+        FIELD_TRANSLATIONS.put("avgPreparationMinutes", "Tempo Médio de Preparo (min)");
+        FIELD_TRANSLATIONS.put("tableOrdersEnabled", "Módulo de Mesas");
+        FIELD_TRANSLATIONS.put("coverUrl", "URL da Capa");
+
+        // ==================== ZAPI-FOOD - RESTAURANT TABLE ====================
+        FIELD_TRANSLATIONS.put("label", "Rótulo");
+        FIELD_TRANSLATIONS.put("seats", "Lugares");
+
+        // ==================== ZAPI-FOOD - WAITER ====================
+        FIELD_TRANSLATIONS.put("waiter", "Garçom");
+
+        // ==================== ZAPI-FOOD - ORDER ====================
+        FIELD_TRANSLATIONS.put("orderType", "Tipo de Pedido");
+        FIELD_TRANSLATIONS.put("table", "Mesa");
+        FIELD_TRANSLATIONS.put("quantity", "Quantidade");
+        FIELD_TRANSLATIONS.put("unitPrice", "Preço Unitário");
+        FIELD_TRANSLATIONS.put("round", "Rodada");
+        FIELD_TRANSLATIONS.put("sentAt", "Enviado em");
+
+        // ==================== ZAPI-FOOD - PRODUCT ====================
+        FIELD_TRANSLATIONS.put("imageUrl", "URL da Imagem");
+        FIELD_TRANSLATIONS.put("available", "Disponível");
+        FIELD_TRANSLATIONS.put("preparationTimeMinutes", "Tempo de Preparo (min)");
+        FIELD_TRANSLATIONS.put("displayOrder", "Ordem de Exibição");
+
+        // ==================== DELIVERY (campos novos) ====================
+        FIELD_TRANSLATIONS.put("deliveryType", "Tipo de Entrega");
+        FIELD_TRANSLATIONS.put("inTransitAt", "Em Trânsito em");
+        FIELD_TRANSLATIONS.put("estimatedDistanceKm", "Distância Estimada (km)");
+        FIELD_TRANSLATIONS.put("estimatedShippingFee", "Frete Estimado");
+        FIELD_TRANSLATIONS.put("paymentCompleted", "Pagamento Realizado");
+        FIELD_TRANSLATIONS.put("paymentCaptured", "Pagamento Capturado");
+        FIELD_TRANSLATIONS.put("trackingToken", "Token de Rastreamento");
+        FIELD_TRANSLATIONS.put("trackingTokenExpiresAt", "Rastreamento Expira em");
+
+        // ==================== CUSTOMER ====================
+        FIELD_TRANSLATIONS.put("lastFourDigits", "Últimos 4 Dígitos");
+        FIELD_TRANSLATIONS.put("holderName", "Nome do Titular");
+        FIELD_TRANSLATIONS.put("expMonth", "Mês de Expiração");
+        FIELD_TRANSLATIONS.put("expYear", "Ano de Expiração");
+        FIELD_TRANSLATIONS.put("preferredPaymentType", "Pagamento Preferido");
+        FIELD_TRANSLATIONS.put("defaultCard", "Cartão Padrão");
+
+        // ==================== AVALIAÇÃO ====================
+        FIELD_TRANSLATIONS.put("evaluationType", "Tipo de Avaliação");
 
         // ==================== RELACIONAMENTOS ====================
         FIELD_TRANSLATIONS.put("user", "Usuário");
@@ -299,7 +354,8 @@ public class JpaMetadataExtractor {
         ENUM_TRANSLATIONS.put("ACCEPTED", "Aceita");
         ENUM_TRANSLATIONS.put("PREPARING", "Preparando");
         ENUM_TRANSLATIONS.put("READY", "Pronto");
-        ENUM_TRANSLATIONS.put("DELIVERING", "Entregando");
+        ENUM_TRANSLATIONS.put("DELIVERING", "Entregando/Servido");
+        ENUM_TRANSLATIONS.put("AWAITING_PAYMENT", "Aguardando Pagamento");
 
         // ==================== TRANSFER FREQUENCY ====================
         ENUM_TRANSLATIONS.put("IMMEDIATE", "Imediato");
@@ -315,6 +371,7 @@ public class JpaMetadataExtractor {
         ENUM_TRANSLATIONS.put("BANK_TRANSFER", "Transferência Bancária");
         ENUM_TRANSLATIONS.put("PAYPAL_ACCOUNT", "Conta PayPal");
         ENUM_TRANSLATIONS.put("CASH", "Dinheiro");
+        ENUM_TRANSLATIONS.put("NOT_INFORMED", "Não Informado");
 
         // ==================== ACCOUNT TYPE ====================
         ENUM_TRANSLATIONS.put("CHECKING", "Conta Corrente");
@@ -384,6 +441,9 @@ public class JpaMetadataExtractor {
 
         // ==================== ZAPI10 - COURIER STATUS ====================
         ENUM_TRANSLATIONS.put("AVAILABLE", "Disponível");
+        ENUM_TRANSLATIONS.put("RESERVED", "Reservada");
+        ENUM_TRANSLATIONS.put("OCCUPIED", "Ocupada");
+        ENUM_TRANSLATIONS.put("UNAVAILABLE", "Indisponível");
         ENUM_TRANSLATIONS.put("ON_DELIVERY", "Em Entrega");
         ENUM_TRANSLATIONS.put("OFFLINE", "Offline");
         // SUSPENDED já existe acima
@@ -392,6 +452,26 @@ public class JpaMetadataExtractor {
         // ACTIVE já existe na seção STATUS acima
         // SUSPENDED já existe na seção ORGANIZATION STATUS acima
         // CANCELLED já existe na seção DELIVERY STATUS acima
+
+        // ==================== ROLE (novos) ====================
+        ENUM_TRANSLATIONS.put("WAITER", "Garçom");
+
+        // ==================== ZAPI-FOOD - ORDER TYPE ====================
+        ENUM_TRANSLATIONS.put("TABLE", "Mesa");
+
+        // ==================== DELIVERY TYPE ====================
+        ENUM_TRANSLATIONS.put("RIDE", "Transporte de Passageiro");
+
+        // ==================== DELIVERY PAYMENT TIMING ====================
+        ENUM_TRANSLATIONS.put("ON_ACCEPT", "Ao Aceitar");
+        ENUM_TRANSLATIONS.put("ON_TRANSIT_START", "Ao Iniciar Viagem");
+
+        // ==================== DELIVERY STOP STATUS ====================
+        ENUM_TRANSLATIONS.put("SKIPPED", "Ignorada");
+
+        // ==================== AVALIAÇÃO ====================
+        ENUM_TRANSLATIONS.put("CLIENT_TO_COURIER", "Cliente → Motoboy");
+        ENUM_TRANSLATIONS.put("COURIER_TO_CLIENT", "Motoboy → Cliente");
 
         // ==================== GÊNERO ====================
         ENUM_TRANSLATIONS.put("MALE", "Masculino");
@@ -438,13 +518,22 @@ public class JpaMetadataExtractor {
         String label = extractLabel(field);
         String type = determineFieldType(field);
 
-        // Se for OneToMany, cria metadata de relacionamento
+        // Se for OneToMany, cria metadata de relacionamento (nested list)
         if (field.isAnnotationPresent(OneToMany.class)) {
             return createRelationshipField(field);
         }
 
-        // Se for ManyToOne ou OneToOne, cria metadata de relacionamento simples
-        if (field.isAnnotationPresent(ManyToOne.class) || field.isAnnotationPresent(OneToOne.class)) {
+        // Se for OneToOne com mappedBy → nested-one (inline fields, sem add/remove)
+        if (field.isAnnotationPresent(OneToOne.class)) {
+            OneToOne oneToOne = field.getAnnotation(OneToOne.class);
+            if (oneToOne.mappedBy() != null && !oneToOne.mappedBy().isEmpty()) {
+                return createOneToOneNestedField(field);
+            }
+            return createManyToOneField(field);
+        }
+
+        // Se for ManyToOne, cria metadata de relacionamento simples (typeahead)
+        if (field.isAnnotationPresent(ManyToOne.class)) {
             return createManyToOneField(field);
         }
 
@@ -662,6 +751,54 @@ public class JpaMetadataExtractor {
             metadata.setHiddenFromTable(true); // Esconder por padrão da tabela
             metadata.setHiddenFromForm(false); // Mostrar por padrão no formulário
             metadata.setHiddenFromFilter(true); // Esconder por padrão dos filtros
+        }
+
+        metadata.setSortable(false);
+        metadata.setSearchable(false);
+        metadata.setRelationship(relationship);
+
+        return metadata;
+    }
+
+    /**
+     * Cria FieldMetadata para relacionamento OneToOne com mappedBy (nested-one).
+     * Renderiza como seção inline no form, sem botão adicionar/remover.
+     * Diferente de "nested" (OneToMany) que permite múltiplos items.
+     */
+    private FieldMetadata createOneToOneNestedField(Field field) {
+        String fieldName = field.getName();
+        String label = extractLabel(field);
+        Class<?> targetEntity = field.getType();
+
+        String targetEntityName = toEntityName(targetEntity.getSimpleName());
+        String targetEndpoint = "/api/" + toKebabCase(toPlural(targetEntity.getSimpleName()));
+
+        RelationshipMetadata relationship = new RelationshipMetadata(
+                "ONE_TO_ONE",
+                targetEntityName,
+                targetEndpoint);
+
+        // Extrai campos da entidade alvo recursivamente
+        relationship.setFields(extractFields(targetEntity));
+
+        OneToOne oneToOne = field.getAnnotation(OneToOne.class);
+        relationship.setCascade(oneToOne.cascade().length > 0);
+        relationship.setOrphanRemoval(false);
+
+        FieldMetadata metadata = new FieldMetadata(fieldName, label, "nested-one");
+
+        // Respeitar anotação @Visible se presente
+        Visible visibleAnnotation = field.getAnnotation(Visible.class);
+        if (visibleAnnotation != null) {
+            metadata.setVisible(visibleAnnotation.table());
+            metadata.setHiddenFromTable(!visibleAnnotation.table());
+            metadata.setHiddenFromForm(!visibleAnnotation.form());
+            metadata.setHiddenFromFilter(!visibleAnnotation.filter());
+        } else {
+            metadata.setVisible(false);
+            metadata.setHiddenFromTable(true);
+            metadata.setHiddenFromForm(false);
+            metadata.setHiddenFromFilter(true);
         }
 
         metadata.setSortable(false);

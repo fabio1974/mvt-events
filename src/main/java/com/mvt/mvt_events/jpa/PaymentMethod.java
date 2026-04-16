@@ -9,5 +9,6 @@ public enum PaymentMethod {
     PIX, // PIX
     BANK_SLIP, // Boleto bancário
     CASH, // Dinheiro
-    WALLET // Carteira digital (MercadoPago, PicPay, etc)
+    WALLET, // Carteira digital (MercadoPago, PicPay, etc)
+    NOT_INFORMED // Não informado
 }

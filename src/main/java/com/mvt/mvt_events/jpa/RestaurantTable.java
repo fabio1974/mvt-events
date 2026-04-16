@@ -26,14 +26,16 @@ public class RestaurantTable {
     @Column(nullable = false)
     private Integer number;
 
-    @Column(length = 50)
-    private String label;
-
     private Integer seats;
 
     @Builder.Default
     @Column(nullable = false)
     private Boolean active = true;
+
+    @Builder.Default
+    @Column(nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
+    private TableStatus status = TableStatus.AVAILABLE;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -55,5 +57,12 @@ public class RestaurantTable {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = OffsetDateTime.now();
+    }
+
+    public enum TableStatus {
+        AVAILABLE,    // Livre
+        RESERVED,     // Reservada
+        OCCUPIED,     // Ocupada (com ou sem pedido)
+        UNAVAILABLE   // Interditada / limpeza
     }
 }

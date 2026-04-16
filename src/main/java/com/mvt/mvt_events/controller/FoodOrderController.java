@@ -207,6 +207,39 @@ public class FoodOrderController {
         public List<FoodOrderService.OrderItemRequest> items;
     }
 
+    @PatchMapping("/{orderId}/close-table")
+    @Operation(summary = "Fechar conta da mesa", description = "WAITER fecha a conta: marca COMPLETED + registra forma de pagamento")
+    public ResponseEntity<?> closeTableOrder(
+            @PathVariable Long orderId,
+            @RequestBody CloseTableRequest request,
+            Authentication authentication) {
+        try {
+            User user = (User) authentication.getPrincipal();
+            FoodOrder order = orderService.closeTableOrder(orderId, user.getId(), request.paymentMethod);
+            return ResponseEntity.ok(order);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    public static class CloseTableRequest {
+        public String paymentMethod; // CASH, PIX, CREDIT_CARD, DEBIT_CARD
+    }
+
+    @PatchMapping("/{orderId}/confirm-payment")
+    @Operation(summary = "Confirmar pagamento", description = "Confirma pagamento: AWAITING_PAYMENT → COMPLETED")
+    public ResponseEntity<?> confirmPayment(
+            @PathVariable Long orderId,
+            @RequestBody(required = false) CloseTableRequest request) {
+        try {
+            String pm = request != null ? request.paymentMethod : null;
+            FoodOrder order = orderService.confirmPayment(orderId, pm);
+            return ResponseEntity.ok(order);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
     // ================================================================
     // REQUEST DTO
     // ================================================================
