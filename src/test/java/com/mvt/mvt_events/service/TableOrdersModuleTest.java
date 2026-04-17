@@ -57,10 +57,9 @@ class TableOrdersModuleTest {
                 return t;
             });
 
-            RestaurantTable table = tableService.create(clientId, 1, "VIP", 4);
+            RestaurantTable table = tableService.create(clientId, 1, 4);
 
             assertThat(table.getNumber()).isEqualTo(1);
-            assertThat(table.getLabel()).isEqualTo("VIP");
             assertThat(table.getSeats()).isEqualTo(4);
             assertThat(table.getActive()).isTrue();
         }
@@ -72,7 +71,7 @@ class TableOrdersModuleTest {
             when(userRepository.findById(clientId)).thenReturn(Optional.of(client));
             when(tableRepository.existsByClientIdAndNumber(clientId, 1)).thenReturn(true);
 
-            assertThatThrownBy(() -> tableService.create(clientId, 1, null, null))
+            assertThatThrownBy(() -> tableService.create(clientId, 1, null))
                     .hasMessageContaining("já existe");
         }
 
@@ -84,7 +83,7 @@ class TableOrdersModuleTest {
             courier.setRole(User.Role.COURIER);
             when(userRepository.findById(clientId)).thenReturn(Optional.of(courier));
 
-            assertThatThrownBy(() -> tableService.create(clientId, 1, null, null))
+            assertThatThrownBy(() -> tableService.create(clientId, 1, null))
                     .hasMessageContaining("Apenas estabelecimentos");
         }
 
@@ -114,7 +113,7 @@ class TableOrdersModuleTest {
             table.setClient(otherClient);
             when(tableRepository.findById(1L)).thenReturn(Optional.of(table));
 
-            assertThatThrownBy(() -> tableService.update(1L, clientId, "VIP", null, null))
+            assertThatThrownBy(() -> tableService.update(1L, clientId, null, null, null))
                     .hasMessageContaining("não pertence");
         }
     }
