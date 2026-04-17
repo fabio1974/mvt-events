@@ -115,31 +115,6 @@ public class BankAccount extends BaseEntity {
     @Visible(table = true, form = true, filter = false)
     private Integer transferDay = 0;
 
-    // ============================================================================
-    // PAGAR.ME KYC FIELDS
-    // ============================================================================
-
-    /**
-     * Nome da mãe (obrigatório para Pagar.me KYC)
-     */
-    @Column(name = "mother_name", length = 200)
-    @Visible(table = false, form = false, filter = false)
-    private String motherName;
-
-    /**
-     * Renda mensal estimada (obrigatório para Pagar.me KYC)
-     */
-    @Column(name = "monthly_income", length = 20)
-    @Visible(table = false, form = false, filter = false)
-    private String monthlyIncome;
-
-    /**
-     * Ocupação profissional (obrigatório para Pagar.me KYC)
-     */
-    @Column(name = "professional_occupation", length = 100)
-    @Visible(table = false, form = false, filter = false)
-    private String professionalOccupation;
-
     // NOTE: Os seguintes campos KYC são obtidos da entidade User:
     // - accountHolderName → user.getName()
     // - accountHolderDocument → user.getDocumentNumber()

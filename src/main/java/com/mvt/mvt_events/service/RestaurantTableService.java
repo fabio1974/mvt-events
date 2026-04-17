@@ -2,6 +2,7 @@ package com.mvt.mvt_events.service;
 
 import com.mvt.mvt_events.jpa.RestaurantTable;
 import com.mvt.mvt_events.jpa.User;
+import com.mvt.mvt_events.repository.FoodOrderRepository;
 import com.mvt.mvt_events.repository.RestaurantTableRepository;
 import com.mvt.mvt_events.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -16,10 +17,12 @@ public class RestaurantTableService {
 
     private final RestaurantTableRepository tableRepository;
     private final UserRepository userRepository;
+    private final FoodOrderRepository foodOrderRepository;
 
-    public RestaurantTableService(RestaurantTableRepository tableRepository, UserRepository userRepository) {
+    public RestaurantTableService(RestaurantTableRepository tableRepository, UserRepository userRepository, FoodOrderRepository foodOrderRepository) {
         this.tableRepository = tableRepository;
         this.userRepository = userRepository;
+        this.foodOrderRepository = foodOrderRepository;
     }
 
     public List<RestaurantTable> findByClient(UUID clientId) {
@@ -111,6 +114,9 @@ public class RestaurantTableService {
         if (!table.getClient().getId().equals(clientId)) {
             throw new RuntimeException("Mesa não pertence a este estabelecimento");
         }
+        // Pedidos finalizados já não possuem FK (limpa no complete/cancel)
+        // Se ainda houver FK legada, desvincular antes de deletar
+        foodOrderRepository.clearTableReference(id);
         tableRepository.delete(table);
     }
 }

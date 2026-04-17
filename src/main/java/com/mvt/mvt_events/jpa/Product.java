@@ -68,6 +68,15 @@ public class Product {
     @Column(name = "display_order", nullable = false)
     private Integer displayOrder = 0;
 
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sales_channel", nullable = false, length = 20)
+    private SalesChannel salesChannel = SalesChannel.ALL;
+
+    public enum SalesChannel {
+        DELIVERY, TABLE, ALL
+    }
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

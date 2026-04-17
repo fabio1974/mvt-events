@@ -81,12 +81,7 @@ public class BankAccountService {
         bankAccount.setAccountDigit(request.accountDigit());
         
         bankAccount.setAccountType(request.accountType());
-        
-        // Copiar dados KYC opcionais
-        bankAccount.setMotherName(request.motherName());
-        bankAccount.setMonthlyIncome(request.monthlyIncome());
-        bankAccount.setProfessionalOccupation(request.professionalOccupation());
-        
+
         // Configuração de transferência automática (sempre true agora)
         bankAccount.setAutomaticTransfer(true);
         

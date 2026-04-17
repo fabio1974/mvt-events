@@ -14,7 +14,7 @@ import java.util.UUID;
  * Contém apenas os campos mínimos necessários:
  * - user (obrigatório) - Objeto com ID do usuário dono da conta
  * - Dados bancários (obrigatórios)
- * - Campos KYC opcionais (motherName, monthlyIncome, professionalOccupation)
+ * - Campos de transferência automática
  * 
  * IMPORTANTE: Os demais dados (nome, CPF, email, telefone, endereço, data de nascimento)
  * são obtidos automaticamente da entidade User e Address relacionadas.
@@ -49,13 +49,6 @@ public record BankAccountRequest(
     
     @NotNull(message = "Tipo de conta é obrigatório")
     AccountType accountType,
-    
-    // ==================== CAMPOS KYC OPCIONAIS ====================
-    // Estes campos podem ser fornecidos para complementar os dados do recipient no Pagar.me
-    // Se não fornecidos, o sistema pode funcionar apenas com dados do User
-    String motherName,
-    String monthlyIncome,
-    String professionalOccupation,
     
     // ==================== CONFIGURAÇÕES DE TRANSFERÊNCIA ====================
     // Transferência automática sempre habilitada, usuário escolhe intervalo e dia

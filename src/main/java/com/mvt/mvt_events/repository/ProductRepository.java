@@ -7,6 +7,8 @@ import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.mvt.mvt_events.jpa.Product.SalesChannel;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -21,6 +23,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category WHERE p.client.id = :clientId AND p.available = true ORDER BY p.displayOrder")
     List<Product> findByClientIdAndAvailableTrueOrderByDisplayOrderAsc(@Param("clientId") UUID clientId);
+
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category WHERE p.client.id = :clientId AND p.available = true AND (p.salesChannel = :channel OR p.salesChannel = 'ALL') ORDER BY p.displayOrder")
+    List<Product> findAvailableByClientAndChannel(@Param("clientId") UUID clientId, @Param("channel") SalesChannel channel);
 
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category WHERE p.category.id = :categoryId ORDER BY p.displayOrder")
     List<Product> findByCategoryIdOrderByDisplayOrderAsc(@Param("categoryId") Long categoryId);

@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import com.mvt.mvt_events.jpa.Product.SalesChannel;
+
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,8 +28,13 @@ public class ProductController {
     }
 
     @GetMapping("/client/{clientId}")
-    @Operation(summary = "Listar produtos disponíveis de um restaurante", description = "Público — usado pela vitrine")
-    public ResponseEntity<List<Product>> listByClient(@PathVariable UUID clientId) {
+    @Operation(summary = "Listar produtos disponíveis de um restaurante", description = "Público — usado pela vitrine. Filtro opcional: channel=DELIVERY|TABLE")
+    public ResponseEntity<List<Product>> listByClient(
+            @PathVariable UUID clientId,
+            @RequestParam(required = false) SalesChannel channel) {
+        if (channel != null) {
+            return ResponseEntity.ok(productService.findAvailableByClientAndChannel(clientId, channel));
+        }
         return ResponseEntity.ok(productService.findAvailableByClient(clientId));
     }
 

@@ -111,6 +111,8 @@ public class GlobalExceptionHandler {
                     message = "Email já cadastrado no sistema";
                 } else if (rootMessage.contains("duplicate key")) {
                     message = "Registro duplicado no sistema";
+                } else if (rootMessage.contains("foreign key") && rootMessage.contains("is still referenced")) {
+                    message = "Não é possível remover: existem pedidos vinculados a este registro";
                 } else {
                     message = "Erro de integridade de dados: " + rootMessage;
                 }

@@ -175,16 +175,22 @@ public class FoodOrderService implements DeliveryStatusCallback {
 
     public FoodOrder createTableOrder(UUID waiterId, UUID clientId, Long tableId,
                                       List<OrderItemRequest> items, String notes) {
-        User waiter = userRepository.findById(waiterId)
-                .orElseThrow(() -> new RuntimeException("Garçom não encontrado"));
-        if (waiter.getRole() != User.Role.WAITER) {
-            throw new RuntimeException("Apenas garçons podem criar pedidos de mesa");
+        User author = userRepository.findById(waiterId)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+        if (author.getRole() != User.Role.WAITER && author.getRole() != User.Role.CLIENT) {
+            throw new RuntimeException("Apenas garçons ou o próprio cliente podem criar pedidos de mesa");
         }
 
-        User client = userRepository.findById(clientId)
-                .orElseThrow(() -> new RuntimeException("Restaurante não encontrado"));
-        if (client.getRole() != User.Role.CLIENT) {
-            throw new RuntimeException("Destinatário do pedido deve ser um CLIENT (restaurante)");
+        // Se o autor é CLIENT, ele é o próprio restaurante
+        User client;
+        if (author.getRole() == User.Role.CLIENT) {
+            client = author;
+        } else {
+            client = userRepository.findById(clientId)
+                    .orElseThrow(() -> new RuntimeException("Restaurante não encontrado"));
+            if (client.getRole() != User.Role.CLIENT) {
+                throw new RuntimeException("Destinatário do pedido deve ser um CLIENT (restaurante)");
+            }
         }
 
         // Verificar se módulo de mesas está habilitado
@@ -211,10 +217,15 @@ public class FoodOrderService implements DeliveryStatusCallback {
 
         // Montar itens e calcular subtotal
         FoodOrder order = new FoodOrder();
-        order.setCustomer(waiter); // garçom age em nome do cliente da mesa
+        order.setCustomer(author); // autor do pedido (garçom ou cliente)
         order.setClient(client);
-        order.setWaiter(waiter);
+        if (author.getRole() == User.Role.WAITER) {
+            order.setWaiter(author);
+        }
         order.setTable(table);
+        if (table != null) {
+            order.setTableNumberField(table.getNumber());
+        }
         order.setOrderType(FoodOrder.OrderType.TABLE);
         order.setNotes(notes);
         // Mesa: vai direto pra PREPARING (garçom já é o restaurante, não precisa de aceite)
@@ -269,8 +280,8 @@ public class FoodOrderService implements DeliveryStatusCallback {
             log.warn("Falha ao notificar restaurante sobre pedido de mesa #{}: {}", saved.getId(), e.getMessage());
         }
 
-        log.info("🍽️ Pedido de mesa #{} criado: garçom {} → mesa {} do {}, R$ {}",
-                saved.getId(), waiter.getName(),
+        log.info("🍽️ Pedido de mesa #{} criado: {} ({}) → mesa {} do {}, R$ {}",
+                saved.getId(), author.getName(), author.getRole(),
                 tableId, client.getName(), saved.getTotal());
         return saved;
     }
@@ -630,11 +641,12 @@ public class FoodOrderService implements DeliveryStatusCallback {
             order.setCompletedAt(OffsetDateTime.now(ZONE));
         }
 
-        // Auto-transição: mesa volta a AVAILABLE ao confirmar pagamento
+        // Auto-transição: mesa volta a AVAILABLE e desvincula do pedido
         if (order.getTable() != null) {
             RestaurantTable table = order.getTable();
             table.setStatus(RestaurantTable.TableStatus.AVAILABLE);
             restaurantTableRepository.save(table);
+            order.setTable(null); // libera FK, tableNumberField mantém o histórico
         }
 
         return orderRepository.save(order);
@@ -679,6 +691,14 @@ public class FoodOrderService implements DeliveryStatusCallback {
             notifyCustomer(order, "❌ Pedido cancelado", "O restaurante cancelou seu pedido #" + orderId + ": " + reason);
         }
 
+        // Liberar mesa se for pedido de mesa
+        if (order.getTable() != null) {
+            RestaurantTable tbl = order.getTable();
+            tbl.setStatus(RestaurantTable.TableStatus.AVAILABLE);
+            restaurantTableRepository.save(tbl);
+            order.setTable(null);
+        }
+
         log.info("❌ Pedido #{} cancelado por {}: {}", orderId, isCustomer ? "customer" : "restaurante", reason);
         return orderRepository.save(order);
     }
@@ -693,6 +713,14 @@ public class FoodOrderService implements DeliveryStatusCallback {
 
         order.setStatus(FoodOrder.OrderStatus.COMPLETED);
         order.setCompletedAt(OffsetDateTime.now(ZONE));
+
+        // Liberar mesa se for pedido de mesa
+        if (order.getTable() != null) {
+            RestaurantTable tbl = order.getTable();
+            tbl.setStatus(RestaurantTable.TableStatus.AVAILABLE);
+            restaurantTableRepository.save(tbl);
+            order.setTable(null);
+        }
 
         notifyCustomer(order, "✅ Pedido entregue", "Seu pedido #" + orderId + " foi entregue. Bom apetite!");
 

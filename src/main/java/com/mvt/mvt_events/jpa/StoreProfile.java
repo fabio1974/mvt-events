@@ -58,6 +58,15 @@ public class StoreProfile {
     @Column(name = "table_orders_enabled", nullable = false)
     private Boolean tableOrdersEnabled = false;
 
+    @Column(name = "table_orders_enabled_at")
+    private OffsetDateTime tableOrdersEnabledAt;
+
+    @Column(name = "total_tables")
+    private Integer totalTables;
+
+    @Column(name = "default_seats")
+    private Integer defaultSeats;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

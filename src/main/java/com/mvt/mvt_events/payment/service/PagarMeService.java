@@ -259,23 +259,14 @@ public class PagarMeService {
             log.debug("   ├─ Phone: ({}) {}", user.getPhoneDdd(), user.getPhoneNumber());
         }
         
-        // Verificar se temos TODOS os dados para incluir registerInformation
-        boolean hasMotherName = bankAccount.getMotherName() != null;
-        boolean hasMonthlyIncome = bankAccount.getMonthlyIncome() != null;
-        boolean hasProfessionalOccupation = bankAccount.getProfessionalOccupation() != null;
-        
         // Endereço (TODOS os campos obrigatórios)
         Address address = user.getAddress();
-        boolean hasCompleteAddress = address != null && address.getStreet() != null && 
-                                     address.getNumber() != null && address.getCity() != null && 
+        boolean hasCompleteAddress = address != null && address.getStreet() != null &&
+                                     address.getNumber() != null && address.getCity() != null &&
                                      address.getCity().getStateCode() != null && address.getZipCode() != null;
-        
-        // SÓ incluir registerInformation se temos TODOS os dados obrigatórios
-        if (hasMotherName && hasMonthlyIncome && hasProfessionalOccupation && hasCompleteAddress) {
-            regInfoBuilder.motherName(bankAccount.getMotherName());
-            regInfoBuilder.monthlyIncome(bankAccount.getMonthlyIncome());
-            regInfoBuilder.professionalOccupation(bankAccount.getProfessionalOccupation());
-            
+
+        // Incluir registerInformation se temos endereço completo
+        if (hasCompleteAddress) {
             // Construir address com valores padrão para campos obrigatórios
             RecipientRequest.Address.AddressBuilder addrBuilder = RecipientRequest.Address.builder()
                 .street(address.getStreet())
@@ -286,14 +277,14 @@ public class PagarMeService {
                 .zipCode(address.getZipCode())
                 .city(address.getCity().getName())
                 .state(address.getCity().getStateCode());
-            
+
             regInfoBuilder.address(addrBuilder.build());
             requestBuilder.registerInformation(regInfoBuilder.build());
             hasCompleteRegistrationData = true;
-            log.info("   ├─ ✅ RegisterInformation incluído com dados COMPLETOS");
+            log.info("   ├─ ✅ RegisterInformation incluído com endereço completo");
         } else {
-            log.info("   ├─ ℹ️ RegisterInformation NÃO incluído - dados insuficientes (motherName={}, monthlyIncome={}, professionalOccupation={}, completeAddress={})",
-                hasMotherName, hasMonthlyIncome, hasProfessionalOccupation, hasCompleteAddress);
+            log.info("   ├─ ℹ️ RegisterInformation NÃO incluído - endereço incompleto (completeAddress={})",
+                hasCompleteAddress);
         }
         
         // Adicionar transfer_settings com os parâmetros fornecidos pelo usuário

@@ -52,6 +52,7 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("price", "Preço");
         FIELD_TRANSLATIONS.put("amount", "Valor");
         FIELD_TRANSLATIONS.put("payer", "Pagador");
+        FIELD_TRANSLATIONS.put("paymentType", "Tipo");
         FIELD_TRANSLATIONS.put("paymentMethod", "Método de Pagamento");
         FIELD_TRANSLATIONS.put("gatewayProvider", "Gateway de Pagamento");
         FIELD_TRANSLATIONS.put("gatewayPaymentId", "ID do Pagamento");
@@ -81,10 +82,7 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("transferDay", "Dia do Saque");
         FIELD_TRANSLATIONS.put("accountHolderName", "Nome do Titular");
         FIELD_TRANSLATIONS.put("accountHolderDocument", "CPF do Titular");
-        FIELD_TRANSLATIONS.put("motherName", "Nome da Mãe");
         FIELD_TRANSLATIONS.put("birthdate", "Data de Nascimento");
-        FIELD_TRANSLATIONS.put("monthlyIncome", "Renda Mensal");
-        FIELD_TRANSLATIONS.put("professionalOccupation", "Ocupação Profissional");
         FIELD_TRANSLATIONS.put("phoneDdd", "DDD");
         FIELD_TRANSLATIONS.put("phoneNumber", "Número do Telefone");
         FIELD_TRANSLATIONS.put("addressStreet", "Rua");
@@ -283,8 +281,10 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("isOpen", "Loja Aberta");
         FIELD_TRANSLATIONS.put("openingHours", "Horário de Funcionamento");
         FIELD_TRANSLATIONS.put("minOrder", "Pedido Mínimo");
-        FIELD_TRANSLATIONS.put("avgPreparationMinutes", "Tempo Médio de Preparo (min)");
+        FIELD_TRANSLATIONS.put("avgPreparationMinutes", "Tempo M. de Preparo (min)");
         FIELD_TRANSLATIONS.put("tableOrdersEnabled", "Módulo de Mesas");
+        FIELD_TRANSLATIONS.put("totalTables", "Total de Mesas");
+        FIELD_TRANSLATIONS.put("defaultSeats", "Lugares Padrão");
         FIELD_TRANSLATIONS.put("coverUrl", "URL da Capa");
 
         // ==================== ZAPI-FOOD - RESTAURANT TABLE ====================
@@ -296,6 +296,7 @@ public class JpaMetadataExtractor {
 
         // ==================== ZAPI-FOOD - ORDER ====================
         FIELD_TRANSLATIONS.put("orderType", "Tipo de Pedido");
+        FIELD_TRANSLATIONS.put("tableNumberField", "Mesa");
         FIELD_TRANSLATIONS.put("table", "Mesa");
         FIELD_TRANSLATIONS.put("quantity", "Quantidade");
         FIELD_TRANSLATIONS.put("unitPrice", "Preço Unitário");
@@ -459,6 +460,7 @@ public class JpaMetadataExtractor {
         // ==================== ZAPI-FOOD - ORDER TYPE ====================
         ENUM_TRANSLATIONS.put("TABLE", "Mesa");
 
+
         // ==================== DELIVERY TYPE ====================
         ENUM_TRANSLATIONS.put("RIDE", "Transporte de Passageiro");
 
@@ -606,6 +608,15 @@ public class JpaMetadataExtractor {
         if (field.isAnnotationPresent(ValidBankCode.class)) {
             metadata.setType("select"); // Campo de banco vira select
             metadata.setOptions(extractBankOptions());
+        }
+
+        // ✅ String com valores fixos conhecidos → select com options traduzidas
+        if ("paymentType".equals(field.getName()) && field.getType().equals(String.class)) {
+            metadata.setType("select");
+            metadata.setOptions(List.of(
+                new FilterOption("Corridas", "DELIVERY"),
+                new FilterOption("Módulo de Mesas", "TABLE_SERVICE")
+            ));
         }
 
         // ✅ Verifica anotação @Visible (será processada pelo MetadataService para cada

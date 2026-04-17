@@ -1,5 +1,6 @@
 package com.mvt.mvt_events.controller;
 
+import com.mvt.mvt_events.jpa.Product;
 import com.mvt.mvt_events.jpa.ProductCategory;
 import com.mvt.mvt_events.jpa.StoreProfile;
 import com.mvt.mvt_events.jpa.User;
@@ -129,13 +130,17 @@ public class StoreController {
             catMap.put("name", cat.getName());
             catMap.put("description", cat.getDescription());
             catMap.put("imageUrl", cat.getImageUrl());
-            catMap.put("products", productService.findAvailableByCategory(cat.getId()));
+            var catProducts = productService.findAvailableByCategory(cat.getId()).stream()
+                    .filter(p -> p.getSalesChannel() == Product.SalesChannel.DELIVERY || p.getSalesChannel() == Product.SalesChannel.ALL)
+                    .collect(Collectors.toList());
+            catMap.put("products", catProducts);
             return catMap;
         }).collect(Collectors.toList());
 
         // Produtos sem categoria
         var uncategorized = productService.findAvailableByClient(clientId).stream()
                 .filter(p -> p.getCategory() == null)
+                .filter(p -> p.getSalesChannel() == Product.SalesChannel.DELIVERY || p.getSalesChannel() == Product.SalesChannel.ALL)
                 .collect(Collectors.toList());
 
         Map<String, Object> response = new LinkedHashMap<>();

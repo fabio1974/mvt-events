@@ -149,6 +149,12 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
         boolean existsPendingOrPaidPaymentForDelivery(@Param("deliveryId") Long deliveryId);
 
         /**
+         * Busca pagamentos de uma subscription com status específico.
+         * Usado pelo BillingService para cancelar faturas futuras.
+         */
+        List<Payment> findBySubscriptionAndStatus(com.mvt.mvt_events.jpa.ClientSubscription subscription, PaymentStatus status);
+
+        /**
          * Busca pagamentos PIX PENDING cujo QR Code expirou (expiresAt < now).
          * Usado pelo cron de expiração PIX (PixExpirationService).
          */

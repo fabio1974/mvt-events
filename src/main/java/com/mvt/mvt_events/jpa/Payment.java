@@ -9,6 +9,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -37,7 +38,6 @@ public class Payment extends BaseEntity {
     // RELATIONSHIPS
     // ============================================================================
 
-    @NotNull(message = "Ao menos uma entrega é obrigatória")
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "payment_deliveries",
@@ -109,6 +109,40 @@ public class Payment extends BaseEntity {
     @Column(name = "provider_payment_id", length = 100)
     @Visible(table = true, form = false, filter = false)
     private String providerPaymentId;
+
+    // ============================================================================
+    // BILLING (serviços recorrentes)
+    // ============================================================================
+
+    @Column(name = "payment_type", length = 30, nullable = false)
+    @Visible(table = true, form = false, filter = true)
+    private String paymentType = "DELIVERY";
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subscription_id")
+    @JsonIgnore
+    @Visible(table = false, form = false, filter = false)
+    private ClientSubscription subscription;
+
+    @Column(name = "billing_period_start")
+    @Visible(table = false, form = false, filter = false)
+    private LocalDate billingPeriodStart;
+
+    @Column(name = "billing_period_end")
+    @Visible(table = false, form = false, filter = false)
+    private LocalDate billingPeriodEnd;
+
+    @Column(name = "due_date")
+    @Visible(table = true, form = false, filter = true)
+    private LocalDate dueDate;
+
+    @Column(name = "reference_month", length = 7)
+    @Visible(table = true, form = false, filter = true)
+    private String referenceMonth;
+
+    @Column(name = "prorata", nullable = false)
+    @Visible(table = false, form = false, filter = false)
+    private Boolean prorata = false;
 
     // ============================================================================
     // METADATA
@@ -249,6 +283,13 @@ public class Payment extends BaseEntity {
             throw new IllegalStateException("Pagamento concluído não pode ser cancelado. Use refund.");
         }
         this.status = PaymentStatus.CANCELLED;
+    }
+
+    /**
+     * Verifica se é um pagamento recorrente (vinculado a subscription)
+     */
+    public boolean isRecurring() {
+        return subscription != null;
     }
 
     // ============================================================================

@@ -522,6 +522,8 @@ public class UserController {
         private Integer avgPreparationMinutes;
         private String logoUrl;
         private String coverUrl;
+        private Integer totalTables;
+        private Integer defaultSeats;
     }
 
     @Data
@@ -534,15 +536,21 @@ public class UserController {
         private Integer avgPreparationMinutes;
         private String logoUrl;
         private String coverUrl;
+        private Integer totalTables;
+        private Integer defaultSeats;
+        private java.time.OffsetDateTime tableOrdersEnabledAt;
 
         public StoreProfileResponse(StoreProfile sp) {
             this.isOpen = sp.getIsOpen();
             this.tableOrdersEnabled = sp.getTableOrdersEnabled();
+            this.tableOrdersEnabledAt = sp.getTableOrdersEnabledAt();
             this.description = sp.getDescription();
             this.minOrder = sp.getMinOrder();
             this.avgPreparationMinutes = sp.getAvgPreparationMinutes();
             this.logoUrl = sp.getLogoUrl();
             this.coverUrl = sp.getCoverUrl();
+            this.totalTables = sp.getTotalTables();
+            this.defaultSeats = sp.getDefaultSeats();
         }
     }
 

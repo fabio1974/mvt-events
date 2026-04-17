@@ -35,8 +35,13 @@ public class FoodOrderController {
     // ================================================================
 
     @GetMapping
-    @Operation(summary = "Listar pedidos (paginado)", description = "Para EntityCRUD genérico. CLIENT vê seus pedidos, ADMIN vê todos. Default: createdAt DESC.")
-    public ResponseEntity<Page<FoodOrder>> listPaged(Authentication authentication, Pageable pageable) {
+    @Operation(summary = "Listar pedidos (paginado)", description = "Para EntityCRUD genérico. CLIENT vê seus pedidos, ADMIN vê todos. Suporta filtros: status, orderType, tableNumberField.")
+    public ResponseEntity<Page<FoodOrder>> listPaged(
+            Authentication authentication,
+            Pageable pageable,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String orderType,
+            @RequestParam(required = false) Integer tableNumberField) {
         // Força ordenação por createdAt DESC se nenhum sort foi especificado
         if (pageable.getSort().isUnsorted()) {
             pageable = org.springframework.data.domain.PageRequest.of(
@@ -44,11 +49,19 @@ public class FoodOrderController {
                 org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
         }
         User user = (User) authentication.getPrincipal();
-        if (user.getRole() == User.Role.ADMIN) {
-            return ResponseEntity.ok(orderRepository.findAll(pageable));
+
+        // Converte strings para enums
+        FoodOrder.OrderStatus statusEnum = null;
+        if (status != null && !status.isBlank()) {
+            try { statusEnum = FoodOrder.OrderStatus.valueOf(status); } catch (Exception ignored) {}
         }
-        // CLIENT vê pedidos do seu restaurante
-        return ResponseEntity.ok(orderRepository.findByClientId(user.getId(), pageable));
+        FoodOrder.OrderType orderTypeEnum = null;
+        if (orderType != null && !orderType.isBlank()) {
+            try { orderTypeEnum = FoodOrder.OrderType.valueOf(orderType); } catch (Exception ignored) {}
+        }
+
+        UUID clientId = user.getRole() == User.Role.ADMIN ? null : user.getId();
+        return ResponseEntity.ok(orderRepository.findWithFilters(clientId, statusEnum, orderTypeEnum, tableNumberField, pageable));
     }
 
     // ================================================================

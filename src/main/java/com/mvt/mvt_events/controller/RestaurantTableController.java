@@ -75,14 +75,16 @@ public class RestaurantTableController {
 
     @GetMapping("/order-status")
     @Operation(summary = "Status dos pedidos ativos por mesa")
-    public Map<Long, String> orderStatusByTable(Authentication authentication) {
+    public Map<Long, Map<String, Object>> orderStatusByTable(Authentication authentication) {
         UUID clientId = resolveClientId(null, authentication);
         List<FoodOrder> activeOrders = foodOrderRepository.findActiveTableOrders(clientId);
-        Map<Long, String> result = new HashMap<>();
+        Map<Long, Map<String, Object>> result = new HashMap<>();
         for (FoodOrder order : activeOrders) {
             if (order.getTable() != null) {
-                // Primeiro pedido encontrado por mesa (mais recente, pelo ORDER BY)
-                result.putIfAbsent(order.getTable().getId(), order.getStatus().name());
+                result.putIfAbsent(order.getTable().getId(), Map.of(
+                    "status", order.getStatus().name(),
+                    "orderId", order.getId()
+                ));
             }
         }
         return result;

@@ -1,6 +1,7 @@
 package com.mvt.mvt_events.service;
 
 import com.mvt.mvt_events.jpa.Product;
+import com.mvt.mvt_events.jpa.Product.SalesChannel;
 import com.mvt.mvt_events.jpa.ProductCategory;
 import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.repository.ProductCategoryRepository;
@@ -35,6 +36,10 @@ public class ProductService {
 
     public List<Product> findAvailableByClient(UUID clientId) {
         return productRepository.findByClientIdAndAvailableTrueOrderByDisplayOrderAsc(clientId);
+    }
+
+    public List<Product> findAvailableByClientAndChannel(UUID clientId, SalesChannel channel) {
+        return productRepository.findAvailableByClientAndChannel(clientId, channel);
     }
 
     public List<Product> findByCategory(Long categoryId) {
@@ -84,6 +89,7 @@ public class ProductService {
         if (updates.getAvailable() != null) product.setAvailable(updates.getAvailable());
         if (updates.getPreparationTimeMinutes() != null) product.setPreparationTimeMinutes(updates.getPreparationTimeMinutes());
         if (updates.getDisplayOrder() != null) product.setDisplayOrder(updates.getDisplayOrder());
+        if (updates.getSalesChannel() != null) product.setSalesChannel(updates.getSalesChannel());
 
         // Trocar categoria
         if (updates.getCategory() != null && updates.getCategory().getId() != null) {

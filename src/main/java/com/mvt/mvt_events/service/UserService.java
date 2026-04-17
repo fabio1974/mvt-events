@@ -73,6 +73,9 @@ public class UserService {
     @Autowired
     private PlannedRouteService plannedRouteService;
 
+    @Autowired
+    private BillingService billingService;
+
     public List<User> findAll() {
         return userRepository.findAll();
     }
@@ -394,12 +397,29 @@ public class UserService {
                     });
 
             if (spReq.getIsOpen() != null) store.setIsOpen(spReq.getIsOpen());
-            if (spReq.getTableOrdersEnabled() != null) store.setTableOrdersEnabled(spReq.getTableOrdersEnabled());
+            if (spReq.getTableOrdersEnabled() != null) {
+                boolean wasEnabled = Boolean.TRUE.equals(store.getTableOrdersEnabled());
+                boolean willEnable = Boolean.TRUE.equals(spReq.getTableOrdersEnabled());
+
+                if (willEnable && !wasEnabled) {
+                    // Ativando serviço → setar data + criar subscription + 1ª fatura
+                    store.setTableOrdersEnabledAt(java.time.OffsetDateTime.now());
+                    storeProfileRepository.save(store);
+                    billingService.activateSubscription(user, "TABLE_SERVICE", null);
+                } else if (!willEnable && wasEnabled) {
+                    // Desativando serviço → cancelar subscription + pro-rata final
+                    billingService.deactivateSubscription(user.getId(), "TABLE_SERVICE");
+                }
+
+                store.setTableOrdersEnabled(spReq.getTableOrdersEnabled());
+            }
             if (spReq.getDescription() != null) store.setDescription(spReq.getDescription());
             if (spReq.getMinOrder() != null) store.setMinOrder(spReq.getMinOrder());
             if (spReq.getAvgPreparationMinutes() != null) store.setAvgPreparationMinutes(spReq.getAvgPreparationMinutes());
             if (spReq.getLogoUrl() != null) store.setLogoUrl(spReq.getLogoUrl());
             if (spReq.getCoverUrl() != null) store.setCoverUrl(spReq.getCoverUrl());
+            if (spReq.getTotalTables() != null) store.setTotalTables(spReq.getTotalTables());
+            if (spReq.getDefaultSeats() != null) store.setDefaultSeats(spReq.getDefaultSeats());
 
             storeProfileRepository.save(store);
         }

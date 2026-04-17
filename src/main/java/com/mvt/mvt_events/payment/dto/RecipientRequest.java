@@ -82,13 +82,7 @@ public class RecipientRequest {
         private String document;
         private String type; // "individual" ou "company"
         private String name;
-        @JsonProperty("mother_name")
-        private String motherName;
         private String birthdate; // Formato: "DD/MM/YYYY"
-        @JsonProperty("monthly_income")
-        private String monthlyIncome;
-        @JsonProperty("professional_occupation")
-        private String professionalOccupation;
         @JsonProperty("site_url")
         private String siteUrl;
         @JsonProperty("phone_numbers")

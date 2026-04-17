@@ -73,6 +73,11 @@ public class FoodOrder {
     @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
     private RestaurantTable table;
 
+    /** Número da mesa (denormalizado — mantém histórico mesmo se mesa for deletada) */
+    @Column(name = "table_number")
+    @com.mvt.mvt_events.metadata.Visible(table = true, form = false, filter = true)
+    private Integer tableNumberField;
+
     @Builder.Default
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
@@ -183,6 +188,7 @@ public class FoodOrder {
 
     @com.fasterxml.jackson.annotation.JsonGetter("tableNumber")
     public Integer getTableNumber() {
+        if (tableNumberField != null) return tableNumberField;
         try { return table != null ? table.getNumber() : null; } catch (Exception e) { return null; }
     }
 

@@ -2,6 +2,7 @@ package com.mvt.mvt_events.repository;
 
 import com.mvt.mvt_events.jpa.FoodOrder;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -78,4 +79,22 @@ public interface FoodOrderRepository extends JpaRepository<FoodOrder, Long> {
     List<FoodOrder> findRecentDeliveringByClient(
             @Param("clientId") UUID clientId,
             @Param("since") java.time.OffsetDateTime since);
+
+    /** Listagem paginada com filtros opcionais (EntityCRUD) */
+    @Query("SELECT o FROM FoodOrder o WHERE " +
+           "(:clientId IS NULL OR o.client.id = :clientId) " +
+           "AND (:status IS NULL OR o.status = :status) " +
+           "AND (:orderType IS NULL OR o.orderType = :orderType) " +
+           "AND (:tableNumber IS NULL OR o.tableNumberField = :tableNumber)")
+    org.springframework.data.domain.Page<FoodOrder> findWithFilters(
+            @Param("clientId") UUID clientId,
+            @Param("status") FoodOrder.OrderStatus status,
+            @Param("orderType") FoodOrder.OrderType orderType,
+            @Param("tableNumber") Integer tableNumber,
+            org.springframework.data.domain.Pageable pageable);
+
+    /** Desvincular mesa de pedidos finalizados (para permitir deletar a mesa) */
+    @Modifying
+    @Query("UPDATE FoodOrder o SET o.table = null WHERE o.table.id = :tableId AND o.status IN ('COMPLETED', 'CANCELLED')")
+    int clearTableReference(@Param("tableId") Long tableId);
 }

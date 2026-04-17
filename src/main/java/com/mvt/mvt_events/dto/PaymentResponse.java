@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 /**
@@ -126,6 +127,31 @@ public class PaymentResponse {
     private String clientEmail;
 
     /**
+     * Tipo do pagamento: DELIVERY, TABLE_SERVICE, etc.
+     */
+    private String paymentType;
+
+    /**
+     * Nome do serviço (para recorrentes): "Serviço de Mesas", etc.
+     */
+    private String serviceName;
+
+    /**
+     * Mês de referência (para recorrentes): "2026-04"
+     */
+    private String referenceMonth;
+
+    /**
+     * Data de vencimento (para recorrentes)
+     */
+    private LocalDate dueDate;
+
+    /**
+     * É pagamento pro-rata?
+     */
+    private Boolean prorata;
+
+    /**
      * Indica se o pagamento expirou
      */
     private boolean expired;
@@ -174,7 +200,16 @@ public class PaymentResponse {
                 .paymentDate(payment.getPaymentDate())
                 .expired(payment.isExpired())
                 .request(payment.getRequest())
-                .response(payment.getResponse());
+                .response(payment.getResponse())
+                .paymentType(payment.getPaymentType())
+                .referenceMonth(payment.getReferenceMonth())
+                .dueDate(payment.getDueDate())
+                .prorata(payment.getProrata());
+
+        // Nome do serviço (para recorrentes)
+        if (payment.getSubscription() != null && payment.getSubscription().getService() != null) {
+            builder.serviceName(payment.getSubscription().getService().getName());
+        }
 
         // Dados do cartão (apenas CREDIT_CARD)
         if (payment.getCustomerCard() != null) {
