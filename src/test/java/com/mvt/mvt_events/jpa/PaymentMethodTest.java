@@ -12,13 +12,14 @@ class PaymentMethodTest {
     void testAllPaymentMethods() {
         PaymentMethod[] methods = PaymentMethod.values();
 
-        assertEquals(6, methods.length);
+        assertEquals(7, methods.length);
         assertTrue(contains(methods, PaymentMethod.CREDIT_CARD));
         assertTrue(contains(methods, PaymentMethod.DEBIT_CARD));
         assertTrue(contains(methods, PaymentMethod.PIX));
         assertTrue(contains(methods, PaymentMethod.BANK_SLIP));
         assertTrue(contains(methods, PaymentMethod.CASH));
         assertTrue(contains(methods, PaymentMethod.WALLET));
+        assertTrue(contains(methods, PaymentMethod.NOT_INFORMED));
     }
 
     @Test
