@@ -254,6 +254,128 @@ public class FoodOrderController {
     }
 
     // ================================================================
+    // COMANDAS (split de conta)
+    // ================================================================
+
+    @GetMapping("/{orderId}/commands")
+    @Operation(summary = "Listar comandas do pedido")
+    public ResponseEntity<?> listCommands(@PathVariable Long orderId) {
+        try {
+            return ResponseEntity.ok(orderService.listCommands(orderId));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{orderId}/commands")
+    @Operation(summary = "Criar nova comanda", description = "Cria comanda (opcionalmente com nome) no pedido de mesa")
+    public ResponseEntity<?> createCommand(@PathVariable Long orderId, @RequestBody(required = false) CommandRequest req) {
+        try {
+            String name = req != null ? req.name : null;
+            return ResponseEntity.ok(orderService.createCommand(orderId, name));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/{orderId}/commands/{commandId}")
+    @Operation(summary = "Renomear comanda")
+    public ResponseEntity<?> renameCommand(@PathVariable Long orderId, @PathVariable Long commandId,
+                                           @RequestBody CommandRequest req) {
+        try {
+            return ResponseEntity.ok(orderService.renameCommand(orderId, commandId, req.name));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{orderId}/commands/{commandId}")
+    @Operation(summary = "Remover comanda", description = "Só permite se a comanda não tem itens")
+    public ResponseEntity<?> deleteCommand(@PathVariable Long orderId, @PathVariable Long commandId) {
+        try {
+            orderService.deleteCommand(orderId, commandId);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{orderId}/bill-breakdown")
+    @Operation(summary = "Breakdown da conta por comanda")
+    public ResponseEntity<?> getBillBreakdown(@PathVariable Long orderId) {
+        try {
+            return ResponseEntity.ok(orderService.getBillBreakdown(orderId));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/{orderId}/items/{itemId}/command")
+    @Operation(summary = "Mover item entre comandas", description = "commandId null = Mesa (compartilhado)")
+    public ResponseEntity<?> moveItemToCommand(@PathVariable Long orderId, @PathVariable Long itemId,
+                                               @RequestBody MoveItemRequest req) {
+        try {
+            FoodOrder order = orderService.moveItemToCommand(orderId, itemId, req.commandId);
+            return ResponseEntity.ok(order);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/{orderId}/items/{itemId}/packaged")
+    @Operation(summary = "Marcar/desmarcar item como empacotado pra viagem")
+    public ResponseEntity<?> setItemPackaged(@PathVariable Long orderId, @PathVariable Long itemId,
+                                             @RequestBody PackagedRequest req) {
+        try {
+            orderService.setItemPackaged(orderId, itemId, req.packaged);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    public static class PackagedRequest {
+        public boolean packaged;
+    }
+
+    @PatchMapping("/{orderId}/close-partial")
+    @Operation(summary = "Fechar comanda ou Mesa parcialmente",
+               description = "commandId null = fechar Mesa (itens compartilhados); se todas pagas, auto-COMPLETED")
+    public ResponseEntity<?> closePartial(@PathVariable Long orderId, @RequestBody ClosePartialRequest req) {
+        try {
+            FoodOrder order = orderService.closePartial(orderId, req.commandId, req.paymentMethod);
+            return ResponseEntity.ok(order);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{orderId}/auto-complete")
+    @Operation(summary = "Tentar completar pedido automaticamente",
+               description = "Marca COMPLETED se tudo com valor já foi pago; comandas vazias não bloqueiam")
+    public ResponseEntity<?> autoComplete(@PathVariable Long orderId) {
+        try {
+            FoodOrder order = orderService.autoComplete(orderId);
+            return ResponseEntity.ok(order);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    public static class CommandRequest {
+        public String name;
+    }
+
+    public static class MoveItemRequest {
+        public Long commandId; // null = Mesa (compartilhado)
+    }
+
+    public static class ClosePartialRequest {
+        public Long commandId; // null = Mesa
+        public String paymentMethod; // CASH, PIX, CREDIT_CARD, DEBIT_CARD, NOT_INFORMED
+    }
+
+    // ================================================================
     // REQUEST DTO
     // ================================================================
 

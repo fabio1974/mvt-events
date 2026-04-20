@@ -1,9 +1,7 @@
 package com.mvt.mvt_events.controller;
 
-import com.mvt.mvt_events.jpa.FoodOrder;
 import com.mvt.mvt_events.jpa.RestaurantTable;
 import com.mvt.mvt_events.jpa.User;
-import com.mvt.mvt_events.repository.FoodOrderRepository;
 import com.mvt.mvt_events.service.RestaurantTableService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -24,11 +21,9 @@ import java.util.UUID;
 public class RestaurantTableController {
 
     private final RestaurantTableService tableService;
-    private final FoodOrderRepository foodOrderRepository;
 
-    public RestaurantTableController(RestaurantTableService tableService, FoodOrderRepository foodOrderRepository) {
+    public RestaurantTableController(RestaurantTableService tableService) {
         this.tableService = tableService;
-        this.foodOrderRepository = foodOrderRepository;
     }
 
     @GetMapping
@@ -77,17 +72,9 @@ public class RestaurantTableController {
     @Operation(summary = "Status dos pedidos ativos por mesa")
     public Map<Long, Map<String, Object>> orderStatusByTable(Authentication authentication) {
         UUID clientId = resolveClientId(null, authentication);
-        List<FoodOrder> activeOrders = foodOrderRepository.findActiveTableOrders(clientId);
-        Map<Long, Map<String, Object>> result = new HashMap<>();
-        for (FoodOrder order : activeOrders) {
-            if (order.getTable() != null) {
-                result.putIfAbsent(order.getTable().getId(), Map.of(
-                    "status", order.getStatus().name(),
-                    "orderId", order.getId()
-                ));
-            }
-        }
-        return result;
+        // Delega pro service (@Transactional) — necessário pra acessar order.getItems() (LAZY)
+        // e pra reconciliação defensiva de status da mesa.
+        return tableService.getOrderStatusByTableReconciled(clientId);
     }
 
     @PatchMapping("/{id}/status")

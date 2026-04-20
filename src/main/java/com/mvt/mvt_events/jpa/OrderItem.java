@@ -51,9 +51,25 @@ public class OrderItem {
     @Column(nullable = false)
     private Integer round = 1;
 
+    /** Comanda à qual o item pertence; null = compartilhado entre todos */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "command_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private OrderCommand command;
+
+    @com.fasterxml.jackson.annotation.JsonGetter("commandId")
+    public Long getCommandId() {
+        try { return command != null ? command.getId() : null; } catch (Exception e) { return null; }
+    }
+
     /** Quando o item foi enviado à cozinha */
     @Column(name = "sent_at")
     private OffsetDateTime sentAt;
+
+    /** Se o item deve ser empacotado pra viagem (embalo) */
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean packaged = false;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

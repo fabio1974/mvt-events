@@ -33,6 +33,30 @@ public class RestaurantTableService {
         return tableRepository.findByClientIdAndActiveOrderByNumber(clientId, true);
     }
 
+    /**
+     * Retorna o mapa tableId → { status, orderId } dos pedidos ativos; em cada pedido com itens,
+     * reconcilia o status da mesa pra OCCUPIED se estiver inconsistente (cobre dados antigos).
+     */
+    public java.util.Map<Long, java.util.Map<String, Object>> getOrderStatusByTableReconciled(UUID clientId) {
+        List<com.mvt.mvt_events.jpa.FoodOrder> activeOrders = foodOrderRepository.findActiveTableOrders(clientId);
+        java.util.Map<Long, java.util.Map<String, Object>> result = new java.util.HashMap<>();
+        for (com.mvt.mvt_events.jpa.FoodOrder order : activeOrders) {
+            if (order.getTable() == null) continue;
+            result.putIfAbsent(order.getTable().getId(), java.util.Map.of(
+                "status", order.getStatus().name(),
+                "orderId", order.getId()
+            ));
+            // Dentro do @Transactional do service: getItems() resolve sem LazyInitializationException
+            if (!order.getItems().isEmpty()
+                    && order.getTable().getStatus() != RestaurantTable.TableStatus.OCCUPIED) {
+                RestaurantTable t = order.getTable();
+                t.setStatus(RestaurantTable.TableStatus.OCCUPIED);
+                tableRepository.save(t);
+            }
+        }
+        return result;
+    }
+
     public RestaurantTable findById(Long id) {
         return tableRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Mesa não encontrada"));

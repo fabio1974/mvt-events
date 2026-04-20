@@ -38,6 +38,7 @@ public class FoodOrderService implements DeliveryStatusCallback {
     private final SiteConfigurationService siteConfigurationService;
     private final GoogleDirectionsService googleDirectionsService;
     private final RestaurantTableRepository restaurantTableRepository;
+    private final com.mvt.mvt_events.repository.OrderCommandRepository orderCommandRepository;
 
     public FoodOrderService(FoodOrderRepository orderRepository, ProductRepository productRepository,
                             UserRepository userRepository, StoreProfileRepository storeProfileRepository,
@@ -45,7 +46,8 @@ public class FoodOrderService implements DeliveryStatusCallback {
                             PushNotificationService pushNotificationService,
                             SiteConfigurationService siteConfigurationService,
                             GoogleDirectionsService googleDirectionsService,
-                            RestaurantTableRepository restaurantTableRepository) {
+                            RestaurantTableRepository restaurantTableRepository,
+                            com.mvt.mvt_events.repository.OrderCommandRepository orderCommandRepository) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
@@ -56,6 +58,7 @@ public class FoodOrderService implements DeliveryStatusCallback {
         this.siteConfigurationService = siteConfigurationService;
         this.googleDirectionsService = googleDirectionsService;
         this.restaurantTableRepository = restaurantTableRepository;
+        this.orderCommandRepository = orderCommandRepository;
     }
 
     // ================================================================
@@ -210,9 +213,12 @@ public class FoodOrderService implements DeliveryStatusCallback {
             if (!table.getActive()) {
                 throw new RuntimeException("Mesa #" + table.getNumber() + " está desativada");
             }
-            // Auto-transição: mesa fica OCCUPIED ao criar pedido
-            table.setStatus(RestaurantTable.TableStatus.OCCUPIED);
-            restaurantTableRepository.save(table);
+            // Auto-transição: mesa fica OCCUPIED apenas quando há itens no pedido.
+            // Pedido vazio pode existir (garçom criou comanda ainda sem itens) sem ocupar a mesa.
+            if (items != null && !items.isEmpty()) {
+                table.setStatus(RestaurantTable.TableStatus.OCCUPIED);
+                restaurantTableRepository.save(table);
+            }
         }
 
         // Montar itens e calcular subtotal
@@ -228,9 +234,12 @@ public class FoodOrderService implements DeliveryStatusCallback {
         }
         order.setOrderType(FoodOrder.OrderType.TABLE);
         order.setNotes(notes);
-        // Mesa: vai direto pra PREPARING (garçom já é o restaurante, não precisa de aceite)
+        // Mesa: garçom é o próprio restaurante, então pedido já nasce aceito e vai direto pra PREPARING.
+        // Grava acceptedAt e preparingAt no mesmo instante pra timeline ficar completa.
+        OffsetDateTime nowCreate = OffsetDateTime.now(ZONE);
         order.setStatus(FoodOrder.OrderStatus.PREPARING);
-        order.setPreparingAt(OffsetDateTime.now(ZONE));
+        order.setAcceptedAt(nowCreate);
+        order.setPreparingAt(nowCreate);
 
         BigDecimal subtotal = BigDecimal.ZERO;
         int maxPrepTime = 0;
@@ -252,6 +261,10 @@ public class FoodOrderService implements DeliveryStatusCallback {
             item.setQuantity(itemReq.quantity);
             item.setUnitPrice(product.getPrice());
             item.setNotes(itemReq.notes);
+            if (itemReq.commandId != null) {
+                item.setCommand(orderCommandRepository.findById(itemReq.commandId)
+                        .orElseThrow(() -> new RuntimeException("Comanda não encontrada: " + itemReq.commandId)));
+            }
             order.getItems().add(item);
 
             subtotal = subtotal.add(product.getPrice().multiply(BigDecimal.valueOf(itemReq.quantity)));
@@ -317,9 +330,11 @@ public class FoodOrderService implements DeliveryStatusCallback {
                 throw new RuntimeException("Produto " + product.getName() + " não pertence a este restaurante");
             }
 
-            // Verificar se já existe um OrderItem do mesmo produto — incrementa quantidade
+            // Dedup por (produto, comanda): cerveja do Pedro não funde com cerveja do Iran
+            Long reqCommandId = itemReq.commandId;
             Optional<OrderItem> existingItem = order.getItems().stream()
                     .filter(i -> i.getProduct().getId().equals(product.getId()))
+                    .filter(i -> java.util.Objects.equals(i.getCommandId(), reqCommandId))
                     .findFirst();
 
             if (existingItem.isPresent()) {
@@ -333,6 +348,10 @@ public class FoodOrderService implements DeliveryStatusCallback {
                 item.setNotes(itemReq.notes);
                 item.setRound(nextRound);
                 item.setSentAt(OffsetDateTime.now());
+                if (reqCommandId != null) {
+                    item.setCommand(orderCommandRepository.findById(reqCommandId)
+                            .orElseThrow(() -> new RuntimeException("Comanda não encontrada: " + reqCommandId)));
+                }
                 order.getItems().add(item);
             }
 
@@ -347,6 +366,14 @@ public class FoodOrderService implements DeliveryStatusCallback {
         if (order.getStatus() != FoodOrder.OrderStatus.PLACED) {
             order.setStatus(FoodOrder.OrderStatus.PREPARING);
             order.setPreparingAt(OffsetDateTime.now());
+        }
+
+        // Marcar mesa como OCCUPIED se o pedido ganhou itens (pedido vazio não ocupava a mesa)
+        if (order.getTable() != null && !order.getItems().isEmpty()
+                && order.getTable().getStatus() != RestaurantTable.TableStatus.OCCUPIED) {
+            RestaurantTable t = order.getTable();
+            t.setStatus(RestaurantTable.TableStatus.OCCUPIED);
+            restaurantTableRepository.save(t);
         }
 
         FoodOrder saved = orderRepository.save(order);
@@ -981,6 +1008,320 @@ public class FoodOrderService implements DeliveryStatusCallback {
     }
 
     // ================================================================
+    // COMANDAS (split de conta por pessoa dentro do pedido de mesa)
+    // ================================================================
+
+    @Transactional
+    public com.mvt.mvt_events.jpa.OrderCommand createCommand(Long orderId, String name) {
+        FoodOrder order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));
+
+        if (order.getOrderType() != FoodOrder.OrderType.TABLE) {
+            throw new RuntimeException("Comandas só existem em pedidos de mesa");
+        }
+        if (order.getStatus() == FoodOrder.OrderStatus.COMPLETED || order.getStatus() == FoodOrder.OrderStatus.CANCELLED) {
+            throw new RuntimeException("Pedido já está " + order.getStatus().name());
+        }
+
+        int nextDisplay = orderCommandRepository.findMaxDisplayNumberByOrderId(orderId) + 1;
+
+        com.mvt.mvt_events.jpa.OrderCommand cmd = com.mvt.mvt_events.jpa.OrderCommand.builder()
+                .order(order)
+                .displayNumber(nextDisplay)
+                .name(name != null && !name.isBlank() ? name.trim() : null)
+                .build();
+
+        return orderCommandRepository.save(cmd);
+    }
+
+    @Transactional
+    public com.mvt.mvt_events.jpa.OrderCommand renameCommand(Long orderId, Long commandId, String name) {
+        com.mvt.mvt_events.jpa.OrderCommand cmd = orderCommandRepository.findByIdAndOrderId(commandId, orderId)
+                .orElseThrow(() -> new RuntimeException("Comanda não encontrada"));
+        cmd.setName(name != null && !name.isBlank() ? name.trim() : null);
+        return orderCommandRepository.save(cmd);
+    }
+
+    @Transactional
+    public void deleteCommand(Long orderId, Long commandId) {
+        com.mvt.mvt_events.jpa.OrderCommand cmd = orderCommandRepository.findByIdAndOrderId(commandId, orderId)
+                .orElseThrow(() -> new RuntimeException("Comanda não encontrada"));
+
+        FoodOrder order = cmd.getOrder();
+        boolean hasItems = order.getItems().stream()
+                .anyMatch(i -> cmd.getId().equals(i.getCommandId()));
+        if (hasItems) {
+            throw new RuntimeException("Não é possível remover comanda com itens. Mova os itens primeiro.");
+        }
+
+        orderCommandRepository.delete(cmd);
+    }
+
+    public java.util.List<com.mvt.mvt_events.jpa.OrderCommand> listCommands(Long orderId) {
+        return orderCommandRepository.findByOrderIdOrderByDisplayNumberAsc(orderId);
+    }
+
+    /**
+     * Move um item entre comandas (ou para Mesa = null).
+     * Se já existe item com mesmo produto na comanda destino, soma quantidades
+     * (preserva dedup por product+command).
+     */
+    @Transactional
+    public FoodOrder moveItemToCommand(Long orderId, Long itemId, Long targetCommandId) {
+        FoodOrder order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));
+
+        if (order.getStatus() == FoodOrder.OrderStatus.COMPLETED || order.getStatus() == FoodOrder.OrderStatus.CANCELLED) {
+            throw new RuntimeException("Pedido já está " + order.getStatus().name());
+        }
+
+        OrderItem item = order.getItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Item não encontrado"));
+
+        // Valida comanda destino (se não for null = Mesa)
+        com.mvt.mvt_events.jpa.OrderCommand target = null;
+        if (targetCommandId != null) {
+            target = orderCommandRepository.findByIdAndOrderId(targetCommandId, orderId)
+                    .orElseThrow(() -> new RuntimeException("Comanda destino não encontrada"));
+        }
+
+        // No-op se já está na comanda destino
+        Long currentCmdId = item.getCommandId();
+        if (java.util.Objects.equals(currentCmdId, targetCommandId)) {
+            return order;
+        }
+
+        // Merge: se existe item do mesmo produto na comanda destino, soma e deleta o origem
+        Long productId = item.getProduct().getId();
+        java.util.Optional<OrderItem> existingOnTarget = order.getItems().stream()
+                .filter(i -> !i.getId().equals(itemId))
+                .filter(i -> i.getProduct().getId().equals(productId))
+                .filter(i -> java.util.Objects.equals(i.getCommandId(), targetCommandId))
+                .findFirst();
+
+        if (existingOnTarget.isPresent()) {
+            existingOnTarget.get().setQuantity(existingOnTarget.get().getQuantity() + item.getQuantity());
+            order.getItems().remove(item);
+        } else {
+            item.setCommand(target);
+        }
+
+        return orderRepository.save(order);
+    }
+
+    @Transactional
+    public void setItemPackaged(Long orderId, Long itemId, boolean packaged) {
+        FoodOrder order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));
+        OrderItem item = order.getItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Item não encontrado"));
+        item.setPackaged(packaged);
+        orderRepository.save(order);
+    }
+
+    // ================================================================
+    // BILL BREAKDOWN (split de conta por comanda)
+    // ================================================================
+
+    public BillBreakdown getBillBreakdown(Long orderId) {
+        FoodOrder order = orderRepository.findByIdWithItems(orderId)
+                .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));
+
+        java.util.List<com.mvt.mvt_events.jpa.OrderCommand> commands =
+                orderCommandRepository.findByOrderIdOrderByDisplayNumberAsc(orderId);
+
+        // Mesa = items compartilhados (commandId null). Tratada como comanda própria.
+        java.util.List<OrderItem> mesaItems = order.getItems().stream()
+                .filter(i -> i.getCommandId() == null)
+                .collect(java.util.stream.Collectors.toList());
+        BigDecimal mesaSubtotal = mesaItems.stream()
+                .map(i -> i.getUnitPrice().multiply(BigDecimal.valueOf(i.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        java.util.List<CommandBreakdown> perCommand = new java.util.ArrayList<>();
+        for (com.mvt.mvt_events.jpa.OrderCommand cmd : commands) {
+            java.util.List<OrderItem> items = order.getItems().stream()
+                    .filter(it -> cmd.getId().equals(it.getCommandId()))
+                    .collect(java.util.stream.Collectors.toList());
+            BigDecimal subtotal = items.stream()
+                    .map(it -> it.getUnitPrice().multiply(BigDecimal.valueOf(it.getQuantity())))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add)
+                    .setScale(2, RoundingMode.HALF_UP);
+            perCommand.add(new CommandBreakdown(
+                    cmd.getId(), cmd.getDisplayNumber(), cmd.getName(),
+                    items, subtotal,
+                    cmd.getStatus() != null ? cmd.getStatus().name() : "OPEN",
+                    cmd.getPaymentMethod() != null ? cmd.getPaymentMethod().name() : null,
+                    cmd.getPaidAt()));
+        }
+
+        MesaBreakdown mesa = new MesaBreakdown(
+                mesaItems, mesaSubtotal,
+                order.getMesaStatus() != null ? order.getMesaStatus().name() : "OPEN",
+                order.getMesaPaymentMethod() != null ? order.getMesaPaymentMethod().name() : null,
+                order.getMesaPaidAt());
+
+        return new BillBreakdown(perCommand, mesa, order.getTotal());
+    }
+
+    public static class BillBreakdown {
+        public java.util.List<CommandBreakdown> commands;
+        public MesaBreakdown mesa;
+        public BigDecimal grandTotal;
+
+        public BillBreakdown(java.util.List<CommandBreakdown> commands, MesaBreakdown mesa, BigDecimal grandTotal) {
+            this.commands = commands;
+            this.mesa = mesa;
+            this.grandTotal = grandTotal;
+        }
+    }
+
+    public static class MesaBreakdown {
+        public java.util.List<OrderItem> items;
+        public BigDecimal subtotal;
+        public String status;
+        public String paymentMethod;
+        public OffsetDateTime paidAt;
+
+        public MesaBreakdown(java.util.List<OrderItem> items, BigDecimal subtotal,
+                             String status, String paymentMethod, OffsetDateTime paidAt) {
+            this.items = items;
+            this.subtotal = subtotal;
+            this.status = status;
+            this.paymentMethod = paymentMethod;
+            this.paidAt = paidAt;
+        }
+    }
+
+    public static class CommandBreakdown {
+        public Long id;
+        public Integer displayNumber;
+        public String name;
+        public java.util.List<OrderItem> items;
+        public BigDecimal subtotal;
+        public String status;
+        public String paymentMethod;
+        public OffsetDateTime paidAt;
+
+        public CommandBreakdown(Long id, Integer displayNumber, String name, java.util.List<OrderItem> items,
+                                BigDecimal subtotal, String status, String paymentMethod, OffsetDateTime paidAt) {
+            this.id = id;
+            this.displayNumber = displayNumber;
+            this.name = name;
+            this.items = items;
+            this.subtotal = subtotal;
+            this.status = status;
+            this.paymentMethod = paymentMethod;
+            this.paidAt = paidAt;
+        }
+    }
+
+    // ================================================================
+    // FECHAR COMANDA / MESA (pagamento parcial)
+    // ================================================================
+
+    /**
+     * Fecha uma comanda (commandId != null) ou a Mesa (commandId == null).
+     * Se após o fechamento tudo estiver pago, marca o pedido como COMPLETED e libera a mesa.
+     */
+    @Transactional
+    public FoodOrder closePartial(Long orderId, Long commandId, String paymentMethodStr) {
+        FoodOrder order = orderRepository.findByIdWithItems(orderId)
+                .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));
+
+        if (order.getStatus() == FoodOrder.OrderStatus.COMPLETED || order.getStatus() == FoodOrder.OrderStatus.CANCELLED) {
+            throw new RuntimeException("Pedido já está " + order.getStatus().name());
+        }
+
+        PaymentMethod pm = null;
+        if (paymentMethodStr != null && !paymentMethodStr.isBlank()) {
+            try { pm = PaymentMethod.valueOf(paymentMethodStr); }
+            catch (IllegalArgumentException e) { throw new RuntimeException("Forma de pagamento inválida: " + paymentMethodStr); }
+        }
+
+        OffsetDateTime now = OffsetDateTime.now(ZONE);
+
+        if (commandId == null) {
+            // Fechar Mesa
+            if (order.getMesaStatus() == FoodOrder.MesaStatus.PAID) {
+                throw new RuntimeException("Mesa já foi paga");
+            }
+            boolean hasMesaItems = order.getItems().stream().anyMatch(i -> i.getCommandId() == null);
+            if (!hasMesaItems) {
+                throw new RuntimeException("Mesa não tem itens");
+            }
+            order.setMesaStatus(FoodOrder.MesaStatus.PAID);
+            order.setMesaPaymentMethod(pm);
+            order.setMesaPaidAt(now);
+        } else {
+            com.mvt.mvt_events.jpa.OrderCommand cmd = orderCommandRepository.findByIdAndOrderId(commandId, orderId)
+                    .orElseThrow(() -> new RuntimeException("Comanda não encontrada"));
+            if (cmd.getStatus() == com.mvt.mvt_events.jpa.OrderCommand.PaymentStatus.PAID) {
+                throw new RuntimeException("Comanda já foi paga");
+            }
+            boolean hasItems = order.getItems().stream()
+                    .anyMatch(i -> commandId.equals(i.getCommandId()));
+            if (!hasItems) {
+                throw new RuntimeException("Comanda não tem itens");
+            }
+            cmd.setStatus(com.mvt.mvt_events.jpa.OrderCommand.PaymentStatus.PAID);
+            cmd.setPaymentMethod(pm);
+            cmd.setPaidAt(now);
+            orderCommandRepository.save(cmd);
+        }
+
+        tryAutoComplete(order, now);
+        return orderRepository.save(order);
+    }
+
+    /**
+     * Marca o pedido como COMPLETED se tudo que tinha valor já foi pago.
+     * Comandas sem itens não bloqueiam: são tratadas como "done".
+     */
+    private void tryAutoComplete(FoodOrder order, OffsetDateTime now) {
+        java.util.List<com.mvt.mvt_events.jpa.OrderCommand> allCmds =
+                orderCommandRepository.findByOrderIdOrderByDisplayNumberAsc(order.getId());
+        boolean mesaDone = order.getMesaStatus() == FoodOrder.MesaStatus.PAID
+                || order.getItems().stream().noneMatch(i -> i.getCommandId() == null);
+        boolean allCmdsDone = allCmds.stream().allMatch(c ->
+                c.getStatus() == com.mvt.mvt_events.jpa.OrderCommand.PaymentStatus.PAID
+                        || order.getItems().stream().noneMatch(i -> c.getId().equals(i.getCommandId())));
+
+        if (mesaDone && allCmdsDone) {
+            order.setStatus(FoodOrder.OrderStatus.COMPLETED);
+            if (order.getCompletedAt() == null) order.setCompletedAt(now);
+            if (order.getPaidAt() == null) order.setPaidAt(now);
+            if (order.getTable() != null) {
+                RestaurantTable t = order.getTable();
+                t.setStatus(RestaurantTable.TableStatus.AVAILABLE);
+                restaurantTableRepository.save(t);
+                order.setTable(null);
+            }
+        }
+    }
+
+    /**
+     * Dispara a verificação de auto-complete sem passar por closePartial.
+     * Útil quando todas as comandas OPEN restantes estão vazias (R$ 0,00) e não há
+     * closePartial a chamar, mas o pedido deveria estar COMPLETED.
+     */
+    @Transactional
+    public FoodOrder autoComplete(Long orderId) {
+        FoodOrder order = orderRepository.findByIdWithItems(orderId)
+                .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));
+        if (order.getStatus() == FoodOrder.OrderStatus.COMPLETED || order.getStatus() == FoodOrder.OrderStatus.CANCELLED) {
+            return order;
+        }
+        tryAutoComplete(order, OffsetDateTime.now(ZONE));
+        return orderRepository.save(order);
+    }
+
+    // ================================================================
     // REQUEST DTO (inner class simples)
     // ================================================================
 
@@ -988,5 +1329,7 @@ public class FoodOrderService implements DeliveryStatusCallback {
         public Long productId;
         public int quantity;
         public String notes;
+        /** Comanda à qual o item pertence; null = compartilhado */
+        public Long commandId;
     }
 }

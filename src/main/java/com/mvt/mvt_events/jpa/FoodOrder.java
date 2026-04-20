@@ -137,6 +137,24 @@ public class FoodOrder {
     @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
     private OffsetDateTime paidAt;
 
+    /** Status dos items compartilhados (commandId null). Cada comanda tem status próprio. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "mesa_status", length = 30, nullable = false)
+    @Builder.Default
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
+    private MesaStatus mesaStatus = MesaStatus.OPEN;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "mesa_payment_method", length = 20)
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
+    private PaymentMethod mesaPaymentMethod;
+
+    @Column(name = "mesa_paid_at")
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
+    private OffsetDateTime mesaPaidAt;
+
+    public enum MesaStatus { OPEN, PAID }
+
     @Builder.Default
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
@@ -190,6 +208,31 @@ public class FoodOrder {
     public Integer getTableNumber() {
         if (tableNumberField != null) return tableNumberField;
         try { return table != null ? table.getNumber() : null; } catch (Exception e) { return null; }
+    }
+
+    // Dados do estabelecimento (CLIENT) — usados no cabeçalho de impressão
+    @com.fasterxml.jackson.annotation.JsonGetter("storeName")
+    public String getStoreName() {
+        try { return client != null ? client.getName() : null; } catch (Exception e) { return null; }
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("storeDocument")
+    public String getStoreDocument() {
+        try { return client != null ? client.getDocumentFormatted() : null; } catch (Exception e) { return null; }
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("storePhone")
+    public String getStorePhone() {
+        try { return client != null ? client.getPhone() : null; } catch (Exception e) { return null; }
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("storeAddress")
+    public String getStoreAddress() {
+        try {
+            if (client == null) return null;
+            com.mvt.mvt_events.jpa.Address addr = client.getAddress();
+            return addr != null ? addr.getFullAddress() : null;
+        } catch (Exception e) { return null; }
     }
 
     @PrePersist
