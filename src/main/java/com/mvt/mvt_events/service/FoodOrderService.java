@@ -130,11 +130,11 @@ public class FoodOrderService implements DeliveryStatusCallback {
             item.setOrder(order);
             item.setProduct(product);
             item.setQuantity(itemReq.quantity);
-            item.setUnitPrice(product.getPrice()); // snapshot do preço
+            item.setUnitPrice(product.priceFor(order.getOrderType())); // snapshot do preço
             item.setNotes(itemReq.notes);
             order.getItems().add(item);
 
-            subtotal = subtotal.add(product.getPrice().multiply(BigDecimal.valueOf(itemReq.quantity)));
+            subtotal = subtotal.add(product.priceFor(order.getOrderType()).multiply(BigDecimal.valueOf(itemReq.quantity)));
 
             if (product.getPreparationTimeMinutes() != null && product.getPreparationTimeMinutes() > maxPrepTime) {
                 maxPrepTime = product.getPreparationTimeMinutes();
@@ -259,7 +259,7 @@ public class FoodOrderService implements DeliveryStatusCallback {
             item.setOrder(order);
             item.setProduct(product);
             item.setQuantity(itemReq.quantity);
-            item.setUnitPrice(product.getPrice());
+            item.setUnitPrice(product.priceFor(order.getOrderType()));
             item.setNotes(itemReq.notes);
             if (itemReq.commandId != null) {
                 item.setCommand(orderCommandRepository.findById(itemReq.commandId)
@@ -267,7 +267,7 @@ public class FoodOrderService implements DeliveryStatusCallback {
             }
             order.getItems().add(item);
 
-            subtotal = subtotal.add(product.getPrice().multiply(BigDecimal.valueOf(itemReq.quantity)));
+            subtotal = subtotal.add(product.priceFor(order.getOrderType()).multiply(BigDecimal.valueOf(itemReq.quantity)));
 
             if (product.getPreparationTimeMinutes() != null && product.getPreparationTimeMinutes() > maxPrepTime) {
                 maxPrepTime = product.getPreparationTimeMinutes();
@@ -280,18 +280,6 @@ public class FoodOrderService implements DeliveryStatusCallback {
         order.setEstimatedPreparationMinutes(maxPrepTime > 0 ? maxPrepTime : null);
 
         FoodOrder saved = orderRepository.save(order);
-
-        // Notificar restaurante (cozinha)
-        try {
-            pushNotificationService.sendNotificationToUser(
-                    client.getId(),
-                    "🍽️ Pedido mesa #" + (order.getTable() != null ? order.getTable().getNumber() : "?"),
-                    "Pedido #" + saved.getId() + " — R$ " + saved.getTotal(),
-                    null
-            );
-        } catch (Exception e) {
-            log.warn("Falha ao notificar restaurante sobre pedido de mesa #{}: {}", saved.getId(), e.getMessage());
-        }
 
         log.info("🍽️ Pedido de mesa #{} criado: {} ({}) → mesa {} do {}, R$ {}",
                 saved.getId(), author.getName(), author.getRole(),
@@ -344,7 +332,7 @@ public class FoodOrderService implements DeliveryStatusCallback {
                 item.setOrder(order);
                 item.setProduct(product);
                 item.setQuantity(itemReq.quantity);
-                item.setUnitPrice(product.getPrice());
+                item.setUnitPrice(product.priceFor(order.getOrderType()));
                 item.setNotes(itemReq.notes);
                 item.setRound(nextRound);
                 item.setSentAt(OffsetDateTime.now());
@@ -355,7 +343,7 @@ public class FoodOrderService implements DeliveryStatusCallback {
                 order.getItems().add(item);
             }
 
-            addedSubtotal = addedSubtotal.add(product.getPrice().multiply(BigDecimal.valueOf(itemReq.quantity)));
+            addedSubtotal = addedSubtotal.add(product.priceFor(order.getOrderType()).multiply(BigDecimal.valueOf(itemReq.quantity)));
         }
 
         // Atualizar totais
@@ -377,18 +365,6 @@ public class FoodOrderService implements DeliveryStatusCallback {
         }
 
         FoodOrder saved = orderRepository.save(order);
-
-        // Notificar restaurante sobre novos itens
-        try {
-            pushNotificationService.sendNotificationToUser(
-                    clientId,
-                    "🍽️ Novos itens — Mesa #" + (order.getTable() != null ? order.getTable().getNumber() : "?"),
-                    "Rodada " + nextRound + " — +" + newItems.size() + " itens no pedido #" + orderId,
-                    null
-            );
-        } catch (Exception e) {
-            log.warn("Falha ao notificar sobre novos itens do pedido #{}: {}", orderId, e.getMessage());
-        }
 
         log.info("🍽️ Pedido #{} — rodada {} adicionada: +{} itens, novo total R$ {}",
                 orderId, nextRound, newItems.size(), saved.getTotal());

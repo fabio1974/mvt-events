@@ -54,6 +54,26 @@ public class Product {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
+    /** Preço no canal Zapi-Food (delivery próprio). Se null, usa {@link #price}. */
+    @Column(name = "delivery_price", precision = 10, scale = 2)
+    private BigDecimal deliveryPrice;
+
+    /** Preço no canal iFood. Se null, usa {@link #price}. */
+    @Column(name = "ifood_price", precision = 10, scale = 2)
+    private BigDecimal ifoodPrice;
+
+    /**
+     * Retorna o preço efetivo pra um dado tipo de pedido.
+     * DELIVERY → deliveryPrice (com fallback em price).
+     * TABLE/balcão → price.
+     */
+    public BigDecimal priceFor(FoodOrder.OrderType orderType) {
+        if (orderType == FoodOrder.OrderType.DELIVERY && deliveryPrice != null) {
+            return deliveryPrice;
+        }
+        return price;
+    }
+
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
