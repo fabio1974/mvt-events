@@ -14,6 +14,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.DayOfWeek;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -43,10 +47,10 @@ public class StoreController {
     @Operation(summary = "Listar restaurantes", description = "Lista restaurantes próximos com perfil de loja. Filtros: serviceType, open, lat/lng/radius")
     public ResponseEntity<List<Map<String, Object>>> listStores(
             @RequestParam(required = false) String serviceType,
-            @RequestParam(required = false, defaultValue = "true") boolean openOnly,
+            @RequestParam(required = false, defaultValue = "false") boolean openOnly,
             @RequestParam(required = false) Double lat,
             @RequestParam(required = false) Double lng,
-            @RequestParam(required = false, defaultValue = "5") double radiusKm,
+            @RequestParam(required = false, defaultValue = "10") double radiusKm,
             Authentication authentication) {
 
         // Busca CLIENTs com store_profile (JOIN FETCH user)
@@ -67,25 +71,30 @@ public class StoreController {
 
         final Double finalLat = userLat;
         final Double finalLng = userLng;
+        final ZonedDateTime nowBr = ZonedDateTime.now(ZoneId.of("America/Sao_Paulo"));
 
         List<Map<String, Object>> stores = profiles.stream()
                 .filter(p -> p.getUser() != null && p.getUser().getRole() == User.Role.CLIENT)
                 .filter(p -> serviceType == null || (p.getUser().getServiceType() != null && serviceType.equalsIgnoreCase(p.getUser().getServiceType().name())))
-                // Filtro por distância (Haversine)
+                // Filtro por distância (Haversine) — se usuário tem coords, exige coords do store E dentro do raio
                 .filter(p -> {
-                    if (finalLat == null || finalLng == null) return true; // sem coordenadas → mostra tudo
+                    if (finalLat == null || finalLng == null) return true;
                     Double storeLat = p.getUser().getGpsLatitude();
                     Double storeLng = p.getUser().getGpsLongitude();
-                    if (storeLat == null || storeLng == null) return true; // sem coords do store → mostra
+                    if (storeLat == null || storeLng == null) return false;
                     return haversineKm(finalLat, finalLng, storeLat, storeLng) <= radiusKm;
                 })
                 .map(p -> {
                     Map<String, Object> store = mapStoreToResponse(p);
-                    // Adiciona distância se possível
+                    // Distância
                     if (finalLat != null && finalLng != null && p.getUser().getGpsLatitude() != null && p.getUser().getGpsLongitude() != null) {
                         double dist = haversineKm(finalLat, finalLng, p.getUser().getGpsLatitude(), p.getUser().getGpsLongitude());
                         store.put("distanceKm", Math.round(dist * 10.0) / 10.0);
                     }
+                    // Horário de hoje + status agora (com base em openingHours + relógio de SP)
+                    Map<String, Object> hours = p.getOpeningHours();
+                    store.put("todayHours", formatTodayHours(hours, nowBr));
+                    store.put("isOpenNow", isOpenNow(hours, nowBr));
                     return store;
                 })
                 .sorted((a, b) -> {
@@ -96,6 +105,61 @@ public class StoreController {
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(stores);
+    }
+
+    /** Chave do dia da semana usada no JSONB de openingHours (sincronizado com mobile). */
+    private static String dayKey(DayOfWeek d) {
+        return switch (d) {
+            case MONDAY -> "seg";
+            case TUESDAY -> "ter";
+            case WEDNESDAY -> "qua";
+            case THURSDAY -> "qui";
+            case FRIDAY -> "sex";
+            case SATURDAY -> "sab";
+            case SUNDAY -> "dom";
+        };
+    }
+
+    /** Extrai a lista de turnos do dia (ex: ["18:00-23:45"]) do openingHours. */
+    @SuppressWarnings("unchecked")
+    private static List<String> getTodayShifts(Map<String, Object> hours, ZonedDateTime now) {
+        if (hours == null) return Collections.emptyList();
+        Object raw = hours.get(dayKey(now.getDayOfWeek()));
+        if (!(raw instanceof List<?>)) return Collections.emptyList();
+        List<String> result = new ArrayList<>();
+        for (Object s : (List<?>) raw) {
+            if (s != null) result.add(s.toString().trim());
+        }
+        return result;
+    }
+
+    /** Formata os turnos de hoje como string legível ou null se fechado hoje. */
+    private static String formatTodayHours(Map<String, Object> hours, ZonedDateTime now) {
+        List<String> shifts = getTodayShifts(hours, now);
+        if (shifts.isEmpty()) return null;
+        return String.join(", ", shifts);
+    }
+
+    /** Verifica se agora está dentro de algum turno de hoje. Suporta janela que cruza meia-noite. */
+    private static boolean isOpenNow(Map<String, Object> hours, ZonedDateTime now) {
+        List<String> shifts = getTodayShifts(hours, now);
+        if (shifts.isEmpty()) return false;
+        LocalTime current = now.toLocalTime();
+        for (String shift : shifts) {
+            String[] parts = shift.split("-");
+            if (parts.length != 2) continue;
+            try {
+                LocalTime start = LocalTime.parse(parts[0].trim());
+                LocalTime end = LocalTime.parse(parts[1].trim());
+                if (end.isAfter(start)) {
+                    if (!current.isBefore(start) && current.isBefore(end)) return true;
+                } else {
+                    // Janela cruza meia-noite (ex: 22:00-02:00)
+                    if (!current.isBefore(start) || current.isBefore(end)) return true;
+                }
+            } catch (Exception ignored) { }
+        }
+        return false;
     }
 
     private double haversineKm(double lat1, double lon1, double lat2, double lon2) {

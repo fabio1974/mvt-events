@@ -199,6 +199,29 @@ public class FoodOrder {
         } catch (Exception e) { return null; }
     }
 
+    /** Resumo da delivery ativa pra tracking no CUSTOMER. */
+    @com.fasterxml.jackson.annotation.JsonGetter("activeDelivery")
+    public java.util.Map<String, Object> getActiveDeliverySummary() {
+        try {
+            Delivery active = getActiveDelivery();
+            if (active == null) return null;
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", active.getId());
+            m.put("status", active.getStatus() != null ? active.getStatus().name() : null);
+            m.put("acceptedAt", active.getAcceptedAt());
+            m.put("pickedUpAt", active.getPickedUpAt());
+            m.put("inTransitAt", active.getInTransitAt());
+            m.put("completedAt", active.getCompletedAt());
+            m.put("cancelledAt", active.getCancelledAt());
+            try {
+                if (active.getCourier() != null) {
+                    m.put("courierName", active.getCourier().getName());
+                }
+            } catch (Exception ignored) { }
+            return m;
+        } catch (Exception e) { return null; }
+    }
+
     @com.fasterxml.jackson.annotation.JsonGetter("waiterName")
     public String getWaiterName() {
         try { return waiter != null ? waiter.getName() : null; } catch (Exception e) { return null; }
