@@ -124,6 +124,10 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// Integration tests (*IntegrationTest) precisam de Postgres real e
+	// rodam separadamente via skill /be-test-register no dev local.
+	// Excluí-los do build padrão evita falha no Docker do Render.
+	exclude '**/*IntegrationTest.class'
 }
 
 // ============================================================================
