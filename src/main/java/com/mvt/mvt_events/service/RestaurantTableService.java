@@ -62,11 +62,32 @@ public class RestaurantTableService {
                 .orElseThrow(() -> new RuntimeException("Mesa não encontrada"));
     }
 
+    /**
+     * Cria a mesa "balcão" (number=0, is_counter=true) para um CLIENT recém-criado.
+     * Idempotente: se já existe, retorna a existente.
+     */
+    public RestaurantTable createCounterFor(User client) {
+        return tableRepository.findByClientIdAndIsCounterTrue(client.getId())
+                .orElseGet(() -> {
+                    RestaurantTable counter = RestaurantTable.builder()
+                            .client(client)
+                            .number(0)
+                            .seats(0)
+                            .active(true)
+                            .isCounter(true)
+                            .build();
+                    return tableRepository.save(counter);
+                });
+    }
+
     public RestaurantTable create(UUID clientId, Integer number, Integer seats) {
         User client = userRepository.findById(clientId)
                 .orElseThrow(() -> new RuntimeException("Estabelecimento não encontrado"));
         if (client.getRole() != User.Role.CLIENT) {
             throw new RuntimeException("Apenas estabelecimentos podem ter mesas");
+        }
+        if (number == null || number <= 0) {
+            throw new RuntimeException("Número da mesa deve ser maior que zero (0 é reservado para Balcão)");
         }
         if (tableRepository.existsByClientIdAndNumber(clientId, number)) {
             throw new RuntimeException("Mesa #" + number + " já existe neste estabelecimento");
@@ -137,6 +158,9 @@ public class RestaurantTableService {
         RestaurantTable table = findById(id);
         if (!table.getClient().getId().equals(clientId)) {
             throw new RuntimeException("Mesa não pertence a este estabelecimento");
+        }
+        if (Boolean.TRUE.equals(table.getIsCounter())) {
+            throw new RuntimeException("A mesa Balcão não pode ser deletada");
         }
         // Pedidos finalizados já não possuem FK (limpa no complete/cancel)
         // Se ainda houver FK legada, desvincular antes de deletar

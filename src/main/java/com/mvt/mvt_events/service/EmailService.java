@@ -146,6 +146,22 @@ public class EmailService {
     }
 
     /**
+     * Envia o relatório diário de caixa para o email do client.
+     */
+    @Async
+    public void sendCashReport(User client, com.mvt.mvt_events.dto.CashReportDto report) {
+        if (!isEmailEnabled()) {
+            log.warn("Email não configurado — relatório de caixa não enviado para {}", client.getUsername());
+            return;
+        }
+        String subject = String.format("Relatório de Caixa — %s — %s",
+                client.getName(),
+                report.getDate().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        String html = buildCashReportHtml(report);
+        sendEmail(client.getUsername(), subject, html, "relatório de caixa");
+    }
+
+    /**
      * Envia email de recuperacao de senha.
      */
     @Async
@@ -378,5 +394,171 @@ public class EmailService {
             </body>
             </html>
             """.formatted(backendUrl, appName, appName, userName, resetLink, resetLink, appName);
+    }
+
+    /**
+     * Constrói o HTML do relatório de caixa.
+     */
+    private String buildCashReportHtml(com.mvt.mvt_events.dto.CashReportDto r) {
+        java.text.NumberFormat brl = java.text.NumberFormat.getCurrencyInstance(new java.util.Locale("pt", "BR"));
+        java.time.format.DateTimeFormatter df = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        StringBuilder channels = new StringBuilder();
+        com.mvt.mvt_events.dto.CashReportDto.ChannelSummary balcao = r.getChannels().stream()
+                .filter(c -> c.getChannel() == com.mvt.mvt_events.dto.CashReportDto.Channel.BALCAO).findFirst().orElse(null);
+        com.mvt.mvt_events.dto.CashReportDto.ChannelSummary mesas = r.getChannels().stream()
+                .filter(c -> c.getChannel() == com.mvt.mvt_events.dto.CashReportDto.Channel.MESAS).findFirst().orElse(null);
+        com.mvt.mvt_events.dto.CashReportDto.ChannelSummary delivery = r.getChannels().stream()
+                .filter(c -> c.getChannel() == com.mvt.mvt_events.dto.CashReportDto.Channel.DELIVERY).findFirst().orElse(null);
+
+        channels.append("<table class=\"data\"><thead><tr>")
+                .append("<th>Informação</th><th>Mesas</th><th>Balcão</th><th>Delivery</th><th>Geral</th>")
+                .append("</tr></thead><tbody>");
+        channels.append(channelRow("Atendimentos",
+                String.valueOf(safeCount(mesas)),
+                String.valueOf(safeCount(balcao)),
+                String.valueOf(safeCount(delivery)),
+                String.valueOf(safeCount(mesas) + safeCount(balcao) + safeCount(delivery))));
+        channels.append(channelRow("Itens",
+                brl.format(safeAmt(mesas != null ? mesas.getItemsTotal() : null)),
+                brl.format(safeAmt(balcao != null ? balcao.getItemsTotal() : null)),
+                brl.format(safeAmt(delivery != null ? delivery.getItemsTotal() : null)),
+                brl.format(safeAmt(mesas != null ? mesas.getItemsTotal() : null)
+                        .add(safeAmt(balcao != null ? balcao.getItemsTotal() : null))
+                        .add(safeAmt(delivery != null ? delivery.getItemsTotal() : null)))));
+        channels.append(channelRow("+Entregas",
+                brl.format(java.math.BigDecimal.ZERO),
+                brl.format(java.math.BigDecimal.ZERO),
+                brl.format(safeAmt(delivery != null ? delivery.getDeliveryFeeTotal() : null)),
+                brl.format(safeAmt(delivery != null ? delivery.getDeliveryFeeTotal() : null))));
+        channels.append("<tr><td colspan=\"4\" style=\"text-align:right\"><b>TOTAL:</b></td>")
+                .append("<td><b>").append(brl.format(r.getGrandTotal())).append("</b></td></tr>");
+        channels.append("</tbody></table>");
+
+        StringBuilder pms = new StringBuilder("<table class=\"data\"><thead><tr><th>Forma de Pagamento</th><th>Valor</th></tr></thead><tbody>");
+        if (r.getPaymentMethods() == null || r.getPaymentMethods().isEmpty()) {
+            pms.append("<tr><td colspan=\"2\" style=\"text-align:center;color:#999\">Sem dados</td></tr>");
+        } else {
+            for (var e : r.getPaymentMethods().entrySet()) {
+                pms.append("<tr><td>").append(pmLabel(e.getKey())).append("</td>")
+                   .append("<td>").append(brl.format(e.getValue())).append("</td></tr>");
+            }
+        }
+        pms.append("<tr><td><b>SOMA TOTAL</b></td><td><b>").append(brl.format(r.getGrandTotal())).append("</b></td></tr>");
+        pms.append("</tbody></table>");
+
+        StringBuilder items = new StringBuilder("<table class=\"data\"><thead><tr><th>Descrição</th><th>Qnt</th><th>Total</th></tr></thead><tbody>");
+        if (r.getItems() == null || r.getItems().isEmpty()) {
+            items.append("<tr><td colspan=\"3\" style=\"text-align:center;color:#999\">Sem itens</td></tr>");
+        } else {
+            for (var it : r.getItems()) {
+                items.append("<tr><td>").append(escape(it.getProductName())).append("</td>")
+                     .append("<td>").append(it.getQuantity()).append("</td>")
+                     .append("<td>").append(brl.format(it.getTotal())).append("</td></tr>");
+            }
+        }
+        items.append("</tbody></table>");
+
+        String cashSection = buildCashSection(r.getCash(), brl);
+
+        return """
+            <!DOCTYPE html>
+            <html><head><meta charset="UTF-8"><style>
+              body { font-family: Arial, sans-serif; color:#333; }
+              .container { max-width: 760px; margin: 0 auto; padding: 16px; }
+              h1 { text-align:center; margin: 4px 0; }
+              .sub { text-align:center; color:#666; margin-bottom:16px; }
+              h2 { background:#f0f0f0; padding:8px 12px; border-left:4px solid #667eea; margin-top:24px; font-size:14px; }
+              table.data { width:100%%; border-collapse:collapse; margin-top:8px; font-size:13px; }
+              table.data th, table.data td { border:1px solid #ddd; padding:6px 8px; text-align:left; }
+              table.data th { background:#fafafa; }
+              .footer { text-align:center; color:#999; font-size:11px; margin-top:24px; }
+              .diff-ok { color:#047857; font-weight:bold; }
+              .diff-bad { color:#b91c1c; font-weight:bold; }
+            </style></head><body>
+              <div class="container">
+                <h1>CAIXA - %s</h1>
+                <div class="sub">%s<br>%s</div>
+                %s
+                <h2>VENDAS</h2>
+                %s
+                <h2>CONFERÊNCIA POR FORMA DE PAGAMENTO</h2>
+                %s
+                <h2>SAÍDA DE ITENS</h2>
+                %s
+                <div class="footer">Relatório gerado automaticamente por %s.</div>
+              </div>
+            </body></html>
+            """.formatted(
+                escape(r.getStoreName()),
+                escape(r.getDate().format(df)),
+                escape(r.getStoreAddress() != null ? r.getStoreAddress() : ""),
+                cashSection,
+                channels.toString(),
+                pms.toString(),
+                items.toString(),
+                appName
+        );
+    }
+
+    private String buildCashSection(com.mvt.mvt_events.dto.CashReportDto.CashSummary c, java.text.NumberFormat brl) {
+        if (c == null || "NONE".equals(c.getStatus())) {
+            return "<h2>FUNDO DE CAIXA</h2><div style=\"color:#999;font-size:13px;padding:8px\">Nenhuma sessão de caixa registrada para este período.</div>";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("<h2>FUNDO DE CAIXA</h2>");
+        sb.append("<table class=\"data\"><thead><tr>")
+          .append("<th>Fundo Inicial</th><th>+ Adições</th><th>− Retiradas/Sangrias</th><th>+ Vendas em Dinheiro</th><th>Saldo Esperado</th>")
+          .append("</tr></thead><tbody><tr>")
+          .append("<td>").append(brl.format(safeAmt(c.getOpeningBalance()))).append("</td>")
+          .append("<td>").append(brl.format(safeAmt(c.getAdditions()))).append("</td>")
+          .append("<td>").append(brl.format(safeAmt(c.getWithdrawals()))).append("</td>")
+          .append("<td>").append(brl.format(safeAmt(c.getCashSales()))).append("</td>")
+          .append("<td><b>").append(brl.format(safeAmt(c.getExpectedBalance()))).append("</b></td>")
+          .append("</tr></tbody></table>");
+
+        if (c.getActualBalance() != null) {
+            java.math.BigDecimal diff = c.getActualBalance().subtract(safeAmt(c.getExpectedBalance()));
+            String cls = diff.signum() == 0 ? "diff-ok" : "diff-bad";
+            sb.append("<h2>CONFERÊNCIA DE FECHAMENTO</h2>")
+              .append("<table class=\"data\"><tbody>")
+              .append("<tr><td>Esperado</td><td>").append(brl.format(safeAmt(c.getExpectedBalance()))).append("</td></tr>")
+              .append("<tr><td>Contado</td><td>").append(brl.format(c.getActualBalance())).append("</td></tr>")
+              .append("<tr><td><b>Diferença</b></td><td class=\"").append(cls).append("\">")
+              .append(brl.format(diff)).append("</td></tr>")
+              .append("</tbody></table>");
+        } else {
+            sb.append("<div style=\"color:#666;font-size:12px;padding:6px\">Caixa ainda em ABERTO — sem conferência de fechamento.</div>");
+        }
+        return sb.toString();
+    }
+
+    private String channelRow(String label, String mesas, String balcao, String delivery, String geral) {
+        return "<tr><td>" + label + "</td><td>" + mesas + "</td><td>" + balcao + "</td><td>" + delivery + "</td><td><b>" + geral + "</b></td></tr>";
+    }
+
+    private int safeCount(com.mvt.mvt_events.dto.CashReportDto.ChannelSummary c) {
+        return c != null ? c.getOrderCount() : 0;
+    }
+
+    private java.math.BigDecimal safeAmt(java.math.BigDecimal v) {
+        return v != null ? v : java.math.BigDecimal.ZERO;
+    }
+
+    private String pmLabel(com.mvt.mvt_events.jpa.PaymentMethod pm) {
+        return switch (pm) {
+            case CREDIT_CARD -> "Cartão de Crédito";
+            case DEBIT_CARD -> "Cartão de Débito";
+            case PIX -> "PIX";
+            case BANK_SLIP -> "Boleto";
+            case CASH -> "Dinheiro";
+            case WALLET -> "Carteira Digital";
+            case NOT_INFORMED -> "Não Informado";
+        };
+    }
+
+    private String escape(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 }

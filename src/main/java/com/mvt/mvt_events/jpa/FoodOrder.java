@@ -155,6 +155,48 @@ public class FoodOrder {
 
     public enum MesaStatus { OPEN, PAID }
 
+    // ============================================================================
+    // PAGAMENTO DO CUSTOMER (Zapi-Food — fase 1: apenas PIX)
+    // ============================================================================
+
+    @Column(name = "customer_payment_method", length = 20)
+    @Enumerated(EnumType.STRING)
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
+    private PaymentMethod customerPaymentMethod;
+
+    @Column(name = "payment_timing", length = 20)
+    @Enumerated(EnumType.STRING)
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
+    private PaymentTiming paymentTiming;
+
+    @Column(name = "pagarme_order_id", length = 100)
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
+    private String pagarmeOrderId;
+
+    @Column(name = "customer_payment_status", length = 20)
+    @Enumerated(EnumType.STRING)
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
+    private CustomerPaymentStatus customerPaymentStatus;
+
+    @Column(name = "customer_paid_at")
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
+    private OffsetDateTime customerPaidAt;
+
+    @Column(name = "pix_qr_code", columnDefinition = "TEXT")
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
+    private String pixQrCode;
+
+    @Column(name = "pix_qr_code_url", columnDefinition = "TEXT")
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
+    private String pixQrCodeUrl;
+
+    @Column(name = "pix_expires_at")
+    @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)
+    private OffsetDateTime pixExpiresAt;
+
+    public enum PaymentTiming { AT_CHECKOUT, ON_DELIVERY }
+    public enum CustomerPaymentStatus { PENDING, PAID, FAILED, CANCELLED }
+
     @Builder.Default
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @com.mvt.mvt_events.metadata.Visible(table = false, form = false, filter = false)

@@ -18,13 +18,7 @@ import java.util.Optional;
 public interface OrganizationRepository
         extends JpaRepository<Organization, Long>, JpaSpecificationExecutor<Organization> {
 
-    Optional<Organization> findBySlug(String slug);
-    
     Optional<Organization> findByOwner(User owner);
-
-    boolean existsBySlug(String slug);
-
-    boolean existsBySlugAndIdNot(String slug, Long id);
 
     /**
      * Find organization by ID with contracts loaded (but NOT the users)

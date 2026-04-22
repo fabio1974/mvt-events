@@ -315,6 +315,7 @@ public interface DeliveryRepository
                         "LEFT JOIN FETCH d.organizer " +
                         "LEFT JOIN FETCH d.vehicle " +
                         "LEFT JOIN FETCH d.stops " +
+                        "LEFT JOIN FETCH d.order " +
                         "WHERE d.id = :id")
         java.util.Optional<Delivery> findByIdWithJoins(@Param("id") Long id);
 

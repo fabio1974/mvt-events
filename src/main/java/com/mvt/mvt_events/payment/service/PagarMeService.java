@@ -1573,4 +1573,29 @@ public class PagarMeService {
             throw new RuntimeException("Erro ao consultar saldo: " + e.getMessage(), e);
         }
     }
+
+    // ============================================================================
+    // TRANSFER (plataforma → recipient, usado para pagar courier após aceitar delivery)
+    // ============================================================================
+
+    /**
+     * Cria uma "transfer" (retirada) da conta da plataforma → recipient do courier.
+     *
+     * ⚠️ STATUS ATUAL (fase 1 Zapi-Food):
+     * Esta implementação apenas loga a intenção. A execução real via pagar.me
+     * (withdrawal + bank transfer) não está integrada ainda — o caller deve
+     * registrar um `PagarmeTransfer` com status=PENDING para ser processado depois.
+     *
+     * @return true se aceito para processamento, false em caso de erro óbvio
+     */
+    public boolean transferToRecipient(String recipientId, long amountCents, String metadata) {
+        log.info("💸 [TRANSFER-TODO] recipient={} amount={}c meta={}", recipientId, amountCents, metadata);
+        if (recipientId == null || recipientId.isBlank() || amountCents <= 0) {
+            log.warn("   └─ ❌ Parâmetros inválidos");
+            return false;
+        }
+        // TODO: implementar POST /core/v5/recipients/{recipientId}/withdrawals ou equivalente
+        // Por ora, retornamos true (o caller mantém o registro em PENDING).
+        return true;
+    }
 }

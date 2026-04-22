@@ -254,6 +254,21 @@ public class User implements UserDetails {
     private String pagarmeStatus;
 
     /**
+     * Chave PIX do usuário, usada para payout (transfers da plataforma → courier).
+     * Pode ser CPF, CNPJ, e-mail, telefone ou chave aleatória (EVP).
+     */
+    @Column(name = "pix_key", length = 120)
+    @Visible(table = false, form = true, filter = false)
+    private String pixKey;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "pix_key_type", length = 10)
+    @Visible(table = false, form = true, filter = false)
+    private PixKeyType pixKeyType;
+
+    public enum PixKeyType { CPF, CNPJ, EMAIL, PHONE, EVP }
+
+    /**
      * Relacionamento 1:1 com BankAccount (OPCIONAL).
      * 
      * DESIGN ATUAL (v1.0):

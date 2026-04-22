@@ -106,6 +106,9 @@ dependencies {
 
 	// Cloudinary (image upload for Zapi-Food)
 	implementation 'com.cloudinary:cloudinary-http5:2.0.0'
+
+	// Stark Bank SDK — PIX out (transfer pra chave PIX de terceiro)
+	implementation 'com.starkbank:sdk:2.16.0'
 	
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
@@ -116,6 +119,7 @@ dependencies {
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testRuntimeOnly 'com.h2database:h2'
+
 }
 
 tasks.named('test') {

@@ -3,6 +3,7 @@ package com.mvt.mvt_events.controller;
 import com.mvt.mvt_events.jpa.FoodOrder;
 import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.repository.FoodOrderRepository;
+import com.mvt.mvt_events.service.FoodOrderPaymentService;
 import com.mvt.mvt_events.service.FoodOrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,10 +25,13 @@ public class FoodOrderController {
 
     private final FoodOrderService orderService;
     private final FoodOrderRepository orderRepository;
+    private final FoodOrderPaymentService paymentService;
 
-    public FoodOrderController(FoodOrderService orderService, FoodOrderRepository orderRepository) {
+    public FoodOrderController(FoodOrderService orderService, FoodOrderRepository orderRepository,
+                               FoodOrderPaymentService paymentService) {
         this.orderService = orderService;
         this.orderRepository = orderRepository;
+        this.paymentService = paymentService;
     }
 
     // ================================================================
@@ -69,14 +73,28 @@ public class FoodOrderController {
     // ================================================================
 
     @PostMapping
-    @Operation(summary = "Criar pedido", description = "CUSTOMER cria pedido para um restaurante")
+    @Operation(summary = "Criar pedido", description = "CUSTOMER cria pedido para um restaurante. Fase 1: paymentTiming=AT_CHECKOUT gera QR PIX imediato; ON_DELIVERY só marca intenção.")
     public ResponseEntity<FoodOrder> create(Authentication authentication, @RequestBody CreateOrderRequest request) {
         User user = (User) authentication.getPrincipal();
         Double deliveryLat = request.deliveryAddress != null ? request.deliveryAddress.latitude : null;
         Double deliveryLng = request.deliveryAddress != null ? request.deliveryAddress.longitude : null;
         String deliveryAddr = request.deliveryAddress != null ? request.deliveryAddress.address : null;
         FoodOrder order = orderService.create(user.getId(), request.clientId, request.items, request.notes, deliveryAddr, deliveryLat, deliveryLng);
+
+        // Pagamento (fase 1: apenas PIX)
+        FoodOrder.PaymentTiming timing = parseTiming(request.paymentTiming);
+        if (timing == FoodOrder.PaymentTiming.AT_CHECKOUT) {
+            order = paymentService.createPixForCheckout(order);
+        } else if (timing == FoodOrder.PaymentTiming.ON_DELIVERY) {
+            order = paymentService.markPayOnDelivery(order);
+        }
         return ResponseEntity.status(HttpStatus.CREATED).body(order);
+    }
+
+    private FoodOrder.PaymentTiming parseTiming(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try { return FoodOrder.PaymentTiming.valueOf(raw.toUpperCase()); }
+        catch (IllegalArgumentException e) { return null; }
     }
 
     @GetMapping("/my")
@@ -384,6 +402,8 @@ public class FoodOrderController {
         public List<FoodOrderService.OrderItemRequest> items;
         public String notes;
         public DeliveryAddress deliveryAddress;
+        /** Fase 1 Zapi-Food: AT_CHECKOUT (gera PIX agora) ou ON_DELIVERY (paga na entrega). null = sem pagamento. */
+        public String paymentTiming;
     }
 
     public static class CreateTableOrderRequest {

@@ -42,7 +42,7 @@ public class OrganizationController {
             Lista organizações com suporte a busca e filtros.
 
             **Filtros Disponíveis:**
-            - `search` - Busca em nome, slug ou email (case-insensitive, parcial)
+            - `search` - Busca em nome ou email (case-insensitive, parcial)
             - `active` - Filtrar por status ativo/inativo (true/false)
 
             **Paginação:**
@@ -168,9 +168,6 @@ public class OrganizationController {
         @Size(max = 255, message = "Nome deve ter no máximo 255 caracteres")
         private String name;
 
-        @Size(max = 100, message = "Slug deve ter no máximo 100 caracteres")
-        private String slug;
-
         private String website;
         private String description;
         private String logoUrl;
@@ -208,9 +205,6 @@ public class OrganizationController {
     public static class OrganizationUpdateRequest {
         @Size(max = 255, message = "Nome deve ter no máximo 255 caracteres")
         private String name;
-
-        @Size(max = 100, message = "Slug deve ter no máximo 100 caracteres")
-        private String slug;
 
         private String website;
         private String description;
@@ -358,7 +352,6 @@ public class OrganizationController {
         private java.time.OffsetDateTime createdAt;
         private java.time.OffsetDateTime updatedAt;
         private String name;
-        private String slug;
         private String website;
         private String description;
         private String logoUrl;
@@ -377,7 +370,6 @@ public class OrganizationController {
             this.createdAt = organization.getCreatedAt();
             this.updatedAt = organization.getUpdatedAt();
             this.name = organization.getName();
-            this.slug = organization.getSlug();
             this.website = organization.getWebsite();
             this.description = organization.getDescription();
             this.logoUrl = organization.getLogoUrl();

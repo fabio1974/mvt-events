@@ -93,8 +93,27 @@ public interface FoodOrderRepository extends JpaRepository<FoodOrder, Long> {
             @Param("tableNumber") Integer tableNumber,
             org.springframework.data.domain.Pageable pageable);
 
+    Optional<FoodOrder> findByPagarmeOrderId(String pagarmeOrderId);
+
     /** Desvincular mesa de pedidos finalizados (para permitir deletar a mesa) */
     @Modifying
     @Query("UPDATE FoodOrder o SET o.table = null WHERE o.table.id = :tableId AND o.status IN ('COMPLETED', 'CANCELLED')")
     int clearTableReference(@Param("tableId") Long tableId);
+
+    /**
+     * Pedidos COMPLETED de um client criados num intervalo (para o relatório de caixa diário).
+     * Faz fetch de items, product, table e commands para evitar N+1 na agregação.
+     */
+    @Query("SELECT DISTINCT o FROM FoodOrder o " +
+           "LEFT JOIN FETCH o.items i " +
+           "LEFT JOIN FETCH i.product " +
+           "LEFT JOIN FETCH i.command " +
+           "LEFT JOIN FETCH o.table " +
+           "WHERE o.client.id = :clientId " +
+           "AND o.status = 'COMPLETED' " +
+           "AND o.createdAt >= :start AND o.createdAt < :end")
+    List<FoodOrder> findCompletedForReport(
+            @Param("clientId") UUID clientId,
+            @Param("start") java.time.OffsetDateTime start,
+            @Param("end") java.time.OffsetDateTime end);
 }

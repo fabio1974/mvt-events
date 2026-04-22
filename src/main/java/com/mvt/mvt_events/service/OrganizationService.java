@@ -54,17 +54,6 @@ public class OrganizationService {
         organization.setDescription(request.getDescription());
         organization.setLogoUrl(request.getLogoUrl());
 
-        // Generate slug from name if not provided
-        if (request.getSlug() == null || request.getSlug().trim().isEmpty()) {
-            organization.setSlug(generateUniqueSlug(request.getName()));
-        } else {
-            // Check if slug already exists
-            if (repository.existsBySlug(request.getSlug())) {
-                throw new RuntimeException("Já existe uma organização com este slug");
-            }
-            organization.setSlug(request.getSlug());
-        }
-
         // Set status if provided
         if (request.getStatus() != null) {
             try {
@@ -116,16 +105,6 @@ public class OrganizationService {
     }
 
     public Organization create(Organization organization) {
-        // Generate slug from name if not provided
-        if (organization.getSlug() == null || organization.getSlug().trim().isEmpty()) {
-            organization.setSlug(generateUniqueSlug(organization.getName()));
-        } else {
-            // Check if slug already exists
-            if (repository.existsBySlug(organization.getSlug())) {
-                throw new RuntimeException("Já existe uma organização com este slug");
-            }
-        }
-
         return repository.save(organization);
     }
 
@@ -137,22 +116,10 @@ public class OrganizationService {
         return repository.findById(id);
     }
 
-    public Optional<Organization> findBySlug(String slug) {
-        return repository.findBySlug(slug);
-    }
-
     @Transactional
     public Organization update(Long id, OrganizationUpdateRequest request) {
         Organization existing = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Organização não encontrada"));
-
-        // Validate slug if changed
-        if (request.getSlug() != null && !request.getSlug().equals(existing.getSlug())) {
-            if (repository.existsBySlugAndIdNot(request.getSlug(), id)) {
-                throw new RuntimeException("Já existe uma organização com este slug");
-            }
-            existing.setSlug(request.getSlug());
-        }
 
         // Update fields
         if (request.getName() != null)
@@ -214,27 +181,6 @@ public class OrganizationService {
             throw new RuntimeException("Organização não encontrada");
         }
         repository.deleteById(id);
-    }
-
-    private String generateUniqueSlug(String name) {
-        String baseSlug = generateSlug(name);
-        String slug = baseSlug;
-        int counter = 1;
-
-        while (repository.existsBySlug(slug)) {
-            slug = baseSlug + "-" + counter;
-            counter++;
-        }
-
-        return slug;
-    }
-
-    private String generateSlug(String name) {
-        return name.toLowerCase()
-                .replaceAll("[^a-z0-9\\s-]", "")
-                .replaceAll("\\s+", "-")
-                .replaceAll("-+", "-")
-                .replaceAll("^-|-$", "");
     }
 
     @Transactional

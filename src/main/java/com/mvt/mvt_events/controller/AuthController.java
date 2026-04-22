@@ -67,6 +67,9 @@ public class AuthController {
     @Autowired
     private com.mvt.mvt_events.repository.CustomerPaymentPreferenceRepository customerPaymentPreferenceRepository;
 
+    @Autowired
+    private com.mvt.mvt_events.service.RestaurantTableService restaurantTableService;
+
     @Value("${app.frontend.url:http://localhost:5173}")
     private String frontendUrl;
 
@@ -147,7 +150,15 @@ public class AuthController {
         user.setUsername(registerRequest.getUsername()); // usar email como username
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setName(registerRequest.getName()); // Set the name field
-        user.setRole(User.Role.valueOf(registerRequest.getRole().toUpperCase()));
+        try {
+            user.setRole(User.Role.valueOf(registerRequest.getRole().toUpperCase()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Role inválido",
+                    "message", "Role '" + registerRequest.getRole() + "' não é reconhecido. Valores aceitos: "
+                            + java.util.Arrays.toString(User.Role.values())
+            ));
+        }
 
         // Set CPF if provided
         if (registerRequest.getDocumentNumber() != null && !registerRequest.getDocumentNumber().trim().isEmpty()) {
@@ -174,7 +185,7 @@ public class AuthController {
 
         // Se for CLIENT, criar automaticamente preferência de pagamento como PIX
         if (savedUser.getRole() == User.Role.CLIENT) {
-            com.mvt.mvt_events.jpa.CustomerPaymentPreference preference = 
+            com.mvt.mvt_events.jpa.CustomerPaymentPreference preference =
                 com.mvt.mvt_events.jpa.CustomerPaymentPreference.builder()
                     .user(savedUser)
                     .preferredPaymentType(com.mvt.mvt_events.jpa.CustomerPaymentPreference.PreferredPaymentType.PIX)
@@ -182,6 +193,10 @@ public class AuthController {
                     .build();
             customerPaymentPreferenceRepository.save(preference);
             log.info("✅ Preferência de pagamento PIX criada automaticamente para CLIENT: {}", savedUser.getUsername());
+
+            // Cria mesa Balcão (number=0) — usada para vendas no balcão e relatório de caixa
+            restaurantTableService.createCounterFor(savedUser);
+            log.info("✅ Mesa Balcão criada automaticamente para CLIENT: {}", savedUser.getUsername());
         }
 
         // Enviar email de confirmação (async)

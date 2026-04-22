@@ -62,6 +62,7 @@ public class OrderWebhookController {
     private final PagarMeService pagarMeService;
     private final ObjectMapper objectMapper;
     private final com.mvt.mvt_events.service.PushNotificationService pushNotificationService;
+    private final com.mvt.mvt_events.repository.FoodOrderRepository foodOrderRepository;
 
     /**
      * Recebe webhooks do Pagar.me sobre mudanças de status de orders (payments).
@@ -130,11 +131,34 @@ log.info("🔔 Webhook recebido em /api/webhooks/order");
                     .orElse(null);
             
             if (payment == null) {
-                log.warn("⚠️ Payment não encontrado para Order ID: {}", orderId);
+                // Fallback: pode ser um FoodOrder (Zapi-Food) pago no checkout diretamente
+                var foodOrderOpt = foodOrderRepository.findByPagarmeOrderId(orderId);
+                if (foodOrderOpt.isPresent()) {
+                    var fo = foodOrderOpt.get();
+                    PaymentStatus mapped = mapEventTypeToPaymentStatus(eventType, orderStatus);
+                    log.info("🍔 FoodOrder #{} - webhook {} → {}", fo.getId(), eventType, mapped);
+                    if (mapped == PaymentStatus.PAID) {
+                        fo.setCustomerPaymentStatus(com.mvt.mvt_events.jpa.FoodOrder.CustomerPaymentStatus.PAID);
+                        fo.setCustomerPaidAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")));
+                    } else if (mapped == PaymentStatus.FAILED) {
+                        fo.setCustomerPaymentStatus(com.mvt.mvt_events.jpa.FoodOrder.CustomerPaymentStatus.FAILED);
+                    } else if (mapped == PaymentStatus.CANCELLED) {
+                        fo.setCustomerPaymentStatus(com.mvt.mvt_events.jpa.FoodOrder.CustomerPaymentStatus.CANCELLED);
+                    }
+                    foodOrderRepository.save(fo);
+                    return ResponseEntity.ok(Map.of(
+                            "success", true,
+                            "message", "FoodOrder atualizada via webhook",
+                            "foodOrderId", fo.getId(),
+                            "status", fo.getCustomerPaymentStatus().name()
+                    ));
+                }
+
+                log.warn("⚠️ Payment/FoodOrder não encontrado para Order ID: {}", orderId);
                 // Retornar 200 OK mesmo assim para não causar retry no Pagar.me
                 return ResponseEntity.ok(Map.of(
                         "success", true,
-                        "message", "Webhook recebido mas payment não encontrado (pode ser order de teste)",
+                        "message", "Webhook recebido mas payment/foodOrder não encontrado (pode ser order de teste)",
                         "orderId", orderId
                 ));
             }

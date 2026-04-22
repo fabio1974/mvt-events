@@ -21,13 +21,9 @@ public class OrganizationSpecification {
             String searchPattern = "%" + search.toLowerCase() + "%";
 
             // Usa immutable_unaccent para busca insensível a acentos
-            return criteriaBuilder.or(
-                    criteriaBuilder.like(
-                            criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.lower(root.get("name"))),
-                            criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.literal(searchPattern))),
-                    criteriaBuilder.like(
-                            criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.lower(root.get("slug"))),
-                            criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.literal(searchPattern))));
+            return criteriaBuilder.like(
+                    criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.lower(root.get("name"))),
+                    criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.literal(searchPattern)));
         };
     }
 
@@ -50,13 +46,9 @@ public class OrganizationSpecification {
                 String searchPattern = "%" + search.toLowerCase() + "%";
                 // Usa immutable_unaccent para busca insensível a acentos
                 predicates.add(
-                        criteriaBuilder.or(
-                                criteriaBuilder.like(
-                                        criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.lower(root.get("name"))),
-                                        criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.literal(searchPattern))),
-                                criteriaBuilder.like(
-                                        criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.lower(root.get("slug"))),
-                                        criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.literal(searchPattern)))));
+                        criteriaBuilder.like(
+                                criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.lower(root.get("name"))),
+                                criteriaBuilder.function("immutable_unaccent", String.class, criteriaBuilder.literal(searchPattern))));
             }
 
             if (active != null) {

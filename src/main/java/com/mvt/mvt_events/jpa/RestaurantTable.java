@@ -32,6 +32,11 @@ public class RestaurantTable {
     @Column(nullable = false)
     private Boolean active = true;
 
+    /** Marca a mesa "balcão" do estabelecimento. Apenas uma por client (índice parcial único). */
+    @Builder.Default
+    @Column(name = "is_counter", nullable = false)
+    private Boolean isCounter = false;
+
     @Builder.Default
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)

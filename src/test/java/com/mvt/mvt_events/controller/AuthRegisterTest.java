@@ -7,6 +7,7 @@ import com.mvt.mvt_events.repository.CustomerPaymentPreferenceRepository;
 import com.mvt.mvt_events.repository.OrganizationRepository;
 import com.mvt.mvt_events.repository.UserRepository;
 import com.mvt.mvt_events.service.EmailService;
+import com.mvt.mvt_events.service.RestaurantTableService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,7 @@ class AuthRegisterTest {
     @Mock private CustomerPaymentPreferenceRepository customerPaymentPreferenceRepository;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private EmailService emailService;
+    @Mock private RestaurantTableService restaurantTableService;
 
     @InjectMocks private AuthController authController;
 
@@ -97,6 +99,19 @@ class AuthRegisterTest {
 
             verify(customerPaymentPreferenceRepository, never()).save(any());
         }
+
+        @Test
+        @DisplayName("ORGANIZER — registro completa sem erro (campo slug foi removido em V129)")
+        void organizerRegistraSemSlug() {
+            setupCommonMocks();
+            when(organizationRepository.save(any(Organization.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            assertThatCode(() ->
+                authController.register(makeRequest("fabio@gmail.com", "Fabio Gerente", "ORGANIZER"))
+            ).doesNotThrowAnyException();
+
+            verify(organizationRepository).save(any(Organization.class));
+        }
     }
 
     // ================================================================
@@ -144,11 +159,19 @@ class AuthRegisterTest {
     class CustomerRegistration {
 
         @Test
-        @DisplayName("CUSTOMER não recebe Organization nem PIX preference")
+        @DisplayName("CUSTOMER salva User com role correto, senha criptografada, sem extras")
         void customerSemExtras() {
             setupCommonMocks();
 
             authController.register(makeRequest("joao@gmail.com", "João Silva", "CUSTOMER"));
+
+            ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(userCaptor.capture());
+            User saved = userCaptor.getValue();
+            assertThat(saved.getRole()).isEqualTo(User.Role.CUSTOMER);
+            assertThat(saved.getName()).isEqualTo("João Silva");
+            assertThat(saved.getUsername()).isEqualTo("joao@gmail.com");
+            assertThat(saved.getPassword()).isEqualTo("encoded");
 
             verify(organizationRepository, never()).save(any());
             verify(customerPaymentPreferenceRepository, never()).save(any());
@@ -164,11 +187,45 @@ class AuthRegisterTest {
     class CourierRegistration {
 
         @Test
-        @DisplayName("COURIER não recebe Organization nem PIX preference")
+        @DisplayName("COURIER salva User com role correto, senha criptografada, sem extras")
         void courierSemExtras() {
             setupCommonMocks();
 
             authController.register(makeRequest("pedro@gmail.com", "Pedro Moto", "COURIER"));
+
+            ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(userCaptor.capture());
+            User saved = userCaptor.getValue();
+            assertThat(saved.getRole()).isEqualTo(User.Role.COURIER);
+            assertThat(saved.getName()).isEqualTo("Pedro Moto");
+            assertThat(saved.getPassword()).isEqualTo("encoded");
+
+            verify(organizationRepository, never()).save(any());
+            verify(customerPaymentPreferenceRepository, never()).save(any());
+        }
+    }
+
+    // ================================================================
+    // WAITER — nenhuma entidade extra
+    // ================================================================
+
+    @Nested
+    @DisplayName("Registro de WAITER")
+    class WaiterRegistration {
+
+        @Test
+        @DisplayName("WAITER salva User com role correto, senha criptografada, sem extras")
+        void waiterSemExtras() {
+            setupCommonMocks();
+
+            authController.register(makeRequest("ana.garcom@gmail.com", "Ana Garçom", "WAITER"));
+
+            ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(userCaptor.capture());
+            User saved = userCaptor.getValue();
+            assertThat(saved.getRole()).isEqualTo(User.Role.WAITER);
+            assertThat(saved.getName()).isEqualTo("Ana Garçom");
+            assertThat(saved.getPassword()).isEqualTo("encoded");
 
             verify(organizationRepository, never()).save(any());
             verify(customerPaymentPreferenceRepository, never()).save(any());

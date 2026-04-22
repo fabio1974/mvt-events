@@ -91,7 +91,7 @@ public class BankAccountController {
      * @return BankAccountResponse ou 404
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER', 'CLIENT')")
     public ResponseEntity<?> getBankAccountById(@PathVariable Long id) {
         log.info("📤 GET /api/bank-accounts/{}", id);
         
@@ -119,7 +119,7 @@ public class BankAccountController {
      * @return BankAccountResponse ou 404
      */
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER', 'CLIENT')")
     public ResponseEntity<?> getBankAccountByUserId(@PathVariable UUID userId) {
         log.info("📤 GET /api/bank-accounts/user/{}", userId);
         
@@ -147,7 +147,7 @@ public class BankAccountController {
      * @return BankAccountResponse ou 404
      */
     @GetMapping("/me")
-    @PreAuthorize("hasAnyRole('COURIER', 'ORGANIZER')")
+    @PreAuthorize("hasAnyRole('COURIER', 'ORGANIZER', 'CLIENT')")
     public ResponseEntity<?> getMyBankAccount(@AuthenticationPrincipal User user) {
         log.info("📤 GET /api/bank-accounts/me - User: {}", user.getUsername());
         
@@ -175,7 +175,7 @@ public class BankAccountController {
      * @return BankAccount criado (201) ou erro
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER', 'CLIENT')")
     public ResponseEntity<?> createBankAccount(@Valid @RequestBody BankAccountRequest request) {
         log.info("📥 POST /api/bank-accounts - UserId: {}", request.user().id());
         
@@ -244,7 +244,7 @@ public class BankAccountController {
      * @return BankAccount atualizado
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('COURIER', 'ORGANIZER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('COURIER', 'ORGANIZER', 'ADMIN', 'CLIENT')")
     public ResponseEntity<?> updateBankAccount(
             @PathVariable Long id,
             @Valid @RequestBody BankAccountRequest request
@@ -311,7 +311,7 @@ public class BankAccountController {
      * @return BankAccount atualizado
      */
     @PutMapping("/user/{userId}")
-    @PreAuthorize("hasAnyRole('COURIER', 'ORGANIZER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('COURIER', 'ORGANIZER', 'ADMIN', 'CLIENT')")
     public ResponseEntity<?> updateBankAccountByUserId(
             @PathVariable UUID userId,
             @Valid @RequestBody BankAccountRequest request

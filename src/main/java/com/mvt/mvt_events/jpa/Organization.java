@@ -27,11 +27,6 @@ public class Organization extends BaseEntity {
     @Column(nullable = false)
     private String name;
 
-    @Size(max = 100, message = "Slug must not exceed 100 characters")
-    @Column(nullable = false, unique = true, length = 100)
-    @Visible(filter = false, table = false, form = false)
-    private String slug;
-
     @Column(length = 255)
     @Visible(filter = false, table = false, form = false)
     private String website;

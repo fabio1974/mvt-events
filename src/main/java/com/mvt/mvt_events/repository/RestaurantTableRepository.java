@@ -18,4 +18,6 @@ public interface RestaurantTableRepository extends JpaRepository<RestaurantTable
     Optional<RestaurantTable> findByClientIdAndNumber(UUID clientId, Integer number);
 
     boolean existsByClientIdAndNumber(UUID clientId, Integer number);
+
+    Optional<RestaurantTable> findByClientIdAndIsCounterTrue(UUID clientId);
 }

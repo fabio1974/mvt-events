@@ -65,6 +65,9 @@ public class DeliveryService {
     private ClientContractRepository clientContractRepository;
 
     @Autowired
+    private CourierTransferService courierTransferService;
+
+    @Autowired
     private VehicleRepository vehicleRepository;
 
     @Autowired
@@ -613,6 +616,12 @@ public class DeliveryService {
             }
 
             Delivery result = deliveryRepository.findByIdWithJoins(saved.getId()).orElse(saved);
+
+            // 🍔 Zapi-Food: registra transfer pendente (87% frete) pro courier quando a delivery
+            // vem de FoodOrder paga no checkout (CLIENT/restaurante).
+            try { courierTransferService.registerForCourierAccept(result); }
+            catch (Exception e) { log.error("Falha ao registrar PagarmeTransfer (delivery #{}): {}", result.getId(), e.toString(), e); }
+
             fireStatusChanged(result);
             return result;
 
@@ -663,6 +672,12 @@ public class DeliveryService {
             }
 
             Delivery result = deliveryRepository.findByIdWithJoins(saved.getId()).orElse(saved);
+
+            // 🍔 Zapi-Food: registra transfer pendente (87% frete) pro courier quando a delivery
+            // vem de FoodOrder paga no checkout. Idempotente, falha silenciosa.
+            try { courierTransferService.registerForCourierAccept(result); }
+            catch (Exception e) { log.error("Falha ao registrar PagarmeTransfer (delivery #{}): {}", result.getId(), e.toString(), e); }
+
             fireStatusChanged(result);
             return result;
         }
