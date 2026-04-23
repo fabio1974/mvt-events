@@ -93,6 +93,15 @@ public class Product {
     @Column(name = "sales_channel", nullable = false, length = 20)
     private SalesChannel salesChannel = SalesChannel.ALL;
 
+    /**
+     * True quando o produto serve como adicional de outro item (CHEDDAR, OVO, TROCA P/ PÃO ÁRABE...).
+     * Mobile e FE filtram produtos is_addon=true do cardápio principal — eles só aparecem como
+     * opções na tela de detalhe do produto (seção Adicionais).
+     */
+    @Builder.Default
+    @Column(name = "is_addon", nullable = false)
+    private Boolean isAddon = false;
+
     public enum SalesChannel {
         DELIVERY, TABLE, ALL
     }

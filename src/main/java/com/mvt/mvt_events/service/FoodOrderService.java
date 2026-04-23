@@ -132,9 +132,12 @@ public class FoodOrderService implements DeliveryStatusCallback {
             item.setQuantity(itemReq.quantity);
             item.setUnitPrice(product.priceFor(order.getOrderType())); // snapshot do preço
             item.setNotes(itemReq.notes);
+            item.setObservation(itemReq.observation);
+            BigDecimal addonTotal = attachAddons(item, itemReq.addons, clientId, order.getOrderType());
             order.getItems().add(item);
 
             subtotal = subtotal.add(product.priceFor(order.getOrderType()).multiply(BigDecimal.valueOf(itemReq.quantity)));
+            subtotal = subtotal.add(addonTotal);
 
             if (product.getPreparationTimeMinutes() != null && product.getPreparationTimeMinutes() > maxPrepTime) {
                 maxPrepTime = product.getPreparationTimeMinutes();
@@ -261,13 +264,16 @@ public class FoodOrderService implements DeliveryStatusCallback {
             item.setQuantity(itemReq.quantity);
             item.setUnitPrice(product.priceFor(order.getOrderType()));
             item.setNotes(itemReq.notes);
+            item.setObservation(itemReq.observation);
             if (itemReq.commandId != null) {
                 item.setCommand(orderCommandRepository.findById(itemReq.commandId)
                         .orElseThrow(() -> new RuntimeException("Comanda não encontrada: " + itemReq.commandId)));
             }
+            BigDecimal addonTotal = attachAddons(item, itemReq.addons, clientId, order.getOrderType());
             order.getItems().add(item);
 
             subtotal = subtotal.add(product.priceFor(order.getOrderType()).multiply(BigDecimal.valueOf(itemReq.quantity)));
+            subtotal = subtotal.add(addonTotal);
 
             if (product.getPreparationTimeMinutes() != null && product.getPreparationTimeMinutes() > maxPrepTime) {
                 maxPrepTime = product.getPreparationTimeMinutes();
@@ -318,15 +324,24 @@ public class FoodOrderService implements DeliveryStatusCallback {
                 throw new RuntimeException("Produto " + product.getName() + " não pertence a este restaurante");
             }
 
-            // Dedup por (produto, comanda): cerveja do Pedro não funde com cerveja do Iran
+            // Dedup por (produto, comanda): cerveja do Pedro não funde com cerveja do Iran.
+            // A partir da fase 2, itens com customização (observation ou addons) NUNCA fazem dedup —
+            // cada item precisa manter identidade própria pra preservar os adicionais dele.
+            // Dedup só funde com itens existentes que também não tenham customização.
             Long reqCommandId = itemReq.commandId;
-            Optional<OrderItem> existingItem = order.getItems().stream()
-                    .filter(i -> i.getProduct().getId().equals(product.getId()))
-                    .filter(i -> java.util.Objects.equals(i.getCommandId(), reqCommandId))
-                    .findFirst();
+            boolean canDedup = !itemReq.hasCustomization();
+            Optional<OrderItem> existingItem = canDedup
+                    ? order.getItems().stream()
+                            .filter(i -> i.getProduct().getId().equals(product.getId()))
+                            .filter(i -> java.util.Objects.equals(i.getCommandId(), reqCommandId))
+                            .filter(i -> (i.getObservation() == null || i.getObservation().isBlank())
+                                    && (i.getAddons() == null || i.getAddons().isEmpty()))
+                            .findFirst()
+                    : Optional.empty();
 
             if (existingItem.isPresent()) {
                 existingItem.get().setQuantity(existingItem.get().getQuantity() + itemReq.quantity);
+                addedSubtotal = addedSubtotal.add(product.priceFor(order.getOrderType()).multiply(BigDecimal.valueOf(itemReq.quantity)));
             } else {
                 OrderItem item = new OrderItem();
                 item.setOrder(order);
@@ -334,16 +349,19 @@ public class FoodOrderService implements DeliveryStatusCallback {
                 item.setQuantity(itemReq.quantity);
                 item.setUnitPrice(product.priceFor(order.getOrderType()));
                 item.setNotes(itemReq.notes);
+                item.setObservation(itemReq.observation);
                 item.setRound(nextRound);
                 item.setSentAt(OffsetDateTime.now());
                 if (reqCommandId != null) {
                     item.setCommand(orderCommandRepository.findById(reqCommandId)
                             .orElseThrow(() -> new RuntimeException("Comanda não encontrada: " + reqCommandId)));
                 }
+                BigDecimal addonTotal = attachAddons(item, itemReq.addons, clientId, order.getOrderType());
                 order.getItems().add(item);
-            }
 
-            addedSubtotal = addedSubtotal.add(product.priceFor(order.getOrderType()).multiply(BigDecimal.valueOf(itemReq.quantity)));
+                addedSubtotal = addedSubtotal.add(product.priceFor(order.getOrderType()).multiply(BigDecimal.valueOf(itemReq.quantity)));
+                addedSubtotal = addedSubtotal.add(addonTotal);
+            }
         }
 
         // Atualizar totais
@@ -389,17 +407,19 @@ public class FoodOrderService implements DeliveryStatusCallback {
                 .orElseThrow(() -> new RuntimeException("Item não encontrado no pedido"));
 
         BigDecimal unitPrice = item.getUnitPrice();
+        BigDecimal delta = unitPrice; // sempre subtrai 1x unitPrice
 
         if (item.getQuantity() > 1) {
-            // Decrementa quantidade ao invés de remover o item inteiro
+            // Decrementa quantidade; addons permanecem no item (quantity dos addons é absoluta)
             item.setQuantity(item.getQuantity() - 1);
         } else {
-            // Quantidade é 1 — remove o item
+            // Última unidade — remove o item inteiro e abate os addons do subtotal também
+            delta = delta.add(sumAddons(item));
             order.getItems().remove(item);
         }
 
-        // Recalcular totais (subtrai apenas 1 unidade)
-        order.setSubtotal(order.getSubtotal().subtract(unitPrice).setScale(2, RoundingMode.HALF_UP));
+        // Recalcular totais
+        order.setSubtotal(order.getSubtotal().subtract(delta).setScale(2, RoundingMode.HALF_UP));
         order.setTotal(order.getSubtotal().add(order.getDeliveryFee()).setScale(2, RoundingMode.HALF_UP));
 
         // Se ficou sem itens, cancela o pedido e libera a mesa
@@ -762,12 +782,34 @@ public class FoodOrderService implements DeliveryStatusCallback {
 
     /** Pedidos ativos de uma mesa */
     public List<FoodOrder> findActiveByTable(Long tableId) {
-        return orderRepository.findActiveByTable(tableId);
+        List<FoodOrder> orders = orderRepository.findActiveByTable(tableId);
+        orders.forEach(this::initAddons);
+        return orders;
     }
 
     /** Todos os pedidos de uma mesa */
     public List<FoodOrder> findByTable(Long tableId) {
-        return orderRepository.findByTableId(tableId);
+        List<FoodOrder> orders = orderRepository.findByTableId(tableId);
+        orders.forEach(this::initAddons);
+        return orders;
+    }
+
+    /**
+     * Força inicialização lazy dos `addons` de cada OrderItem dentro da transação do service.
+     * Sem isso, com open-in-view=false a serialização Jackson falha/retorna vazio.
+     * Não usamos JOIN FETCH em addons pra evitar duplicação de OrderItems com múltiplos addons
+     * (DISTINCT + JOIN FETCH + multiple bags não resolve bem com Hibernate).
+     */
+    private void initAddons(FoodOrder order) {
+        if (order == null || order.getItems() == null) return;
+        for (OrderItem item : order.getItems()) {
+            if (item.getAddons() == null) continue;
+            item.getAddons().size(); // força init do Set
+            // Também força init do Product de cada addon (senão @JsonGetter productName falha no lazy)
+            for (OrderItemAddon a : item.getAddons()) {
+                if (a.getProduct() != null) a.getProduct().getName();
+            }
+        }
     }
 
     /** Mapa tableId → status do pedido ativo para todas as mesas de um client */
@@ -1298,6 +1340,53 @@ public class FoodOrderService implements DeliveryStatusCallback {
     }
 
     // ================================================================
+    // ADDONS — HELPERS
+    // ================================================================
+
+    /**
+     * Cria OrderItemAddons para um OrderItem a partir de uma lista de AddonRequests.
+     * Valida que cada product pertence ao mesmo clientId do pedido e está `available`.
+     * Retorna o total dos addons (sum of unitPrice * quantity) a ser somado no subtotal.
+     *
+     * Importante: addons carregam quantity independente do parent OrderItem.quantity —
+     * "4x Classic Burger + 2x Cheddar" significa 2 cheddars totais (não 2 por burger).
+     */
+    private BigDecimal attachAddons(OrderItem item, List<AddonRequest> addonReqs, UUID clientId, FoodOrder.OrderType orderType) {
+        if (addonReqs == null || addonReqs.isEmpty()) return BigDecimal.ZERO;
+
+        BigDecimal total = BigDecimal.ZERO;
+        for (AddonRequest ar : addonReqs) {
+            if (ar == null || ar.productId == null || ar.quantity <= 0) continue;
+            Product addonProduct = productRepository.findById(ar.productId)
+                    .orElseThrow(() -> new RuntimeException("Adicional não encontrado: " + ar.productId));
+            if (!addonProduct.getClient().getId().equals(clientId)) {
+                throw new RuntimeException("Adicional " + addonProduct.getName() + " não pertence a este restaurante");
+            }
+            if (!addonProduct.getAvailable()) {
+                throw new RuntimeException("Adicional " + addonProduct.getName() + " não está disponível");
+            }
+            BigDecimal addonPrice = addonProduct.priceFor(orderType);
+            OrderItemAddon addon = OrderItemAddon.builder()
+                    .orderItem(item)
+                    .product(addonProduct)
+                    .quantity(ar.quantity)
+                    .unitPrice(addonPrice)
+                    .build();
+            item.getAddons().add(addon);
+            total = total.add(addonPrice.multiply(BigDecimal.valueOf(ar.quantity)));
+        }
+        return total;
+    }
+
+    /** Soma dos addons de um item já persistido. */
+    private BigDecimal sumAddons(OrderItem item) {
+        if (item.getAddons() == null || item.getAddons().isEmpty()) return BigDecimal.ZERO;
+        return item.getAddons().stream()
+                .map(a -> a.getUnitPrice().multiply(BigDecimal.valueOf(a.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    // ================================================================
     // REQUEST DTO (inner class simples)
     // ================================================================
 
@@ -1307,5 +1396,22 @@ public class FoodOrderService implements DeliveryStatusCallback {
         public String notes;
         /** Comanda à qual o item pertence; null = compartilhado */
         public Long commandId;
+        /** Observação por item (fase 2). Coexiste com `notes` legado. */
+        public String observation;
+        /** Adicionais pendurados neste item. Null/vazio = sem adicionais. */
+        public java.util.List<AddonRequest> addons;
+
+        /** True quando o item tem customização (obs ou addons) — desabilita dedup. */
+        public boolean hasCustomization() {
+            boolean hasObs = observation != null && !observation.isBlank();
+            boolean hasAddons = addons != null && !addons.isEmpty();
+            return hasObs || hasAddons;
+        }
+    }
+
+    /** Adicional aninhado num OrderItemRequest. */
+    public static class AddonRequest {
+        public Long productId;
+        public int quantity;
     }
 }

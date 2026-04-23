@@ -6,6 +6,8 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * Item de um pedido — módulo Zapi-Food.
@@ -45,6 +47,21 @@ public class OrderItem {
 
     @Column(columnDefinition = "TEXT")
     private String notes;
+
+    /**
+     * Observação por item (ex: "sem cebola", "ponto da carne: bem passado").
+     * Canônico em pedidos de mesa a partir da fase 2; `notes` fica para uso legado/Zapi-Food.
+     */
+    @Column(columnDefinition = "TEXT")
+    private String observation;
+
+    /**
+     * Adicionais pendurados neste item (ex: cheddar, ovo). Cascade total — removido junto.
+     * Set (não List) pra evitar MultipleBagFetchException quando FoodOrder.items também é fetched.
+     */
+    @Builder.Default
+    @OneToMany(mappedBy = "orderItem", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<OrderItemAddon> addons = new LinkedHashSet<>();
 
     /** Rodada de envio à cozinha (1 = pedido original, 2+ = itens adicionados depois) */
     @Builder.Default
