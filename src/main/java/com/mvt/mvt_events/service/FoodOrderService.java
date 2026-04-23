@@ -79,6 +79,10 @@ public class FoodOrderService implements DeliveryStatusCallback {
             throw new RuntimeException("Destinatário do pedido deve ser um CLIENT (restaurante)");
         }
 
+        if (!client.getEnabled() || !client.hasBankAccount()) {
+            throw new RuntimeException("Este estabelecimento ainda não está habilitado na plataforma");
+        }
+
         // Verificar se loja está aberta
         StoreProfile store = storeProfileRepository.findByUserId(clientId).orElse(null);
         if (store != null && !store.getIsOpen()) {

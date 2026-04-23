@@ -223,6 +223,8 @@ public class StoreController {
         store.put("id", user.getId());
         store.put("name", user.getName());
         store.put("serviceType", user.getServiceType());
+        // Estabelecimento só é habilitado se o flag do usuário está ativo E ele tem conta bancária cadastrada
+        store.put("enabled", user.getEnabled() && user.hasBankAccount());
         store.put("isOpen", profile.getIsOpen());
         store.put("description", profile.getDescription());
         store.put("logoUrl", profile.getLogoUrl());

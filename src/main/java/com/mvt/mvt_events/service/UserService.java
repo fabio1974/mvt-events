@@ -1306,8 +1306,25 @@ public class UserService {
                 messages.put("serviceType", "Defina seu tipo de serviço");
             }
 
-        } else if (user.getRole() == User.Role.CUSTOMER || user.getRole() == User.Role.CLIENT) {
+        } else if (user.getRole() == User.Role.CUSTOMER) {
             // Verificar meio de pagamento (cartão ativo OU preferência PIX)
+            long activeCards = customerCardRepository.countActiveCardsByCustomerId(user.getId());
+            boolean hasPixPreference = customerPaymentPreferenceRepository.findByUserId(user.getId())
+                    .map(pref -> pref.getPreferredPaymentType() == com.mvt.mvt_events.jpa.CustomerPaymentPreference.PreferredPaymentType.PIX)
+                    .orElse(false);
+            if (activeCards == 0 && !hasPixPreference) {
+                missing.add("paymentMethod");
+                messages.put("paymentMethod", "Cadastre um meio de pagamento (cartão ou PIX)");
+            }
+
+        } else if (user.getRole() == User.Role.CLIENT) {
+            // CLIENT (estabelecimento) precisa de conta bancária para receber pagamentos
+            boolean hasBankAccount = bankAccountRepository.existsByUserId(user.getId());
+            if (!hasBankAccount) {
+                missing.add("bankAccount");
+                messages.put("bankAccount", "Cadastre sua conta bancária para começar a operar");
+            }
+            // Também precisa de meio de pagamento (para pagar couriers em corridas avulsas)
             long activeCards = customerCardRepository.countActiveCardsByCustomerId(user.getId());
             boolean hasPixPreference = customerPaymentPreferenceRepository.findByUserId(user.getId())
                     .map(pref -> pref.getPreferredPaymentType() == com.mvt.mvt_events.jpa.CustomerPaymentPreference.PreferredPaymentType.PIX)
@@ -1364,8 +1381,7 @@ public class UserService {
                 }
                 break;
 
-            case CUSTOMER:
-            case CLIENT:
+            case CUSTOMER: {
                 boolean hasActiveCard = customerCardRepository.countActiveCardsByCustomerId(user.getId()) > 0;
                 boolean hasPixPreference = customerPaymentPreferenceRepository.findByUserId(user.getId())
                         .map(pref -> pref.getPreferredPaymentType() == com.mvt.mvt_events.jpa.CustomerPaymentPreference.PreferredPaymentType.PIX)
@@ -1374,6 +1390,21 @@ public class UserService {
                     throw new RuntimeException("Cliente precisa ter cartão ativo ou preferência PIX cadastrada para ser ativado");
                 }
                 break;
+            }
+
+            case CLIENT: {
+                if (!bankAccountRepository.existsByUserId(user.getId())) {
+                    throw new RuntimeException("Estabelecimento precisa ter conta bancária cadastrada para ser ativado");
+                }
+                boolean hasActiveCard = customerCardRepository.countActiveCardsByCustomerId(user.getId()) > 0;
+                boolean hasPixPreference = customerPaymentPreferenceRepository.findByUserId(user.getId())
+                        .map(pref -> pref.getPreferredPaymentType() == com.mvt.mvt_events.jpa.CustomerPaymentPreference.PreferredPaymentType.PIX)
+                        .orElse(false);
+                if (!hasActiveCard && !hasPixPreference) {
+                    throw new RuntimeException("Estabelecimento precisa ter meio de pagamento cadastrado para ser ativado");
+                }
+                break;
+            }
 
             default:
                 break;
