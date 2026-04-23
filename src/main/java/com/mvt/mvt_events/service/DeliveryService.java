@@ -558,10 +558,25 @@ public class DeliveryService {
         // Buscar o User do courier
         User courierUser = userRepository.findById(courierId)
                 .orElseThrow(() -> new RuntimeException("Usuário courier não encontrado"));
-        
+
         // Validar se é COURIER
         if (courierUser.getRole() != User.Role.COURIER) {
             throw new RuntimeException("Usuário não é um courier");
+        }
+
+        // Batch pickup: courier pode ter N deliveries ativas, MAS todas devem ser do
+        // mesmo CLIENT (estabelecimento). Evita o courier misturar pedidos de
+        // restaurantes diferentes em uma só rota.
+        if (delivery.getClient() != null) {
+            UUID newClientId = delivery.getClient().getId();
+            java.util.List<Delivery> activeDeliveries = deliveryRepository.findActiveByCourierId(courierId);
+            boolean conflict = activeDeliveries.stream()
+                    .anyMatch(d -> d.getClient() != null && !d.getClient().getId().equals(newClientId));
+            if (conflict) {
+                throw new RuntimeException(
+                        "Você já tem entregas em andamento de outro estabelecimento. " +
+                        "Conclua-as antes de aceitar pedidos de um restaurante diferente.");
+            }
         }
 
         // Atribuir courier
