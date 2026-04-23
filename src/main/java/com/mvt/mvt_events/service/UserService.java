@@ -413,6 +413,7 @@ public class UserService {
 
                 store.setTableOrdersEnabled(spReq.getTableOrdersEnabled());
             }
+            if (spReq.getAutoPrintEnabled() != null) store.setAutoPrintEnabled(spReq.getAutoPrintEnabled());
             if (spReq.getDescription() != null) store.setDescription(spReq.getDescription());
             if (spReq.getMinOrder() != null) store.setMinOrder(spReq.getMinOrder());
             if (spReq.getAvgPreparationMinutes() != null) store.setAvgPreparationMinutes(spReq.getAvgPreparationMinutes());

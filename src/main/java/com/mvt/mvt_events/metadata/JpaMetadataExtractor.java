@@ -283,6 +283,7 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("minOrder", "Pedido Mínimo");
         FIELD_TRANSLATIONS.put("avgPreparationMinutes", "Tempo M. de Preparo (min)");
         FIELD_TRANSLATIONS.put("tableOrdersEnabled", "Módulo de Mesas");
+        FIELD_TRANSLATIONS.put("autoPrintEnabled", "Impressões Automáticas");
         FIELD_TRANSLATIONS.put("totalTables", "Total de Mesas");
         FIELD_TRANSLATIONS.put("defaultSeats", "Lugares Padrão");
         FIELD_TRANSLATIONS.put("coverUrl", "URL da Capa");

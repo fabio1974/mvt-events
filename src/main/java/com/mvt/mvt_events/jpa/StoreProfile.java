@@ -61,6 +61,14 @@ public class StoreProfile {
     @Column(name = "table_orders_enabled_at")
     private OffsetDateTime tableOrdersEnabledAt;
 
+    /**
+     * Se false, o estabelecimento pula impressões automáticas (rodada de mesa, aceite de pedido food).
+     * Impressões acionadas por botão explícito ("Imprimir", "Imprimir empacotados") ficam preservadas.
+     */
+    @Builder.Default
+    @Column(name = "auto_print_enabled", nullable = false)
+    private Boolean autoPrintEnabled = true;
+
     @Column(name = "total_tables")
     private Integer totalTables;
 

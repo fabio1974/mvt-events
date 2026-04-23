@@ -300,6 +300,17 @@ public class FoodOrder {
         } catch (Exception e) { return null; }
     }
 
+    /** Flag do estabelecimento para impressões automáticas (rodada, aceite). Default true. */
+    @com.fasterxml.jackson.annotation.JsonGetter("storeAutoPrintEnabled")
+    public Boolean getStoreAutoPrintEnabled() {
+        try {
+            if (client == null) return true;
+            com.mvt.mvt_events.jpa.StoreProfile sp = client.getStoreProfile();
+            if (sp == null || sp.getAutoPrintEnabled() == null) return true;
+            return sp.getAutoPrintEnabled();
+        } catch (Exception e) { return true; }
+    }
+
     @PrePersist
     protected void onCreate() {
         createdAt = OffsetDateTime.now();

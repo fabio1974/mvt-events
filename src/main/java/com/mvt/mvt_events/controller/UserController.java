@@ -517,6 +517,7 @@ public class UserController {
     public static class StoreProfileUpdateRequest {
         private Boolean isOpen;
         private Boolean tableOrdersEnabled;
+        private Boolean autoPrintEnabled;
         private String description;
         private java.math.BigDecimal minOrder;
         private Integer avgPreparationMinutes;
@@ -531,6 +532,7 @@ public class UserController {
     public static class StoreProfileResponse {
         private Boolean isOpen;
         private Boolean tableOrdersEnabled;
+        private Boolean autoPrintEnabled;
         private String description;
         private java.math.BigDecimal minOrder;
         private Integer avgPreparationMinutes;
@@ -543,6 +545,7 @@ public class UserController {
         public StoreProfileResponse(StoreProfile sp) {
             this.isOpen = sp.getIsOpen();
             this.tableOrdersEnabled = sp.getTableOrdersEnabled();
+            this.autoPrintEnabled = sp.getAutoPrintEnabled();
             this.tableOrdersEnabledAt = sp.getTableOrdersEnabledAt();
             this.description = sp.getDescription();
             this.minOrder = sp.getMinOrder();
