@@ -39,6 +39,7 @@ public class FoodOrderService implements DeliveryStatusCallback {
     private final GoogleDirectionsService googleDirectionsService;
     private final RestaurantTableRepository restaurantTableRepository;
     private final com.mvt.mvt_events.repository.OrderCommandRepository orderCommandRepository;
+    private final ClientWaiterRepository clientWaiterRepository;
 
     public FoodOrderService(FoodOrderRepository orderRepository, ProductRepository productRepository,
                             UserRepository userRepository, StoreProfileRepository storeProfileRepository,
@@ -47,7 +48,8 @@ public class FoodOrderService implements DeliveryStatusCallback {
                             SiteConfigurationService siteConfigurationService,
                             GoogleDirectionsService googleDirectionsService,
                             RestaurantTableRepository restaurantTableRepository,
-                            com.mvt.mvt_events.repository.OrderCommandRepository orderCommandRepository) {
+                            com.mvt.mvt_events.repository.OrderCommandRepository orderCommandRepository,
+                            ClientWaiterRepository clientWaiterRepository) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
@@ -59,6 +61,7 @@ public class FoodOrderService implements DeliveryStatusCallback {
         this.googleDirectionsService = googleDirectionsService;
         this.restaurantTableRepository = restaurantTableRepository;
         this.orderCommandRepository = orderCommandRepository;
+        this.clientWaiterRepository = clientWaiterRepository;
     }
 
     // ================================================================
@@ -397,12 +400,25 @@ public class FoodOrderService implements DeliveryStatusCallback {
     // REMOVER ITEM DO PEDIDO
     // ================================================================
 
-    public FoodOrder removeItemFromOrder(Long orderId, Long itemId) {
+    public FoodOrder removeItemFromOrder(Long orderId, Long itemId, UUID requesterId) {
         FoodOrder order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));
 
         if (order.getStatus() == FoodOrder.OrderStatus.COMPLETED || order.getStatus() == FoodOrder.OrderStatus.CANCELLED) {
             throw new RuntimeException("Pedido já está " + order.getStatus().name());
+        }
+
+        // Guarda: se o solicitante é WAITER, exige permissão canCancelItem no link com o CLIENT do pedido
+        if (requesterId != null && order.getClient() != null) {
+            User requester = userRepository.findById(requesterId).orElse(null);
+            if (requester != null && requester.getRole() == User.Role.WAITER) {
+                ClientWaiter link = clientWaiterRepository
+                        .findByClientAndWaiter(order.getClient(), requester)
+                        .orElseThrow(() -> new RuntimeException("Garçom não vinculado a este estabelecimento"));
+                if (!link.isCanCancelItem()) {
+                    throw new RuntimeException("Garçom não tem permissão para cancelar itens deste estabelecimento");
+                }
+            }
         }
 
         OrderItem item = order.getItems().stream()

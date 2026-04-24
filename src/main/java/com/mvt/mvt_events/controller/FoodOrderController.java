@@ -227,7 +227,8 @@ public class FoodOrderController {
             @PathVariable Long itemId,
             Authentication authentication) {
         try {
-            FoodOrder order = orderService.removeItemFromOrder(orderId, itemId);
+            User user = (User) authentication.getPrincipal();
+            FoodOrder order = orderService.removeItemFromOrder(orderId, itemId, user.getId());
             return ResponseEntity.ok(order);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));

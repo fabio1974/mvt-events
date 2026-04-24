@@ -40,6 +40,10 @@ public class ClientWaiter extends BaseEntity {
     @Visible(table = true, form = true, filter = true)
     private boolean active = true;
 
+    @Column(name = "can_cancel_item", nullable = false)
+    @Visible(table = true, form = true, filter = true)
+    private boolean canCancelItem = true;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now(ZoneId.of("America/Fortaleza"));
 }

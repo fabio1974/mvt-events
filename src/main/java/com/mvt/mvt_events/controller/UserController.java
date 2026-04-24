@@ -162,6 +162,27 @@ public class UserController {
         }
     }
 
+    @PatchMapping("/my-waiters/{waiterId}/permissions")
+    @Operation(summary = "Atualizar permissões do garçom",
+               description = "CLIENT: toggle de permissões (ex: canCancelItem) do garçom no estabelecimento.")
+    public ResponseEntity<?> updateWaiterPermissions(
+            @PathVariable UUID waiterId,
+            @RequestBody WaiterPermissionsRequest request,
+            Authentication authentication) {
+        try {
+            WaiterForClientResponse response = userService.updateWaiterPermissions(waiterId, request, authentication);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Data
+    @NoArgsConstructor
+    public static class WaiterPermissionsRequest {
+        private Boolean canCancelItem;
+    }
+
     @GetMapping("/waiter/my-establishments")
     @Operation(summary = "Estabelecimentos do garçom",
                description = "WAITER: lista CLIENTs vinculados diretamente ao garçom.")
@@ -850,6 +871,7 @@ public class UserController {
         private String documentNumber;
         private Boolean isActive;
         private String linkedAt;
+        private Boolean canCancelItem;
 
         public WaiterForClientResponse(User waiter, com.mvt.mvt_events.jpa.ClientWaiter link) {
             this.id = waiter.getId();
@@ -862,6 +884,7 @@ public class UserController {
             if (link != null) {
                 this.isActive = link.isActive();
                 this.linkedAt = link.getCreatedAt() != null ? link.getCreatedAt().toString() : null;
+                this.canCancelItem = link.isCanCancelItem();
             }
         }
     }
@@ -914,6 +937,9 @@ public class UserController {
         private String startDate;       // Data de início do contrato
         private String endDate;         // Data de fim do contrato (opcional)
 
+        // Permissões do garçom neste estabelecimento (preenchido só no contexto WAITER)
+        private Boolean canCancelItem;
+
         public ClientForOrganizerResponse(User client, com.mvt.mvt_events.jpa.ClientContract contract) {
             this.id = client.getId();
             this.name = client.getName();
@@ -934,6 +960,17 @@ public class UserController {
                 this.isPrimary = contract.isPrimary();
                 this.startDate = contract.getStartDate() != null ? contract.getStartDate().toString() : null;
                 this.endDate = contract.getEndDate() != null ? contract.getEndDate().toString() : null;
+            }
+        }
+
+        /** Construtor usado no contexto WAITER: popula contrato + permissões do link. */
+        public ClientForOrganizerResponse(
+                User client,
+                com.mvt.mvt_events.jpa.ClientContract contract,
+                com.mvt.mvt_events.jpa.ClientWaiter link) {
+            this(client, contract);
+            if (link != null) {
+                this.canCancelItem = link.isCanCancelItem();
             }
         }
     }

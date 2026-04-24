@@ -1187,6 +1187,35 @@ public class UserService {
         return new com.mvt.mvt_events.controller.UserController.WaiterForClientResponse(waiter, link);
     }
 
+    /** CLIENT atualiza permissões do garçom vinculado ao seu estabelecimento */
+    public com.mvt.mvt_events.controller.UserController.WaiterForClientResponse updateWaiterPermissions(
+            UUID waiterId,
+            com.mvt.mvt_events.controller.UserController.WaiterPermissionsRequest request,
+            Authentication authentication) {
+
+        String currentUsername = authentication.getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado"));
+
+        if (currentUser.getRole() != User.Role.CLIENT && !currentUser.isAdmin()) {
+            throw new RuntimeException("Apenas estabelecimentos (CLIENT) podem alterar permissões de garçons");
+        }
+
+        User waiter = userRepository.findById(waiterId)
+                .orElseThrow(() -> new RuntimeException("Garçom não encontrado"));
+
+        com.mvt.mvt_events.jpa.ClientWaiter link =
+                clientWaiterRepository.findByClientAndWaiter(currentUser, waiter)
+                        .orElseThrow(() -> new RuntimeException("Garçom não está vinculado ao seu estabelecimento"));
+
+        if (request.getCanCancelItem() != null) {
+            link.setCanCancelItem(request.getCanCancelItem());
+        }
+        link = clientWaiterRepository.save(link);
+
+        return new com.mvt.mvt_events.controller.UserController.WaiterForClientResponse(waiter, link);
+    }
+
     /** CLIENT remove garçom do seu estabelecimento */
     public void removeWaiterFromClient(UUID waiterId, Authentication authentication) {
 
@@ -1236,7 +1265,7 @@ public class UserService {
                             clientContractRepository.findActiveByClientId(link.getClient().getId());
                     com.mvt.mvt_events.jpa.ClientContract cc = contracts.isEmpty() ? null : contracts.get(0);
                     return new com.mvt.mvt_events.controller.UserController.ClientForOrganizerResponse(
-                            link.getClient(), cc);
+                            link.getClient(), cc, link);
                 })
                 .collect(java.util.stream.Collectors.toList());
     }
