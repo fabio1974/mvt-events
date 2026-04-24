@@ -541,4 +541,237 @@ class FoodOrderServiceTest {
             verify(orderRepository, never()).save(any());
         }
     }
+
+    // ================================================================
+    // CREATE() — VALIDAÇÃO DE DISTÂNCIA MÍNIMA E ORIGEM FIXA
+    // ================================================================
+
+    /**
+     * Cobertura do bug do Text Burger em produção: o BE estava usando
+     * {@code client.getGpsLatitude()} (posição LIVE do dono) em vez das
+     * coordenadas fixas do endereço cadastrado. Quando o dono abria o app
+     * em outra cidade, pedidos legítimos eram bloqueados por "38m de distância".
+     *
+     * Estes testes amarram:
+     *  1. Coordenadas do restaurante vêm SEMPRE do {@code Address} default (fixo)
+     *  2. GPS do dono é usado apenas como fallback quando não há Address
+     *  3. Distância é medida via Google Directions (rota rodável), não haversine
+     *  4. Haversine é fallback só se a Directions API retornar -1
+     *  5. Limite mínimo é configurável via {@code SiteConfiguration}; zero desliga
+     */
+    @Nested
+    @DisplayName("create() — validação de distância usando endereço fixo do estabelecimento")
+    class CreateOrderDistanceValidation {
+
+        // Endereço fixo do restaurante em Ubajara, CE
+        private static final double STORE_ADDRESS_LAT = -3.854;
+        private static final double STORE_ADDRESS_LNG = -40.922;
+
+        // GPS do dono do restaurante em Fortaleza (sobrescrito por uso recente do app)
+        // — propositalmente em lugar diferente do Address, pra detectar uso indevido
+        private static final double OWNER_GPS_LAT = -3.731;
+        private static final double OWNER_GPS_LNG = -38.526;
+
+        // Endereço de entrega do customer (também em Fortaleza, perto do GPS do dono)
+        // Se o BE usasse GPS do dono: distância ~100m → pedido seria bloqueado (BUG)
+        // Se o BE usa Address do restaurante: distância ~500km → pedido passa (CORRETO)
+        private static final double CUSTOMER_DELIVERY_LAT = -3.732;
+        private static final double CUSTOMER_DELIVERY_LNG = -38.527;
+
+        private User client;
+        private User customer;
+        private Product product;
+        private SiteConfiguration siteConfig;
+
+        @BeforeEach
+        void setup() {
+            // Cliente (restaurante) com Address em Ubajara e GPS em Fortaleza
+            client = new User();
+            client.setId(clientId);
+            client.setName("Text Burger");
+            client.setRole(User.Role.CLIENT);
+            client.setEnabled(true);
+            client.setGpsLatitude(OWNER_GPS_LAT);
+            client.setGpsLongitude(OWNER_GPS_LNG);
+            // BankAccount mock — só pra passar em hasBankAccount()
+            BankAccount bank = new BankAccount();
+            client.setBankAccount(bank);
+
+            Address addr = new Address();
+            addr.setStreet("Av. Constituintes");
+            addr.setNumber("360");
+            addr.setLatitude(STORE_ADDRESS_LAT);
+            addr.setLongitude(STORE_ADDRESS_LNG);
+            addr.setIsDefault(true);
+            addr.setUser(client);
+            client.addAddress(addr);
+
+            // Customer
+            customer = new User();
+            customer.setId(customerId);
+            customer.setName("João Cliente");
+            customer.setRole(User.Role.CUSTOMER);
+
+            // Product do restaurante
+            product = new Product();
+            product.setId(1L);
+            product.setName("Tex Bacon");
+            product.setPrice(BigDecimal.valueOf(20.00));
+            product.setAvailable(true);
+            product.setClient(client);
+
+            // SiteConfig default: 50m mínimo + campos obrigatórios pra taxa de entrega
+            siteConfig = new SiteConfiguration();
+            siteConfig.setMinOrderDistanceMeters(50);
+            siteConfig.setPricePerKm(BigDecimal.valueOf(1.50));
+            siteConfig.setMinimumShippingFee(BigDecimal.valueOf(5.00));
+
+            // Mocks comuns
+            when(userRepository.findById(customerId)).thenReturn(Optional.of(customer));
+            when(userRepository.findById(clientId)).thenReturn(Optional.of(client));
+            when(storeProfileRepository.findByUserId(clientId)).thenReturn(Optional.empty());
+            when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+            when(siteConfigurationService.getActiveConfiguration()).thenReturn(siteConfig);
+            when(orderRepository.save(any(FoodOrder.class))).thenAnswer(inv -> {
+                FoodOrder o = inv.getArgument(0);
+                o.setId(999L);
+                return o;
+            });
+        }
+
+        private List<FoodOrderService.OrderItemRequest> oneItem() {
+            FoodOrderService.OrderItemRequest req = new FoodOrderService.OrderItemRequest();
+            req.productId = 1L;
+            req.quantity = 1;
+            return List.of(req);
+        }
+
+        @Test
+        @DisplayName("usa Address fixo do restaurante, não GPS do dono (bug Text Burger)")
+        void usaEnderecoFixoDoClientNaoGps() {
+            // Google Directions é chamado com as coords do ADDRESS do restaurante (Ubajara),
+            // NÃO com o GPS do dono (Fortaleza). Se o BE passar GPS do dono,
+            // o verify() abaixo vai falhar.
+            when(googleDirectionsService.getDistanceMeters(
+                    eq(CUSTOMER_DELIVERY_LAT), eq(CUSTOMER_DELIVERY_LNG),
+                    eq(STORE_ADDRESS_LAT), eq(STORE_ADDRESS_LNG)))
+                    .thenReturn(500_000); // 500 km — distância realista Fortaleza→Ubajara
+
+            FoodOrder order = foodOrderService.create(
+                    customerId, clientId, oneItem(), null,
+                    "Rua 31 de Dezembro - Fortaleza/CE",
+                    CUSTOMER_DELIVERY_LAT, CUSTOMER_DELIVERY_LNG);
+
+            assertThat(order).isNotNull();
+            assertThat(order.getStatus()).isEqualTo(FoodOrder.OrderStatus.PLACED);
+
+            // Prova que foi a Directions API com as coords do Address, não do GPS
+            verify(googleDirectionsService).getDistanceMeters(
+                    eq(CUSTOMER_DELIVERY_LAT), eq(CUSTOMER_DELIVERY_LNG),
+                    eq(STORE_ADDRESS_LAT), eq(STORE_ADDRESS_LNG));
+            verify(googleDirectionsService, never()).getDistanceMeters(
+                    anyDouble(), anyDouble(),
+                    eq(OWNER_GPS_LAT), eq(OWNER_GPS_LNG));
+        }
+
+        @Test
+        @DisplayName("cai pro GPS do dono quando Address não tem lat/lng")
+        void caiNoGpsQuandoAddressSemCoords() {
+            // Remove coords do Address — simula restaurante sem endereço geocodificado
+            Address addr = client.getAddress();
+            addr.setLatitude(null);
+            addr.setLongitude(null);
+
+            when(googleDirectionsService.getDistanceMeters(
+                    anyDouble(), anyDouble(),
+                    eq(OWNER_GPS_LAT), eq(OWNER_GPS_LNG)))
+                    .thenReturn(5_000);
+
+            FoodOrder order = foodOrderService.create(
+                    customerId, clientId, oneItem(), null,
+                    "destino qualquer", CUSTOMER_DELIVERY_LAT, CUSTOMER_DELIVERY_LNG);
+
+            assertThat(order).isNotNull();
+            verify(googleDirectionsService).getDistanceMeters(
+                    eq(CUSTOMER_DELIVERY_LAT), eq(CUSTOMER_DELIVERY_LNG),
+                    eq(OWNER_GPS_LAT), eq(OWNER_GPS_LNG));
+        }
+
+        @Test
+        @DisplayName("bloqueia pedido quando distância Directions < mínimo")
+        void bloqueiaQuandoDistanciaMenorQueMinimo() {
+            when(googleDirectionsService.getDistanceMeters(
+                    anyDouble(), anyDouble(), anyDouble(), anyDouble()))
+                    .thenReturn(30); // 30m — abaixo do mínimo de 50m
+
+            assertThatThrownBy(() -> foodOrderService.create(
+                    customerId, clientId, oneItem(), null,
+                    "destino perto", CUSTOMER_DELIVERY_LAT, CUSTOMER_DELIVERY_LNG))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("muito próximo")
+                    .hasMessageContaining("30m");
+
+            verify(orderRepository, never()).save(any(FoodOrder.class));
+        }
+
+        @Test
+        @DisplayName("permite pedido quando minOrderDistanceMeters = 0 (validação desligada)")
+        void permiteQuandoMinZero() {
+            siteConfig.setMinOrderDistanceMeters(0);
+
+            FoodOrder order = foodOrderService.create(
+                    customerId, clientId, oneItem(), null,
+                    "destino super perto",
+                    STORE_ADDRESS_LAT + 0.00001, STORE_ADDRESS_LNG + 0.00001);
+
+            assertThat(order).isNotNull();
+            // Directions nem deve ser chamada quando min=0
+            verify(googleDirectionsService, never()).getDistanceMeters(
+                    anyDouble(), anyDouble(), anyDouble(), anyDouble());
+        }
+
+        @Test
+        @DisplayName("usa Google Directions primeiro, haversine só como fallback")
+        void usaDirectionsAntesDeHaversine() {
+            when(googleDirectionsService.getDistanceMeters(
+                    anyDouble(), anyDouble(), anyDouble(), anyDouble()))
+                    .thenReturn(10_000); // 10 km
+
+            foodOrderService.create(
+                    customerId, clientId, oneItem(), null,
+                    "destino", CUSTOMER_DELIVERY_LAT, CUSTOMER_DELIVERY_LNG);
+
+            verify(googleDirectionsService).getDistanceMeters(
+                    anyDouble(), anyDouble(), anyDouble(), anyDouble());
+        }
+
+        @Test
+        @DisplayName("fallback pro haversine quando Directions retorna -1")
+        void fallbackHaversineQuandoDirectionsFalha() {
+            // Directions indisponível (API down ou key não configurada)
+            when(googleDirectionsService.getDistanceMeters(
+                    anyDouble(), anyDouble(), anyDouble(), anyDouble()))
+                    .thenReturn(-1);
+
+            // Coords realistas: Fortaleza → Ubajara em linha reta = centenas de km
+            // Haversine vai retornar algo >> 50m, então a validação passa
+            FoodOrder order = foodOrderService.create(
+                    customerId, clientId, oneItem(), null,
+                    "destino distante", CUSTOMER_DELIVERY_LAT, CUSTOMER_DELIVERY_LNG);
+
+            assertThat(order).isNotNull();
+            verify(googleDirectionsService).getDistanceMeters(
+                    anyDouble(), anyDouble(), anyDouble(), anyDouble());
+        }
+
+        @Test
+        @DisplayName("exige coordenadas de entrega — lança se ambas null")
+        void exigeCoordenadasDeEntrega() {
+            assertThatThrownBy(() -> foodOrderService.create(
+                    customerId, clientId, oneItem(), null,
+                    "endereço sem coords", null, null))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("endereço de entrega");
+        }
+    }
 }

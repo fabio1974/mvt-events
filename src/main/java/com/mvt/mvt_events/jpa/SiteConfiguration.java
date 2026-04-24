@@ -197,6 +197,21 @@ public class SiteConfiguration extends BaseEntity {
     @Visible(table = true, form = true, filter = false)
     private Integer deliveryHistoryDays = 7;
 
+    /**
+     * Distância mínima (em metros) entre origem e destino. Aplicada a:
+     * - Pedidos Zapi-Food (endereço de entrega × endereço do restaurante)
+     * - Corridas de entrega (ponto de coleta × destino)
+     * - Corridas de passageiro (pickup × dropoff)
+     * Protege contra ruído de GPS (smartphone oscila ~30-50m).
+     * Default 50m. Zero desliga a validação por completo.
+     */
+    @NotNull(message = "Distância mínima para pedidos é obrigatória")
+    @Min(value = 0, message = "Distância mínima não pode ser negativa")
+    @Max(value = 5000, message = "Distância mínima não pode exceder 5000 metros")
+    @Column(name = "min_order_distance_meters", nullable = false)
+    @Visible(table = true, form = true, filter = false)
+    private Integer minOrderDistanceMeters = 50;
+
     @PrePersist
     protected void onCreate() {
         if (isActive == null) {

@@ -183,6 +183,22 @@ public class DeliveryService {
             throw new RuntimeException("Apenas estabelecimentos (CLIENT) podem criar entregas com múltiplas paradas");
         }
 
+        // Validar distância mínima entre origem e destino (protege contra ruído de GPS).
+        // Limite vem de SiteConfiguration.minOrderDistanceMeters (default 50m). Zero desliga.
+        if (delivery.getDistanceKm() != null && delivery.getDistanceKm().compareTo(BigDecimal.ZERO) > 0) {
+            int minDistMeters = siteConfigurationService.getActiveConfiguration()
+                    .getMinOrderDistanceMeters();
+            if (minDistMeters > 0) {
+                int meters = delivery.getDistanceKm()
+                        .multiply(BigDecimal.valueOf(1000))
+                        .intValue();
+                if (meters < minDistMeters) {
+                    throw new RuntimeException("A distância da corrida é muito curta ("
+                            + meters + "m). Distância mínima: " + minDistMeters + "m.");
+                }
+            }
+        }
+
         // Calcular o frete automaticamente baseado na distância e configuração ativa
         if (delivery.getDistanceKm() != null && delivery.getDistanceKm().compareTo(BigDecimal.ZERO) > 0) {
             SiteConfiguration activeConfig = siteConfigurationService.getActiveConfiguration();

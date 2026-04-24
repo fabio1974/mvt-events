@@ -97,16 +97,35 @@ public class FoodOrderService implements DeliveryStatusCallback {
         Double destLng = deliveryLng != null ? deliveryLng : customer.getGpsLongitude();
         String destAddr = deliveryAddress != null ? deliveryAddress : customer.getName();
 
-        // Validar distância mínima entre destino e restaurante (200m)
-        if (destLat != null && destLng != null
-                && client.getGpsLatitude() != null && client.getGpsLongitude() != null) {
-            double distMeters = haversineKm(destLat, destLng,
-                    client.getGpsLatitude(), client.getGpsLongitude()) * 1000;
-            if (distMeters < 200) {
-                throw new RuntimeException("O endereço de entrega está muito próximo do restaurante (" + Math.round(distMeters) + "m). Escolha outro endereço.");
-            }
-        } else if (destLat == null || destLng == null) {
+        // Valida coordenadas de entrega
+        if (destLat == null || destLng == null) {
             throw new RuntimeException("Informe o endereço de entrega para fazer pedidos.");
+        }
+
+        // Coordenadas do estabelecimento: prefere endereço fixo (Address), cai pro GPS só se não houver
+        Address storeAddress = client.getAddress();
+        Double storeLat = storeAddress != null && storeAddress.getLatitude() != null
+                ? storeAddress.getLatitude() : client.getGpsLatitude();
+        Double storeLng = storeAddress != null && storeAddress.getLongitude() != null
+                ? storeAddress.getLongitude() : client.getGpsLongitude();
+
+        // Validar distância mínima entre destino e restaurante usando rota do Google.
+        // O limite vem de SiteConfiguration (default 50m). Zero desliga a validação.
+        int minDistMeters = siteConfigurationService.getActiveConfiguration()
+                .getMinOrderDistanceMeters();
+        if (minDistMeters > 0 && storeLat != null && storeLng != null) {
+            int distMeters = googleDirectionsService.getDistanceMeters(
+                    destLat, destLng, storeLat, storeLng);
+            if (distMeters < 0) {
+                // Fallback: haversine em linha reta se Google Directions indisponível
+                distMeters = (int) Math.round(
+                        haversineKm(destLat, destLng, storeLat, storeLng) * 1000);
+                log.info("📍 Directions indisponível, validando distância via haversine: {}m", distMeters);
+            }
+            if (distMeters < minDistMeters) {
+                throw new RuntimeException("O endereço de entrega está muito próximo do restaurante ("
+                        + distMeters + "m). Escolha outro endereço.");
+            }
         }
 
         // Montar itens e calcular subtotal

@@ -100,6 +100,45 @@ public class GoogleDirectionsService {
     }
 
     /**
+     * Retorna a distância rodável em metros entre origem e destino.
+     * Usa routes[0].legs[0].distance.value da Directions API.
+     * Retorna -1 se a API não estiver configurada, falhar, ou retornar status != OK.
+     */
+    public int getDistanceMeters(double originLat, double originLng,
+                                 double destLat, double destLng) {
+        if (apiKey == null || apiKey.isBlank()) {
+            log.warn("⚠️ Google Maps API key not configured — cannot compute driving distance");
+            return -1;
+        }
+        try {
+            String url = UriComponentsBuilder.fromHttpUrl(DIRECTIONS_URL)
+                    .queryParam("origin", originLat + "," + originLng)
+                    .queryParam("destination", destLat + "," + destLng)
+                    .queryParam("mode", "driving")
+                    .queryParam("language", "pt-BR")
+                    .queryParam("key", apiKey)
+                    .toUriString();
+            String response = restTemplate.getForObject(url, String.class);
+            if (response == null) return -1;
+            JsonNode root = objectMapper.readTree(response);
+            String status = root.path("status").asText();
+            if (!"OK".equals(status)) {
+                log.warn("⚠️ Google Directions distance status={} for ({},{})→({},{})",
+                        status, originLat, originLng, destLat, destLng);
+                return -1;
+            }
+            JsonNode leg = root.path("routes").get(0).path("legs").get(0);
+            int meters = leg.path("distance").path("value").asInt(-1);
+            log.debug("📍 Directions distance ({},{})→({},{}) = {}m",
+                    originLat, originLng, destLat, destLng, meters);
+            return meters;
+        } catch (Exception e) {
+            log.warn("⚠️ Failed to fetch Google Directions distance: {}", e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
      * Decodes a Google Maps encoded polyline string into a list of [lat, lng] pairs.
      */
     public static List<double[]> decodePolyline(String encoded) {
