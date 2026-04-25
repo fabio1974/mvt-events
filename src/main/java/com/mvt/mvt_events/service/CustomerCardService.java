@@ -47,6 +47,7 @@ public class CustomerCardService {
     private final com.mvt.mvt_events.repository.DeliveryRepository deliveryRepository;
     private final com.mvt.mvt_events.repository.PaymentRepository paymentRepository;
     private final com.mvt.mvt_events.service.SiteConfigurationService siteConfigurationService;
+    private final UserActivationService userActivationService;
     private final TransactionTemplate transactionTemplate;
 
     /**
@@ -133,7 +134,8 @@ public class CustomerCardService {
         } else {
             log.info("   └─ Cartão {} NÃO é default (cliente já tem outros cartões)", saved.getId());
         }
-        
+
+        userActivationService.recalculate(customer.getId());
         return saved;
     }
     
@@ -482,7 +484,8 @@ public class CustomerCardService {
             
             log.info("   └─ Cartão {} definido como DEFAULT via preference", saved.getId());
         }
-        
+
+        userActivationService.recalculate(customer.getId());
         return saved;
     }
 
@@ -549,6 +552,7 @@ public class CustomerCardService {
         preferenceRepository.save(pref);
 
         log.info("✅ Cartão {} definido como padrão para customer {} (atualizado em customer_payment_preferences)", cardId, customerId);
+        userActivationService.recalculate(customerId);
         return card;
     }
 
@@ -611,6 +615,8 @@ public class CustomerCardService {
                 }
             }
         });
+
+        userActivationService.recalculate(customerId);
     }
 
     /**

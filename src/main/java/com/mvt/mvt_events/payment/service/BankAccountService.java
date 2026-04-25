@@ -13,6 +13,7 @@ import com.mvt.mvt_events.repository.AddressRepository;
 import com.mvt.mvt_events.repository.BankAccountRepository;
 import com.mvt.mvt_events.repository.CityRepository;
 import com.mvt.mvt_events.repository.UserRepository;
+import com.mvt.mvt_events.service.UserActivationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,7 @@ public class BankAccountService {
     private final AddressRepository addressRepository;
     private final CityRepository cityRepository;
     private final PagarMeService pagarMeService;
+    private final UserActivationService userActivationService;
 
     /**
      * Cadastra dados bancários e cria recipient no Pagar.me
@@ -176,7 +178,7 @@ public class BankAccountService {
             
             log.info("   ├─ ✅ Recipient Pagar.me criado: {}", recipientId);
             log.info("   └─ ✅ Status: ACTIVE");
-            
+
         } catch (Exception e) {
             log.error("   └─ ❌ Erro ao criar recipient Pagar.me: {}", e.getMessage());
             // Marca como bloqueada mas mantém o cadastro local
@@ -184,7 +186,8 @@ public class BankAccountService {
             bankAccount = bankAccountRepository.save(bankAccount);
             throw new RuntimeException("Falha ao criar recipient no Pagar.me", e);
         }
-        
+
+        userActivationService.recalculate(user.getId());
         return bankAccount;
     }
 
@@ -357,6 +360,7 @@ public class BankAccountService {
         }
         
         log.info("   └─ ✅ Dados bancários atualizados com sucesso");
+        userActivationService.recalculate(user.getId());
         return bankAccount;
     }
 }

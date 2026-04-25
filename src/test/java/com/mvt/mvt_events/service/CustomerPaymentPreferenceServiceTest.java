@@ -32,6 +32,7 @@ class CustomerPaymentPreferenceServiceTest {
     @Mock private CustomerPaymentPreferenceRepository preferenceRepository;
     @Mock private CustomerCardRepository cardRepository;
     @Mock private UserRepository userRepository;
+    @Mock private UserActivationService userActivationService;
 
     @InjectMocks
     private CustomerPaymentPreferenceService service;

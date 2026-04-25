@@ -43,6 +43,7 @@ class CustomerCardServiceTest {
     @Mock private DeliveryRepository deliveryRepository;
     @Mock private PaymentRepository paymentRepository;
     @Mock private SiteConfigurationService siteConfigurationService;
+    @Mock private UserActivationService userActivationService;
     @Mock private TransactionTemplate transactionTemplate;
 
     @InjectMocks

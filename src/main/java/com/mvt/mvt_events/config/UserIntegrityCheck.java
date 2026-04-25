@@ -24,7 +24,8 @@ public class UserIntegrityCheck {
 
     @EventListener(ApplicationReadyEvent.class)
     public void checkUsersIntegrity() {
-        int total = 0;
+        int totalDisabled = 0;
+        int totalReenabled = 0;
 
         // === ORGANIZER: conta bancária + dados de saque ===
         int orgNoBankAccount = jdbcTemplate.update(
@@ -37,10 +38,20 @@ public class UserIntegrityCheck {
             "WHERE role = 'ORGANIZER' AND enabled = true " +
             "AND (pagarme_recipient_id IS NULL OR pagarme_status != 'active')"
         );
-        total += orgNoBankAccount + orgNoTransfer;
+        int orgReenabled = jdbcTemplate.update(
+            "UPDATE users SET enabled = true " +
+            "WHERE role = 'ORGANIZER' AND enabled = false AND blocked = false AND deleted_at IS NULL " +
+            "AND id IN (SELECT user_id FROM bank_accounts) " +
+            "AND pagarme_recipient_id IS NOT NULL AND pagarme_status = 'active'"
+        );
+        totalDisabled += orgNoBankAccount + orgNoTransfer;
+        totalReenabled += orgReenabled;
         if (orgNoBankAccount + orgNoTransfer > 0) {
             log.warn("[INTEGRITY] ORGANIZER: {} desativado(s) — {} sem conta bancária, {} sem dados de saque",
                     orgNoBankAccount + orgNoTransfer, orgNoBankAccount, orgNoTransfer);
+        }
+        if (orgReenabled > 0) {
+            log.warn("[INTEGRITY] ORGANIZER: {} reativado(s) — passaram a cumprir todos os requisitos", orgReenabled);
         }
 
         // === COURIER: conta bancária + dados de saque + veículo + tipo de serviço ===
@@ -64,11 +75,23 @@ public class UserIntegrityCheck {
             "WHERE role = 'COURIER' AND enabled = true " +
             "AND service_type IS NULL"
         );
+        int courReenabled = jdbcTemplate.update(
+            "UPDATE users SET enabled = true " +
+            "WHERE role = 'COURIER' AND enabled = false AND blocked = false AND deleted_at IS NULL " +
+            "AND id IN (SELECT user_id FROM bank_accounts) " +
+            "AND pagarme_recipient_id IS NOT NULL AND pagarme_status = 'active' " +
+            "AND id IN (SELECT owner_id FROM vehicles) " +
+            "AND service_type IS NOT NULL"
+        );
         int courTotal = courNoBankAccount + courNoTransfer + courNoVehicle + courNoServiceType;
-        total += courTotal;
+        totalDisabled += courTotal;
+        totalReenabled += courReenabled;
         if (courTotal > 0) {
             log.warn("[INTEGRITY] COURIER: {} desativado(s) — {} sem conta bancária, {} sem dados de saque, {} sem veículo, {} sem tipo de serviço",
                     courTotal, courNoBankAccount, courNoTransfer, courNoVehicle, courNoServiceType);
+        }
+        if (courReenabled > 0) {
+            log.warn("[INTEGRITY] COURIER: {} reativado(s) — passaram a cumprir todos os requisitos", courReenabled);
         }
 
         // === CUSTOMER / CLIENT: cartão ativo OU preferência PIX ===
@@ -78,13 +101,23 @@ public class UserIntegrityCheck {
             "AND id NOT IN (SELECT customer_id FROM customer_cards WHERE is_active = true) " +
             "AND id NOT IN (SELECT user_id FROM customer_payment_preferences WHERE preferred_payment_type = 'PIX')"
         );
-        total += custNoPayment;
+        int custReenabled = jdbcTemplate.update(
+            "UPDATE users SET enabled = true " +
+            "WHERE role IN ('CUSTOMER', 'CLIENT') AND enabled = false AND blocked = false AND deleted_at IS NULL " +
+            "AND (id IN (SELECT customer_id FROM customer_cards WHERE is_active = true) " +
+            "  OR id IN (SELECT user_id FROM customer_payment_preferences WHERE preferred_payment_type = 'PIX'))"
+        );
+        totalDisabled += custNoPayment;
+        totalReenabled += custReenabled;
         if (custNoPayment > 0) {
             log.warn("[INTEGRITY] CUSTOMER/CLIENT: {} desativado(s) — sem cartão ativo e sem preferência PIX", custNoPayment);
         }
+        if (custReenabled > 0) {
+            log.warn("[INTEGRITY] CUSTOMER/CLIENT: {} reativado(s) — passaram a ter meio de pagamento", custReenabled);
+        }
 
-        if (total == 0) {
-            log.info("[INTEGRITY] Todos os usuários ativos possuem os requisitos obrigatórios");
+        if (totalDisabled == 0 && totalReenabled == 0) {
+            log.info("[INTEGRITY] Todos os usuários estão consistentes com seus requisitos");
         }
 
         // === DELIVERY INTEGRITY: PENDING jamais pode ter courier atrelado ===

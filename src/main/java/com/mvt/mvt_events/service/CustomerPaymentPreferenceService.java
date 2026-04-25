@@ -26,6 +26,7 @@ public class CustomerPaymentPreferenceService {
     private final CustomerPaymentPreferenceRepository preferenceRepository;
     private final CustomerCardRepository cardRepository;
     private final UserRepository userRepository;
+    private final UserActivationService userActivationService;
 
     /**
      * Busca a preferência de pagamento do cliente.
@@ -97,7 +98,9 @@ public class CustomerPaymentPreferenceService {
             log.info("Preferência atualizada para PIX para usuário {}", userId);
         }
 
-        return preferenceRepository.save(preference);
+        CustomerPaymentPreference saved = preferenceRepository.save(preference);
+        userActivationService.recalculate(userId);
+        return saved;
     }
 
     /**

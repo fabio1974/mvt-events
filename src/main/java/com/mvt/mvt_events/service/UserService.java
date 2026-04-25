@@ -76,6 +76,9 @@ public class UserService {
     @Autowired
     private BillingService billingService;
 
+    @Autowired
+    private UserActivationService userActivationService;
+
     public List<User> findAll() {
         return userRepository.findAll();
     }
@@ -526,6 +529,12 @@ public class UserService {
         }
 
         User savedUser = userRepository.save(user);
+
+        // Recalcula enabled — caso serviceType, pagarme ou outros prereqs tenham mudado.
+        // Ignora request.getEnabled() explícito (já tratado acima via validateActivationRequirements).
+        if (request.getEnabled() == null) {
+            userActivationService.recalculate(savedUser.getId());
+        }
 
         // Force load da city via address para evitar lazy loading
         if (savedUser.getAddress() != null && savedUser.getAddress().getCity() != null) {

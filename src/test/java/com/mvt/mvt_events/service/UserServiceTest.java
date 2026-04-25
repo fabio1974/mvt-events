@@ -42,6 +42,7 @@ class UserServiceTest {
     @Mock private DeliveryRepository deliveryRepository;
     @Mock private PlannedRouteService plannedRouteService;
     @Mock private OrganizationRepository organizationRepository;
+    @Mock private UserActivationService userActivationService;
 
     @InjectMocks
     private UserService userService;

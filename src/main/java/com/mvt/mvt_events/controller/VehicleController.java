@@ -7,6 +7,7 @@ import com.mvt.mvt_events.jpa.VehicleColor;
 import com.mvt.mvt_events.jpa.VehicleType;
 import com.mvt.mvt_events.repository.UserRepository;
 import com.mvt.mvt_events.repository.VehicleRepository;
+import com.mvt.mvt_events.service.UserActivationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityManager;
@@ -38,6 +39,7 @@ public class VehicleController {
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final EntityManager entityManager;
+    private final UserActivationService userActivationService;
 
     /**
      * DTO para resposta de veículo
@@ -192,9 +194,11 @@ public class VehicleController {
                 .build();
         
         Vehicle saved = vehicleRepository.save(vehicle);
-        log.info("✅ Veículo cadastrado: {} - Proprietário: {} - Agora é o veículo ativo", 
+        log.info("✅ Veículo cadastrado: {} - Proprietário: {} - Agora é o veículo ativo",
                 saved.getPlate(), owner.getName());
-        
+
+        userActivationService.recalculate(owner.getId());
+
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(saved));
     }
 
