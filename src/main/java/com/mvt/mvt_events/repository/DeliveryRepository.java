@@ -479,10 +479,16 @@ public interface DeliveryRepository
         /**
          * Inicializa approach_route no ACCEPTED com a posição GPS atual do entregador.
          * Sobrescreve accepted_at com o timestamp exato da captura GPS — alinha ponto A com tempo A para cálculo de ETA.
+         *
+         * <p>O parâmetro {@code acceptedAt} substitui o antigo {@code NOW()}: passar um
+         * {@link OffsetDateTime} via JDBC bind respeita {@code hibernate.jdbc.time_zone=UTC}
+         * e fica consistente com os outros writes da entidade. Usar {@code NOW()} aqui
+         * gravava na session TZ do Postgres (que herdava do JVM = Fortaleza) e produzia
+         * timestamps inconsistentes com o resto da delivery.</p>
          */
         @Modifying
-        @Query(value = "UPDATE deliveries SET approach_route = ST_MakeLine(ST_SetSRID(ST_MakePointM(:lng, :lat, :epoch), 4326), ST_SetSRID(ST_MakePointM(:lng, :lat, :epoch), 4326)), accepted_at = NOW() WHERE id = :deliveryId", nativeQuery = true)
-        void initializeApproachRoute(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng, @Param("epoch") double epoch);
+        @Query(value = "UPDATE deliveries SET approach_route = ST_MakeLine(ST_SetSRID(ST_MakePointM(:lng, :lat, :epoch), 4326), ST_SetSRID(ST_MakePointM(:lng, :lat, :epoch), 4326)), accepted_at = :acceptedAt WHERE id = :deliveryId", nativeQuery = true)
+        void initializeApproachRoute(@Param("deliveryId") Long deliveryId, @Param("lat") double lat, @Param("lng") double lng, @Param("epoch") double epoch, @Param("acceptedAt") OffsetDateTime acceptedAt);
 
         /**
          * Adiciona ponto GPS à approach_route (fase ACCEPTED). M = epoch seconds da captura GPS.

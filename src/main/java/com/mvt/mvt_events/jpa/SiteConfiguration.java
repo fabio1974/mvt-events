@@ -212,6 +212,18 @@ public class SiteConfiguration extends BaseEntity {
     @Visible(table = true, form = true, filter = false)
     private Integer minOrderDistanceMeters = 50;
 
+    /**
+     * Raio (em km) para listar estabelecimentos próximos no GET /api/stores.
+     * Aplicado quando o customer abre a vitrine de restaurantes Zapi-Food.
+     * Default 150km — admin pode ajustar em runtime.
+     */
+    @NotNull(message = "Raio de busca de estabelecimentos é obrigatório")
+    @Min(value = 1, message = "Raio mínimo é 1 km")
+    @Max(value = 1000, message = "Raio máximo é 1000 km")
+    @Column(name = "establishment_search_radius_km", nullable = false)
+    @Visible(table = true, form = true, filter = false)
+    private Integer establishmentSearchRadiusKm = 150;
+
     @PrePersist
     protected void onCreate() {
         if (isActive == null) {

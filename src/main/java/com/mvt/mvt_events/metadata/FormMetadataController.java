@@ -37,6 +37,7 @@ public class FormMetadataController {
         ENTITIES.put("evaluation", new EntityConfig(Evaluation.class, "Avaliações", "/api/evaluations"));
         ENTITIES.put("clientContract", new EntityConfig(ClientContract.class, "Contrato de Serviço", "/api/client-contracts"));
         ENTITIES.put("employmentContract", new EntityConfig(EmploymentContract.class, "Contrato de Motoboy", "/api/employment-contracts"));
+        ENTITIES.put("announcement", new EntityConfig(Announcement.class, "Anúncios", "/api/announcements"));
     }
 
     /**

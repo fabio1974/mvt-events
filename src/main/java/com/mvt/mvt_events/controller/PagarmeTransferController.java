@@ -45,18 +45,54 @@ public class PagarmeTransferController {
         return repository.findByStatusWithRecipient(st);
     }
 
-    @GetMapping("/by-courier")
-    @Operation(summary = "Agregado por courier (total PENDING por pessoa)")
-    public List<CourierDebt> byCourier() {
+    /**
+     * Total e detalhes de transfers PENDING do usuário logado.
+     * <p>Usado pela tela "Minha Carteira" do mobile (courier/organizer): mostra dinheiro
+     * já garantido (cliente pagou) mas ainda na conta da plataforma, esperando PIX-out.
+     * <p>Acessível por COURIER e ORGANIZER (não só ADMIN).
+     */
+    @GetMapping("/my-pending")
+    @PreAuthorize("hasAnyRole('COURIER', 'ORGANIZER', 'ADMIN')")
+    @Operation(summary = "Meus transfers PENDING (a receber via PIX-out da plataforma)")
+    public MyPendingTransfersResponse myPending(
+            org.springframework.security.core.Authentication authentication) {
+        User currentUser = (User) authentication.getPrincipal();
+        List<PagarmeTransfer> transfers = repository.findByRecipientIdAndStatus(
+                currentUser.getId(), PagarmeTransfer.Status.PENDING);
+
+        long totalCents = transfers.stream().mapToLong(PagarmeTransfer::getAmountCents).sum();
+
+        List<PendingTransferItem> items = transfers.stream().map(t -> {
+            PendingTransferItem item = new PendingTransferItem();
+            item.id = t.getId();
+            item.foodOrderId = t.getFoodOrder() != null ? t.getFoodOrder().getId() : null;
+            item.deliveryId = t.getDeliveryId();
+            item.amountCents = t.getAmountCents();
+            item.createdAt = t.getCreatedAt();
+            return item;
+        }).collect(Collectors.toList());
+
+        MyPendingTransfersResponse resp = new MyPendingTransfersResponse();
+        resp.totalCents = totalCents;
+        resp.totalBrl = totalCents / 100.0;
+        resp.count = items.size();
+        resp.transfers = items;
+        return resp;
+    }
+
+    @GetMapping("/by-recipient")
+    @Operation(summary = "Agregado por destinatário (total PENDING por pessoa — motoboy ou gerente)")
+    public List<RecipientDebt> byRecipient() {
         List<PagarmeTransfer> pending = repository.findByStatusWithRecipient(PagarmeTransfer.Status.PENDING);
-        Map<UUID, CourierDebt> byCourier = new LinkedHashMap<>();
+        Map<UUID, RecipientDebt> byRecipient = new LinkedHashMap<>();
         for (PagarmeTransfer t : pending) {
             User c = t.getRecipient();
             if (c == null) continue;
-            CourierDebt d = byCourier.computeIfAbsent(c.getId(), k -> {
-                CourierDebt cd = new CourierDebt();
-                cd.courierId = c.getId();
-                cd.courierName = c.getName();
+            RecipientDebt d = byRecipient.computeIfAbsent(c.getId(), k -> {
+                RecipientDebt cd = new RecipientDebt();
+                cd.recipientId = c.getId();
+                cd.recipientName = c.getName();
+                cd.role = c.getRole() != null ? c.getRole().name() : null;
                 cd.pixKey = c.getPixKey();
                 cd.pixKeyType = c.getPixKeyType() != null ? c.getPixKeyType().name() : null;
                 cd.transfers = new ArrayList<>();
@@ -72,7 +108,7 @@ public class PagarmeTransferController {
             d.transfers.add(ts);
             d.totalCents += t.getAmountCents();
         }
-        return new ArrayList<>(byCourier.values());
+        return new ArrayList<>(byRecipient.values());
     }
 
     @PostMapping("/{id}/send-pix")
@@ -85,7 +121,9 @@ public class PagarmeTransferController {
         }
         if (t.getRecipient() == null || t.getRecipient().getPixKey() == null
                 || t.getRecipient().getPixKey().isBlank()) {
-            throw new RuntimeException("Courier não tem chave PIX cadastrada");
+            String label = t.getRecipient() != null && t.getRecipient().getRole() == User.Role.ORGANIZER
+                    ? "Gerente" : "Motoboy";
+            throw new RuntimeException(label + " não tem chave PIX cadastrada");
         }
         courierTransferService.executeTransfer(t, t.getRecipient());
         return ResponseEntity.ok(t);
@@ -128,9 +166,10 @@ public class PagarmeTransferController {
         public String note;
     }
 
-    public static class CourierDebt {
-        public UUID courierId;
-        public String courierName;
+    public static class RecipientDebt {
+        public UUID recipientId;
+        public String recipientName;
+        public String role;
         public String pixKey;
         public String pixKeyType;
         public long totalCents;
@@ -138,6 +177,22 @@ public class PagarmeTransferController {
     }
 
     public static class TransferSummary {
+        public Long id;
+        public Long foodOrderId;
+        public Long deliveryId;
+        public Long amountCents;
+        public OffsetDateTime createdAt;
+    }
+
+    /** Resposta do endpoint my-pending — saldo "a receber" do usuário logado. */
+    public static class MyPendingTransfersResponse {
+        public long totalCents;
+        public double totalBrl;
+        public int count;
+        public List<PendingTransferItem> transfers;
+    }
+
+    public static class PendingTransferItem {
         public Long id;
         public Long foodOrderId;
         public Long deliveryId;

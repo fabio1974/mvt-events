@@ -605,18 +605,20 @@ public class DeliveryService {
                 .ifPresent(delivery::setVehicle);
 
         if (delivery.isFromTrustedClient()) {
-            // ─── FLUXO CLIENT (estabelecimento): buscar organização comum ───
+            // ─── FLUXO CLIENT (estabelecimento): tentar buscar organização comum ───
+            // Level 1: courier da org titular (isPrimary=true) do client
+            // Level 2: courier de outra org conectada ao client
+            // Level 3: courier nearby sem contrato com o client → organizer=null,
+            //          plataforma absorve os 5% que iriam pro gerente.
             Organization commonOrganization = findCommonOrganization(courierUser, delivery.getClient());
-            if (commonOrganization == null) {
-                throw new RuntimeException("Courier e Client não compartilham uma organização comum através de contratos ativos");
-            }
 
-            User organizer = commonOrganization.getOwner();
-            if (organizer == null) {
-                throw new RuntimeException("Organização não possui um owner definido");
+            if (commonOrganization != null && commonOrganization.getOwner() != null) {
+                delivery.setOrganizer(commonOrganization.getOwner());
+            } else {
+                delivery.setOrganizer(null);
+                log.info("📦 Delivery #{} aceita por courier #{} sem org comum com client #{} (Level 3) — sem organizer, 5% fica com plataforma",
+                        delivery.getId(), courierUser.getId(), delivery.getClient().getId());
             }
-
-            delivery.setOrganizer(organizer);
 
             Delivery saved = deliveryRepository.save(delivery);
 
@@ -627,7 +629,8 @@ public class DeliveryService {
             // 📍 ROUTE TRACKING: Inicializa approach_route no ACCEPTED
             try {
                 if (courierUser.getGpsLatitude() != null && courierUser.getGpsLongitude() != null) {
-                    deliveryRepository.initializeApproachRoute(saved.getId(), courierUser.getGpsLatitude(), courierUser.getGpsLongitude(), (double) java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza")).toEpochSecond());
+                    OffsetDateTime nowFortaleza = OffsetDateTime.now(ZoneId.of("America/Fortaleza"));
+                    deliveryRepository.initializeApproachRoute(saved.getId(), courierUser.getGpsLatitude(), courierUser.getGpsLongitude(), (double) nowFortaleza.toEpochSecond(), nowFortaleza);
                     System.out.println("📍 approach_route iniciada no ACCEPTED para delivery " + saved.getId());
                 }
             } catch (Exception e) {
@@ -688,7 +691,8 @@ public class DeliveryService {
             if (saved.getStatus() == Delivery.DeliveryStatus.ACCEPTED) {
                 try {
                     if (courierUser.getGpsLatitude() != null && courierUser.getGpsLongitude() != null) {
-                        deliveryRepository.initializeApproachRoute(saved.getId(), courierUser.getGpsLatitude(), courierUser.getGpsLongitude(), (double) java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza")).toEpochSecond());
+                        OffsetDateTime nowFortaleza = OffsetDateTime.now(ZoneId.of("America/Fortaleza"));
+                        deliveryRepository.initializeApproachRoute(saved.getId(), courierUser.getGpsLatitude(), courierUser.getGpsLongitude(), (double) nowFortaleza.toEpochSecond(), nowFortaleza);
                         System.out.println("📍 approach_route iniciada no ACCEPTED para delivery " + saved.getId());
                     }
                 } catch (Exception e) {
@@ -995,9 +999,10 @@ public class DeliveryService {
                         && delivery.getCourier().getGpsLatitude() != null
                         && delivery.getCourier().getGpsLongitude() != null) {
                     try {
+                        OffsetDateTime nowFortaleza = OffsetDateTime.now(ZoneId.of("America/Fortaleza"));
                         deliveryRepository.initializeApproachRoute(delivery.getId(),
                                 delivery.getCourier().getGpsLatitude(), delivery.getCourier().getGpsLongitude(),
-                                (double) java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza")).toEpochSecond());
+                                (double) nowFortaleza.toEpochSecond(), nowFortaleza);
                     } catch (Exception e) {
                         log.warn("⚠️ Falha ao inicializar approach_route no updateStatus ACCEPTED para delivery #{}: {}", delivery.getId(), e.getMessage());
                     }

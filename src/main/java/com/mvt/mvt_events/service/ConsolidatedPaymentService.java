@@ -276,8 +276,20 @@ public class ConsolidatedPaymentService {
             }
 
             // 4. Filtrar deliveries que NÃO têm payment PAID
+            //    E também excluir deliveries de Zapi-Food (FoodOrder) — nelas o customer já
+            //    pagou no checkout (PIX 1 só, R$ comida + R$ frete). Cobrar o CLIENT de novo
+            //    aqui seria double-charging. O CLIENT só deve ser cobrado por corridas
+            //    avulsas que ele mesmo abriu (sem FoodOrder associada).
             List<Delivery> deliveriesToPay = completedDeliveries.stream()
                     .filter(d -> !hasActivePaidPayment(d))
+                    .filter(d -> {
+                        if (d.getOrder() != null) {
+                            log.debug("   ⏭️  Delivery #{} pulada — vem de Zapi-Food #{} (já paga no checkout)",
+                                    d.getId(), d.getOrder().getId());
+                            return false;
+                        }
+                        return true;
+                    })
                     .collect(Collectors.toList());
 
             if (deliveriesToPay.isEmpty()) {

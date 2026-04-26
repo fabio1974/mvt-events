@@ -149,6 +149,12 @@ public class SiteConfigurationController {
         existingConfig.setNotes(updatedConfig.getNotes());
         existingConfig.setPaymentHistoryDays(updatedConfig.getPaymentHistoryDays());
         existingConfig.setDeliveryHistoryDays(updatedConfig.getDeliveryHistoryDays());
+        if (updatedConfig.getMinOrderDistanceMeters() != null) {
+            existingConfig.setMinOrderDistanceMeters(updatedConfig.getMinOrderDistanceMeters());
+        }
+        if (updatedConfig.getEstablishmentSearchRadiusKm() != null) {
+            existingConfig.setEstablishmentSearchRadiusKm(updatedConfig.getEstablishmentSearchRadiusKm());
+        }
         existingConfig.setUpdatedBy(admin.getUsername());
         
         // Salvar

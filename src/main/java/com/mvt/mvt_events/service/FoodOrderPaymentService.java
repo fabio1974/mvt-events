@@ -1,7 +1,13 @@
 package com.mvt.mvt_events.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mvt.mvt_events.jpa.Currency;
 import com.mvt.mvt_events.jpa.FoodOrder;
 import com.mvt.mvt_events.jpa.Organization;
+import com.mvt.mvt_events.jpa.Payment;
+import com.mvt.mvt_events.jpa.PaymentMethod;
+import com.mvt.mvt_events.jpa.PaymentProvider;
+import com.mvt.mvt_events.jpa.PaymentStatus;
 import com.mvt.mvt_events.jpa.SiteConfiguration;
 import com.mvt.mvt_events.jpa.User;
 import com.mvt.mvt_events.payment.dto.OrderRequest;
@@ -9,6 +15,7 @@ import com.mvt.mvt_events.payment.dto.OrderResponse;
 import com.mvt.mvt_events.payment.service.PagarMeService;
 import com.mvt.mvt_events.repository.FoodOrderRepository;
 import com.mvt.mvt_events.repository.OrganizationRepository;
+import com.mvt.mvt_events.repository.PaymentRepository;
 import com.mvt.mvt_events.repository.SiteConfigurationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +53,8 @@ public class FoodOrderPaymentService {
     private final FoodOrderRepository foodOrderRepository;
     private final SiteConfigurationRepository siteConfigRepository;
     private final OrganizationRepository organizationRepository;
+    private final PaymentRepository paymentRepository;
+    private final ObjectMapper objectMapper;
 
     /**
      * Cria a cobrança PIX no checkout para um FoodOrder. Popula no próprio FoodOrder
@@ -81,11 +90,12 @@ public class FoodOrderPaymentService {
                     "pagar.me exige phone para gerar PIX. Atualize o perfil em \"Meus Dados\".");
         }
 
-        // Organizer opcional (dono da organização à qual o client pertence)
+        // Organizer e courier são INDETERMINADOS no checkout (dependem de qual courier aceita
+        // a delivery, que rola horas depois). Por isso o split no Pagar.me é sempre 2-way
+        // (estabelecimento + plataforma); os 5% do organizer e 87% do frete saem via
+        // pagarme_transfers PENDING quando o courier aceita (CourierTransferService).
         User organizer = resolveOrganizer(client);
-        boolean hasOrganizer = organizer != null
-                && organizer.getPagarmeRecipientId() != null
-                && !organizer.getPagarmeRecipientId().isBlank();
+        boolean hasOrganizer = false;
 
         BigDecimal foodCents = splitCalculator.toCents(order.getSubtotal());
         BigDecimal deliveryCents = splitCalculator.toCents(
@@ -102,7 +112,90 @@ public class FoodOrderPaymentService {
         OrderResponse response = pagarMeService.createOrderWithFullResponse(request);
 
         applyPaymentInfo(order, response);
-        return foodOrderRepository.save(order);
+        FoodOrder saved = foodOrderRepository.save(order);
+
+        // Persiste Payment para auditoria/reconciliação financeira.
+        // Sem isso, requests/responses do Pagar.me só ficam nos logs do Render (~7 dias).
+        persistPayment(saved, request, response);
+
+        return saved;
+    }
+
+    /**
+     * Cria registro {@link Payment} associado ao FoodOrder pago via PIX no checkout.
+     * Inclui request/response JSON para auditoria, QR Code e expiresAt.
+     */
+    private void persistPayment(FoodOrder order, OrderRequest request, OrderResponse response) {
+        try {
+            Payment payment = new Payment();
+            payment.setPaymentType("ZAPI_FOOD");
+            payment.setProvider(PaymentProvider.PAGARME);
+            payment.setProviderPaymentId(response.getId());
+            payment.setPayer(order.getCustomer());
+            payment.setAmount(order.getTotal());
+            payment.setCurrency(Currency.BRL);
+            payment.setPaymentMethod(PaymentMethod.PIX);
+            payment.setStatus(PaymentStatus.PENDING);
+            payment.setNotes("Zapi-Food #" + order.getId());
+
+            // QR Code + expiresAt do PIX
+            extractPixData(payment, response);
+
+            // Idempotência simples no transaction_id: usa a transação do Pagar.me se houver,
+            // senão usa providerPaymentId pra garantir uniqueness em re-runs improváveis.
+            String txId = extractTransactionId(response);
+            payment.setTransactionId(txId != null ? txId : response.getId());
+
+            // Auditoria — JSON do pedido + resposta
+            try {
+                payment.setRequest(objectMapper.writeValueAsString(request));
+                payment.setResponse(objectMapper.writeValueAsString(response));
+            } catch (Exception e) {
+                log.warn("⚠️ Falha ao serializar request/response do FoodOrder #{}: {}",
+                        order.getId(), e.getMessage());
+            }
+
+            paymentRepository.save(payment);
+            log.info("💾 Payment FoodOrder salvo: id={} pagarmeOrderId={} amount=R$ {} status={}",
+                    payment.getId(), response.getId(), payment.getAmount(), payment.getStatus());
+        } catch (Exception e) {
+            // Não derruba o checkout — pagar.me já criou a order com sucesso, FoodOrder já salvo.
+            // Mas alerta loud porque é problema de auditoria/reconciliação.
+            log.error("❌ Falha ao persistir Payment do FoodOrder #{} (pagamento já criado no Pagar.me): {}",
+                    order.getId(), e.getMessage(), e);
+        }
+    }
+
+    private String extractTransactionId(OrderResponse response) {
+        if (response.getCharges() != null && !response.getCharges().isEmpty()) {
+            var charge = response.getCharges().get(0);
+            if (charge.getLastTransaction() != null && charge.getLastTransaction().getId() != null) {
+                return charge.getLastTransaction().getId();
+            }
+        }
+        return null;
+    }
+
+    private void extractPixData(Payment payment, OrderResponse response) {
+        try {
+            if (response.getCharges() != null && !response.getCharges().isEmpty()) {
+                var charge = response.getCharges().get(0);
+                if (charge.getLastTransaction() != null) {
+                    var tx = charge.getLastTransaction();
+                    payment.setPixQrCode(tx.getQrCode());
+                    payment.setPixQrCodeUrl(tx.getQrCodeUrl());
+                    if (tx.getExpiresAt() != null) {
+                        try {
+                            payment.setExpiresAt(OffsetDateTime.parse(tx.getExpiresAt())
+                                    .atZoneSameInstant(ZoneId.of("America/Fortaleza"))
+                                    .toOffsetDateTime());
+                        } catch (Exception ignore) { /* parse pode falhar — não é crítico */ }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("⚠️ Não foi possível extrair dados PIX da resposta pagar.me: {}", e.getMessage());
+        }
     }
 
     /**
@@ -147,8 +240,11 @@ public class FoodOrderPaymentService {
                 .type("flat")
                 .recipientId(client.getPagarmeRecipientId())
                 .options(OrderRequest.SplitOptionsRequest.builder()
-                        .liable(true)
-                        .chargeProcessingFee(true)
+                        // Mesmo padrão de SplitCalculator (corridas): plataforma absorve
+                        // chargebacks (liable=false), taxa de processamento (charge_processing_fee=false)
+                        // e arredondamento (charge_remainder_fee=false). Estabelecimento recebe limpo.
+                        .liable(false)
+                        .chargeProcessingFee(false)
                         .chargeRemainderFee(false)
                         .build())
                 .build());

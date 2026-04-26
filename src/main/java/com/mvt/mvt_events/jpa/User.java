@@ -269,6 +269,24 @@ public class User implements UserDetails {
     public enum PixKeyType { CPF, CNPJ, EMAIL, PHONE, EVP }
 
     /**
+     * Versão do app mobile usada pelo usuário (atualizada a cada login).
+     * Formato esperado: "v1.0.9-99" (semver + buildNumber).
+     */
+    @Column(name = "mobile_app_version", length = 20)
+    @Visible(table = true, form = false, filter = false, readonly = true)
+    private String mobileAppVersion;
+
+    /** Plataforma do app mobile: "android" ou "ios". Atualizada a cada login. */
+    @Column(name = "mobile_platform", length = 10)
+    @Visible(table = true, form = false, filter = false, readonly = true)
+    private String mobilePlatform;
+
+    /** Timestamp do último login em que a versão/plataforma do mobile foi registrada. */
+    @Column(name = "mobile_version_updated_at")
+    @Visible(table = true, form = false, filter = false, readonly = true)
+    private java.time.OffsetDateTime mobileVersionUpdatedAt;
+
+    /**
      * Relacionamento 1:1 com BankAccount (OPCIONAL).
      * 
      * DESIGN ATUAL (v1.0):

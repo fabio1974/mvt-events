@@ -616,6 +616,7 @@ public class JpaMetadataExtractor {
             metadata.setType("select");
             metadata.setOptions(List.of(
                 new FilterOption("Corridas", "DELIVERY"),
+                new FilterOption("Zapi-Food", "ZAPI_FOOD"),
                 new FilterOption("Módulo de Mesas", "TABLE_SERVICE")
             ));
         }

@@ -32,6 +32,9 @@ public class FoodOrderSplitCalculator {
     /** 87% — percentual que o courier recebe sobre o frete (mesmo de corrida). */
     private static final BigDecimal COURIER_DELIVERY_PERCENTAGE = new BigDecimal("87");
 
+    /** 5% — percentual que o organizer (gerente) recebe sobre o total (comida + frete). */
+    private static final BigDecimal ORGANIZER_TOTAL_PERCENTAGE = new BigDecimal("5");
+
     /**
      * Split do PIX no checkout. Os 3 valores somam exatamente totalCents.
      */
@@ -64,6 +67,18 @@ public class FoodOrderSplitCalculator {
     public BigDecimal calculateCourierTransferAmount(BigDecimal deliveryCents) {
         return deliveryCents
                 .multiply(COURIER_DELIVERY_PERCENTAGE)
+                .divide(BigDecimal.valueOf(100), 0, RoundingMode.DOWN);
+    }
+
+    /**
+     * Valor em centavos a transferir da plataforma → organizer quando o courier aceita.
+     * 5% do total (comida + frete), arredondado pra baixo.
+     * Como o organizer é indeterminado no checkout (depende de qual courier vai aceitar),
+     * o repasse sai sempre via transfer pós-accept, e não pelo split do Pagar.me.
+     */
+    public BigDecimal calculateOrganizerTransferAmount(BigDecimal totalCents) {
+        return totalCents
+                .multiply(ORGANIZER_TOTAL_PERCENTAGE)
                 .divide(BigDecimal.valueOf(100), 0, RoundingMode.DOWN);
     }
 

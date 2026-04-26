@@ -795,8 +795,21 @@ public class FoodOrderService implements DeliveryStatusCallback {
     // ================================================================
 
     public FoodOrder findById(Long id) {
-        return orderRepository.findByIdWithItems(id)
+        FoodOrder order = orderRepository.findByIdWithItems(id)
                 .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));
+
+        // Força inicialização da collection `deliveries` enquanto a transação ainda está aberta.
+        // Sem isso, o getter @JsonGetter("activeDelivery") explode com LazyInitializationException
+        // na hora de serializar, e o try/catch dele engole o erro retornando null —
+        // resultando na timeline vazia ("Entregador a caminho", "Coletado", "Em trânsito") no app.
+        // Não dá pra usar LEFT JOIN FETCH na query (MultipleBagFetchException com items + deliveries).
+        if (order.getDeliveries() != null) {
+            order.getDeliveries().size();
+            order.getDeliveries().forEach(d -> {
+                if (d.getCourier() != null) d.getCourier().getName();
+            });
+        }
+        return order;
     }
 
     public List<FoodOrder> findByCustomer(UUID customerId) {

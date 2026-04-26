@@ -109,6 +109,29 @@ public class AuthController {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             String token = jwtUtil.generateToken(userDetails);
 
+            // Persistir versão/plataforma do mobile a cada login (e timestamp quando registramos).
+            // Atualiza sempre que vier valor não-vazio — assim o timestamp reflete o login real,
+            // mesmo que a versão não tenha mudado.
+            if (loginRequest.getMobileAppVersion() != null || loginRequest.getMobilePlatform() != null) {
+                userRepository.findByUsername(userDetails.getUsername()).ifPresent(u -> {
+                    boolean touched = false;
+                    String v = loginRequest.getMobileAppVersion();
+                    if (v != null && !v.isBlank()) {
+                        u.setMobileAppVersion(v.length() > 20 ? v.substring(0, 20) : v);
+                        touched = true;
+                    }
+                    String p = loginRequest.getMobilePlatform();
+                    if (p != null && !p.isBlank()) {
+                        u.setMobilePlatform(p.length() > 10 ? p.substring(0, 10) : p);
+                        touched = true;
+                    }
+                    if (touched) {
+                        u.setMobileVersionUpdatedAt(OffsetDateTime.now());
+                        userRepository.save(u);
+                    }
+                });
+            }
+
             Map<String, Object> response = new HashMap<>();
             response.put("token", token);
             response.put("type", "Bearer");
@@ -693,22 +716,19 @@ public class AuthController {
     public static class LoginRequest {
         private String username;
         private String password;
+        /** Versão do app mobile (ex.: "v1.0.9-99"). Opcional — só web não envia. */
+        private String mobileAppVersion;
+        /** "android" ou "ios". Opcional. */
+        private String mobilePlatform;
 
-        public String getUsername() {
-            return username;
-        }
-
-        public void setUsername(String username) {
-            this.username = username;
-        }
-
-        public String getPassword() {
-            return password;
-        }
-
-        public void setPassword(String password) {
-            this.password = password;
-        }
+        public String getUsername() { return username; }
+        public void setUsername(String username) { this.username = username; }
+        public String getPassword() { return password; }
+        public void setPassword(String password) { this.password = password; }
+        public String getMobileAppVersion() { return mobileAppVersion; }
+        public void setMobileAppVersion(String mobileAppVersion) { this.mobileAppVersion = mobileAppVersion; }
+        public String getMobilePlatform() { return mobilePlatform; }
+        public void setMobilePlatform(String mobilePlatform) { this.mobilePlatform = mobilePlatform; }
     }
 
     public static class RegisterRequest {

@@ -742,8 +742,8 @@ class DeliveryServiceTest {
         }
 
         @Test
-        @DisplayName("CLIENT sem organização comum com courier lança exceção")
-        void clientSemOrganizacaoComumLancaExcecao() {
+        @DisplayName("Level 3: CLIENT sem organização comum com courier — aceita com organizer=null")
+        void clientSemOrganizacaoComumAceitaComOrganizerNull() {
             User client = makeUser(clientId, "Restaurante X", User.Role.CLIENT);
             User courier = makeUser(courierId, "Pedro Moto", User.Role.COURIER);
 
@@ -754,15 +754,26 @@ class DeliveryServiceTest {
             when(userRepository.findById(courierId)).thenReturn(Optional.of(courier));
             when(vehicleRepository.findActiveVehicleByOwnerId(courierId)).thenReturn(Optional.empty());
 
-            // Sem contratos em comum
+            // Sem contratos em comum (Level 3 — courier nearby sem ligação contratual)
             when(employmentContractRepository.findActiveByCourierId(courierId))
                     .thenReturn(List.of());
             when(clientContractRepository.findActiveByClientId(clientId))
                     .thenReturn(List.of());
 
-            assertThatThrownBy(() -> deliveryService.assignToCourier(1L, courierId, null))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("não compartilham uma organização comum");
+            when(deliveryRepository.save(any(Delivery.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // PIX preference → skip createAutomaticCreditCardPayment
+            CustomerPaymentPreference pixPref = new CustomerPaymentPreference();
+            pixPref.setPreferredPaymentType(PreferredPaymentType.PIX);
+            when(preferenceService.getPreference(clientId)).thenReturn(pixPref);
+
+            Delivery result = deliveryService.assignToCourier(1L, courierId, null);
+
+            assertThat(result.getCourier()).isEqualTo(courier);
+            assertThat(result.getStatus()).isEqualTo(Delivery.DeliveryStatus.ACCEPTED);
+            // Level 3: sem organização comum → organizer=null, plataforma absorve os 5%
+            assertThat(result.getOrganizer()).isNull();
+            assertThat(result.getAcceptedAt()).isNotNull();
         }
     }
 

@@ -33,6 +33,70 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private com.mvt.mvt_events.repository.UserRepository userRepository;
+
+    @GetMapping("/mobile-versions")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Relatório de versões do app mobile",
+               description = "Lista paginada com versão/plataforma/timestamp do último login mobile. " +
+                             "Aceita filtros: mobilePlatform, mobileAppVersion, role, " +
+                             "mobileVersionUpdatedAtFrom, mobileVersionUpdatedAtTo (ISO date/datetime).")
+    @Transactional(readOnly = true)
+    public Page<MobileVersionRow> mobileVersions(
+            @RequestParam(required = false) String mobilePlatform,
+            @RequestParam(required = false) String mobileAppVersion,
+            @RequestParam(required = false) User.Role role,
+            @RequestParam(required = false) String mobileVersionUpdatedAtFrom,
+            @RequestParam(required = false) String mobileVersionUpdatedAtTo,
+            @org.springframework.data.web.PageableDefault(sort = "mobileVersionUpdatedAt",
+                    direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
+        org.springframework.data.jpa.domain.Specification<User> spec = (root, q, cb) -> cb.conjunction();
+        spec = spec.and((root, q, cb) -> cb.isNotNull(root.get("mobileVersionUpdatedAt")));
+        if (mobilePlatform != null && !mobilePlatform.isBlank()) {
+            final String p = mobilePlatform.trim();
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("mobilePlatform"), p));
+        }
+        if (mobileAppVersion != null && !mobileAppVersion.isBlank()) {
+            final String v = mobileAppVersion.trim();
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("mobileAppVersion"), v));
+        }
+        if (role != null) {
+            final User.Role r = role;
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("role"), r));
+        }
+        java.time.OffsetDateTime fromDt = parseDateRangeBoundary(mobileVersionUpdatedAtFrom, false);
+        java.time.OffsetDateTime toDt   = parseDateRangeBoundary(mobileVersionUpdatedAtTo, true);
+        if (fromDt != null) {
+            final java.time.OffsetDateTime f = fromDt;
+            spec = spec.and((root, q, cb) -> cb.greaterThanOrEqualTo(root.get("mobileVersionUpdatedAt"), f));
+        }
+        if (toDt != null) {
+            final java.time.OffsetDateTime t = toDt;
+            spec = spec.and((root, q, cb) -> cb.lessThanOrEqualTo(root.get("mobileVersionUpdatedAt"), t));
+        }
+        return userRepository.findAll(spec, pageable).map(MobileVersionRow::new);
+    }
+
+    /**
+     * Parse de fronteira de range. Aceita "YYYY-MM-DD" (date) ou ISO datetime.
+     * Quando só veio data, "from" usa 00:00 e "to" usa 23:59:59.999 do dia.
+     */
+    private static java.time.OffsetDateTime parseDateRangeBoundary(String s, boolean endOfDay) {
+        if (s == null || s.isBlank()) return null;
+        s = s.trim();
+        try {
+            // Tenta ISO datetime primeiro
+            return java.time.OffsetDateTime.parse(s);
+        } catch (Exception ignored) {}
+        try {
+            java.time.LocalDate d = java.time.LocalDate.parse(s);
+            java.time.LocalTime t = endOfDay ? java.time.LocalTime.MAX : java.time.LocalTime.MIN;
+            return d.atTime(t).atOffset(java.time.OffsetDateTime.now().getOffset());
+        } catch (Exception ignored) {}
+        return null;
+    }
+
     @GetMapping
     @Operation(summary = "Listar usuários", description = "Suporta filtros: role, organizationId, enabled, search (nome ou email)")
     @Transactional(readOnly = true)
@@ -498,6 +562,30 @@ public class UserController {
         private String stateCode;
     }
 
+    /** Linha do relatório de versões do app mobile. */
+    @Data
+    @NoArgsConstructor
+    public static class MobileVersionRow {
+        private UUID id;
+        private String name;
+        private String username;
+        private String role;
+        private String mobileAppVersion;
+        private String mobilePlatform;
+        private String mobileVersionUpdatedAt;
+
+        public MobileVersionRow(User u) {
+            this.id = u.getId();
+            this.name = u.getName();
+            this.username = u.getUsername();
+            this.role = u.getRole() != null ? u.getRole().name() : null;
+            this.mobileAppVersion = u.getMobileAppVersion();
+            this.mobilePlatform = u.getMobilePlatform();
+            this.mobileVersionUpdatedAt = u.getMobileVersionUpdatedAt() != null
+                    ? u.getMobileVersionUpdatedAt().toString() : null;
+        }
+    }
+
     // DTO para atualização de usuário
     @Data
     @NoArgsConstructor
@@ -524,6 +612,10 @@ public class UserController {
 
         // Tipo de serviço (apenas para COURIER): DELIVERY, PASSENGER_TRANSPORT, BOTH
         private String serviceType;
+
+        // Chave PIX (para PIX-out de saque — COURIER e ORGANIZER)
+        private String pixKey;
+        private String pixKeyType;     // CPF, CNPJ, EMAIL, PHONE, EVP
 
         // Ativação (admin only)
         private Boolean enabled;       // regras de preenchimento mínimo por role
@@ -650,6 +742,8 @@ public class UserController {
         private String documentNumber; // CPF ou CNPJ formatado
         private String role;
         private String serviceType; // Tipo de serviço (apenas para COURIER): DELIVERY, PASSENGER_TRANSPORT, BOTH
+        private String pixKey;      // Chave PIX para PIX-out
+        private String pixKeyType;  // CPF, CNPJ, EMAIL, PHONE, EVP
         private OrganizationDTO organization;
         private boolean enabled;  // regras de preenchimento mínimo por role
         private boolean blocked;  // bloqueio de segurança (impede login)
@@ -693,6 +787,8 @@ public class UserController {
             this.documentNumber = user.getDocumentFormatted();
             this.role = user.getRole() != null ? user.getRole().toString() : null;
             this.serviceType = user.getServiceType() != null ? user.getServiceType().name() : null;
+            this.pixKey = user.getPixKey();
+            this.pixKeyType = user.getPixKeyType() != null ? user.getPixKeyType().name() : null;
 
             // Campos de localização GPS (em tempo real) - rastreamento do usuário
             this.gpsLatitude = user.getGpsLatitude();

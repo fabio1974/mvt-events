@@ -172,6 +172,11 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
         */
        Optional<User> findByResetToken(String resetToken);
 
+       /** Lista todos os admins ativos — usado pra disparar push de novas mensagens de suporte. */
+       @Query("SELECT u FROM User u WHERE u.role = com.mvt.mvt_events.jpa.User.Role.ADMIN " +
+              "AND u.deletedAt IS NULL AND u.blocked = false")
+       java.util.List<User> findActiveAdmins();
+
        // ============================================================================
        // COURIER SEARCH (typeahead para mobile)
        // ============================================================================

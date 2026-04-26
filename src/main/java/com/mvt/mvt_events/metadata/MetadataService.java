@@ -43,10 +43,70 @@ public class MetadataService {
         for (Map.Entry<String, EntityConfig> entry : ENTITIES.entrySet()) {
             all.put(entry.getKey(), getEntityMetadata(entry.getKey()));
         }
+        // Virtual entities (relatórios)
+        all.put("mobileVersionReport", buildMobileVersionReportMetadata());
         return all;
     }
 
+    /**
+     * Metadata do relatório de versões do app mobile (virtual — não tem entidade JPA própria).
+     * Endpoint: /api/users/mobile-versions (DTO MobileVersionRow no UserController).
+     */
+    private EntityMetadata buildMobileVersionReportMetadata() {
+        EntityMetadata m = new EntityMetadata("mobileVersionReport", "Versões Mobile", "/api/users/mobile-versions");
+
+        List<FieldMetadata> tableFields = new java.util.ArrayList<>();
+        tableFields.add(reportField("name", "Nome", "string"));
+        tableFields.add(reportField("username", "E-mail", "string"));
+        tableFields.add(reportField("role", "Role", "string"));
+        tableFields.add(reportField("mobileAppVersion", "Versão", "string"));
+        tableFields.add(reportField("mobilePlatform", "Plataforma", "string"));
+        tableFields.add(reportField("mobileVersionUpdatedAt", "Último login", "datetime"));
+        m.setTableFields(tableFields);
+        m.setFormFields(List.of()); // relatório não tem form
+
+        List<FilterMetadata> filters = new java.util.ArrayList<>();
+        FilterMetadata fPlatform = new FilterMetadata("mobilePlatform", "Plataforma", "select", "mobilePlatform");
+        fPlatform.setOptions(List.of(
+                new FilterMetadata.FilterOption("Android", "android"),
+                new FilterMetadata.FilterOption("iOS", "ios")
+        ));
+        filters.add(fPlatform);
+
+        FilterMetadata fVersion = new FilterMetadata("mobileAppVersion", "Versão", "text", "mobileAppVersion");
+        fVersion.setPlaceholder("ex.: v1.0.9-99");
+        filters.add(fVersion);
+
+        FilterMetadata fRole = new FilterMetadata("role", "Role", "select", "role");
+        List<FilterMetadata.FilterOption> roleOpts = new java.util.ArrayList<>();
+        for (User.Role r : User.Role.values()) {
+            roleOpts.add(new FilterMetadata.FilterOption(r.name(), r.name()));
+        }
+        fRole.setOptions(roleOpts);
+        filters.add(fRole);
+
+        FilterMetadata fDate = new FilterMetadata("mobileVersionUpdatedAt", "Último login", "daterange", "mobileVersionUpdatedAt");
+        filters.add(fDate);
+
+        m.setFilters(filters);
+        m.setPagination(null);
+        return m;
+    }
+
+    private static FieldMetadata reportField(String name, String label, String type) {
+        FieldMetadata f = new FieldMetadata(name, label, type);
+        f.setSortable(true);
+        f.setVisible(true);
+        f.setReadonly(true);
+        return f;
+    }
+
     public EntityMetadata getEntityMetadata(String entityName) {
+        // Virtual entities (relatórios sem entidade JPA dedicada)
+        if ("mobileVersionReport".equals(entityName)) {
+            return buildMobileVersionReportMetadata();
+        }
+
         EntityConfig config = ENTITIES.get(entityName);
         if (config == null)
             throw new IllegalArgumentException("Entity not found: " + entityName);

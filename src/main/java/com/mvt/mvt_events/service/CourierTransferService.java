@@ -61,35 +61,68 @@ public class CourierTransferService {
             return;
         }
 
-        // Idempotência
-        boolean exists = transferRepository.findByFoodOrderId(foodOrder.getId()).stream()
-                .anyMatch(t -> t.getDeliveryId() != null && t.getDeliveryId().equals(delivery.getId()));
-        if (exists) {
-            log.debug("⏭️  Transfer já registrado para FoodOrder #{} + Delivery #{}",
-                    foodOrder.getId(), delivery.getId());
-            return;
-        }
-
-        User courier = delivery.getCourier();
         BigDecimal deliveryCents = splitCalculator.toCents(deliveryFee);
-        long amountCents = splitCalculator.calculateCourierTransferAmount(deliveryCents).longValueExact();
+        BigDecimal foodCents = splitCalculator.toCents(
+                foodOrder.getSubtotal() != null ? foodOrder.getSubtotal() : BigDecimal.ZERO);
+        BigDecimal totalCents = foodCents.add(deliveryCents);
+
+        // Transfer 1: 87% do frete → courier
+        registerTransferIfMissing(
+                foodOrder, delivery, delivery.getCourier(),
+                splitCalculator.calculateCourierTransferAmount(deliveryCents).longValueExact(),
+                "Courier");
+
+        // Transfer 2: 5% do total → organizer (gerente da organização do courier).
+        // Indeterminado no checkout (dependia de qual courier aceitaria), por isso
+        // só agora a gente sabe qual organizer recebe o repasse.
+        User organizer = delivery.getOrganizer();
+        if (organizer != null) {
+            registerTransferIfMissing(
+                    foodOrder, delivery, organizer,
+                    splitCalculator.calculateOrganizerTransferAmount(totalCents).longValueExact(),
+                    "Organizer");
+        } else {
+            log.debug("⏭️  Delivery #{} sem organizer — sem transfer 5% (plataforma absorve)",
+                    delivery.getId());
+        }
+    }
+
+    /**
+     * Cria PagarmeTransfer PENDING para um destinatário específico se ainda não existir
+     * (idempotente por foodOrder + delivery + recipient). Retorna o transfer criado ou null
+     * se já existia ou amountCents <= 0.
+     */
+    private PagarmeTransfer registerTransferIfMissing(FoodOrder foodOrder, Delivery delivery,
+                                                       User recipient, long amountCents,
+                                                       String roleLabel) {
+        if (recipient == null || amountCents <= 0) return null;
+
+        boolean exists = transferRepository.findByFoodOrderId(foodOrder.getId()).stream()
+                .anyMatch(t -> t.getDeliveryId() != null
+                        && t.getDeliveryId().equals(delivery.getId())
+                        && t.getRecipient() != null
+                        && recipient.getId().equals(t.getRecipient().getId()));
+        if (exists) {
+            log.debug("⏭️  Transfer {} já registrado para FoodOrder #{} + Delivery #{} + recipient #{}",
+                    roleLabel, foodOrder.getId(), delivery.getId(), recipient.getId());
+            return null;
+        }
 
         PagarmeTransfer transfer = PagarmeTransfer.builder()
                 .foodOrder(foodOrder)
                 .deliveryId(delivery.getId())
-                .recipient(courier)
-                .recipientPagarmeId(courier.getPagarmeRecipientId() != null ? courier.getPagarmeRecipientId() : "")
+                .recipient(recipient)
+                .recipientPagarmeId(recipient.getPagarmeRecipientId() != null ? recipient.getPagarmeRecipientId() : "")
                 .amountCents(amountCents)
                 .status(PagarmeTransfer.Status.PENDING)
                 .createdAt(OffsetDateTime.now())
                 .build();
         transferRepository.save(transfer);
 
-        // Modo semi-automático: o transfer fica PENDING até admin disparar via UI
-        // ("Dívidas com Couriers" → botão Enviar PIX ou Marcar Pago).
-        log.info("📋 [Admin to-do] Transfer PENDING criado — FoodOrder #{} Delivery #{} Courier #{} amount={}¢ pixKey={}",
-                foodOrder.getId(), delivery.getId(), courier.getId(), amountCents,
-                courier.getPixKey() != null ? "✓" : "❌ não cadastrada");
+        log.info("📋 [Admin to-do] Transfer PENDING criado — FoodOrder #{} Delivery #{} {} #{} amount={}¢ pixKey={}",
+                foodOrder.getId(), delivery.getId(), roleLabel, recipient.getId(), amountCents,
+                recipient.getPixKey() != null ? "✓" : "❌ não cadastrada");
+        return transfer;
     }
 
     /**

@@ -376,6 +376,19 @@ public class UserService {
             }
         }
 
+        // Chave PIX (PIX-out de saque — COURIER e ORGANIZER)
+        if (request.getPixKey() != null) {
+            String trimmed = request.getPixKey().trim();
+            user.setPixKey(trimmed.isEmpty() ? null : trimmed);
+        }
+        if (request.getPixKeyType() != null && !request.getPixKeyType().trim().isEmpty()) {
+            try {
+                user.setPixKeyType(User.PixKeyType.valueOf(request.getPixKeyType().trim().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("pixKeyType inválido. Valores aceitos: CPF, CNPJ, EMAIL, PHONE, EVP");
+            }
+        }
+
         // Enabled — validações obrigatórias por role para ativação
         if (request.getEnabled() != null) {
             if (request.getEnabled()) {
@@ -609,7 +622,8 @@ public class UserService {
                     if (status == com.mvt.mvt_events.jpa.Delivery.DeliveryStatus.ACCEPTED) {
                         String existingApproach = deliveryRepository.getApproachRouteAsGeoJson(delivery.getId());
                         if (existingApproach == null) {
-                            deliveryRepository.initializeApproachRoute(delivery.getId(), latitude, longitude, epochSec);
+                            deliveryRepository.initializeApproachRoute(delivery.getId(), latitude, longitude, epochSec,
+                                    java.time.OffsetDateTime.now(java.time.ZoneId.of("America/Fortaleza")));
                         } else {
                             deliveryRepository.appendApproachRoutePoint(delivery.getId(), latitude, longitude, epochSec);
                         }

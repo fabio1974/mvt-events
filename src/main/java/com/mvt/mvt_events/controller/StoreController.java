@@ -8,6 +8,7 @@ import com.mvt.mvt_events.repository.StoreProfileRepository;
 import com.mvt.mvt_events.repository.UserRepository;
 import com.mvt.mvt_events.service.ProductCategoryService;
 import com.mvt.mvt_events.service.ProductService;
+import com.mvt.mvt_events.service.SiteConfigurationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -34,24 +35,36 @@ public class StoreController {
     private final UserRepository userRepository;
     private final ProductCategoryService categoryService;
     private final ProductService productService;
+    private final SiteConfigurationService siteConfigurationService;
 
     public StoreController(StoreProfileRepository storeProfileRepository, UserRepository userRepository,
-                           ProductCategoryService categoryService, ProductService productService) {
+                           ProductCategoryService categoryService, ProductService productService,
+                           SiteConfigurationService siteConfigurationService) {
         this.storeProfileRepository = storeProfileRepository;
         this.userRepository = userRepository;
         this.categoryService = categoryService;
         this.productService = productService;
+        this.siteConfigurationService = siteConfigurationService;
     }
 
     @GetMapping
-    @Operation(summary = "Listar restaurantes", description = "Lista restaurantes próximos com perfil de loja. Filtros: serviceType, open, lat/lng/radius")
+    @Operation(summary = "Listar restaurantes",
+            description = "Lista restaurantes próximos com perfil de loja. Filtros: serviceType, open, lat/lng. " +
+                    "O raio padrão vem do SiteConfiguration (establishmentSearchRadiusKm) — pode ser " +
+                    "sobrescrito via param radiusKm.")
     public ResponseEntity<List<Map<String, Object>>> listStores(
             @RequestParam(required = false) String serviceType,
             @RequestParam(required = false, defaultValue = "false") boolean openOnly,
             @RequestParam(required = false) Double lat,
             @RequestParam(required = false) Double lng,
-            @RequestParam(required = false, defaultValue = "10") double radiusKm,
+            @RequestParam(required = false) Double radiusKm,
             Authentication authentication) {
+
+        // Default vem do SiteConfiguration (admin pode ajustar em runtime sem deploy).
+        // Param radiusKm explícito sobrescreve.
+        final double effectiveRadiusKm = radiusKm != null
+                ? radiusKm
+                : siteConfigurationService.getActiveConfiguration().getEstablishmentSearchRadiusKm();
 
         // Busca CLIENTs com store_profile (JOIN FETCH user)
         List<StoreProfile> profiles = openOnly
@@ -82,7 +95,7 @@ public class StoreController {
                     Double storeLat = p.getUser().getGpsLatitude();
                     Double storeLng = p.getUser().getGpsLongitude();
                     if (storeLat == null || storeLng == null) return false;
-                    return haversineKm(finalLat, finalLng, storeLat, storeLng) <= radiusKm;
+                    return haversineKm(finalLat, finalLng, storeLat, storeLng) <= effectiveRadiusKm;
                 })
                 .map(p -> {
                     Map<String, Object> store = mapStoreToResponse(p);

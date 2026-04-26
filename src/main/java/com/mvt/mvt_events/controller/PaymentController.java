@@ -585,7 +585,7 @@ public class PaymentController {
      * </pre>
      */
     @GetMapping("/my-balance")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COURIER', 'ORGANIZER', 'CLIENT')")
     @Operation(summary = "Saldo do recebedor logado", description = "Retorna o saldo disponível, a receber e transferido do usuário logado no Pagar.me")
     public ResponseEntity<?> getMyBalance(@RequestHeader("Authorization") String authHeader) {
         String token = authHeader.replace("Bearer ", "");

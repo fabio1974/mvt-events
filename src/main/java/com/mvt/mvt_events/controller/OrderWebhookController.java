@@ -184,12 +184,32 @@ log.info("🔔 Webhook recebido em /api/webhooks/order");
             if (newStatus == PaymentStatus.PAID) {
                 updateDeliveriesPaymentCaptured(payment, true);
             }
-            
+
+            // 7b. FoodOrder espelha o status do Payment (Zapi-Food paga no checkout):
+            //     o Payment é a fonte da verdade transacional, mas o FoodOrder.customerPaymentStatus
+            //     é o que o app/UI consultam — então mantemos os dois em sincronia.
+            if ("ZAPI_FOOD".equals(payment.getPaymentType())) {
+                foodOrderRepository.findByPagarmeOrderId(orderId).ifPresent(fo -> {
+                    if (newStatus == PaymentStatus.PAID) {
+                        fo.setCustomerPaymentStatus(com.mvt.mvt_events.jpa.FoodOrder.CustomerPaymentStatus.PAID);
+                        if (fo.getCustomerPaidAt() == null) {
+                            fo.setCustomerPaidAt(OffsetDateTime.now(ZoneId.of("America/Fortaleza")));
+                        }
+                    } else if (newStatus == PaymentStatus.FAILED) {
+                        fo.setCustomerPaymentStatus(com.mvt.mvt_events.jpa.FoodOrder.CustomerPaymentStatus.FAILED);
+                    } else if (newStatus == PaymentStatus.CANCELLED) {
+                        fo.setCustomerPaymentStatus(com.mvt.mvt_events.jpa.FoodOrder.CustomerPaymentStatus.CANCELLED);
+                    }
+                    foodOrderRepository.save(fo);
+                    log.info("🍔 FoodOrder #{} sincronizado: {}", fo.getId(), fo.getCustomerPaymentStatus());
+                });
+            }
+
             // TODO: 8. Se o pagamento falhou, enviar notificação push para o cliente
             // if (newStatus == PaymentStatus.FAILED) {
             //     sendPaymentFailedNotification(payment, dataNode);
             // }
-            
+
             // Salvar alterações
             paymentRepository.save(payment);
             
