@@ -43,7 +43,8 @@ public class Announcement extends BaseEntity {
     /**
      * CSV de roles que devem ver este anúncio.
      * Exemplos: "COURIER", "COURIER,ORGANIZER", "COURIER,ORGANIZER,CLIENT".
-     * Roles válidos: ADMIN, COURIER, ORGANIZER, CLIENT, CUSTOMER, WAITER.
+     * Roles válidos: COURIER, ORGANIZER, CLIENT, CUSTOMER, WAITER.
+     * (ADMIN é quem cria os anúncios, não está entre os destinatários.)
      */
     @NotBlank(message = "Roles é obrigatório")
     @Size(max = 200)
@@ -51,9 +52,13 @@ public class Announcement extends BaseEntity {
     @Visible(table = true, form = true, filter = true)
     private String rolesCsv;
 
-    @NotNull(message = "Data de publicação é obrigatória")
+    /**
+     * Auto-setada como NOW() no @PrePersist se não fornecida.
+     * Hidden do form — admin não preenche, default é "agora" ao salvar.
+     * Visível na tabela pra histórico.
+     */
     @Column(name = "published_at", nullable = false)
-    @Visible(table = true, form = true, filter = false)
+    @Visible(table = true, form = false, filter = false)
     private OffsetDateTime publishedAt;
 
     /** Opcional. Se null, o anúncio nunca expira. */

@@ -69,6 +69,10 @@ public class JpaMetadataExtractor {
         FIELD_TRANSLATIONS.put("pixQrCode", "Código PIX");
         FIELD_TRANSLATIONS.put("pixQrCodeUrl", "QR Code PIX (URL)");
         FIELD_TRANSLATIONS.put("expiresAt", "Expira em");
+        FIELD_TRANSLATIONS.put("title", "Título");
+        FIELD_TRANSLATIONS.put("rolesCsv", "Perfis");
+        FIELD_TRANSLATIONS.put("bodyMarkdown", "Mensagem");
+        FIELD_TRANSLATIONS.put("publishedAt", "Publicado em");
         FIELD_TRANSLATIONS.put("bankAccount", "Conta Bancária");
         FIELD_TRANSLATIONS.put("bankCode", "Código do Banco");
         FIELD_TRANSLATIONS.put("bankName", "Nome do Banco");
@@ -621,6 +625,25 @@ public class JpaMetadataExtractor {
             ));
         }
 
+        // ✅ rolesCsv (Announcement): CSV de roles → multiselect com tradução amigável.
+        // Valor armazenado como "COURIER,ORGANIZER" no banco; o FE converte pra/de array no render.
+        if ("rolesCsv".equals(field.getName()) && field.getType().equals(String.class)) {
+            metadata.setType("multiselect");
+            metadata.setOptions(List.of(
+                new FilterOption("Motoboy", "COURIER"),
+                new FilterOption("Gerente", "ORGANIZER"),
+                new FilterOption("Estabelecimento", "CLIENT"),
+                new FilterOption("Cliente final", "CUSTOMER"),
+                new FilterOption("Garçom", "WAITER")
+            ));
+        }
+
+        // ✅ bodyMarkdown (Announcement): força o type "markdown" no form pra renderizar
+        // o editor com toolbar/preview no FE. Senão, cai como textarea simples.
+        if ("bodyMarkdown".equals(field.getName()) && field.getType().equals(String.class)) {
+            metadata.setType("markdown");
+        }
+
         // ✅ Verifica anotação @Visible (será processada pelo MetadataService para cada
         // contexto)
         // Aqui apenas armazenamos os flags para uso posterior
@@ -927,6 +950,10 @@ public class JpaMetadataExtractor {
             return "datetime";
         }
 
+        if (type.equals(java.time.OffsetDateTime.class) || type.equals(java.time.ZonedDateTime.class)) {
+            return "datetime";
+        }
+
         if (type.isEnum()) {
             return "select"; // Enums são sempre select
         }
@@ -1207,6 +1234,19 @@ public class JpaMetadataExtractor {
             if (column != null && column.columnDefinition() != null &&
                     column.columnDefinition().toUpperCase().contains("TEXT")) {
                 return null;
+            }
+
+            // ✅ rolesCsv vira multiselect também no filtro (mesmas opções)
+            if ("rolesCsv".equals(fieldName)) {
+                filter.setType("multiselect");
+                filter.setOptions(List.of(
+                    new FilterOption("Motoboy", "COURIER"),
+                    new FilterOption("Gerente", "ORGANIZER"),
+                    new FilterOption("Estabelecimento", "CLIENT"),
+                    new FilterOption("Cliente final", "CUSTOMER"),
+                    new FilterOption("Garçom", "WAITER")
+                ));
+                return filter;
             }
 
             filter.setType("text");
